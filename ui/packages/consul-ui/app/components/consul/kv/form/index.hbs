@@ -14,9 +14,8 @@
   @src={{@src}}
   @onchange={{action 'change'}}
   @onsubmit={{action (or @onsubmit this.onsubmit)}}
-  as |api|
 >
-  <BlockSlot @name='content'>
+  <:content as |api|>
     {{#let (cannot 'write kv' item=api.data) as |disabld|}}
       <form onsubmit={{action api.submit}}>
         <fieldset {{disabled (or disabld api.disabled)}}>
@@ -121,7 +120,7 @@
             />
             {{#if (not disabld)}}
               <ConfirmationDialog @message='Are you sure you want to delete this key?'>
-                <BlockSlot @name='action' as |confirm|>
+                <:action as |confirm|>
                   <Hds::Button
                     @text='Delete'
                     @color='critical'
@@ -129,19 +128,19 @@
                     disabled={{api.disabled}}
                     {{on 'click' (action confirm)}}
                   />
-                </BlockSlot>
-                <BlockSlot @name='dialog' as |execute cancel message|>
+                </:action>
+                <:dialog as |execute cancel message|>
                   <DeleteConfirmation
                     @message={{message}}
                     @execute={{queue execute api.delete}}
                     @cancel={{cancel}}
                   />
-                </BlockSlot>
+                </:dialog>
               </ConfirmationDialog>
             {{/if}}
           {{/if}}
         </Hds::ButtonSet>
       </form>
     {{/let}}
-  </BlockSlot>
+  </:content>
 </DataForm>

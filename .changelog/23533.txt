@@ -1,0 +1,3 @@
+```release-note:bug
+server: Fixed a bug where renaming a server (or wiping and rejoining it with the same IP and Raft node ID) could cause an out-of-order serf event to evict the live leader from the internal server lookup, resulting in `Raft leader not found in server lookup mapping` (HTTP 500) errors on follower RPCs until the next member event resynced the mapping.
+```

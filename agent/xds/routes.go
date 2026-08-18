@@ -467,7 +467,7 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 			continue
 		}
 		// Do not create any route configuration for TCP listeners
-		if readyListener.listenerCfg.Protocol != structs.ListenerProtocolHTTP {
+		if !structs.IsProtocolHTTPLike(string(readyListener.listenerCfg.Protocol)) {
 			continue
 		}
 
@@ -505,7 +505,12 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 			consolidatedRoute := consolidatedRoute // Reassignment to avoid closure issues with the loop variable.
 			domains := generateUpstreamAPIsDomains(readyListener.listenerKey, upstream, consolidatedRoute.Hostnames)
 
-			filterBuilder := perRouteFilterBuilder{providerMap: cfgSnap.JWTProviders, listener: &readyListener.listenerCfg, route: &consolidatedRoute}
+			filterBuilder := perRouteFilterBuilder{
+				providerMap:            cfgSnap.JWTProviders,
+				listener:               &readyListener.listenerCfg,
+				route:                  &consolidatedRoute,
+				gatewayExtAuthzEnabled: cfgSnap.APIGateway.GatewayConfig.ExtAuthzEnabled(),
+			}
 			virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, domains, false, filterBuilder)
 			if err != nil {
 				return nil, err

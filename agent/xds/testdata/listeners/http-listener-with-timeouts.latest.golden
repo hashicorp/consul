@@ -169,6 +169,9 @@
                           "match": {
                             "prefix": "/"
                           },
+                          "requestHeadersToRemove": [
+                            "x-forwarded-client-cert"
+                          ],
                           "route": {
                             "cluster": "local_app",
                             "idleTimeout": "3.456s",

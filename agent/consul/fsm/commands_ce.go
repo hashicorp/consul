@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/armon/go-metrics"
-	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-metrics"
+	"github.com/hashicorp/go-metrics/prometheus"
 
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
@@ -57,6 +57,10 @@ var CommandsSummaries = []prometheus.SummaryDefinition{
 	{
 		Name: []string{"fsm", "autopilot"},
 		Help: "Measures the time it takes to apply the given autopilot update to the FSM.",
+	},
+	{
+		Name: []string{"fsm", "feature-gate"},
+		Help: "Measures the time it takes to apply a feature-gate policy/status update to the FSM.",
 	},
 	{
 		Name: []string{"consul", "fsm", "intention"},
@@ -123,6 +127,7 @@ func init() {
 	registerCommand(structs.PreparedQueryRequestType, (*FSM).applyPreparedQueryOperation)
 	registerCommand(structs.TxnRequestType, (*FSM).applyTxn)
 	registerCommand(structs.AutopilotRequestType, (*FSM).applyAutopilotUpdate)
+	registerCommand(structs.FeatureGateRequestType, (*FSM).applyFeatureGateUpdate)
 	registerCommand(structs.IntentionRequestType, (*FSM).applyIntentionOperation)
 	registerCommand(structs.ConnectCARequestType, (*FSM).applyConnectCAOperation)
 	registerCommand(structs.ACLTokenSetRequestType, (*FSM).applyACLTokenSetOperation)
@@ -365,6 +370,20 @@ func (c *FSM) applyAutopilotUpdate(buf []byte, index uint64) interface{} {
 		return act
 	}
 	return c.state.AutopilotSetConfig(index, &req.Config)
+}
+
+func (c *FSM) applyFeatureGateUpdate(buf []byte, index uint64) interface{} {
+	var req structs.FeatureGateUpdateRequest
+	if err := structs.Decode(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode request: %v", err))
+	}
+	defer metrics.MeasureSince([]string{"fsm", "feature-gate"}, time.Now())
+
+	applied, err := c.state.FeatureGateUpdate(index, &req)
+	if err != nil {
+		return err
+	}
+	return applied
 }
 
 // applyIntentionOperation applies the given intention operation to the state store.

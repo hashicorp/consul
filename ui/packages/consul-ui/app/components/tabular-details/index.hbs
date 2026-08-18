@@ -7,7 +7,7 @@
 <table class="with-details has-actions">
   <thead>
     <tr>
-      <YieldSlot @name="header">{{yield}}</YieldSlot>
+      {{yield to="header"}}
       <th class="actions">Actions</th>
     </tr>
   </thead>
@@ -15,7 +15,7 @@
   {{#let (concat 'tabular-details-' @name '-toggle-' this.guid '_') as |inputId|}}
     {{#each @items as |item index|}}
       <tr data-test-tabular-row onclick={{action 'click'}}>
-          <YieldSlot @name="row">{{yield item index}}</YieldSlot>
+          {{yield item index to="row"}}
           <td class="actions">
             <label for={{concat inputId index}}><span>Show details</span></label>
           </td>
@@ -26,9 +26,7 @@
           <div>
             <label for={{concat inputId index}}><span>Hide details</span></label>
             <div>
-              <YieldSlot @name="details">
-                {{yield item index}}
-              </YieldSlot>
+              {{yield item index to="details"}}
             </div>
           </div>
         </td>

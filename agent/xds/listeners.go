@@ -1125,9 +1125,19 @@ func (s *ResourceGenerator) injectConnectFilters(cfgSnap *proxycfg.ConfigSnapsho
 }
 
 const (
-	httpConnectionManagerOldName = "envoy.http_connection_manager"
-	httpConnectionManagerNewName = "envoy.filters.network.http_connection_manager"
+	httpConnectionManagerOldName  = "envoy.http_connection_manager"
+	httpConnectionManagerNewName  = "envoy.filters.network.http_connection_manager"
+	forwardedClientCertHeaderName = "x-forwarded-client-cert"
 )
+
+func stripForwardClientCertHeaderFromRoute(route *envoy_route_v3.Route) {
+	for _, header := range route.RequestHeadersToRemove {
+		if strings.EqualFold(header, forwardedClientCertHeaderName) {
+			return
+		}
+	}
+	route.RequestHeadersToRemove = append(route.RequestHeadersToRemove, forwardedClientCertHeaderName)
+}
 
 func extractRdsResourceNames(listener *envoy_listener_v3.Listener) ([]string, error) {
 	var found []string
@@ -1228,6 +1238,81 @@ func injectHTTPFilterOnFilterChains(
 			return err
 		}
 		chain.Filters[hcmFilterIdx] = newFilter
+	}
+
+	return nil
+}
+
+// injectRequestNormalizationOnFilterChains applies Consul's inbound HTTP
+// request-normalization defaults to every HttpConnectionManager filter on the
+// given listener.
+//
+// This is required for the user-provided public listener path
+// (envoy_public_listener_json). On that path Consul injects an HTTP RBAC filter
+// to enforce L7 intentions but does not otherwise build the connection manager,
+// so it would not apply the normalization defaults that the standard inbound
+// listener path applies via setNormalizationOptions/makeHTTPFilter. Without
+// normalization, RBAC evaluates raw (non-canonical) paths, allowing an exact
+// path deny intention to be bypassed with a percent-encoded equivalent.
+//
+// Normalization is applied additively: it enables Consul's defaults (path
+// normalization on unless disabled via the mesh InsecureDisablePathNormalization
+// setting) without weakening any stricter values an operator may have set in
+// their custom connection manager.
+func injectRequestNormalizationOnFilterChains(
+	listener *envoy_listener_v3.Listener,
+	rn *structs.RequestNormalizationMeshConfig,
+) error {
+	var opts listenerFilterOpts
+	setNormalizationOptions(rn, &opts)
+
+	for chainIdx, chain := range listener.FilterChains {
+		for filterIdx, filter := range chain.Filters {
+			if filter.Name != httpConnectionManagerOldName &&
+				filter.Name != httpConnectionManagerNewName {
+				continue
+			}
+
+			tc, ok := filter.ConfigType.(*envoy_listener_v3.Filter_TypedConfig)
+			if !ok {
+				return fmt.Errorf(
+					"filter chain %d has a %q filter with an unsupported config type: %T",
+					chainIdx,
+					filter.Name,
+					filter.ConfigType,
+				)
+			}
+
+			var hcm envoy_http_v3.HttpConnectionManager
+			if err := tc.TypedConfig.UnmarshalTo(&hcm); err != nil {
+				return err
+			}
+
+			// Enable Consul's normalization defaults. We only ever turn
+			// normalization on so that we never downgrade stricter operator
+			// settings present in the custom connection manager.
+			if opts.normalizePath {
+				hcm.NormalizePath = &wrapperspb.BoolValue{Value: true}
+			}
+			if opts.mergeSlashes {
+				hcm.MergeSlashes = true
+			}
+			if opts.pathWithEscapedSlashesAction != 0 {
+				hcm.PathWithEscapedSlashesAction = opts.pathWithEscapedSlashesAction
+			}
+			if opts.headersWithUnderscoresAction != 0 {
+				if hcm.CommonHttpProtocolOptions == nil {
+					hcm.CommonHttpProtocolOptions = &envoy_core_v3.HttpProtocolOptions{}
+				}
+				hcm.CommonHttpProtocolOptions.HeadersWithUnderscoresAction = opts.headersWithUnderscoresAction
+			}
+
+			newFilter, err := makeFilter(filter.Name, &hcm)
+			if err != nil {
+				return err
+			}
+			chain.Filters[filterIdx] = newFilter
+		}
 	}
 
 	return nil
@@ -1415,6 +1500,28 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 				// If we get an error inject the RBAC network filter instead.
 				useHTTPFilter = false
 			}
+
+			// When the HTTP RBAC filter is in place to enforce L7 intentions we
+			// must also apply Consul's inbound request-normalization defaults, so
+			// that RBAC evaluates canonicalized paths. The standard inbound
+			// listener path does this via setNormalizationOptions; the custom
+			// listener path does not build the connection manager itself, so we
+			// apply normalization directly here. Without it, an exact path deny
+			// intention could be bypassed with a non-canonical (e.g. percent-
+			// encoded) path.
+			if useHTTPFilter {
+				if err := injectRequestNormalizationOnFilterChains(
+					l, cfgSnap.MeshConfig().GetHTTPIncomingRequestNormalization(),
+				); err != nil {
+					s.Logger.Warn(
+						"could not apply inbound request normalization to user-provided "+
+							"'envoy_public_listener_json' config; L7 intention path matching "+
+							"may evaluate non-canonical paths",
+						"proxy", cfgSnap.ProxyID,
+						"error", err,
+					)
+				}
+			}
 		}
 
 		err := s.finalizePublicListenerFromConfig(l, cfgSnap, useHTTPFilter)
@@ -1505,9 +1612,9 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 
 		meshConfig := cfgSnap.MeshConfig()
 		includeXFCC := meshConfig == nil || meshConfig.HTTP == nil || !meshConfig.HTTP.SanitizeXForwardedClientCert
-		notGRPC := cfg.Protocol != "grpc"
-		if includeXFCC && notGRPC {
+		if includeXFCC {
 			filterOpts.forwardClientDetails = true
+			filterOpts.stripForwardClientCertHeader = true
 			filterOpts.forwardClientPolicy = envoy_http_v3.HttpConnectionManager_APPEND_FORWARD
 
 			addMeta, err := parseXFCCToDynamicMetaHTTPFilter()
@@ -1636,19 +1743,23 @@ func makePermissiveFilterChain(cfgSnap *proxycfg.ConfigSnapshot, opts listenerFi
 	return chain, nil
 }
 
-// finalizePublicListenerFromConfig is used for best-effort injection of Consul filter-chains onto listeners.
-// This include L4 authorization filters and TLS context.
+// finalizePublicListenerFromConfig injects the Consul filter-chains onto the public listener.
+// This includes L4 authorization (intention enforcement) filters and the mTLS context.
+// These are security-critical: if either injection fails we must return the error so the
+// caller drops the listener rather than serving an unauthenticated/unauthorized one.
 func (s *ResourceGenerator) finalizePublicListenerFromConfig(l *envoy_listener_v3.Listener, cfgSnap *proxycfg.ConfigSnapshot, useHTTPFilter bool) error {
 	if !useHTTPFilter {
-		// Best-effort injection of L4 intentions
+		// Inject the L4 intention (RBAC) network filter. Failing to do so would
+		// allow traffic to bypass intention enforcement, so surface the error.
 		if err := s.injectConnectFilters(cfgSnap, l); err != nil {
-			return nil
+			return err
 		}
 	}
 
-	// Always apply TLS certificates
+	// Always apply TLS certificates. Failing to do so would expose a public
+	// listener without mTLS, so surface the error instead of swallowing it.
 	if err := s.injectConnectTLSForPublicListener(cfgSnap, l); err != nil {
-		return nil
+		return err
 	}
 
 	return nil
@@ -2569,6 +2680,7 @@ type listenerFilterOpts struct {
 
 	// HTTP listener filter options
 	forwardClientDetails         bool
+	stripForwardClientCertHeader bool
 	forwardClientPolicy          envoy_http_v3.HttpConnectionManager_ForwardClientCertDetails
 	httpAuthzFilters             []*envoy_http_v3.HttpFilter
 	idleTimeoutMs                *int
@@ -2583,6 +2695,8 @@ type listenerFilterOpts struct {
 	useRDS                       bool
 	fetchTimeoutRDS              *durationpb.Duration
 	maxRequestHeadersKb          *uint32
+	suppressEnvoyHeaders         bool
+	serverHeaderName             string
 }
 
 func makeListenerFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) {
@@ -2694,6 +2808,21 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 		},
 	}
 
+	if opts.suppressEnvoyHeaders {
+		// PASS_THROUGH prevents Envoy from injecting "server: envoy" into responses.
+		// OVERWRITE (the default) replaces/adds "server: envoy" on every response,
+		// which cannot be undone by route-level response_headers_to_remove or Lua
+		// filters because those run before the codec adds the header.
+		// suppressEnvoyHeaders takes precedence over serverHeaderName.
+		cfg.ServerHeaderTransformation = envoy_http_v3.HttpConnectionManager_PASS_THROUGH
+	} else if opts.serverHeaderName != "" {
+		// OVERWRITE with a custom server_name replaces "server: envoy" with the
+		// configured value on every response — both Envoy-generated (4xx/5xx) and
+		// proxied upstream responses.
+		cfg.ServerName = opts.serverHeaderName
+		cfg.ServerHeaderTransformation = envoy_http_v3.HttpConnectionManager_OVERWRITE
+	}
+
 	if opts.tracing != nil {
 		cfg.Tracing = opts.tracing
 	}
@@ -2770,6 +2899,10 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 		// If a path is provided, do not match on a catch-all prefix
 		if opts.routePath != "" {
 			route.Match.PathSpecifier = &envoy_route_v3.RouteMatch_Path{Path: opts.routePath}
+		}
+
+		if opts.stripForwardClientCertHeader {
+			stripForwardClientCertHeaderFromRoute(route)
 		}
 
 		cfg.RouteSpecifier = &envoy_http_v3.HttpConnectionManager_RouteConfig{
@@ -2950,21 +3083,7 @@ func makeTransportSocket(name string, config proto.Message) (*envoy_core_v3.Tran
 }
 
 func makeUpstreamTLSContext(mapping structs.GatewayService) *envoy_tls_v3.CommonTlsContext {
-	return &envoy_tls_v3.CommonTlsContext{
-		// This is the CRITICAL change for dynamic rotation.
-		// It tells Envoy: "Ask SDS for a secret named <service-name>".
-		TlsCertificateSdsSecretConfigs: []*envoy_tls_v3.SdsSecretConfig{
-			{
-				Name: mapping.Service.Name + "-cert",
-				SdsConfig: &envoy_core_v3.ConfigSource{
-					ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
-						Ads: &envoy_core_v3.AggregatedConfigSource{},
-					},
-					ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
-				},
-			},
-		},
-
+	ctx := &envoy_tls_v3.CommonTlsContext{
 		ValidationContextType: &envoy_tls_v3.CommonTlsContext_ValidationContextSdsSecretConfig{
 			ValidationContextSdsSecretConfig: &envoy_tls_v3.SdsSecretConfig{
 				Name: mapping.Service.Name + "-ca",
@@ -2977,6 +3096,26 @@ func makeUpstreamTLSContext(mapping structs.GatewayService) *envoy_tls_v3.Common
 			},
 		},
 	}
+
+	// Only request a client certificate via SDS when mTLS is configured (both
+	// CertFile and KeyFile must be set). When only CAFile is set, Envoy must
+	// not be told to fetch a client-cert secret that will never be served,
+	// which would leave the cluster in a permanent "warming" state.
+	if mapping.CertFile != "" && mapping.KeyFile != "" {
+		ctx.TlsCertificateSdsSecretConfigs = []*envoy_tls_v3.SdsSecretConfig{
+			{
+				Name: mapping.Service.Name + "-cert",
+				SdsConfig: &envoy_core_v3.ConfigSource{
+					ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
+						Ads: &envoy_core_v3.AggregatedConfigSource{},
+					},
+					ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
+				},
+			},
+		}
+	}
+
+	return ctx
 }
 
 func makeCommonTLSContextFromFiles(caFile, certFile, keyFile string) *envoy_tls_v3.CommonTlsContext {

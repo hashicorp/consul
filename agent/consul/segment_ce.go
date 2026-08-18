@@ -8,7 +8,7 @@ package consul
 import (
 	"net"
 
-	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-metrics/prometheus"
 
 	"github.com/hashicorp/consul/agent/structs"
 )

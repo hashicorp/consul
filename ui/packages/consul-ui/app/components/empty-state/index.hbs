@@ -3,42 +3,43 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-{{yield}}
-<div
-  class="empty-state"
-  ...attributes
->
-{{#if this.hasHeader}}
-  <header>
-    {{#yield-slot name="header"}}
-      {{yield}}
-    {{/yield-slot}}
-    {{#yield-slot name="subheader"}}
-      {{yield}}
-    {{/yield-slot}}
-  </header>
-{{/if}}
-  {{#yield-slot name="body"}}
-    <div>
-      {{yield}}
-      {{#if @login}}
-        <Hds::Button
-          @color='primary'
-          @text={{if (and this.token this.token.AccessorID) 'Log in with a different token' 'Log in'}}
-          data-test-empty-state-login
-          {{on "click" @login}}
-        >
-          <DataSource
-            @src={{uri 'settings://consul:token'}}
-            @onchange={{action (mut this.token) value="data"}}
-          />
-        </Hds::Button>
+<div class='empty-state' ...attributes>
+  {{#if (or (has-block 'header') (has-block 'subheader'))}}
+    <header>
+      {{#if (has-block 'header')}}
+        {{yield to='header'}}
+      {{else}}
       {{/if}}
-    </div>
-  {{/yield-slot}}
-  {{#yield-slot name="actions"}}
+      {{#if (has-block 'subheader')}}
+        {{yield to='subheader'}}
+      {{else}}
+      {{/if}}
+    </header>
+  {{/if}}
+  <div>
+    {{#if (has-block 'body')}}
+      {{yield to='body'}}
+    {{/if}}
+    {{#if @login}}
+
+      <Hds::Button
+        @color='primary'
+        @text={{if (and this.token this.token.AccessorID) 'Log in with a different token' 'Log in'}}
+        data-test-empty-state-login
+        {{on 'click' @login}}
+      >
+        <DataSource
+          @src={{uri 'settings://consul:token'}}
+          @onchange={{action (mut this.token) value='data'}}
+        />
+      </Hds::Button>
+
+    {{/if}}
+  </div>
+
+  {{#if (has-block 'actions')}}
     <ul>
-      {{yield}}
+      {{yield to='actions'}}
     </ul>
-  {{/yield-slot}}
+  {{/if}}
 </div>

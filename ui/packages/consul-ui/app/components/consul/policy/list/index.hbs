@@ -3,8 +3,8 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<ListCollection class='consul-policy-list' @items={{@items}} as |item|>
-  <BlockSlot @name='header'>
+<ListCollection class='consul-policy-list' @items={{@items}}>
+  <:header as |item|>
     {{#if (or (eq (policy/typeof item) 'policy-management') (eq (policy/typeof item) 'read-only'))}}
       <dl class='policy-management'>
         <dt>Type</dt>
@@ -22,8 +22,8 @@
       href={{href-to 'dc.acls.policies.edit' item.ID}}
       class={{if (eq (policy/typeof item) 'policy-management') 'is-management'}}
     >{{item.Name}}</a>
-  </BlockSlot>
-  <BlockSlot @name='details'>
+  </:header>
+  <:details as |item|>
     <dl class='datacenter'>
       <dt {{hds-tooltip "Datacenters" options=(detached-tooltip-options)}}>
         Datacenters
@@ -38,36 +38,36 @@
         {{item.Description}}
       </dd>
     </dl>
-  </BlockSlot>
-  <BlockSlot @name='actions' as |Actions|>
+  </:details>
+  <:actions as |item index Actions|>
     <Actions as |Action|>
       <Action data-test-edit-action @href={{href-to 'dc.acls.policies.edit' item.ID}}>
-        <BlockSlot @name='label'>
+        <:label>
           {{#if (can 'write policy' item=item)}}
             Edit
           {{else}}
             View
           {{/if}}
-        </BlockSlot>
+        </:label>
       </Action>
       {{#if (can 'delete policy' item=item)}}
         <Action data-test-delete-action @onclick={{action @ondelete item}} class='dangerous'>
-          <BlockSlot @name='label'>
+          <:label>
             Delete
-          </BlockSlot>
-          <BlockSlot @name='confirm-header'>
+          </:label>
+          <:confirmHeader>
             Confirm delete
-          </BlockSlot>
-          <BlockSlot @name='confirm-body'>
+          </:confirmHeader>
+          <:confirmBody>
             <p>
               Are you sure you want to delete this policy?
             </p>
-          </BlockSlot>
-          <BlockSlot @name='confirm-footer' as |Params|>
+          </:confirmBody>
+          <:confirmFooter as |Params|>
             <Params.button @text='Delete' />
-          </BlockSlot>
+          </:confirmFooter>
         </Action>
       {{/if}}
     </Actions>
-  </BlockSlot>
+  </:actions>
 </ListCollection>

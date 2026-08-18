@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/armon/go-metrics"
+	"github.com/hashicorp/go-metrics"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/go-hclog"

@@ -23,10 +23,10 @@
           </dt>
           <dd>
             <MenuPanel @position="left" @menu={{false}}>
-              <BlockSlot @name="header">
+              <:header>
                 API Gateways manage north-south traffic from external services to services in the Datacenter. For more information, read our documentation.
-              </BlockSlot>
-              <BlockSlot @name="menu">
+              </:header>
+              <:menu>
                 <li role="separator">
                   About {{t (concat "common.brand." externalSource)}}
                 </li>
@@ -35,7 +35,7 @@
                     Learn guides
                   </a>
                 </li>
-              </BlockSlot>
+              </:menu>
             </MenuPanel>
           </dd>
         </dl>

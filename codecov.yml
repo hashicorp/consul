@@ -1,0 +1,21 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
+# Codecov configuration for consul.
+# https://docs.codecov.com/docs/codecovyml-reference
+
+coverage:
+  status:
+    project:
+      default:
+        informational: true # never block PRs on coverage drop
+    patch:
+      default:
+        informational: true
+
+ignore:
+  - "**/*_test.go"
+  - "**/mocks/**"
+  - "**/mock_*"
+  - "**/*.pb.go"
+  - "vendor/**"

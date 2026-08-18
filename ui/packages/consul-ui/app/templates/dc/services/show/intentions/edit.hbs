@@ -17,17 +17,16 @@ as |readOnly|}}
         dc=route.params.dc
         id=(or route.params.intention_id '')
       )
-    }}
-  as |loader|>
+    }}>
 
-    <BlockSlot @name="error">
+    <:error as |loader|>
         <ErrorState
           @error={{loader.error}}
           @login={{route.model.app.login.open}}
         />
-    </BlockSlot>
+    </:error>
 
-    <BlockSlot @name="loaded">
+    <:loaded as |loader|>
 {{#let
   loader.data
 as |item|}}
@@ -43,7 +42,7 @@ as |item|}}
           @onsubmit={{transition-to 'dc.services.show.intentions.index'}}
         />
 {{/let}}
-  </BlockSlot>
+  </:loaded>
 </DataLoader>
 {{/let}}
 </Route>

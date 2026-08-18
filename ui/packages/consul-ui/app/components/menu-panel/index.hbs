@@ -16,19 +16,24 @@
   }}
   {{did-insert (action 'connect')}}
 >
-  <YieldSlot @name="controls">
-    {{yield api}}
-  </YieldSlot>
-  {{#yield-slot name="header"}}
-    <div>
-      {{yield api}}
-    </div>
+  {{#if (has-block "controls")}}
+    {{yield api to="controls"}}
   {{else}}
-  {{/yield-slot}}
+    {{yield api}}
+  {{/if}}
+  
+  {{#if (has-block "header")}}
+    <div>
+      {{yield api to="header"}}
+    </div>
+  {{/if}}
+  
   <ul role="menu" ...attributes>
-    <YieldSlot @name="menu">
+    {{#if (has-block "menu")}}
+      {{yield api to="menu"}}
+    {{else}}
       {{yield api}}
-    </YieldSlot>
+    {{/if}}
   </ul>
 </div>
 {{/let}}

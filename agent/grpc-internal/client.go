@@ -14,7 +14,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 
-	"github.com/armon/go-metrics"
+	"github.com/hashicorp/go-metrics"
 
 	"github.com/hashicorp/consul/agent/grpc-internal/balancer"
 	agentmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"

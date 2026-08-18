@@ -95,9 +95,9 @@ The above method can be called from within the app, along with Blocking Query an
     )
   }}
 as |loader|>
-  <BlockSlot @name="loaded">
+  <:loaded>
     Show the Auth Methods here {{loader.data}}
-  </BlockSlot>
+  </:loaded>
 </DataLoader>
 
 {{! or just }}

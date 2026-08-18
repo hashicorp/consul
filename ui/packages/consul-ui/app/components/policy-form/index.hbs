@@ -10,7 +10,9 @@
   {{fix-super-select-aria}}
   ...attributes
 >
-  {{#yield-slot name='template'}}{{else}}
+  {{#if (has-block 'template')}}
+    {{yield to='template'}}
+  {{else}}
     <h3>
       Policy{{if this.allowIdentity ' or identity?' ''}}
     </h3>
@@ -37,7 +39,7 @@
     {{else}}
       <input type='hidden' name={{concat this.name '[template]'}} value='' />
     {{/if}}
-  {{/yield-slot}}
+  {{/if}}
   <label class='type-text{{if (and this.item.error.Name (not this.item.isPristine)) " has-error"}}'>
     <span>Name</span>
     <input

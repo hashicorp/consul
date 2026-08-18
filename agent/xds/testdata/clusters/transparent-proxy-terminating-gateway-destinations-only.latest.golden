@@ -200,16 +200,7 @@
                   "resourceApiVersion": "V3"
                 }
               }
-            },
-            "tlsCertificateSdsSecretConfigs": [
-              {
-                "name": "external-hostname-with-SNI-cert",
-                "sdsConfig": {
-                  "ads": {},
-                  "resourceApiVersion": "V3"
-                }
-              }
-            ]
+            }
           },
           "sni": "api.test.com"
         }

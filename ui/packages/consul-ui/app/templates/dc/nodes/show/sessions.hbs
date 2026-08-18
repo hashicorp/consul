@@ -13,16 +13,16 @@ as |route|>
       dc=route.params.dc
       node=route.params.name
     )
-  }} as |api|>
+  }}>
 
-    <BlockSlot @name="error">
+    <:error as |api|>
       <AppError
         @error={{api.error}}
         @login={{route.model.app.login.open}}
       />
-    </BlockSlot>
+    </:error>
 
-    <BlockSlot @name="loaded">
+    <:loaded as |api|>
 {{#let api.data (refresh-route) as |items refreshRoute|}}
     <div class="tab-section">
       <DataWriter
@@ -35,19 +35,18 @@ as |route|>
         }}
         @type="session"
         @label="Lock Session"
-        @ondelete={{refreshRoute}}
-      as |writer|>
+        @ondelete={{refreshRoute}}>
 
-        <BlockSlot @name="removed" as |after|>
+        <:removed as |after|>
           <Consul::LockSession::Notifications
             {{notification
               after=(action after)
             }}
             @type="remove"
           />
-        </BlockSlot>
+        </:removed>
 
-        <BlockSlot @name="error" as |after error|>
+        <:error as |after error writer |>
           <Consul::LockSession::Notifications
             {{notification
               after=(action after)
@@ -55,9 +54,9 @@ as |route|>
             @type="remove"
             @error={{error}}
           />
-        </BlockSlot>
+        </:error>
 
-        <BlockSlot @name="content">
+        <:content as |writer|>
 
           <DataCollection
             @type="session"
@@ -75,21 +74,21 @@ as |route|>
               <EmptyState
                 @login={{route.model.app.login.open}}
               >
-              <BlockSlot @name="header">
+              <:header>
                 <h2>
                   {{t 'routes.dc.nodes.show.sessions.empty.header'
                     items=items.length
                   }}
                 </h2>
-              </BlockSlot>
-              <BlockSlot @name="body">
+              </:header>
+              <:body>
                 {{t 'routes.dc.nodes.show.sessions.empty.body'
                   canUseACLs=(can "use acls")
                   htmlSafe=true
                 }}
-              </BlockSlot>
+              </:body>
 
-                <BlockSlot @name="actions">
+                <:actions>
                   <li>
                     <Hds::Link::Standalone
                       @text='Documentation on Lock Sessions'
@@ -108,17 +107,17 @@ as |route|>
                       @size='small'
                     />
                   </li>
-                </BlockSlot>
+                </:actions>
 
               </EmptyState>
             </collection.Empty>
 
           </DataCollection>
 
-        </BlockSlot>
+        </:content>
       </DataWriter>
     </div>
 {{/let}}
-  </BlockSlot>
+  </:loaded>
 </DataLoader>
 </Route>

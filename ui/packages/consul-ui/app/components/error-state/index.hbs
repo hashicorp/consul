@@ -8,21 +8,19 @@
     class={{concat "status-" @error.status}}
     @login={{@login}}
   >
-    <BlockSlot @name="header">
+    <:header>
       <h2>
         {{or @error.message "Consul returned an error"}}
       </h2>
-    </BlockSlot>
-{{#if @error.status }}
-    <BlockSlot @name="subheader">
-      <h3
-        data-test-status={{@error.status}}
-      >
-        Error {{@error.status}}
-      </h3>
-    </BlockSlot>
-{{/if}}
-    <BlockSlot @name="body">
+    </:header>
+    <:subheader>
+      {{#if @error.status}}
+        <h3 data-test-status={{@error.status}}>
+          Error {{@error.status}}
+        </h3>
+      {{/if}}
+    </:subheader>
+    <:body>
       <p>
         {{#if @error.detail}}
           {{@error.detail}}
@@ -30,8 +28,8 @@
           You may have visited a URL that is loading an unknown resource, so you can try going back to the root or try re-submitting your ACL Token/SecretID by going back to ACLs.
         {{/if}}
       </p>
-    </BlockSlot>
-    <BlockSlot @name="actions">
+    </:body>
+    <:actions>
       <li>
         <Hds::Link::Standalone
           data-test-home
@@ -52,31 +50,29 @@
           @size='small'
         />
       </li>
-    </BlockSlot>
+    </:actions>
   </EmptyState>
 {{else}}
   <EmptyState
     class={{concat "status-" @error.status}}
     @login={{@login}}
   >
-    <BlockSlot @name="header">
-      <h2
-        data-test-status={{@error.status}}
-      >
+    <:header>
+      <h2 data-test-status={{@error.status}}>
         You are not authorized
       </h2>
-    </BlockSlot>
-    <BlockSlot @name="subheader">
+    </:header>
+    <:subheader>
       <h3>
         Error {{@error.status}}
       </h3>
-    </BlockSlot>
-    <BlockSlot @name="body">
+    </:subheader>
+    <:body>
       <p>
         You must be granted permissions to view this data. Ask your administrator if you think you should have access.
       </p>
-    </BlockSlot>
-    <BlockSlot @name="actions">
+    </:body>
+    <:actions>
       <li>
         <Hds::Link::Standalone
           @text='Read the documentation'
@@ -95,6 +91,6 @@
           @size='small'
         />
       </li>
-    </BlockSlot>
+    </:actions>
   </EmptyState>
 {{/if}}

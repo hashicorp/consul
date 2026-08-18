@@ -32,7 +32,7 @@ type Config struct {
 
 //go:generate mockery --name Login --inpackage
 type Login interface {
-	TokenForVerifiedIdentity(identity *authmethod.Identity, authMethod *structs.ACLAuthMethod, description string) (*structs.ACLToken, error)
+	TokenForVerifiedIdentity(identity *authmethod.Identity, authMethod *structs.ACLAuthMethod, name, description string) (*structs.ACLToken, error)
 }
 
 //go:generate mockery --name Validator --inpackage

@@ -5,9 +5,8 @@
 
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
-import Slotted from 'block-slots';
 
-export default Component.extend(Slotted, {
+export default Component.extend({
   dom: service('dom'),
   onchange: function () {},
   init: function () {

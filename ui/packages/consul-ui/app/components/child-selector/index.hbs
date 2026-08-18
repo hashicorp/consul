@@ -10,9 +10,9 @@
 >
 {{yield}}
 {{#if (not @disabled)}}
-  <YieldSlot @name="create">{{yield}}</YieldSlot>
+  {{yield to="create"}}
   <label class="type-text">
-    <span><YieldSlot @name="label">{{yield}}</YieldSlot></span>
+    <span>{{yield to="label"}}</span>
     {{!-- {{#if isOpen}} --}}
       <DataSource
         @src={{uri '/${partition}/${nspace}/${dc}/${type}'
@@ -50,7 +50,7 @@
   </label>
 {{/if}}
 {{#if (gt @items.length 0)}}
-  <YieldSlot @name="set" @params={{block-params (action "remove")}}>{{yield}}</YieldSlot>
+  {{yield (action "remove") to="set"}}
 {{else}}
 
 {{/if}}

@@ -14,10 +14,9 @@ as |route|>
         dc=route.params.dc
         id=(or route.params.id '')
       )
-    }}
-  as |loader|>
+    }}>
 
-    <BlockSlot @name="error">
+    <:error as |loader|>
       {{#if (eq loader.error.status '401')}}
         <Consul::Acl::Disabled />
       {{else}}
@@ -26,9 +25,9 @@ as |route|>
           @login={{route.model.app.login.open}}
         />
       {{/if}}
-    </BlockSlot>
+    </:error>
 
-    <BlockSlot @name="loaded">
+    <:loaded as |loader|>
 {{#let
 
   route.params.dc
@@ -43,12 +42,12 @@ as |dc partition nspace id item create|}}
   <AppView
     @login={{route.model.app.login.open}}
     >
-      <BlockSlot @name="breadcrumbs">
+      <:breadcrumbs>
         <Hds::Breadcrumb>
           <Hds::Breadcrumb::Item @text="All Policies" @route="dc.acls.policies" @model={{route.params.dc}} data-test-back />
         </Hds::Breadcrumb>
-      </BlockSlot>
-      <BlockSlot @name="header">
+      </:breadcrumbs>
+      <:header>
           <h1>
     {{#if create }}
             <route.Title @title="New Policy" />
@@ -60,8 +59,8 @@ as |dc partition nspace id item create|}}
       {{/if}}
     {{/if}}
           </h1>
-      </BlockSlot>
-      <BlockSlot @name="content">
+      </:header>
+      <:content>
   {{#if (not create) }}
         <div class="definition-table">
             <dl>
@@ -126,9 +125,9 @@ as |dc partition nspace id item create|}}
           @onItemsChange={{action (mut this.items) value="data"}}
         />
   {{/if}}
-      </BlockSlot>
+      </:content>
   </AppView>
 {{/let}}
-    </BlockSlot>
+    </:loaded>
   </DataLoader>
 </Route>

@@ -24,7 +24,7 @@ jobs:
       go-version: ${{ steps.get-go-version.outputs.go-version }}
       go-version-previous: ${{ steps.get-go-version.outputs.go-version-previous }}
     steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           # If not set, will default to current branch.
           ref: ${{ inputs.ref }}

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/armon/go-metrics"
+	metricscompat "github.com/hashicorp/go-metrics/compat"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/memberlist"
@@ -189,7 +189,7 @@ func (s *Server) setupSerfConfig(opts setupSerfOptions) (*serf.Config, error) {
 			BindAddrs:    []string{conf.MemberlistConfig.BindAddr},
 			BindPort:     conf.MemberlistConfig.BindPort,
 			Logger:       conf.MemberlistConfig.Logger,
-			MetricLabels: []metrics.Label{{Name: "network", Value: "wan"}},
+			MetricLabels: []metricscompat.Label{{Name: "network", Value: "wan"}},
 		})
 		if err != nil {
 			return nil, err

@@ -1,0 +1,297 @@
+###############################################################################
+# ent-protection.yml
+#
+# Prevents ENT (enterprise) code from being introduced into this CE (community
+# edition) repository. Runs on EVERY pull request.
+#
+# ┌─────────────────────────────────────────────────────────────────────────┐
+# │  Enforcement model                                                      │
+# │                                                                         │
+# │  Detection  — runs on ALL pull requests. The check always fails when   │
+# │               ENT code is found.                                       │
+# │                                                                         │
+# │  Merge-blocking — enforced automatically by GitHub's required-status-  │
+# │    check feature on protected branches (main, release/**). Code        │
+# │    cannot be merged without the check passing. This is hard gatekeeping.│
+# │                                                                         │
+# │  Feature-branch alerting — on PRs targeting non-protected branches the │
+# │    check fails visibly AND fires a Slack alert for rapid remediation.  │
+# │                                                                         │
+# │  Protected branches: main, release/**                                  │
+# └─────────────────────────────────────────────────────────────────────────┘
+#
+# Two complementary checks run in this public CE repository:
+#
+#   ┌─────────────────────────────────────────────────────────────────────────┐
+#   │  Job 1 — ent-file-check  (pull_request, all branches)                   │
+#   │                                                                         │
+#   │  Rejects forbidden ENT-style paths such as `*_ent.go`,                  │
+#   │  `*_ent_test.go`, `*_enterprise.go`, `ent/`, and `enterprise/`.         │
+#   │                                                                         │
+#   │  This job is intentionally secretless. It does NOT query the private    │
+#   │  ENT repository from CE CI. Live repo-tree comparison runs on the ENT   │
+#   │  side of the trust boundary.                                            │
+#   └─────────────────────────────────────────────────────────────────────────┘
+#
+#   ┌─────────────────────────────────────────────────────────────────────────┐
+#   │  Job 2 — ent-content-check  (pull_request only, all branches)           │
+#   │                                                                         │
+#   │  Scans every changed source / config file in the PR for well-known ENT  │
+#   │  content markers:                                                       │
+#   │    • Go build constraints  (//go:build consulent / enterprise)          │
+#   │    • IBM copyright headers (ENT-owned files in consul)     │
+#   │    • ENT-only Go imports   (go-licensing)                               │
+#   │    • CI metadata           (VERSION_METADATA: "ent", +ent suffix)       │
+#   │    • Explicit ENT repo references in source                             │
+#   │                                                                         │
+#   │  Runs on pull_request events regardless of target branch. On PRs        │
+#   │  targeting protected branches the failed status check blocks the merge. │
+#   └─────────────────────────────────────────────────────────────────────────┘
+#
+# Slack alerting:
+#   When a violation is detected on a non-protected branch, both jobs post a
+#   Slack message to #feed-consul-hygiene-alerts (id: C0BB6F78VB4) identifying 
+#   the branch, actor, and offending files so the team can act immediately.
+#
+# Private-side repo-tree comparison:
+#   Private repo-tree comparison now runs in the ENT repository, where
+#   private repo metadata and credentials already belong. This CE workflow
+#   enforces only secretless path and content markers.
+#
+# SHA ancestry validation lives in a separate workflow (sha-ancestry-check.yml)
+# because ancestry checks are generic and apply to repos with no ENT pair.
+###############################################################################
+
+name: ENT Protection
+
+on:
+  pull_request:
+    # No branch filter — runs on ALL pull requests regardless of target branch.
+    # On PRs targeting protected branches (main, release/**) the failed status
+    # check prevents merging. On PRs targeting feature branches the failure is
+    # visible and the Slack alert fires for rapid remediation.
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+permissions:
+  contents: read
+
+env:
+  # Protected branches where a failed check hard-blocks merging.
+  # Used to decide whether to fire a Slack alert on violations.
+  PROTECTED_BRANCH_REGEX: '^(main|release/.+)$'
+
+jobs:
+  # ───────────────────────────────────────────────────────────────────────────
+  # Job 1: Detect forbidden ENT-style file paths in the CE changeset.
+  #
+  # This public CE workflow deliberately avoids any lookup into the private
+  # ENT repository. The private repo-tree overlap audit runs in the ENT repo.
+  # ───────────────────────────────────────────────────────────────────────────
+  ent-file-check:
+    name: Check for ENT-Exclusive Files
+    runs-on: ubuntu-latest
+    # Skip Dependabot PRs (version bumps only) and limit scanning to authors
+    # who could have ENT access: repository owners (OWNER), HashiCorp org
+    # members (MEMBER), and invited collaborators (COLLABORATOR).
+    if: >-
+      github.actor != 'dependabot[bot]' &&
+      (github.event.pull_request.author_association == 'OWNER' ||
+       github.event.pull_request.author_association == 'MEMBER' ||
+       github.event.pull_request.author_association == 'COLLABORATOR')
+    steps:
+      - name: Checkout CE repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          # Full history required to diff the PR against its base SHA.
+          fetch-depth: 0
+
+      # ─── Compute the set of files in scope for this PR ────────────────────
+      - name: Compute PR file scope
+        id: pr-files
+        run: |
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.sha }}"
+
+          echo "base_sha=${BASE_SHA}" >> "$GITHUB_OUTPUT"
+          echo "head_sha=${HEAD_SHA}" >> "$GITHUB_OUTPUT"
+
+          echo "Computing PR file scope between ${BASE_SHA} and ${HEAD_SHA}" >&2
+          # Include added, copied, modified, and renamed files. Deletions do
+          # not introduce ENT-only paths into CE, so they are excluded.
+          git diff --name-only --diff-filter=ACMR "${BASE_SHA}" "${HEAD_SHA}" \
+            > /tmp/pr-files.txt 2>/dev/null || true
+
+          echo "PR file count: $(wc -l < /tmp/pr-files.txt)"
+          cat /tmp/pr-files.txt || true
+
+      # ─── Determine whether this is a protected branch ──────────────────────
+      - name: Classify branch protection level
+        id: branch-type
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BRANCH="${{ github.event.pull_request.base.ref }}"
+          else
+            BRANCH="${{ github.ref_name }}"
+          fi
+          if [[ "$BRANCH" =~ ${{ env.PROTECTED_BRANCH_REGEX }} ]]; then
+            echo "protected=true"  >> "$GITHUB_OUTPUT"
+            echo "Branch '${BRANCH}' is PROTECTED — merge-blocking enforcement active."
+          else
+            echo "protected=false" >> "$GITHUB_OUTPUT"
+            echo "Branch '${BRANCH}' is NOT protected — detection+alert mode."
+          fi
+
+      # ─── Reject forbidden ENT-style paths in CE ───────────────────────────
+      - name: Fail if PR introduces forbidden ENT-style paths
+        id: violation-check
+        run: |
+          chmod +x .github/scripts/check-forbidden-ent-paths.sh
+
+          if ! violations=$(.github/scripts/check-forbidden-ent-paths.sh /tmp/pr-files.txt); then
+            echo "::error::The following PR file(s) match forbidden ENT-style path conventions and must not appear in the CE repository:"
+            while IFS= read -r f; do
+              [[ -z "$f" ]] && continue
+              echo "::error::  ${f}"
+            done <<< "$violations"
+            echo ""
+            echo "These paths match forbidden ENT naming conventions enforced directly in CE."
+            echo "Private repo-tree overlap detection runs separately in the ENT repository."
+            echo "If you believe a file should be promoted to CE, open a discussion with the release team."
+            # Write violations to a file so the Slack step can read them
+            echo "$violations" > /tmp/ent-violations.txt
+            exit 1
+          fi
+
+          : > /tmp/ent-violations.txt
+          echo "ENT file check passed: PR file scope contains no forbidden ENT-style paths."
+
+      # ─── Slack alert for non-protected branch violations to #feed-consul-hygiene-alerts (id: C0BB6F78VB4) ──────────────────
+      # Fires only when: (a) a violation was detected AND (b) the push/PR is
+      # targeting a non-protected branch. On protected branches the merge-block
+      # is the primary signal; the Slack alert avoids double-noise.
+      - name: Alert Slack on non-protected branch violation
+        if: failure() && steps.branch-type.outputs.protected == 'false'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          [ -z "$SLACK_WEBHOOK_URL" ] && exit 0
+          VIOLATIONS=$(cat /tmp/ent-violations.txt 2>/dev/null | head -10 | sed 's/^/• /' | sed ':a;N;$!ba;s/\n/\\n/g' || echo "(see CI log)")
+          PAYLOAD=$(cat <<EOF
+          {
+            "text": ":warning: *ENT code detected in CE repo (non-protected branch)*",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                    "text": ":warning: *Forbidden ENT-style paths detected in <${{ github.repository }}>*\nBranch: *${BRANCH}*  |  Actor: *${ACTOR}*  |  Event: *${EVENT}*\n\nViolations:\n${VIOLATIONS}\n\n<${RUN_URL}|View CI run> — Please remove ENT-style paths from this PR."
+                }
+              }
+            ]
+          }
+          EOF
+          )
+          curl -fsSL -X POST -H 'Content-type: application/json' \
+            --data "$PAYLOAD" \
+            "$SLACK_WEBHOOK_URL"
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Job 2: Scan changed source files for ENT content markers
+  #
+  # Runs on pull_request events for ALL branches. On PRs targeting protected
+  # branches a failed check blocks merging. On PRs targeting feature branches
+  # the failure is visible and a Slack alert fires for rapid remediation.
+  # ───────────────────────────────────────────────────────────────────────────
+  ent-content-check:
+    name: Check for ENT Content Markers
+    runs-on: ubuntu-latest
+    # Skip Dependabot PRs and limit to OWNER/MEMBER/COLLABORATOR author
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.actor != 'dependabot[bot]' &&
+      (github.event.pull_request.author_association == 'OWNER' ||
+       github.event.pull_request.author_association == 'MEMBER' ||
+       github.event.pull_request.author_association == 'COLLABORATOR')
+    steps:
+      - name: Checkout CE repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      # ─── Collect ALL changed files (added + modified) for content scan ────
+      # We intentionally scan modifications too, not just new files, because
+      # ENT markers could be injected into existing CE files.
+      - name: Compute all changed files
+        run: |
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.sha }}"
+
+          echo "Computing changed files between ${BASE_SHA} and ${HEAD_SHA}" >&2
+          # No --diff-filter means we get all changed files except deletions
+          git diff --name-only --diff-filter=ACMR "${BASE_SHA}" "${HEAD_SHA}" \
+            > /tmp/changed-files.txt 2>/dev/null || true
+
+          echo "Changed file count: $(wc -l < /tmp/changed-files.txt)"
+          cat /tmp/changed-files.txt || true
+
+      # ─── Determine whether this PR targets a protected branch ──────────────
+      - name: Classify branch protection level
+        id: branch-type
+        run: |
+          BRANCH="${{ github.event.pull_request.base.ref }}"
+          if [[ "$BRANCH" =~ ${{ env.PROTECTED_BRANCH_REGEX }} ]]; then
+            echo "protected=true"  >> "$GITHUB_OUTPUT"
+            echo "PR targets PROTECTED branch '${BRANCH}' — merge-blocking enforcement active."
+          else
+            echo "protected=false" >> "$GITHUB_OUTPUT"
+            echo "PR targets non-protected branch '${BRANCH}' — detection+alert mode."
+          fi
+
+      # ─── Scan for ENT-specific content patterns ───────────────────────────
+      # Custom patterns can be added per-environment via ENT_MARKER_PATTERNS_FILE.
+      # See .github/scripts/check-ent-content-markers.sh for the default set.
+      - name: Scan for ENT content markers
+        id: content-scan
+        run: |
+          chmod +x .github/scripts/check-ent-content-markers.sh
+          .github/scripts/check-ent-content-markers.sh /tmp/changed-files.txt \
+            2>&1 | tee /tmp/content-scan-output.txt
+          exit ${PIPESTATUS[0]}
+
+      # ─── Slack alert for non-protected branch violations to #feed-consul-hygiene-alerts (id: C0BB6F78VB4) ──────────────────
+      - name: Alert Slack on non-protected branch violation
+        if: failure() && steps.branch-type.outputs.protected == 'false'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          BRANCH: ${{ github.event.pull_request.base.ref }}
+          HEAD_BRANCH: ${{ github.head_ref }}
+          ACTOR: ${{ github.actor }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          [ -z "$SLACK_WEBHOOK_URL" ] && exit 0
+          SUMMARY=$(grep '::error::' /tmp/content-scan-output.txt 2>/dev/null | head -5 | sed 's/::error:://' | sed 's/^/• /' || echo "(see CI log)")
+          PAYLOAD=$(cat <<EOF
+          {
+            "text": ":warning: *ENT content markers detected in CE PR (non-protected branch)*",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": ":warning: *ENT content markers found in <${{ github.repository }}>*\nPR branch: *${HEAD_BRANCH}* → *${BRANCH}*  |  Actor: *${ACTOR}*\n\n${SUMMARY}\n\n<${PR_URL}|View PR> — Please remove ENT-specific content from this branch."
+                }
+              }
+            ]
+          }
+          EOF
+          )
+          curl -fsSL -X POST -H 'Content-type: application/json' \
+            --data "$PAYLOAD" \
+            "$SLACK_WEBHOOK_URL"

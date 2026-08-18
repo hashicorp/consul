@@ -41,6 +41,11 @@ load helpers
   retry_default must_pass_http_request GET localhost:5000/foo/supersecret
 }
 
+@test "test x-forwarded-client-cert is stripped" {
+  retry_default must_pass_http_request GET localhost:5000/foo x-forwarded-client-cert:injected-test-cert
+  get_echo_output | jq -e '.headers | has("x-forwarded-client-cert") | not'
+}
+
 @test "test disallowed path" {
   retry_default must_fail_http_request 403 GET 'localhost:5000/value/supersecret'
   retry_default must_fail_http_request 403 GET 'localhost:5000/value/supersecret#foo'

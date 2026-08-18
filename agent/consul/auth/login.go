@@ -30,7 +30,7 @@ func NewLogin(binder *Binder, writer *TokenWriter) *Login {
 
 // TokenForVerifiedIdentity creates an ACLToken for the given identity verified
 // by an auth method.
-func (l *Login) TokenForVerifiedIdentity(identity *authmethod.Identity, authMethod *structs.ACLAuthMethod, description string) (*structs.ACLToken, error) {
+func (l *Login) TokenForVerifiedIdentity(identity *authmethod.Identity, authMethod *structs.ACLAuthMethod, name, description string) (*structs.ACLToken, error) {
 	bindings, err := l.binder.Bind(authMethod, identity)
 	switch {
 	case err != nil:
@@ -39,11 +39,6 @@ func (l *Login) TokenForVerifiedIdentity(identity *authmethod.Identity, authMeth
 		// We try to prevent the creation of a useless token without taking a trip
 		// through Raft and the state store if we can.
 		return nil, acl.ErrPermissionDenied
-	}
-
-	name, err := FormatTokenName(authMethod, nil)
-	if err != nil {
-		return nil, err
 	}
 
 	token := &structs.ACLToken{
@@ -89,7 +84,11 @@ func BuildTokenDescription(prefix string, meta map[string]string) (string, error
 	return fmt.Sprintf("%s: %s", prefix, d), nil
 }
 
-func FormatTokenName(authMethod *structs.ACLAuthMethod, claims map[string]string) (string, error) {
+func FormatTokenName(
+	authMethod *structs.ACLAuthMethod,
+	claims map[string]string,
+	addValueToClaimsKey bool,
+) (string, error) {
 
 	if authMethod == nil || authMethod.TokenNameFormat == "" {
 		return "", nil
@@ -100,8 +99,16 @@ func FormatTokenName(authMethod *structs.ACLAuthMethod, claims map[string]string
 		"auth_method_name": authMethod.Name,
 	}
 
+	prefix := ""
+	if addValueToClaimsKey {
+		prefix = "value."
+	}
+
 	for k, v := range claims {
-		valueMap["value."+k] = v
+		if addValueToClaimsKey {
+			k = v
+		}
+		valueMap[prefix+k] = v
 	}
 
 	return ParseTokenName(authMethod, valueMap, true)

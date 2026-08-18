@@ -20,8 +20,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/armon/go-metrics/prometheus"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/hashicorp/go-metrics/prometheus"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
 
@@ -292,6 +292,14 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`-data-dir=runtime_test.go`,
 		},
 		expectedErr: `data_dir "runtime_test.go" is not a directory`,
+	})
+	run(t, testCase{
+		desc: "-token-dirs non-directory",
+		args: []string{
+			`-data-dir=` + dataDir,
+			`-token-dirs=runtime_test.go`,
+		},
+		expectedErr: `token_dirs "runtime_test.go" is not a directory`,
 	})
 	run(t, testCase{
 		desc: "-datacenter",
@@ -4760,6 +4768,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.RPCClientTimeout = 60 * time.Second
 			rt.HTTPSHandshakeTimeout = 5 * time.Second
 			rt.HTTPMaxConnsPerClient = 200
+			rt.GRPCMaxConnsPerClient = 100
 			rt.RPCMaxConnsPerClient = 100
 			rt.RequestLimitsMode = consulrate.ModeDisabled
 			rt.RequestLimitsReadRate = rate.Inf
@@ -6667,6 +6676,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		HTTPResponseHeaders:   map[string]string{"M6TKa9NP": "xjuxjOzQ", "JRCrHZed": "rl0mTx81"},
 		HTTPSAddrs:            []net.Addr{tcpAddr("95.17.17.19:15127")},
 		HTTPMaxConnsPerClient: 100,
+		GRPCMaxConnsPerClient: 2953,
 		HTTPMaxHeaderBytes:    10,
 		HTTPReadTimeout:       15 * time.Minute,
 		HTTPReadHeaderTimeout: 10 * time.Second,

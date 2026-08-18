@@ -8,11 +8,10 @@ import { computed, set } from '@ember/object';
 import CollectionComponent from 'ember-collection/components/ember-collection';
 import needsRevalidate from 'ember-collection/utils/needs-revalidate';
 import Grid from 'ember-collection/layouts/grid';
-import Slotted from 'block-slots';
 
 const formatItemStyle = Grid.prototype.formatItemStyle;
 
-export default CollectionComponent.extend(Slotted, {
+export default CollectionComponent.extend({
   tagName: '',
   dom: service('dom'),
   width: 1150,
@@ -59,11 +58,6 @@ export default CollectionComponent.extend(Slotted, {
     },
   }),
 
-  willRender: function () {
-    this._super(...arguments);
-    set(this, 'hasCaption', this._isRegistered('caption'));
-    set(this, 'hasActions', this._isRegistered('actions'));
-  },
   // `ember-collection` bug workaround
   // https://github.com/emberjs/ember-collection/issues/138
   _needsRevalidate: function () {

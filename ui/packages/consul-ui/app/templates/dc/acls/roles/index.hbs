@@ -14,10 +14,9 @@ as |route|>
         partition=route.params.partition
         nspace=route.params.nspace
         dc=route.params.dc
-      )}}
-    as |loader|>
+      )}}>
 
-    <BlockSlot @name="error">
+    <:error as |loader|>
     {{#if (eq loader.error.status '401')}}
       <Consul::Acl::Disabled />
     {{else}}
@@ -26,9 +25,9 @@ as |route|>
         @login={{route.model.app.login.open}}
       />
     {{/if}}
-    </BlockSlot>
+    </:error>
 
-    <BlockSlot @name="loaded">
+    <:loaded as |loader|>
   {{#let
 
     (hash
@@ -54,12 +53,12 @@ as |route|>
     <AppView
       @login={{route.model.app.login.open}}
       >
-      <BlockSlot @name="header">
+      <:header>
         <h1>
           <route.Title @title="Roles" />
         </h1>
-      </BlockSlot>
-      <BlockSlot @name="actions">
+      </:header>
+      <:actions>
   {{#if (can "create roles")}}
       <Hds::Button
         @text='Create'
@@ -67,8 +66,8 @@ as |route|>
         data-test-create
       />
   {{/if}}
-      </BlockSlot>
-      <BlockSlot @name="toolbar">
+      </:actions>
+      <:toolbar>
       {{#if (gt items.length 0) }}
         <Consul::Role::SearchBar
           @search={{this.search}}
@@ -79,8 +78,8 @@ as |route|>
           @filter={{filters}}
         />
       {{/if}}
-      </BlockSlot>
-      <BlockSlot @name="content">
+      </:toolbar>
+      <:content>
         <DataCollection
           @type="role"
           @sort={{sort.value}}
@@ -98,20 +97,20 @@ as |route|>
             <EmptyState
               @login={{route.model.app.login.open}}
             >
-              <BlockSlot @name="header">
+              <:header>
                 <h2>
                   {{t 'routes.dc.acls.roles.index.empty.header'
                     items=items.length
                   }}
                 </h2>
-              </BlockSlot>
-              <BlockSlot @name="body">
+              </:header>
+              <:body>
                 {{t 'routes.dc.acls.roles.index.empty.body'
                   items=items.length
                   htmlSafe=true
                 }}
-              </BlockSlot>
-              <BlockSlot @name="actions">
+              </:body>
+              <:actions>
                 <li>
                   <Hds::Link::Standalone
                     @text='Documentation on roles'
@@ -130,13 +129,13 @@ as |route|>
                     @size='small'
                   />
                 </li>
-              </BlockSlot>
+              </:actions>
             </EmptyState>
           </collection.Empty>
         </DataCollection>
-      </BlockSlot>
+      </:content>
     </AppView>
   {{/let}}
-  </BlockSlot>
+  </:loaded>
   </DataLoader>
 </Route>

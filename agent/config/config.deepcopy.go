@@ -3,10 +3,10 @@
 package config
 
 import (
-	"github.com/armon/go-metrics"
-	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-metrics"
+	"github.com/hashicorp/go-metrics/prometheus"
 	"net"
 	"time"
 )
@@ -429,6 +429,12 @@ func (o *RuntimeConfig) DeepCopy() *RuntimeConfig {
 	if o.Experiments != nil {
 		cp.Experiments = make([]string, len(o.Experiments))
 		copy(cp.Experiments, o.Experiments)
+	}
+	if o.FeatureGatesBootstrap != nil {
+		cp.FeatureGatesBootstrap = make(map[string]bool, len(o.FeatureGatesBootstrap))
+		for k2, v2 := range o.FeatureGatesBootstrap {
+			cp.FeatureGatesBootstrap[k2] = v2
+		}
 	}
 	return &cp
 }

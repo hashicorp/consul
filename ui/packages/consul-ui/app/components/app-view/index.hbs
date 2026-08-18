@@ -11,36 +11,34 @@
   <header>
       <div>
           <div>
-              <div class="app-view-breadcrumbs" data-test-breadcrumbs>
-                  <YieldSlot @name="breadcrumbs">
-                    {{document-attrs class="with-breadcrumbs"}}
-                    {{yield}}
-                  </YieldSlot>
-              </div>
+              <nav class="app-view-breadcrumbs" aria-label="Breadcrumb" data-test-breadcrumbs>
+                {{#if (if (not-eq @showBreadcrumb undefined) @showBreadcrumb (has-block 'breadcrumbs'))}}
+                  {{document-attrs class="with-breadcrumbs"}}
+                  {{yield to='breadcrumbs'}}
+                {{/if}}
+              </nav>
               <div class="title">
                 <div class="title-left-container">
-                  <YieldSlot @name="header">
-                      {{yield}}
-                  </YieldSlot>
+                  {{yield to='header'}}
                 </div>
                 <div class="actions">
-                  <YieldSlot @name="actions">
-                    <PortalTarget @name="app-view-actions" />
-                    {{yield}}
-                  </YieldSlot>
+                  <PortalTarget @name="app-view-actions" />
+                  {{#if (has-block 'actions')}}
+                    {{yield to='actions'}}
+                  {{/if}}
                 </div>
               </div>
-              <YieldSlot @name="nav">
-                {{yield}}
-              </YieldSlot>
+              {{#if (has-block 'nav')}}
+                {{yield to='nav'}}
+              {{/if}}
           </div>
       </div>
-      <YieldSlot @name="toolbar">
+      {{#if (has-block 'toolbar')}}
         <input type="checkbox" id="toolbar-toggle" />
-        {{yield}}
-      </YieldSlot>
+        {{yield to='toolbar'}}
+      {{/if}}
   </header>
   <div>
-    <YieldSlot @name="content">{{yield}}</YieldSlot>
+    {{yield to='content'}}
   </div>
 </div>

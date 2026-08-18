@@ -8,9 +8,8 @@
   ...attributes
   @items={{@items}}
   @rowHeight={{59}}
-  as |item index|
 >
-  <BlockSlot @name='header'>
+  <:header>
     <th class='source'>Source</th>
     <th class='intent'>Intention Type</th>
     <th class='destination'>Destination</th>
@@ -19,8 +18,8 @@
       <span {{hds-tooltip "Permissions intercept an Intention's traffic using Layer 7 criteria, such as path prefixes and http headers." options=(detached-tooltip-options)}}></span>
     </th>
     <th class='meta'>Status</th>
-  </BlockSlot>
-  <BlockSlot @name='row'>
+  </:header>
+  <:row as |item index|>
     <td class='source' data-test-intention={{item.ID}}>
       <a
         href={{href-to (or @routeName 'dc.intentions.edit') item.ID}}
@@ -81,37 +80,36 @@
         <Consul::ExternalSource @item={{item}} @label='Managed by CRD' />
       {{/if}}
     </td>
-  </BlockSlot>
-  <BlockSlot @name='actions' as |index change checked|>
+  </:row>
+  <:actions as |item index change checked|>
     <PopoverMenu
       @expanded={{if (eq checked index) true false}}
       @onchange={{action change index}}
       @keyboardAccess={{true}}
-      as |components api|
     >
-      <BlockSlot @name='trigger'>
+      <:trigger>
         More
-      </BlockSlot>
-      <BlockSlot @name='menu' as |confirm keypressClick change|>
+      </:trigger>
+      <:menu as |components api confirm keypressClick change|>
         {{#if (can 'write intention' item=item)}}
           <components.MenuItem href={{href-to (or @routeName 'dc.intentions.edit') item.ID}}>
-            <BlockSlot @name="label">
+            <:label>
               Edit
-            </BlockSlot>
+            </:label>
           </components.MenuItem>
           <components.MenuItem @onclick={{action @delete item}} class="dangerous" data-test-delete>
-            <BlockSlot @name="label">
+            <:label>
               Delete
-            </BlockSlot>
-            <BlockSlot @name="confirm-header">
+            </:label>
+            <:confirmHeader>
               Confirm Delete
-            </BlockSlot>
-            <BlockSlot @name="confirm-body">
+            </:confirmHeader>
+            <:confirmBody>
               Are you sure you want to delete this intention?
-            </BlockSlot>
-            <BlockSlot @name="confirm-footer" as |Params|>
+            </:confirmBody>
+            <:confirmFooter as |Params|>
               <Params.button @text='Delete' {{on 'click' Params.confirmAction}} />
-            </BlockSlot>
+            </:confirmFooter>
           </components.MenuItem>
 
         {{else if (can 'view CRD intention' item=item)}}
@@ -160,7 +158,7 @@
             </a>
           </li>
         {{/if}}
-      </BlockSlot>
+      </:menu>
     </PopoverMenu>
-  </BlockSlot>
+  </:actions>
 </TabularCollection>

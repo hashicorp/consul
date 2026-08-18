@@ -11,10 +11,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/armon/go-metrics"
-	"github.com/armon/go-metrics/circonus"
-	"github.com/armon/go-metrics/datadog"
-	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-metrics"
+	"github.com/hashicorp/go-metrics/circonus"
+	"github.com/hashicorp/go-metrics/datadog"
+	"github.com/hashicorp/go-metrics/prometheus"
 	prometheuscore "github.com/prometheus/client_golang/prometheus"
 
 	"github.com/hashicorp/go-hclog"

@@ -1,0 +1,3 @@
+```release-note:security
+xds: Return errors when injecting the L4 intention (RBAC) filter or the mTLS transport socket onto an inbound public listener, so the listener is not served without intention enforcement or mTLS.
+```

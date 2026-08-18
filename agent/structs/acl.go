@@ -1311,6 +1311,25 @@ func (m *ACLAuthMethod) UnmarshalJSON(data []byte) (err error) {
 	return nil
 }
 
+func (m *ACLAuthMethod) GetClaimMappings() map[string]string {
+	if m.Config == nil || m.Config["ClaimMappings"] == nil {
+		return nil
+	}
+
+	claimMappings, ok := m.Config["ClaimMappings"].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+
+	cm := make(map[string]string, len(claimMappings))
+	for k, v := range claimMappings {
+		cm[k] = v.(string)
+	}
+
+	return cm
+
+}
+
 type ACLReplicationType string
 
 const (

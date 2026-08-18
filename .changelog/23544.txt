@@ -1,0 +1,3 @@
+```release-note:bug
+connect: Strip the `x-forwarded-client-cert` header from inbound HTTP requests before forwarding them to local service instances.
+```

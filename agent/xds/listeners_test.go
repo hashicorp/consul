@@ -9,6 +9,7 @@ import (
 	"text/template"
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"github.com/hashicorp/go-hclog"
 	testinf "github.com/mitchellh/go-testing-interface"
@@ -487,6 +488,54 @@ func Test_makeHTTPFilter_maxRequestHeadersKb(t *testing.T) {
 	}
 }
 
+func Test_makeHTTPFilter_stripForwardClientCertHeader(t *testing.T) {
+	tests := map[string]struct {
+		stripHeader bool
+		wantRemoved bool
+	}{
+		"disabled": {
+			stripHeader: false,
+			wantRemoved: false,
+		},
+		"enabled": {
+			stripHeader: true,
+			wantRemoved: true,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			opts := listenerFilterOpts{
+				protocol:                     "http",
+				filterName:                   "test",
+				routeName:                    "test",
+				cluster:                      "test",
+				forwardClientDetails:         true,
+				stripForwardClientCertHeader: tc.stripHeader,
+			}
+
+			filter, err := makeHTTPFilter(opts)
+			require.NoError(t, err)
+
+			var httpConnMgr envoy_http_v3.HttpConnectionManager
+			err = filter.GetTypedConfig().UnmarshalTo(&httpConnMgr)
+			require.NoError(t, err)
+
+			routeConfig := httpConnMgr.GetRouteConfig()
+			require.NotNil(t, routeConfig)
+			require.Len(t, routeConfig.VirtualHosts, 1)
+			require.Len(t, routeConfig.VirtualHosts[0].Routes, 1)
+
+			headers := routeConfig.VirtualHosts[0].Routes[0].GetRequestHeadersToRemove()
+			if tc.wantRemoved {
+				require.Contains(t, headers, "x-forwarded-client-cert")
+			} else {
+				require.NotContains(t, headers, "x-forwarded-client-cert")
+			}
+		})
+	}
+}
+
 func Test_makeUpstreamFilterChain_maxRequestHeadersKb(t *testing.T) {
 	tests := map[string]struct {
 		maxRequestHeadersKb *uint32
@@ -791,4 +840,154 @@ func Test_makeMeshGatewayPeerFilterChain_maxRequestHeadersKb(t *testing.T) {
 // Helper function for uint32 pointers
 func uintPointer(i uint32) *uint32 {
 	return &i
+}
+
+// TestFinalizePublicListenerFromConfig_PropagatesInjectionErrors is a regression
+// test. Previously finalizePublicListenerFromConfig swallowed
+// errors from the L4 intention (RBAC) and mTLS injection steps by returning nil.
+// That allowed an insecure public listener (no mTLS and/or no intention
+// enforcement) to be served while the caller's error check was dead code. The
+// function must instead surface the error so the caller drops the listener.
+func TestFinalizePublicListenerFromConfig_PropagatesInjectionErrors(t *testing.T) {
+	roots, _ := proxycfg.TestCerts(t)
+
+	// A snapshot whose Kind is neither a connect proxy nor a mesh gateway makes
+	// injectConnectTLSForPublicListener (via createDownstreamTransportSocketForConnectTLS)
+	// fail deterministically, so we can assert the error is propagated.
+	newSnap := func() *proxycfg.ConfigSnapshot {
+		return &proxycfg.ConfigSnapshot{
+			Kind:  structs.ServiceKindTerminatingGateway,
+			Roots: roots,
+		}
+	}
+
+	newListener := func() *envoy_listener_v3.Listener {
+		return &envoy_listener_v3.Listener{
+			Name:         "public_listener",
+			FilterChains: []*envoy_listener_v3.FilterChain{{}},
+		}
+	}
+
+	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
+
+	t.Run("mTLS injection failure is surfaced (HTTP filter path)", func(t *testing.T) {
+		err := s.finalizePublicListenerFromConfig(newListener(), newSnap(), true)
+		require.Error(t, err, "mTLS injection error must not be swallowed")
+	})
+
+	t.Run("injection failure is surfaced (L4 filter path)", func(t *testing.T) {
+		err := s.finalizePublicListenerFromConfig(newListener(), newSnap(), false)
+		require.Error(t, err, "injection error must not be swallowed")
+	})
+}
+
+// Test_injectRequestNormalizationOnFilterChains is a unit test for
+// Test_injectRequestNormalizationOnFilterChains verifies that injectRequestNormalizationOnFilterChains
+// correctly applies Consul's normalization defaults to every
+// HttpConnectionManager filter on a user-provided public listener, and that it
+// handles edge cases (no HCM filter, unsupported ConfigType, disabled
+// normalization) without unexpected errors or mutations.
+func Test_injectRequestNormalizationOnFilterChains(t *testing.T) {
+	tests := map[string]struct {
+		// listenerJSON returns the JSON for the listener under test, or "" to
+		// use a plain TCP listener (no HCM filter).
+		listenerJSON string
+		rn           *structs.RequestNormalizationMeshConfig
+		wantErr      bool
+		// wantNormalize is the expected NormalizePath.Value after injection.
+		// Only checked when wantErr is false and listener has an HCM filter.
+		wantNormalize *bool
+	}{
+		"nil config applies default normalization (normalizePath=true)": {
+			listenerJSON: customHTTPListenerJSON(t, customHTTPListenerJSONOptions{
+				Name:                      "public_listener",
+				HTTPConnectionManagerName: httpConnectionManagerNewName,
+			}),
+			rn:            nil,
+			wantErr:       false,
+			wantNormalize: func() *bool { v := true; return &v }(),
+		},
+		"empty config applies default normalization (normalizePath=true)": {
+			listenerJSON: customHTTPListenerJSON(t, customHTTPListenerJSONOptions{
+				Name:                      "public_listener",
+				HTTPConnectionManagerName: httpConnectionManagerNewName,
+			}),
+			rn:            &structs.RequestNormalizationMeshConfig{},
+			wantErr:       false,
+			wantNormalize: func() *bool { v := true; return &v }(),
+		},
+		"old HCM filter name is also patched": {
+			listenerJSON: customHTTPListenerJSON(t, customHTTPListenerJSONOptions{
+				Name:                      "public_listener",
+				HTTPConnectionManagerName: httpConnectionManagerOldName,
+			}),
+			rn:            nil,
+			wantErr:       false,
+			wantNormalize: func() *bool { v := true; return &v }(),
+		},
+		"InsecureDisablePathNormalization leaves normalizePath unset": {
+			listenerJSON: customHTTPListenerJSON(t, customHTTPListenerJSONOptions{
+				Name:                      "public_listener",
+				HTTPConnectionManagerName: httpConnectionManagerNewName,
+			}),
+			rn: &structs.RequestNormalizationMeshConfig{
+				InsecureDisablePathNormalization: true,
+			},
+			wantErr:       false,
+			wantNormalize: nil,
+		},
+		"no HCM filter — listener is returned unchanged without error": {
+			listenerJSON: customListenerJSON(t, customListenerJSONOptions{
+				Name: "public_listener",
+			}),
+			rn:      nil,
+			wantErr: false,
+			// NormalizePath assertion is skipped; no HCM filter to patch.
+			wantNormalize: nil,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			listener, err := makeListenerFromUserConfig(tc.listenerJSON)
+			require.NoError(t, err)
+
+			err = injectRequestNormalizationOnFilterChains(listener, tc.rn)
+			if tc.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+
+			// Locate the first HCM filter to check NormalizePath.
+			var hcm *envoy_http_v3.HttpConnectionManager
+			for _, chain := range listener.FilterChains {
+				for _, f := range chain.Filters {
+					if f.Name == httpConnectionManagerNewName || f.Name == httpConnectionManagerOldName {
+						tc2, ok := f.ConfigType.(*envoy_listener_v3.Filter_TypedConfig)
+						require.True(t, ok)
+						var hcmVal envoy_http_v3.HttpConnectionManager
+						require.NoError(t, tc2.TypedConfig.UnmarshalTo(&hcmVal))
+						hcm = &hcmVal
+						break
+					}
+				}
+				if hcm != nil {
+					break
+				}
+			}
+
+			if tc.wantNormalize == nil {
+				// Either no HCM filter present, or NormalizePath should remain unset.
+				if hcm != nil {
+					assert.Nil(t, hcm.NormalizePath,
+						"expected NormalizePath to be nil when InsecureDisablePathNormalization=true")
+				}
+			} else {
+				require.NotNil(t, hcm, "expected an HCM filter on the listener")
+				require.NotNil(t, hcm.NormalizePath)
+				assert.Equal(t, *tc.wantNormalize, hcm.NormalizePath.GetValue())
+			}
+		})
+	}
 }

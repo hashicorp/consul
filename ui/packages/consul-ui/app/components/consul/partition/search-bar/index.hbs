@@ -50,14 +50,13 @@ as |key value|}}
           @position="right"
           @onchange={{action @filter.searchproperty.change}}
           @multiple={{true}}
-          @required={{true}}
-        as |components|>
-          <BlockSlot @name="selected">
+          @required={{true}}>
+          <:selected>
             <span>
               {{t "common.search.searchproperty"}}
             </span>
-          </BlockSlot>
-          <BlockSlot @name="options">
+          </:selected>
+        <:options as |components|>
     {{#let components.Optgroup components.Option as |Optgroup Option|}}
             {{#each @filter.searchproperty.default as |prop|}}
               <Option @value={{prop}} @selected={{includes prop @filter.searchproperty.value}}>
@@ -65,8 +64,8 @@ as |key value|}}
               </Option>
             {{/each}}
     {{/let}}
-          </BlockSlot>
-        </search.Select>
+          </:options>
+      </search.Select>
       </search.Search>
     </:search>
     <:sort as |search|>
@@ -76,9 +75,8 @@ as |key value|}}
         @position="right"
         @onchange={{action @sort.change}}
         @multiple={{false}}
-        @required={{true}}
-      as |components|>
-        <BlockSlot @name="selected">
+        @required={{true}}>
+        <:selected>
           <span>
             {{#let (from-entries (array
                   (array "Name:asc" (t "common.sort.alpha.asc"))
@@ -89,15 +87,15 @@ as |key value|}}
               {{get selectable @sort.value}}
             {{/let}}
           </span>
-        </BlockSlot>
-        <BlockSlot @name="options">
+        </:selected>
+        <:options as |components|>
   {{#let components.Optgroup components.Option as |Optgroup Option|}}
           <Optgroup @label={{t "common.consul.name"}}>
             <Option @value="Name:asc" @selected={{eq "Name:asc" @sort.value}}>{{t "common.sort.alpha.asc"}}</Option>
             <Option @value="Name:desc" @selected={{eq "Name:desc" @sort.value}}>{{t "common.sort.alpha.desc"}}</Option>
           </Optgroup>
   {{/let}}
-        </BlockSlot>
+        </:options>
       </search.Select>
     </:sort>
 </SearchBar>

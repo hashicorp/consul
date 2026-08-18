@@ -13,7 +13,7 @@ export default class PeerAbility extends BaseAbility {
   segmented = false;
 
   get isLinkable() {
-    return this.canDelete;
+    return !['DELETING'].includes(this.item.State);
   }
   get canDelete() {
     return !['DELETING'].includes(this.item.State) && super.canDelete;

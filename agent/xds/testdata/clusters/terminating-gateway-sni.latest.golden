@@ -198,16 +198,7 @@
                   "resourceApiVersion": "V3"
                 }
               }
-            },
-            "tlsCertificateSdsSecretConfigs": [
-              {
-                "name": "web-cert",
-                "sdsConfig": {
-                  "ads": {},
-                  "resourceApiVersion": "V3"
-                }
-              }
-            ]
+            }
           },
           "sni": "foo.com"
         }

@@ -1,0 +1,3 @@
+```release-note:security
+Upgrade alpine base image version to 3.24 to address [CVE-2026-41989], [ALPINE-CVE-2026-2100].
+```

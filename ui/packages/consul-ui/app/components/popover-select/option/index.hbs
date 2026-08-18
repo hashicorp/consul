@@ -14,8 +14,8 @@
     @onclick={{action @onclick this}}
     @selected={{this.selected}}
   >
-    <BlockSlot @name="label">
+    <:label>
       {{yield}}
-    </BlockSlot>
+    </:label>
   </MenuItem>
 {{/let}}

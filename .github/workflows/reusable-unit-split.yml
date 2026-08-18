@@ -63,8 +63,8 @@ jobs:
     outputs:
       package-matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
-      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
           go-version: ${{ inputs.go-version }}
       - id: set-matrix
@@ -94,20 +94,25 @@ jobs:
           MATRIX_RUN_ID=$(head /dev/urandom | tr -dc A-Z | head -c8)
           echo "The matrix run ID is $MATRIX_RUN_ID"
           echo "matrix-run-id=$MATRIX_RUN_ID" >> "$GITHUB_OUTPUT"
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
       - name: Setup Git
         if: ${{ endsWith(inputs.repository-name, '-enterprise') }}
         run: git config --global url."https://${{ secrets.elevated-github-token }}:@github.com".insteadOf "https://github.com"
-      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
           go-version: ${{ inputs.go-version }}
+      # setup-go v6 writes GOTOOLCHAIN=local to $GITHUB_ENV, which persists for all
+      # later steps and overrides the job-level env block. Override it back to auto
+      # so backward-compat lanes can upgrade the toolchain when a module requires it.
+      - name: Restore GOTOOLCHAIN=auto
+        run: echo "GOTOOLCHAIN=auto" >> "$GITHUB_ENV"
       - run: mkdir -p ${{env.TEST_RESULTS}}
       - name: go mod download
         working-directory: ${{inputs.directory}}
         run: go mod download
       - name: Download consul
-        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: ${{inputs.uploaded-binary-name}}
           path: ${{inputs.directory}} 
@@ -172,16 +177,22 @@ jobs:
           DD_ENV: ci
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" ${{env.TEST_RESULTS}}/gotestsum-report.xml
 
-      - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ !cancelled() }}
         with:
           name: ${{ steps.generate-matrix-id.outputs.matrix-run-id }}-test-results
           path: ${{env.TEST_RESULTS}}
-      - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ !cancelled() }}
         with:
           name: ${{ steps.generate-matrix-id.outputs.matrix-run-id }}-jsonfile
           path: /tmp/jsonfile
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ !cancelled() }}
+        with:
+          name: ${{ steps.generate-matrix-id.outputs.matrix-run-id }}-coverage
+          path: ${{inputs.directory}}/coverage.txt
+          if-no-files-found: ignore
       - name: "Re-run fails report"
         if: ${{ !cancelled() }}
         run: |

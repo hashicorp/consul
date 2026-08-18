@@ -578,6 +578,17 @@ func (s *ResourceGenerator) endpointsFromSnapshotAPIGateway(cfgSnap *proxycfg.Co
 			createdClusters[uid] = struct{}{}
 		}
 	}
+
+	// Emit endpoints for builtin/ext-authz mesh (Service) targets that are
+	// referenced only by the ext_authz filter (never routed), matching the
+	// clusters emitted in clustersFromSnapshotAPIGateway. This is an
+	// enterprise-only behaviour; the CE build provides a no-op stub.
+	extAuthzEndpoints, err := s.makeAPIGatewayExtAuthzEndpoints(cfgSnap, createdClusters)
+	if err != nil {
+		return nil, err
+	}
+	resources = append(resources, extAuthzEndpoints...)
+
 	return resources, nil
 }
 

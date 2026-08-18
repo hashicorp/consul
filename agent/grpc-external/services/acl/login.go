@@ -71,13 +71,18 @@ func (s *Server) Login(ctx context.Context, req *pbacl.LoginRequest) (*pbacl.Log
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
 
+	name, err := auth.FormatTokenName(authMethod, verifiedIdentity.ProjectedVars, false)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
 	description, err := auth.BuildTokenDescription("token created via login", req.Meta)
 	if err != nil {
 		logger.Error("failed to build token description", "error", err.Error())
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	token, err := s.NewLogin().TokenForVerifiedIdentity(verifiedIdentity, authMethod, description)
+	token, err := s.NewLogin().TokenForVerifiedIdentity(verifiedIdentity, authMethod, name, description)
 	switch {
 	case acl.IsErrPermissionDenied(err):
 		return nil, status.Error(codes.PermissionDenied, err.Error())

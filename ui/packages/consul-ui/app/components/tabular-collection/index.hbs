@@ -4,7 +4,7 @@
 }}
 
 <table
-  class="tabular-collection dom-recycling {{if this.hasActions 'has-actions' ''}}"
+  class="tabular-collection dom-recycling {{if (has-block 'actions') 'has-actions' ''}}"
   id={{this.guid}}
   style={{{concat
     'height:' this.style.height 'px'
@@ -13,13 +13,13 @@
 >
 {{on-window 'resize' (action "resize") }}
 {{yield}}
-{{#if this.hasCaption}}
-  <caption><YieldSlot @name="caption">{{yield}}</YieldSlot></caption>
+{{#if (has-block "caption")}}
+  <caption>{{yield to="caption"}}</caption>
 {{/if}}
   <thead>
     <tr>
-      <YieldSlot @name="header">{{yield}}</YieldSlot>
-{{#if this.hasActions }}
+      {{yield to="header"}}
+{{#if (has-block 'actions')}}
       <th class="actions">Actions</th>
 {{/if}}
     </tr>
@@ -28,12 +28,10 @@
     <tr></tr>
 {{~#each this._cells as |cell index|~}}
     <tr data-test-tabular-row style={{{cell.style}}} onclick={{action 'click'}}>
-      <YieldSlot @name="row">{{yield cell.item index}}</YieldSlot>
-{{#if this.hasActions }}
+      {{yield cell.item index to="row"}}
+{{#if (has-block 'actions')}}
       <td class="actions">
-        <YieldSlot @name="actions" @params={{block-params cell.index (action "change") this.checked}}>
-          {{yield cell.item index}}
-        </YieldSlot>
+        {{yield cell.item cell.index (action "change") this.checked to="actions"}}
       </td>
 {{/if}}
     </tr>

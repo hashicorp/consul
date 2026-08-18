@@ -4,12 +4,11 @@
  */
 
 import Component from '@ember/component';
-import Slotted from 'block-slots';
 import { inject as service } from '@ember/service';
 import { alias } from '@ember/object/computed';
 // match anything that isn't a [ or ] into multiple groups
 const propRe = /([^[\]])+/g;
-export default Component.extend(Slotted, {
+export default Component.extend({
   tagName: '',
   onreset: function () {},
   onchange: function () {},

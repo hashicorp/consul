@@ -13,14 +13,13 @@
         dc=route.params.dc
       )
     }}
-    as |loader|
   >
 
-    <BlockSlot @name="error">
+    <:error as |loader|>
       <AppError @error={{loader.error}} @login={{route.model.app.login.open}} />
-    </BlockSlot>
+    </:error>
 
-    <BlockSlot @name="loaded">
+    <:loaded as |loader|>
       {{#let
         (hash
           value=(or this.sortBy "State:asc")
@@ -45,12 +44,12 @@
         as |sort filters items|
       }}
         <AppView>
-          <BlockSlot @name="header">
+          <:header>
             <h1>
               <route.Title @title="Peers" />
             </h1>
-          </BlockSlot>
-          <BlockSlot @name="toolbar">
+          </:header>
+          <:toolbar>
 
             {{#if (gt items.length 0)}}
               <Consul::Peer::SearchBar
@@ -61,27 +60,26 @@
               />
             {{/if}}
 
-          </BlockSlot>
-          <BlockSlot @name="actions">
+          </:toolbar>
+          <:actions>
 
             <ModalDialog
               @aria={{hash label="Add peer connection"}}
               class="peer-create-modal"
-              as |modal|
             >
-              <BlockSlot @name="header">
-                {{did-insert-helper (set this "create" modal)}}
+              <:header as |api|>
+                {{did-insert-helper (set this "create" api)}}
                 <h2>
                   Add peer connection
                 </h2>
-              </BlockSlot>
-              <BlockSlot @name="body">
+              </:header>
+              <:body as |api|>
 
-                {{#if modal.opened}}
+                {{#if api.opened}}
                   <Consul::Peer::Form @params={{route.params}} as |form|>
                     <form.Form
                       @onchange={{loader.invalidate}}
-                      @onsubmit={{fn this.redirectToPeerShow modal.close}}
+                      @onsubmit={{fn this.redirectToPeerShow api.close}}
                       as |form|
                     >
                       {{did-insert-helper (set this "form" form)}}
@@ -90,10 +88,10 @@
                   </Consul::Peer::Form>
                 {{/if}}
 
-              </BlockSlot>
-              <BlockSlot @name="actions">
+              </:body>
+              <:actions>
                 <this.form.Actions @onclose={{this.create.close}} />
-              </BlockSlot>
+              </:actions>
             </ModalDialog>
             <Hds::Button
               @color='primary'
@@ -102,8 +100,8 @@
               data-test-create
               />
 
-          </BlockSlot>
-          <BlockSlot @name="content">
+          </:actions>
+          <:content>
 
             <DataWriter
               @sink={{uri
@@ -116,29 +114,27 @@
               }}
               @type="peer"
               @label="Peer"
-              as |writer|
             >
 
-              <BlockSlot @name="removed" as |after|>
+              <:removed as |after|>
                 <Consul::Peer::Notifications
                   {{notification after=(action after)}}
                   @type="remove"
                 />
-              </BlockSlot>
-              <BlockSlot @name="content">
+              </:removed>
+              <:content as |writer|>
 
                 <ModalDialog
                   @aria={{hash label="Regenerate token"}}
                   @onclose={{set this "item" undefined}}
-                  as |modal|
                 >
-                  <BlockSlot @name="header">
+                  <:header as |modal|>
                     {{did-insert-helper (set this "regenerate" modal)}}
                     <h2>
                       Regenerate token
                     </h2>
-                  </BlockSlot>
-                  <BlockSlot @name="body">
+                  </:header>
+                  <:body>
                     {{#if this.item}}
                       <Consul::Peer::Form::Generate
                         @item={{this.item}}
@@ -150,12 +146,12 @@
                         <form.Fieldsets />
                       </Consul::Peer::Form::Generate>
                     {{/if}}
-                  </BlockSlot>
-                  <BlockSlot @name="actions">
+                  </:body>
+                  <:actions>
                     <this.regenerateForm.Actions
                       @onclose={{this.regenerate.close}}
                     />
-                  </BlockSlot>
+                  </:actions>
                 </ModalDialog>
 
                 <DataCollection
@@ -178,15 +174,15 @@
                   <collection.Empty>
                     {{! TODO: do we need to check permissions here or will we receive an error automatically? }}
                     <EmptyState @login={{route.model.app.login.open}}>
-                      <BlockSlot @name="header">
+                      <:header>
                         <h2>
                           {{t
                             "routes.dc.peers.index.empty.header"
                             items=items.length
                           }}
                         </h2>
-                      </BlockSlot>
-                      <BlockSlot @name="body">
+                      </:header>
+                      <:body>
                         <p>
                           {{t
                             "routes.dc.peers.index.empty.body"
@@ -196,8 +192,8 @@
                             htmlSafe=true
                           }}
                         </p>
-                      </BlockSlot>
-                      <BlockSlot @name="actions">
+                      </:body>
+                      <:actions>
                         <li>
                           {{! what's the docs for peering?}}
                           <Hds::Link::Standalone
@@ -221,15 +217,15 @@
                             @size='small'
                           />
                         </li>
-                      </BlockSlot>
+                      </:actions>
                     </EmptyState>
                   </collection.Empty>
                 </DataCollection>
-              </BlockSlot>
+              </:content>
             </DataWriter>
-          </BlockSlot>
+          </:content>
         </AppView>
       {{/let}}
-    </BlockSlot>
+    </:loaded>
   </DataLoader>
 </Route>
