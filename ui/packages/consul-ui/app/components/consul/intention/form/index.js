@@ -23,6 +23,9 @@ export default class ConsulIntentionForm extends Component {
 
   @tracked isManagedByCRDs;
 
+  @tracked isDeleteModalOpen = false;
+  pendingDelete = null;
+
   modal = null; // reference to the warning modal
 
   @service('repository/intention') repo;
@@ -30,6 +33,18 @@ export default class ConsulIntentionForm extends Component {
   constructor(owner, args) {
     super(...arguments);
     this.updateCRDManagement();
+  }
+
+  @action
+  openDeleteModal(deleteFn) {
+    this.pendingDelete = deleteFn;
+    this.isDeleteModalOpen = true;
+  }
+
+  @action
+  closeDeleteModal() {
+    this.isDeleteModalOpen = false;
+    this.pendingDelete = null;
   }
 
   @action

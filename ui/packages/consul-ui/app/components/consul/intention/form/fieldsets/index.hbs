@@ -223,7 +223,6 @@
         {{on "click" (action this.openModal undefined)}}
       />
     </div>
-    <div class="permissions-content">
 {{#if (gt @item.Permissions.length 0) }}
       <Consul::Intention::Notice::Permissions />
       <Consul::Intention::Permission::List
@@ -232,6 +231,7 @@
         @ondelete={{action 'delete' 'Permissions' @item}}
       />
 {{else}}
+    <div class="permissions-content">
       <EmptyState>
         <:header>
           <h3>
@@ -264,8 +264,8 @@
           </li>
         </:actions>
       </EmptyState>
-{{/if}}
     </div>
+{{/if}}
   </fieldset>
 {{/if}}
 

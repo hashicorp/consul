@@ -8,46 +8,59 @@
   ...attributes
 >
 
-  <div class="definition-table">
-      <dl>
-        <dt>Destination</dt>
-        <dd>
-          <Consul::Bucket::List
-            @item={{hash
-              Namespace=@item.DestinationNS
-              Partition=@item.DestinationPartition
-              Service=@item.DestinationName
-            }}
-            @nspace="-"
-            @partition="-"
-            @service={{true}}
-          />
-        </dd>
-        <dt>Source</dt>
-        <dd>
-          <Consul::Bucket::List
-            @item={{hash
-              Namespace=@item.SourceNS
-              Partition=@item.SourcePartition
-              Service=@item.SourceName
-              PeerName=@item.SourcePeer
-            }}
-            @nspace="-"
-            @partition="-"
-            @service={{true}}
-          />
-        </dd>
-{{#if @item.Action}}
-        <dt>Action</dt>
-        <dd>
-          {{@item.Action}}
-        </dd>
-{{/if}}
-        <dt>Description</dt>
-        <dd>
-          {{or @item.Description 'N/A'}}
-        </dd>
+  <div class="consul-intention-view__cards">
+    <Hds::Card::Container
+      @level="base"
+      @hasBorder={{true}}
+      class="consul-intention-view__card"
+      data-test-source-card
+    >
+      <h2 class="consul-intention-view__card-title">Source</h2>
+      <dl class="consul-intention-view__dl">
+        <dt>Source service</dt>
+        <dd data-test-source-name>{{or @item.SourceName '*'}}</dd>
+        <dt>Source namespace</dt>
+        <dd data-test-source-nspace>{{or @item.SourceNS 'default'}}</dd>
+        <dt>Source partition</dt>
+        <dd data-test-source-partition>{{or @item.SourcePartition 'default'}}</dd>
       </dl>
+    </Hds::Card::Container>
+
+    <Hds::Card::Container
+      @level="base"
+      @hasBorder={{true}}
+      class="consul-intention-view__card"
+      data-test-destination-card
+    >
+      <h2 class="consul-intention-view__card-title">Destination</h2>
+      <dl class="consul-intention-view__dl">
+        <dt>Destination service</dt>
+        <dd data-test-destination-name>{{or @item.DestinationName '*'}}</dd>
+        <dt>Destination namespace</dt>
+        <dd data-test-destination-nspace>{{or @item.DestinationNS 'default'}}</dd>
+        <dt>Destination partition</dt>
+        <dd data-test-destination-partition>{{or @item.DestinationPartition 'default'}}</dd>
+      </dl>
+    </Hds::Card::Container>
+  </div>
+
+{{#if @item.Action}}
+  <div class="consul-intention-view__field" data-test-action>
+    <span class="consul-intention-view__field-label">Action</span>
+    <div class="consul-intention-view__field-value">
+      <Consul::Intention::Action
+        @action={{@item.Action}}
+        @label={{capitalize @item.Action}}
+      />
+    </div>
+  </div>
+{{/if}}
+
+  <div class="consul-intention-view__field" data-test-description>
+    <span class="consul-intention-view__field-label">Description</span>
+    <p class="consul-intention-view__field-value">
+      {{or @item.Description 'No description added.'}}
+    </p>
   </div>
 
 {{#if (gt @item.Permissions.length 0) }}
