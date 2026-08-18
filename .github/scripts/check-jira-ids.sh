@@ -63,6 +63,7 @@ JIRA_PATTERN='(^|[^A-Z0-9])([A-Z]{2,10}-[0-9]+)([^0-9]|$)'
 #   • matches the Jira ID pattern when followed by a dash and digits.
 #
 # Examples:
+#   BUSL-1.1, MPL-2.0 → SPDX license identifiers in every file copyright header
 #   HTTP-1  → false positive in "HTTP-1.1" headers documentation
 #   SHA-256, SHA-512 → hash algorithm names
 #   RFC-2119 → standards reference
@@ -71,6 +72,10 @@ JIRA_PATTERN='(^|[^A-Z0-9])([A-Z]{2,10}-[0-9]+)([^0-9]|$)'
 #   IPv4, IPv6 would not match (digits in key are excluded by {2,10} cap)
 # ─────────────────────────────────────────────────────────────────────────────
 declare -a EXCLUDE_KEYS=(
+  # SPDX license identifiers — appear in every file's copyright header
+  'BUSL'
+  'MPL'
+  # Well-known technical acronyms that precede a dash and digit(s)
   'HTTP'
   'SHA'
   'RFC'
@@ -180,7 +185,7 @@ while IFS= read -r file; do
     continue
   fi
 
-  if ! [[ "${file,,}" =~ $SCANNABLE_PATTERN ]]; then
+  if ! [[ "$(printf '%s' "$file" | tr '[:upper:]' '[:lower:]')" =~ $SCANNABLE_PATTERN ]]; then
     continue
   fi
 
