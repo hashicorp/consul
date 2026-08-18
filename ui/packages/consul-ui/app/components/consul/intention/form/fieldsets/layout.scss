@@ -60,8 +60,8 @@
   .radio-card {
     @extend %radio-card;
   }
-  // Permissions content container — bordered card matching Figma node 3463:98595
-  // border: 1px solid var(--token-color-border-primary), radius: 6px, padding: 16px
+  // Permissions empty-state container — bordered card (Figma node 3463:98595)
+  // Only shown when there are no permissions yet
   .permissions-content {
     width: 100%;
     border: 1px solid var(--token-color-border-primary);
@@ -69,7 +69,6 @@
     padding: 16px;
     background: var(--token-color-surface-primary);
   }
-
   // Permissions section header: "Permissions" heading on the left,
   // "Add permission" button on the right (Figma: justify-between flex row)
   .permissions-header {
