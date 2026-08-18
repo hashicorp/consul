@@ -4,13 +4,12 @@
  */
 
 .consul-intention-fieldsets {
-  .value-allow > :last-child::before {
-    @extend %with-allow-500;
+  // Icon colours per intent — applied to the HDS icon element inside the card
+  .value-allow .radio-card-content .hds-icon {
+    color: var(--token-color-foreground-success-on-surface);
   }
-  .value-deny > :last-child::before {
-    @extend %with-deny-500;
+  .value-deny .radio-card-content .hds-icon {
+    color: var(--token-color-foreground-critical-on-surface);
   }
-  .value- > :last-child::before {
-    @extend %with-l7-500;
-  }
+  // value- (Application aware / L7) uses the default foreground colour — no override needed
 }
