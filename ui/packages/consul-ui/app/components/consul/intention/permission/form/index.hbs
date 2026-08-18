@@ -22,26 +22,26 @@ as |group|>
 
   <fieldset>
     <div data-property="action">
-      <span class="label">
-        Should this permission allow the source connect to the destination?
-      </span>
-      <div role="radiogroup" class={{if this.changeset.error.Action ' has-error'}}>
+      <Hds::Form::Radio::Group
+        @name="Action"
+        @layout="horizontal"
+        as |G|
+      >
+        <G.Legend>Should this permission allow the source connect to the destination?</G.Legend>
         {{#each this.intents as |intent|}}
-          <label>
-            <span>{{capitalize intent}}</span>
-            <input
-              type="radio"
-              name="Action"
-              value={{intent}}
-              checked={{if (eq this.changeset.Action intent) 'checked'}}
-              onchange={{action (changeset-set this.changeset 'Action') value="target.value"}}
-            />
-          </label>
+          <G.RadioField
+            @value={{intent}}
+            checked={{eq this.changeset.Action intent}}
+            {{on "change" (action (changeset-set this.changeset 'Action') value="target.value")}}
+          as |F|>
+            <F.Label>{{capitalize intent}}</F.Label>
+          </G.RadioField>
         {{/each}}
-      </div>
+      </Hds::Form::Radio::Group>
     </div>
   </fieldset>
 
+  <Hds::Separator />
   <fieldset>
       <h2>Path</h2>
     <div>
@@ -91,71 +91,60 @@ as |group|>
     </div>
   </fieldset>
 
+  <Hds::Separator />
   <fieldset>
     <h2>Methods</h2>
-    <div class="type-toggle">
-      <span>All methods are applied by default unless specified</span>
-      <group.Element
-        @name="allMethods"
-      as |el|>
-        <el.Checkbox
-          checked={{if this.allMethods 'checked'}}
-          onchange={{action 'change' 'allMethods' this.changeset}}
-        />
-        <el.Label>
-          All Methods
-        </el.Label>
-      </group.Element>
-    </div>
+    <p class="methods-description">All methods are applied by default unless specified</p>
+    <Hds::Form::Toggle::Field
+      data-property="allmethods"
+      @value="allMethods"
+      checked={{this.allMethods}}
+      {{on "change" (action 'change' 'allMethods' this.changeset)}}
+    as |F|>
+      <F.Label>All methods</F.Label>
+    </Hds::Form::Toggle::Field>
 
-{{#if this.shouldShowMethods}}
     <div class="checkbox-group" role="group">
       {{#each this.methods as |method|}}
-        <label class="type-checkbox">
-          <input
-            type="checkbox"
-            name="method"
-            value={{method}}
-            checked={{if (includes method this.changeset.HTTP.Methods) 'checked'}}
-            onchange={{action 'change' 'method' this.changeset}}
-          />
-          <span>{{method}}</span>
-        </label>
+        <Hds::Form::Checkbox::Field
+          @value={{method}}
+          checked={{or this.allMethods (includes method this.changeset.HTTP.Methods)}}
+          disabled={{this.allMethods}}
+          {{on "change" (action 'change' 'method' this.changeset)}}
+        as |F|>
+          <F.Label>{{method}}</F.Label>
+        </Hds::Form::Checkbox::Field>
       {{/each}}
     </div>
-{{/if}}
   </fieldset>
 
+  <Hds::Separator />
   <fieldset>
     <h2>Headers</h2>
 
-    <Consul::Intention::Permission::Header::List
-      @items={{changeset-get this.changeset 'HTTP.Header'}}
-      @ondelete={{action 'delete' 'HTTP.Header' this.changeset}}
-    as |headerList|>
+    <div class="headers-content">
+      <Consul::Intention::Permission::Header::List
+        @items={{changeset-get this.changeset 'HTTP.Header'}}
+        @ondelete={{action 'delete' 'HTTP.Header' this.changeset}}
+      />
 
-    </Consul::Intention::Permission::Header::List>
+      <Consul::Intention::Permission::Header::Form
+        @onsubmit={{action 'add' 'HTTP.Header' this.changeset}}
+      as |headerForm|>
+        <Ref @target={{this}} @name="headerForm" @value={{headerForm}} />
+      </Consul::Intention::Permission::Header::Form>
 
-    <Consul::Intention::Permission::Header::Form
-      @onsubmit={{action 'add' 'HTTP.Header' this.changeset}}
-    as |headerForm|>
-      <Ref @target={{this}} @name="headerForm" @value={{headerForm}} />
-    </Consul::Intention::Permission::Header::Form>
-
-    <Hds::ButtonSet>
       <Hds::Button
         data-test-add-header
-        @text='Add{{if (gt (get (changeset-get this.changeset 'HTTP.Header') 'length') 0) ' another' ''}} header'
-        @color='primary'
-        disabled={{if (not this.headerForm.isDirty) 'disabled'}}
-        onclick={{action this.headerForm.submit}}
-      />
-      <Hds::Button
-        @text='Cancel'
+        @text='Add another header'
+        @icon='plus'
+        @iconPosition='leading'
         @color='secondary'
-        onclick={{action this.headerForm.reset}}
+        @size='small'
+        disabled={{if (not this.headerForm.isDirty) 'disabled'}}
+        {{on 'click' (action this.headerForm.submit)}}
       />
-    </Hds::ButtonSet>
+    </div>
   </fieldset>
   </FormGroup>
 </div>
