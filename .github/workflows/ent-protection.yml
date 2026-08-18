@@ -1,14 +1,15 @@
 ###############################################################################
 # ent-protection.yml
 #
-# Prevents ENT (enterprise) code from being introduced into this CE (community
-# edition) repository. Runs on EVERY pull request.
+# Prevents ENT (enterprise) code and internal tracking metadata from being
+# introduced into this CE (community edition) repository.
+# Runs on EVERY pull request from internal employees.
 #
 # ┌─────────────────────────────────────────────────────────────────────────┐
 # │  Enforcement model                                                      │
 # │                                                                         │
 # │  Detection  — runs on ALL pull requests. The check always fails when   │
-# │               ENT code is found.                                       │
+# │               a violation is found.                                     │
 # │                                                                         │
 # │  Merge-blocking — enforced automatically by GitHub's required-status-  │
 # │    check feature on protected branches (main, release/**). Code        │
@@ -20,7 +21,7 @@
 # │  Protected branches: main, release/**                                  │
 # └─────────────────────────────────────────────────────────────────────────┘
 #
-# Two complementary checks run in this public CE repository:
+# Three complementary checks run in this public CE repository:
 #
 #   ┌─────────────────────────────────────────────────────────────────────────┐
 #   │  Job 1 — ent-file-check  (pull_request, all branches)                   │
@@ -39,7 +40,7 @@
 #   │  Scans every changed source / config file in the PR for well-known ENT  │
 #   │  content markers:                                                       │
 #   │    • Go build constraints  (//go:build consulent / enterprise)          │
-#   │    • IBM copyright headers (ENT-owned files in consul)     │
+#   │    • IBM copyright headers (ENT-owned files in consul)                  │
 #   │    • ENT-only Go imports   (go-licensing)                               │
 #   │    • CI metadata           (VERSION_METADATA: "ent", +ent suffix)       │
 #   │    • Explicit ENT repo references in source                             │
@@ -48,10 +49,25 @@
 #   │  targeting protected branches the failed status check blocks the merge. │
 #   └─────────────────────────────────────────────────────────────────────────┘
 #
+#   ┌─────────────────────────────────────────────────────────────────────────┐
+#   │  Job 3 — jira-id-check  (pull_request only, all branches)               │
+#   │                                                                         │
+#   │  Scans two surfaces for internal Jira ticket IDs (e.g. CCT-123):        │
+#   │    • The PR description (body text)                                     │
+#   │    • Every changed source / config file introduced by the PR            │
+#   │                                                                         │
+#   │  Internal ticket references are meaningless to the community and        │
+#   │  constitute an inadvertent information disclosure. Authors should use   │
+#   │  public GitHub issue links instead.                                     │
+#   │                                                                         │
+#   │  Re-runs on the `edited` PR event so that description corrections are  │
+#   │  also validated after the initial `opened` check.                       │
+#   └─────────────────────────────────────────────────────────────────────────┘
+#
 # Slack alerting:
-#   When a violation is detected on a non-protected branch, both jobs post a
-#   Slack message to #feed-consul-hygiene-alerts (id: C0BB6F78VB4) identifying 
-#   the branch, actor, and offending files so the team can act immediately.
+#   When a violation is detected on a non-protected branch, all jobs post a
+#   Slack message to #feed-consul-hygiene-alerts (id: C0BB6F78VB4) identifying
+#   the branch, actor, and offending content so the team can act immediately.
 #
 # Private-side repo-tree comparison:
 #   Private repo-tree comparison now runs in the ENT repository, where
@@ -70,10 +86,16 @@ on:
     # On PRs targeting protected branches (main, release/**) the failed status
     # check prevents merging. On PRs targeting feature branches the failure is
     # visible and the Slack alert fires for rapid remediation.
+    #
+    # `edited` is included so that the jira-id-check job re-runs whenever an
+    # author updates the PR description — description edits do not trigger
+    # `synchronize`, so without this event a Jira ID added post-open would
+    # not be caught until the next commit push.
     types:
       - opened
       - synchronize
       - reopened
+      - edited
 
 permissions:
   contents: read
@@ -292,6 +314,96 @@ jobs:
           }
           EOF
           )
+          curl -fsSL -X POST -H 'Content-type: application/json' \
+            --data "$PAYLOAD" \
+            "$SLACK_WEBHOOK_URL"
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Job 3: Scan PR description and changed files for internal Jira ticket IDs.
+  #
+  # Internal employees may inadvertently include Jira IDs (e.g. CCT-123) in
+  # the PR body or in code comments. These are meaningless to the community
+  # and constitute an inadvertent information disclosure.
+  # ───────────────────────────────────────────────────────────────────────────
+  jira-id-check:
+    name: Check for Internal Jira IDs
+    runs-on: ubuntu-latest
+    # Skip Dependabot PRs and limit to OWNER/MEMBER/COLLABORATOR authors —
+    # the same scope as the ENT checks above, since only internal employees
+    # can have access to internal Jira projects.
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.actor != 'dependabot[bot]' &&
+      (github.event.pull_request.author_association == 'OWNER' ||
+       github.event.pull_request.author_association == 'MEMBER' ||
+       github.event.pull_request.author_association == 'COLLABORATOR')
+    steps:
+      - name: Checkout CE repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      # ─── Compute the set of files changed in this PR ──────────────────────
+      - name: Compute all changed files
+        run: |
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.sha }}"
+
+          echo "Computing changed files between ${BASE_SHA} and ${HEAD_SHA}" >&2
+          git diff --name-only --diff-filter=ACMR "${BASE_SHA}" "${HEAD_SHA}" \
+            > /tmp/changed-files.txt 2>/dev/null || true
+
+          echo "Changed file count: $(wc -l < /tmp/changed-files.txt)" >&2
+          cat /tmp/changed-files.txt >&2 || true
+
+      # ─── Classify the target branch ───────────────────────────────────────
+      - name: Classify branch protection level
+        id: branch-type
+        run: |
+          BRANCH="${{ github.event.pull_request.base.ref }}"
+          if [[ "$BRANCH" =~ ${{ env.PROTECTED_BRANCH_REGEX }} ]]; then
+            echo "protected=true"  >> "$GITHUB_OUTPUT"
+            echo "PR targets PROTECTED branch '${BRANCH}' — merge-blocking enforcement active."
+          else
+            echo "protected=false" >> "$GITHUB_OUTPUT"
+            echo "PR targets non-protected branch '${BRANCH}' — detection+alert mode."
+          fi
+
+      # ─── Scan PR description and changed files for Jira IDs ──────────────
+      # JIRA_CHECK_PR_BODY carries the raw PR body text; passing it via env
+      # avoids shell-quoting issues with arbitrary user-supplied content.
+      - name: Scan for internal Jira IDs
+        id: jira-id-scan
+        env:
+          JIRA_CHECK_PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          chmod +x .github/scripts/check-jira-ids.sh
+          .github/scripts/check-jira-ids.sh /tmp/changed-files.txt \
+            2>&1 | tee /tmp/jira-id-scan-output.txt
+          exit ${PIPESTATUS[0]}
+
+      # ─── Slack alert for non-protected branch violations to #feed-consul-hygiene-alerts (id: C0BB6F78VB4) ──────────────────
+      - name: Alert Slack on non-protected branch violation
+        if: failure() && steps.branch-type.outputs.protected == 'false'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          BRANCH: ${{ github.event.pull_request.base.ref }}
+          HEAD_BRANCH: ${{ github.head_ref }}
+          ACTOR: ${{ github.actor }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          [ -z "$SLACK_WEBHOOK_URL" ] && exit 0
+          SUMMARY=$(grep '::error::' /tmp/jira-id-scan-output.txt 2>/dev/null \
+            | head -5 \
+            | sed 's/::error::[^:]*:://' \
+            | sed 's/^/• /' \
+            || echo "(see CI log)")
+          PAYLOAD=$(jq -cn \
+            --arg summary ":lock: *Internal Jira IDs detected in CE PR*" \
+            --arg detail "$(printf ':lock: *Internal Jira IDs found in <%s>*\nPR branch: *%s* → *%s*  |  Actor: *%s*\n\n%s\n\n<%%s|View PR> — <%%s|View CI run>\n\nPlease remove internal ticket references from the PR description and source files.' \
+              "${{ github.repository }}" "$HEAD_BRANCH" "$BRANCH" "$ACTOR" "$SUMMARY" "$PR_URL" "$RUN_URL")" \
+            '{"text":$summary,"blocks":[{"type":"section","text":{"type":"mrkdwn","text":$detail}}]}')
           curl -fsSL -X POST -H 'Content-type: application/json' \
             --data "$PAYLOAD" \
             "$SLACK_WEBHOOK_URL"
