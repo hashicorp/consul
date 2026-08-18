@@ -56,6 +56,22 @@ fi
 JIRA_PATTERN='(^|[^A-Z0-9])([A-Z]{2,10}-[0-9]+)([^0-9]|$)'
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Compound tokens to strip before per-key exclusion.
+#
+# These are multi-word technical phrases whose fragments would match the
+# Jira-ID pattern after per-key stripping.  Strip the whole phrase first so
+# neither piece is misidentified.
+#
+# Example:
+#   "TEST-NET-1" (RFC 5735 reserved network block) contains "NET-1" after
+#   "TEST-" is consumed.  Stripping the full "TEST-NET" compound prevents
+#   the NET-\d fragment from being flagged as a Jira ID.
+# ─────────────────────────────────────────────────────────────────────────────
+declare -a EXCLUDE_COMPOUND_TOKENS=(
+  'TEST-NET'   # RFC 5735 documentation address blocks (TEST-NET-1, TEST-NET-2, TEST-NET-3)
+)
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Project keys to exclude.
 #
 # Add any uppercase two-to-ten-letter prefix that:
@@ -108,7 +124,6 @@ EXCLUDE_DIRS_PATTERN='^(vendor/|\.git/|node_modules/)'
 # ─────────────────────────────────────────────────────────────────────────────
 declare -a EXCLUDE_PATHS=(
   '.github/scripts/check-jira-ids.sh'
-  '.github/workflows/jira-id-check.yml'
   'CHANGELOG.md'
 )
 
@@ -116,12 +131,18 @@ declare -a EXCLUDE_PATHS=(
 # Helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
-# build_exclude_sed_expr — constructs a sed expression that deletes any token
-# matching an excluded key from a line of text before the Jira pattern is
-# applied.  This prevents e.g. "SHA-256" from triggering a false positive
-# while still catching "CCT-123" in the same line.
+# build_exclude_sed_expr — constructs a sed expression that:
+#   1. Strips compound tokens (e.g. TEST-NET) before per-key processing so
+#      their fragments don't re-surface as Jira IDs.
+#   2. Strips per-key tokens (e.g. SHA-256, BUSL-1) that are known technical
+#      acronyms or SPDX identifiers, not internal Jira project keys.
 build_exclude_sed_expr() {
   local expr=""
+  # Compound tokens first — order matters; strip the full phrase before
+  # the individual keys would consume part of it.
+  for compound in "${EXCLUDE_COMPOUND_TOKENS[@]}"; do
+    expr+="s/${compound}-[0-9][0-9]*/EXCLUDED/g;"
+  done
   for key in "${EXCLUDE_KEYS[@]}"; do
     expr+="s/${key}-[0-9][0-9]*/EXCLUDED/g;"
   done
