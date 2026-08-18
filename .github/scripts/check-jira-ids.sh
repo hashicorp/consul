@@ -9,25 +9,27 @@
 #   1. PR description  — read from the JIRA_CHECK_PR_BODY environment variable
 #      (the raw text of github.event.pull_request.body passed in by the caller).
 #
-#   2. Changed source / config files — a newline-delimited list of paths is
-#      passed as the first positional argument, identical to the calling
-#      convention used by check-ent-content-markers.sh.
+#   2. Lines added by the PR — for each file in the changed-files list, only
+#      the lines introduced by this PR (the '+' lines of the git diff between
+#      BASE_SHA and HEAD_SHA) are scanned.  Pre-existing Jira IDs in unchanged
+#      surrounding context are intentionally ignored; they pre-date this policy
+#      and would produce false positives on routine file modifications.
 #
 # A Jira ID is defined as:   [A-Z]{2,10}-[0-9]+
-# … preceded by a word boundary (start-of-string, whitespace, punctuation) and
-# followed by a non-digit boundary, to avoid matching semver strings like
-# "1.2-3" or hex SHAs.  The pattern is intentionally broad; if a project key
-# collision with a legitimate CE term is discovered, add it to EXCLUDE_KEYS.
 #
 # Excluded project keys:
-#   Keys that collide with common CE terminology (Go package paths, acronyms,
-#   etc.) are listed in EXCLUDE_KEYS below and stripped before the check runs.
+#   Keys that collide with common CE terminology (SPDX license IDs, protocol
+#   acronyms, etc.) are listed in EXCLUDE_KEYS below and stripped before the
+#   check runs.
 #
 # Usage:
+#   BASE_SHA=<base> HEAD_SHA=<head> \
 #   JIRA_CHECK_PR_BODY="<pr body text>" \
 #     ./check-jira-ids.sh <path-to-file-listing-changed-paths>
 #
 # Environment:
+#   BASE_SHA             Required. The merge-base / PR base commit SHA.
+#   HEAD_SHA             Required. The PR head commit SHA.
 #   JIRA_CHECK_PR_BODY   Raw text of the PR description (may be empty/unset).
 #
 # Exit codes:
@@ -39,7 +41,7 @@ set -euo pipefail
 CHANGED_FILES_LIST="${1:-}"
 
 if [[ -z "$CHANGED_FILES_LIST" ]]; then
-  echo "Usage: $0 <file-listing-changed-paths>" >&2
+  echo "Usage: BASE_SHA=<sha> HEAD_SHA=<sha> $0 <file-listing-changed-paths>" >&2
   exit 1
 fi
 
@@ -48,50 +50,40 @@ if [[ ! -f "$CHANGED_FILES_LIST" ]]; then
   exit 1
 fi
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Jira ID pattern:  one or more uppercase letters (2–10), dash, one or more
-# digits.  Word-boundary anchors prevent matching inside longer tokens.
-# The negative lookbehind on digits stops matching "1.19-2" semver fragments.
-# ─────────────────────────────────────────────────────────────────────────────
-JIRA_PATTERN='(^|[^A-Z0-9])([A-Z]{2,10}-[0-9]+)([^0-9]|$)'
+BASE_SHA="${BASE_SHA:-}"
+HEAD_SHA="${HEAD_SHA:-}"
+
+if [[ -z "$BASE_SHA" || -z "$HEAD_SHA" ]]; then
+  echo "Error: BASE_SHA and HEAD_SHA must be set." >&2
+  exit 1
+fi
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Compound tokens to strip before per-key exclusion.
 #
-# These are multi-word technical phrases whose fragments would match the
-# Jira-ID pattern after per-key stripping.  Strip the whole phrase first so
-# neither piece is misidentified.
+# Multi-word technical phrases whose fragments would match the Jira-ID pattern
+# after per-key stripping.  Strip the whole phrase first so neither piece is
+# misidentified.
 #
 # Example:
-#   "TEST-NET-1" (RFC 5735 reserved network block) contains "NET-1" after
-#   "TEST-" is consumed.  Stripping the full "TEST-NET" compound prevents
-#   the NET-\d fragment from being flagged as a Jira ID.
+#   "TEST-NET-1" (RFC 5735 reserved network block) — strip "TEST-NET" as a
+#   unit; without this, "NET-1" would remain after "TEST-" is consumed.
 # ─────────────────────────────────────────────────────────────────────────────
 declare -a EXCLUDE_COMPOUND_TOKENS=(
-  'TEST-NET'   # RFC 5735 documentation address blocks (TEST-NET-1, TEST-NET-2, TEST-NET-3)
+  'TEST-NET'   # RFC 5735 documentation address blocks (TEST-NET-1/2/3)
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Project keys to exclude.
 #
-# Add any uppercase two-to-ten-letter prefix that:
-#   • appears as a legitimate code token or known acronym in CE source, AND
-#   • matches the Jira ID pattern when followed by a dash and digits.
-#
-# Examples:
-#   BUSL-1.1, MPL-2.0 → SPDX license identifiers in every file copyright header
-#   HTTP-1  → false positive in "HTTP-1.1" headers documentation
-#   SHA-256, SHA-512 → hash algorithm names
-#   RFC-2119 → standards reference
-#   TLS-1, TLS-13 → protocol version numbers
-#   UTF-8, UTF-16 → encoding names
-#   IPv4, IPv6 would not match (digits in key are excluded by {2,10} cap)
+# Add any uppercase prefix that appears as a legitimate code token in CE source
+# and matches the Jira ID pattern when followed by a dash and digits.
 # ─────────────────────────────────────────────────────────────────────────────
 declare -a EXCLUDE_KEYS=(
-  # SPDX license identifiers — appear in every file's copyright header
+  # SPDX license identifiers — present in every file's copyright header
   'BUSL'
   'MPL'
-  # Well-known technical acronyms that precede a dash and digit(s)
+  # Well-known technical acronyms
   'HTTP'
   'SHA'
   'RFC'
@@ -117,10 +109,10 @@ EXCLUDE_DIRS_PATTERN='^(vendor/|\.git/|node_modules/)'
 # ─────────────────────────────────────────────────────────────────────────────
 # Paths to exclude from the file scan.
 #
-# The Jira-check scripts and workflows themselves necessarily contain the Jira
-# ID pattern as a regex literal — scanning them produces false positives.
-# CHANGELOG.md may legitimately reference internal issue trackers in older
-# entries that pre-date this policy.
+# The Jira-check script itself necessarily contains the Jira ID pattern as a
+# regex literal — scanning it produces false positives.
+# CHANGELOG.md may legitimately reference internal trackers in older entries
+# that pre-date this policy.
 # ─────────────────────────────────────────────────────────────────────────────
 declare -a EXCLUDE_PATHS=(
   '.github/scripts/check-jira-ids.sh'
@@ -131,15 +123,10 @@ declare -a EXCLUDE_PATHS=(
 # Helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
-# build_exclude_sed_expr — constructs a sed expression that:
-#   1. Strips compound tokens (e.g. TEST-NET) before per-key processing so
-#      their fragments don't re-surface as Jira IDs.
-#   2. Strips per-key tokens (e.g. SHA-256, BUSL-1) that are known technical
-#      acronyms or SPDX identifiers, not internal Jira project keys.
+# build_exclude_sed_expr — sed expression that strips compound tokens first,
+# then per-key tokens, so fragments of compound phrases are never left behind.
 build_exclude_sed_expr() {
   local expr=""
-  # Compound tokens first — order matters; strip the full phrase before
-  # the individual keys would consume part of it.
   for compound in "${EXCLUDE_COMPOUND_TOKENS[@]}"; do
     expr+="s/${compound}-[0-9][0-9]*/EXCLUDED/g;"
   done
@@ -151,15 +138,10 @@ build_exclude_sed_expr() {
 
 SED_EXCLUDE_EXPR="$(build_exclude_sed_expr)"
 
-# strip_excluded <text> — removes excluded-key tokens from text before matching.
-strip_excluded() {
-  printf '%s' "$1" | sed -E "$SED_EXCLUDE_EXPR"
-}
-
-# find_jira_ids_in_text <text> — prints one match per line, empty output = none.
+# find_jira_ids_in_text <text> — prints one match per line, empty = none.
 find_jira_ids_in_text() {
-  local text="$1"
-  strip_excluded "$text" \
+  printf '%s' "$1" \
+    | sed -E "$SED_EXCLUDE_EXPR" \
     | grep -oE '[A-Z]{2,10}-[0-9]+' \
     || true
 }
@@ -194,7 +176,7 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Surface 2 — changed files
+# Surface 2 — lines added by this PR (diff only, not full file contents)
 # ─────────────────────────────────────────────────────────────────────────────
 scanned=0
 
@@ -217,15 +199,27 @@ while IFS= read -r file; do
 
   scanned=$((scanned + 1))
 
-  # Read the file, strip excluded key tokens, then grep for Jira IDs.
-  file_hits="$(sed -E "$SED_EXCLUDE_EXPR" "$file" \
+  # Extract only lines introduced by this PR ('+' lines, excluding the '+++'
+  # diff header).  Line numbers in error annotations refer to the position
+  # within the added-lines output, not the final file — sufficient to locate
+  # the violation for the author.
+  added_lines="$(git diff "${BASE_SHA}" "${HEAD_SHA}" -- "${file}" \
+    | grep '^+' \
+    | grep -v '^+++' \
+    | sed 's/^+//' \
+    || true)"
+
+  [[ -z "$added_lines" ]] && continue
+
+  file_hits="$(printf '%s\n' "$added_lines" \
+    | sed -E "$SED_EXCLUDE_EXPR" \
     | grep -onE '[A-Z]{2,10}-[0-9]+' \
     || true)"
 
   if [[ -n "$file_hits" ]]; then
     while IFS=: read -r lineno id; do
       [[ -z "$id" ]] && continue
-      echo "::error file=${file},line=${lineno}::Jira ID '${id}' found in changed file. Internal ticket references must not appear in CE source."
+      echo "::error file=${file},line=${lineno}::Jira ID '${id}' introduced in PR. Internal ticket references must not appear in CE source."
       violations=$((violations + 1))
     done <<< "$file_hits"
   fi
@@ -243,4 +237,4 @@ if [[ "$violations" -gt 0 ]]; then
   exit 1
 fi
 
-echo "Jira ID check passed: no internal ticket references found."
+echo "Jira ID check passed: no internal ticket references found in PR changes."
