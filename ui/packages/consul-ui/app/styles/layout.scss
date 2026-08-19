@@ -97,7 +97,6 @@ html[data-route$='edit'] .app-view > header + div > *:first-child {
 }
 /* turn off top borders for things flush up to a filter bar */
 html[data-route='dc.services.index'] .consul-service-list ul,
-.consul-nspace-list ul,
 .consul-service-instance-list ul,
 .consul-role-list ul,
 .consul-policy-list ul,

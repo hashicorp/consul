@@ -9,6 +9,9 @@
 .consul-partition-toolbar {
   padding: 8px;
   background-color: var(--token-color-surface-faint);
+  border: 1px solid var(--token-color-border-faint);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
 
   /* Sort dropdown sits at the right end of the quick-filters row. */
   .consul-partition-toolbar__sort {

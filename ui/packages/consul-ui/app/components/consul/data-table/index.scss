@@ -11,17 +11,6 @@
      bottom of the viewport. */
   margin-bottom: 2em;
 
-  /* Card wrapper: groups the :toolbar block and the scrollable table together.
-     Only present when a caller provides a :toolbar named block. Gives the card
-     its border, rounded corners, and overflow clipping so row backgrounds and
-     the last row's border are clipped to the rounded corners. Pagination sits
-     outside this wrapper so it always renders below the card border. */
-  .consul-data-table__card {
-    border: 1px solid var(--token-color-border-faint);
-    border-radius: 6px;
-    overflow: hidden;
-  }
-
   /* The viewport positions the edge fade overlays over the scroll area. */
   .consul-data-table__viewport {
     position: relative;
