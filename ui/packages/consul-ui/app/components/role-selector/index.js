@@ -25,6 +25,17 @@ export default ChildSelectorComponent.extend({
     set(this, 'policyForm', this.formContainer.form('policy'));
     this.source = new EventSource();
   },
+  confirmRemove: function (item, removeFn) {
+    set(this, 'roleToRemove', { item, removeFn });
+  },
+  cancelRemove: function () {
+    set(this, 'roleToRemove', null);
+  },
+  invokeRemove: function () {
+    const { item, removeFn } = this.roleToRemove;
+    removeFn(item, this.items);
+    set(this, 'roleToRemove', null);
+  },
   actions: {
     reset: function (e) {
       this._super(...arguments);

@@ -106,6 +106,26 @@
   </:actions>
 </ModalDialog>
 
+{{#if @showHeader}}
+  <div class="consul-nspace-form-section-header">
+    <div class="consul-nspace-form-section-header__text">
+      <p class="consul-nspace-form-section-title">Roles</p>
+      <p class="consul-nspace-form-section-description">{{@descriptionText}}</p>
+    </div>
+    {{#if (not @disabled)}}
+      <Hds::Button
+        @text='Create new role'
+        @size='medium'
+        @color='tertiary'
+        @icon='plus'
+        class='type-dialog'
+        data-test-role-create
+        {{on "click" (optional this.modal.open)}}
+      />
+    {{/if}}
+  </div>
+{{/if}}
+
 <ChildSelector
   @disabled={{@disabled}}
   @repo={{this.repo}}
@@ -119,73 +139,75 @@
   <:label>
     Apply an existing role
   </:label>
-  <:create>
-    <Hds::Button
-      @text='Create new role'
-      @size='small'
-      @color='tertiary'
-      @icon='plus'
-      class='type-dialog'
-      data-test-role-create
-      {{on "click" (optional this.modal.open)}}
-    />
-  </:create>
   <:option as |option|>
     {{option.Name}}
   </:option>
   <:set as |remove|>
-    <TabularCollection
-        data-test-roles
-        @rows={{5}}
-        @items={{sort-by 'CreateTime:desc' 'Name:asc' @items}}
-    >
-      <:header>
-        <th>Name</th>
-        <th>Description</th>
-      </:header>
-      <:row as |item index|>
-        <td>
-          <a href={{href-to 'dc.acls.roles.edit' item.ID}}>{{item.Name}}</a>
-        </td>
-        <td>
-          {{item.Description}}
-        </td>
-      </:row>
-      <:actions as |item index change checked|>
-        <PopoverMenu @expanded={{if (eq checked index) true false}} @onchange={{action change index}} @keyboardAccess={{true}}>
-          <:trigger>
-            More
-          </:trigger>
-          <:menu as |components confirm keypressClick|>
-              <components.MenuItem @href={{href-to 'dc.acls.roles.edit' item.ID}}>
-                <:label>
-                  {{#if (can "edit role" item=item)}}
-                    Edit
-                  {{else}}
-                    View
-                  {{/if}}
-                </:label>
-              </components.MenuItem>
+    <Hds::Table data-test-roles>
+      <:head as |H|>
+        <H.Tr>
+          <H.Th>Role name</H.Th>
+          <H.Th>Role description</H.Th>
+          <H.Th @align="right">Actions</H.Th>
+        </H.Tr>
+      </:head>
+      <:body as |B|>
+        {{#each (sort-by 'CreateTime:desc' 'Name:asc' @items) as |item index|}}
+          <B.Tr data-test-tabular-row>
+            <B.Td>
+              <a href={{href-to 'dc.acls.roles.edit' item.ID}}>{{item.Name}}</a>
+            </B.Td>
+            <B.Td>{{item.Description}}</B.Td>
+            <B.Td @align="right">
+              <Hds::Dropdown @listPosition="bottom-right" as |dd|>
+                <dd.ToggleIcon
+                  @icon="more-horizontal"
+                  @text="Open actions menu"
+                  @hasChevron={{false}}
+                  @size="small"
+                  data-test-role-actions
+                />
+                <dd.Interactive
+                  @icon={{if (can "edit role" item=item) "edit" "eye"}}
+                  @href={{href-to 'dc.acls.roles.edit' item.ID}}
+                  data-test-edit
+                >
+                  {{if (can "edit role" item=item) "Edit" "View"}}
+                </dd.Interactive>
+                {{#if (not @disabled)}}
+                  <dd.Separator />
+                  <dd.Interactive
+                    @color="critical"
+                    @icon="trash"
+                    data-test-delete
+                    {{on "click" (action this.confirmRemove item remove)}}
+                  >Remove</dd.Interactive>
+                {{/if}}
+              </Hds::Dropdown>
+            </B.Td>
+          </B.Tr>
+        {{/each}}
+      </:body>
+    </Hds::Table>
 
-            {{#if (not @disabled)}}
-              <components.MenuItem class="dangerous" @onclick={{fn remove item @items}} data-test-delete>
-                <:label>
-                  Remove
-                </:label>
-                <:confirmHeader>
-                  Confirm Remove
-                </:confirmHeader>
-                <:confirmBody>
-                  Are you sure you want to remove this role?
-                </:confirmBody>
-                <:confirmFooter as |Params|>
-                  <Params.button @text='Remove' {{on 'click' Params.confirmAction}} />
-                </:confirmFooter>
-              </components.MenuItem>
-            {{/if}}
-          </:menu>
-        </PopoverMenu>
-      </:actions>
-    </TabularCollection>
+    {{#if this.roleToRemove}}
+      <Hds::Modal id="confirm-remove-role-modal" @color="critical" @onClose={{action this.cancelRemove}} as |M|>
+        <M.Header @icon="alert-diamond">Confirm remove</M.Header>
+        <M.Body>
+          <p>Are you sure you want to remove this role?</p>
+        </M.Body>
+        <M.Footer as |F|>
+          <Hds::ButtonSet>
+            <Hds::Button
+              @text="Remove"
+              @color="critical"
+              data-test-id="confirm-action"
+              {{on "click" (action this.invokeRemove)}}
+            />
+            <Hds::Button @text="Cancel" @color="secondary" {{on "click" F.close}} />
+          </Hds::ButtonSet>
+        </M.Footer>
+      </Hds::Modal>
+    {{/if}}
   </:set>
 </ChildSelector>

@@ -25,8 +25,8 @@
   </label>
 </fieldset>
 <fieldset id="roles">
-  <h2>Roles</h2>
   <RoleSelector
+    @showHeader={{true}}
     @disabled={{not (can "write token" item=@item)}}
     @dc={{@dc}}
     @partition={{@partition}}
@@ -35,8 +35,8 @@
   />
 </fieldset>
 <fieldset id="policies">
-  <h2>Policies</h2>
   <PolicySelector
+    @showHeader={{true}}
     @disabled={{not (can "write token" item=@item)}}
     @dc={{@dc}}
     @partition={{@partition}}
