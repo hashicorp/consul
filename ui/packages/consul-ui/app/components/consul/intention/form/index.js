@@ -24,7 +24,7 @@ export default class ConsulIntentionForm extends Component {
   @tracked isManagedByCRDs;
 
   @tracked isDeleteModalOpen = false;
-  pendingDelete = null;
+  @tracked pendingDelete = null;
 
   modal = null; // reference to the warning modal
 
@@ -45,6 +45,15 @@ export default class ConsulIntentionForm extends Component {
   closeDeleteModal() {
     this.isDeleteModalOpen = false;
     this.pendingDelete = null;
+  }
+
+  @action
+  confirmDelete() {
+    const deleteFn = this.pendingDelete;
+    this.closeDeleteModal();
+    if (deleteFn) {
+      deleteFn();
+    }
   }
 
   @action
