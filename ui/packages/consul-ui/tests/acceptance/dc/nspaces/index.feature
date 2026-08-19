@@ -31,7 +31,7 @@ Feature: dc / nspaces / index: Nspaces List
     Then I see 3 nspace models
     Then I fill in with yaml
     ---
-    s: default
+    search: default
     ---
     And I see 1 nspace model
     And I see 1 nspace model with the description "The default namespace"

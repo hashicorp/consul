@@ -231,7 +231,7 @@ export default {
       intentionPermissionList
     )
   ),
-  nspaces: create(nspaces(visitable, creatable, consulNspaceList, popoverSelect)),
+  nspaces: create(nspaces(visitable, creatable, consulNspaceList, clickable, collection)),
   nspace: create(
     nspace(visitable, submitable, deletable, cancelable, policySelector, roleSelector)
   ),
