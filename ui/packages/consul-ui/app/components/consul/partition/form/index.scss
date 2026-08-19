@@ -1,0 +1,40 @@
+/**
+ * Copyright IBM Corp. 2024, 2026
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+/* Suppress the %app-view-title border-bottom under the page heading, and the
+   %app-view-content fieldset separator inside the form. Both opposing rules
+   have specificity (0,2,3+) — too high to beat with selectors alone. */
+.app-view:has(.consul-partition-form) > header .title {
+  border-bottom: none;
+}
+
+.consul-partition-form {
+  margin-top: 0 !important;
+}
+
+.consul-partition-form fieldset {
+  border: none !important;
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Space between stacked form fields — matches the HDS form field gap standard. */
+.consul-partition-form fieldset [class^='hds-form-field'] {
+  margin-bottom: 16px;
+}
+
+/* Split the form actions row: Save+Cancel on the left, Delete on the right. */
+.consul-partition-form__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Muted "(Optional)" text in the Description label. */
+.consul-partition-form__optional {
+  font-weight: var(--token-typography-font-weight-regular);
+  color: var(--token-color-foreground-faint);
+}
