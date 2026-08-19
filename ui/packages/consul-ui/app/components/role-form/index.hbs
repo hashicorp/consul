@@ -27,11 +27,11 @@
 </fieldset>
 {{!TODO: temporary policies id, look at the inception token modals and get rid of id="policies" and use something else}}
 <fieldset id="policies" class="policies">
-  <h2>Policies</h2>
   {{#if (has-block 'policy')}}
     {{yield this.item to='policy'}}
   {{else}}
     <PolicySelector
+      @showHeader={{true}}
       @disabled={{not (can "write role" item=this.item)}}
       @dc={{@dc}}
       @partition={{@partition}}
