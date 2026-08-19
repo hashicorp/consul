@@ -1,0 +1,36 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+/* The toolbar renders inside .consul-data-table__card, above the table.
+   Give it the same faint-surface background and bottom row separator that
+   the intentions / nodes / services toolbars use. */
+.consul-partition-toolbar {
+  padding: 8px;
+  background-color: var(--token-color-surface-faint);
+
+  /* Sort dropdown sits at the right end of the quick-filters row. */
+  .consul-partition-toolbar__sort {
+    flex: 0 0 auto;
+    margin-left: auto;
+
+    .hds-dropdown-toggle-button {
+      min-height: 2.25rem;
+    }
+  }
+}
+
+/* Separator between the controls row and the applied-filters area.
+   Matches the intentions toolbar pattern. */
+.consul-partition-toolbar .hds-filter-bar__actions {
+  border-bottom: 1px solid var(--token-color-border-faint);
+  padding-bottom: 8px;
+}
+
+/* Drop the default header underline above the toolbar to avoid a
+   doubled-up separator (consistent with the services / nodes / intentions
+   index pages). */
+html[data-route='dc.partitions.index'] .app-view > header .title {
+  border-bottom: none;
+}
