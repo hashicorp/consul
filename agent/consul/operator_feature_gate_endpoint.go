@@ -107,7 +107,13 @@ func (op *Operator) FeatureGateSet(args *structs.FeatureGateSetRequest, reply *s
 		ExpectedPolicyIndex: policy.ModifyIndex,
 		ExpectedStatusIndex: status.ModifyIndex,
 	}
-	response, err := op.srv.raftApplyMsgpack(structs.FeatureGateRequestType, request)
+	// See reconcileFeatureGates: this state can be ignored by binaries that
+	// predate the framework, including when they replay an older log entry
+	// during a downgrade.
+	response, err := op.srv.raftApplyMsgpack(
+		structs.FeatureGateRequestType|structs.IgnoreUnknownTypeFlag,
+		request,
+	)
 	if err != nil {
 		return fmt.Errorf("raft apply failed: %w", err)
 	}
