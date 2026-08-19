@@ -3,10 +3,17 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-export default function (visitable, creatable, nspaces, popoverSelect) {
+export default function (visitable, creatable, nspaces, clickable, collection) {
   return creatable({
     visit: visitable('/:dc/namespaces'),
     nspaces: nspaces(),
-    sort: popoverSelect('[data-test-sort-control]'),
+    sort: {
+      selected: clickable('[data-test-sort-control] button', { at: 0 }),
+      options: collection('[data-test-sort-option]', {
+        resetScope: true,
+        testContainer: 'html',
+        button: clickable(),
+      }),
+    },
   });
 }
