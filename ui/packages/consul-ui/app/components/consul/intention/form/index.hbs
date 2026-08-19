@@ -222,7 +222,7 @@ as |item readonly|}}
           @text='Delete'
           @color='critical'
           data-test-confirm-delete
-          {{on 'click' (queue this.closeDeleteModal this.pendingDelete)}}
+          {{on 'click' this.confirmDelete}}
         />
         <Hds::Button
           @text='Cancel'
