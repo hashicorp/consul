@@ -10,6 +10,7 @@ import (
 	memdb "github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/adapter"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/private/pbcommon"
@@ -64,13 +65,13 @@ func (e EventPayloadCheckServiceNode) Subject() stream.Subject {
 
 func (e EventPayloadCheckServiceNode) ToSubscriptionEvent(idx uint64) *pbsubscribe.Event {
 	value := e.Value
-	if value != nil && value.Service != nil && value.Service.Port == 0 && len(value.Service.Ports) > 0 {
-		// Populate the legacy scalar port at the subscription RPC boundary. Older
-		// agents do not decode NodeService.Ports from subscription responses.
+	if value != nil {
 		valueCopy := *value
-		serviceCopy := *value.Service
-		serviceCopy.Port = serviceCopy.DefaultPort()
-		valueCopy.Service = &serviceCopy
+		if value.Service != nil {
+			serviceCopy := *value.Service
+			valueCopy.Service = &serviceCopy
+		}
+		adapter.PopulateLegacyCheckServiceNodePorts(structs.CheckServiceNodes{valueCopy})
 		value = &valueCopy
 	}
 
