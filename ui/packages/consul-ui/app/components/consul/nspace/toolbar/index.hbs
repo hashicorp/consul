@@ -1,0 +1,45 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{!
+  Namespaces-index toolbar. All the Filter Bar wiring (search, "Search across"
+  dropdown, stay-expanded behaviour) lives in the generic Consul::ListToolbar.
+  Namespaces have no categorical filter groups, so this component only supplies
+  the Name sort dropdown (A to Z / Z to A).
+}}
+<Consul::ListToolbar
+  class="consul-nspace-toolbar"
+  ...attributes
+  @filter={{@filter}}
+  @search={{@search}}
+  @onsearch={{@onsearch}}
+  @searchPlaceholder="Search"
+>
+  <:quickFilters>
+    {{#if @sort}}
+      <Hds::Dropdown
+        class="consul-nspace-toolbar__sort"
+        @listPosition="bottom-right"
+        @preserveContentInDom={{true}}
+        data-test-sort-control
+        as |dd|
+      >
+        <dd.ToggleButton
+          @text={{if (eq @sort.value "Name:asc") (t "common.sort.alpha.asc") (t "common.sort.alpha.desc")}}
+          @color="secondary"
+          data-test-sort-toggle
+        />
+        <dd.Interactive
+          data-test-sort-option
+          {{on "click" (fn @sort.change (hash target=(hash selected="Name:asc")))}}
+        >{{t "common.sort.alpha.asc"}}</dd.Interactive>
+        <dd.Interactive
+          data-test-sort-option
+          {{on "click" (fn @sort.change (hash target=(hash selected="Name:desc")))}}
+        >{{t "common.sort.alpha.desc"}}</dd.Interactive>
+      </Hds::Dropdown>
+    {{/if}}
+  </:quickFilters>
+</Consul::ListToolbar>
