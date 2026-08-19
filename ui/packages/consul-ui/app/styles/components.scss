@@ -20,6 +20,7 @@
 @import 'consul-ui/components/consul/service-instance/table';
 @import 'consul-ui/components/consul/service-instance/toolbar';
 @import 'consul-ui/components/consul/intention/toolbar';
+@import 'consul-ui/components/consul/partition/toolbar';
 @import 'consul-ui/components/confirmation-dialog';
 @import 'consul-ui/components/consul-copy-button';
 @import 'consul-ui/components/definition-table';
@@ -127,6 +128,7 @@
 @import 'consul-ui/components/topology-metrics/stats';
 @import 'consul-ui/components/topology-metrics/status';
 @import 'consul-ui/components/consul/intention/list/table';
+@import 'consul-ui/components/consul/partition/list/table';
 @import 'consul-ui/components/consul/peer';
 @import 'consul-ui/components/consul/peer/list';
 @import 'consul-ui/components/consul/peer/toolbar';
