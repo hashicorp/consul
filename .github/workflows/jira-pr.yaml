@@ -5,11 +5,6 @@ on:
   pull_request_target:
     types: [opened, closed, reopened]
   workflow_dispatch:
-    inputs:
-      github_url:
-        description: Existing GitHub pull request URL linked to a Jira issue
-        required: true
-        type: string
 
 name: Jira Community PR Sync
 
@@ -100,7 +95,7 @@ jobs:
           JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
           # cf[10089] is Issue Link (use JIRA API to retrieve)
-          JQL: 'issuetype = "${{ steps.set-ticket-type.outputs.TYPE }}" and cf[10089] = "${{ github.event.issue.html_url || github.event.pull_request.html_url || inputs.github_url }}"'
+          JQL: 'issuetype = "${{ steps.set-ticket-type.outputs.TYPE }}" and cf[10089] = "${{ github.event.issue.html_url || github.event.pull_request.html_url }}"'
         run: |
           response="$(curl --fail-with-body --silent --show-error \
             --request POST \
@@ -119,17 +114,6 @@ jobs:
 
           issue="$(jq --raw-output '.issues[0].key // empty' <<< "${response}")"
           echo "issue=${issue}" >> "${GITHUB_OUTPUT}"
-
-      - name: Verify search
-        if: github.event_name == 'workflow_dispatch'
-        env:
-          JIRA_ISSUE: ${{ steps.search.outputs.issue }}
-        run: |
-          if [[ -z "${JIRA_ISSUE}" ]]; then
-            echo "::error::No Jira issue found for ${{ inputs.github_url }}"
-            exit 1
-          fi
-          echo "Found Jira issue ${JIRA_ISSUE}"
 
       - name: Sync comment
         if: github.event.action == 'created' && steps.search.outputs.issue
