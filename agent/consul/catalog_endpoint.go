@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/configentry"
+	"github.com/hashicorp/consul/agent/consul/adapter"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/ipaddr"
@@ -876,7 +877,7 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 				return err
 			}
 			reply.ServiceNodes = raw.(structs.ServiceNodes)
-			populateLegacyServiceNodePorts(reply.ServiceNodes)
+			adapter.PopulateLegacyServiceNodePorts(reply.ServiceNodes)
 
 			return c.srv.sortNodesByDistanceFrom(args.Source, reply.ServiceNodes)
 		})
@@ -974,7 +975,7 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 				}
 				reply.NodeServices.Services = raw.(map[string]*structs.NodeService)
 				for _, service := range reply.NodeServices.Services {
-					populateLegacyNodeServicePort(service)
+					adapter.PopulateLegacyNodeServicePort(service)
 				}
 			}
 
@@ -1088,7 +1089,7 @@ func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *stru
 			}
 			reply.NodeServices.Services = raw.([]*structs.NodeService)
 			for _, service := range reply.NodeServices.Services {
-				populateLegacyNodeServicePort(service)
+				adapter.PopulateLegacyNodeServicePort(service)
 			}
 
 			return nil

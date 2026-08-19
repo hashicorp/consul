@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 )
 
-func TestServicePorts_RPCBackwardCompatibility(t *testing.T) {
+func TestMultiportAdapter_RPCBackwardCompatibility(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -113,16 +113,4 @@ func TestServicePorts_RPCBackwardCompatibility(t *testing.T) {
 		require.Equal(t, 8080, resp.Nodes[0].Service.Port)
 		require.Equal(t, ports, resp.Nodes[0].Service.Ports)
 	})
-}
-
-func TestPopulateLegacyNodeServicePort_PreservesExplicitPort(t *testing.T) {
-	service := &structs.NodeService{
-		Port: 7000,
-		Ports: structs.ServicePorts{
-			{Name: "http", Port: 8080, Default: true},
-		},
-	}
-
-	populateLegacyNodeServicePort(service)
-	require.Equal(t, 7000, service.Port)
 }

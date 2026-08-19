@@ -16,6 +16,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
+	"github.com/hashicorp/consul/agent/consul/adapter"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -348,7 +349,7 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 				thisReply.Index = sgIdx
 			}
 
-			populateLegacyCheckServiceNodePorts(thisReply.Nodes)
+			adapter.PopulateLegacyCheckServiceNodePorts(thisReply.Nodes)
 			*reply = thisReply
 			return nil
 		})
