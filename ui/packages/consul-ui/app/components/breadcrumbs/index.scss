@@ -46,3 +46,31 @@
   margin-right: 4px;
   display: inline-block;
 }
+
+/* Mobile collapse: on narrow viewports hide intermediate breadcrumb items,   */
+/* keeping only the first (root) and last (current) visible.  `display: none` */
+/* fully removes items from both the visual and the tab/keyboard order, so     */
+/* hidden intermediate crumbs are not reachable by keyboard.                   */
+@media (max-width: 768px) {
+  .app-view-breadcrumbs .hds-breadcrumb .hds-breadcrumb__item {
+    display: none;
+  }
+
+  /* Always show the root (first) crumb */
+  .app-view-breadcrumbs .hds-breadcrumb .hds-breadcrumb__item:first-child {
+    display: inline-flex;
+  }
+
+  /* Always show the current (last) crumb */
+  .app-view-breadcrumbs .hds-breadcrumb .hds-breadcrumb__item:last-child {
+    display: inline-flex;
+  }
+
+  /* When there are more than 2 items, show an ellipsis separator */
+  .app-view-breadcrumbs .hds-breadcrumb .hds-breadcrumb__item:first-child:not(:nth-last-child(2))::after {
+    content: '…';
+    color: var(--token-color-foreground-faint);
+    margin: 0 4px;
+    display: inline-block;
+  }
+}
