@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/go-version"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/gateways"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
@@ -40,9 +41,19 @@ var (
 	// assignment to be enabled for terminating gateways.
 	minVirtualIPTerminatingGatewayVersion = version.Must(version.NewVersion("1.11.2"))
 
+	// minAPIGatewayDNSVersion is the minimum version for all Consul servers before
+	// API gateway DNS auto-registration is enabled. Gating on this ensures all
+	// servers can materialize api-gateway gateway-services mappings before any of
+	// them start doing so, preventing FSM divergence during a rolling upgrade.
+	minAPIGatewayDNSVersion = version.Must(version.NewVersion("2.1.0"))
+
 	// virtualIPVersionCheckInterval is the frequency we check whether all servers meet
 	// the minimum version to enable virtual IP assignment for services.
 	virtualIPVersionCheckInterval = time.Minute
+
+	// apiGatewayDNSVersionCheckInterval is the frequency we check whether all
+	// servers meet the minimum version to enable API gateway DNS.
+	apiGatewayDNSVersionCheckInterval = time.Minute
 )
 
 // startConnectLeader starts multi-dc connect leader routines.
@@ -56,6 +67,7 @@ func (s *Server) startConnectLeader(ctx context.Context) error {
 	s.leaderRoutineManager.Start(ctx, caRootMetricRoutineName, rootCAExpiryMonitor(s).Monitor)
 	s.leaderRoutineManager.Start(ctx, caSigningMetricRoutineName, signingCAExpiryMonitor(s).Monitor)
 	s.leaderRoutineManager.Start(ctx, virtualIPCheckRoutineName, s.runVirtualIPVersionCheck)
+	s.leaderRoutineManager.Start(ctx, apiGatewayDNSCheckRoutineName, s.runAPIGatewayDNSVersionCheck)
 	s.leaderRoutineManager.Start(ctx, configEntryControllersRoutineName, s.runConfigEntryControllers)
 
 	return s.startIntentionConfigEntryMigration(ctx)
@@ -69,6 +81,7 @@ func (s *Server) stopConnectLeader() {
 	s.leaderRoutineManager.Stop(caRootMetricRoutineName)
 	s.leaderRoutineManager.Stop(caSigningMetricRoutineName)
 	s.leaderRoutineManager.Stop(virtualIPCheckRoutineName)
+	s.leaderRoutineManager.Stop(apiGatewayDNSCheckRoutineName)
 	s.leaderRoutineManager.Stop(configEntryControllersRoutineName)
 }
 
@@ -191,6 +204,102 @@ func (s *Server) runVirtualIPVersionCheck(ctx context.Context) error {
 			}
 		}
 	}
+}
+
+// runAPIGatewayDNSVersionCheck is a leader routine that, once all servers in the
+// datacenter support API gateway DNS, enables the feature cluster-wide and
+// backfills DNS gateway-services mappings for any pre-existing API gateways.
+func (s *Server) runAPIGatewayDNSVersionCheck(ctx context.Context) error {
+	done, err := s.setAPIGatewayDNSFlag()
+	if err != nil {
+		s.logger.Warn("error enabling API gateway DNS", "error", err)
+	}
+	if done {
+		s.leaderRoutineManager.Stop(apiGatewayDNSCheckRoutineName)
+		return nil
+	}
+
+	ticker := time.NewTicker(apiGatewayDNSVersionCheckInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-ticker.C:
+			done, err := s.setAPIGatewayDNSFlag()
+			if err != nil {
+				s.logger.Warn("error enabling API gateway DNS", "error", err)
+				continue
+			}
+			if done {
+				return nil
+			}
+		}
+	}
+}
+
+// setAPIGatewayDNSFlag enables API gateway DNS once all servers meet the minimum
+// version. Enabling consists of setting the cluster-wide flag and then backfilling
+// gateway-services mappings for existing API gateways. It returns true once the
+// flag is set (i.e. there is no more work to do).
+func (s *Server) setAPIGatewayDNSFlag() (bool, error) {
+	val, err := s.GetSystemMetadata(structs.SystemMetadataAPIGatewayDNSEnabled)
+	if err != nil {
+		return false, err
+	}
+	if val != "" {
+		return true, nil
+	}
+
+	if ok, _ := ServersInDCMeetMinimumVersion(s, s.config.Datacenter, minAPIGatewayDNSVersion); !ok {
+		return false, fmt.Errorf("can't enable API gateway DNS until all servers >= %s",
+			minAPIGatewayDNSVersion.String())
+	}
+
+	// Set the flag FIRST. Since it is applied through Raft, every server observes
+	// the flag before the subsequent bound-api-gateway re-applies, so the backfill
+	// deterministically materializes mappings on all servers.
+	if err := s.SetSystemMetadataKey(structs.SystemMetadataAPIGatewayDNSEnabled, "true"); err != nil {
+		return false, err
+	}
+
+	if err := s.backfillAPIGatewayDNS(); err != nil {
+		// The flag is set, so new writes already register DNS. Surface the error
+		// so the operator is aware that pre-existing gateways may need a re-apply,
+		// but consider the version check complete.
+		s.logger.Warn("failed to backfill API gateway DNS mappings", "error", err)
+	}
+
+	return true, nil
+}
+
+// backfillAPIGatewayDNS re-applies every existing bound-api-gateway config entry
+// so that the (now-enabled) gateway-services mapping logic runs for gateways that
+// were created before the feature was enabled (e.g. prior to an upgrade).
+func (s *Server) backfillAPIGatewayDNS() error {
+	_, entries, err := s.fsm.State().ConfigEntriesByKind(nil, structs.BoundAPIGateway, acl.WildcardEnterpriseMeta())
+	if err != nil {
+		return fmt.Errorf("failed to list bound-api-gateway config entries: %w", err)
+	}
+
+	for _, entry := range entries {
+		bound, ok := entry.(*structs.BoundAPIGatewayConfigEntry)
+		if !ok {
+			continue
+		}
+		// Re-apply the entry verbatim. insertConfigEntryWithTxn always re-runs the
+		// gateway-services update, which now (flag enabled) materializes mappings.
+		_, err := s.leaderRaftApply("ConfigEntry.Apply", structs.ConfigEntryRequestType, &structs.ConfigEntryRequest{
+			Op:    structs.ConfigEntryUpsert,
+			Entry: bound,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to re-apply bound-api-gateway %q: %w", bound.Name, err)
+		}
+	}
+
+	return nil
 }
 
 func (s *Server) setVirtualIPFlags() (bool, error) {

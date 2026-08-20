@@ -1576,6 +1576,74 @@ func TestLeader_EnableVirtualIPs(t *testing.T) {
 	require.Equal(t, "240.0.0.2", vip)
 }
 
+// TestLeader_EnableAPIGatewayDNS verifies that the leader gates API gateway DNS
+// auto-registration on all servers meeting the minimum version: the cluster-wide
+// feature flag stays unset while an older server is a member, and is enabled once
+// every remaining server meets the minimum version. It mirrors the flag-gating
+// portion of TestLeader_EnableVirtualIPs.
+//
+// The downstream effect of the flag (re-applying bound-api-gateway entries to
+// materialize gateway-services mappings, i.e. the upgrade backfill) is covered
+// deterministically by TestStateStore_GatewayServices_APIGateway_FeatureGated,
+// which avoids depending on the API gateway controller's route-binding timing.
+func TestLeader_EnableAPIGatewayDNS(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	orig := apiGatewayDNSVersionCheckInterval
+	apiGatewayDNSVersionCheckInterval = 50 * time.Millisecond
+	t.Cleanup(func() { apiGatewayDNSVersionCheckInterval = orig })
+
+	conf := func(c *Config) {
+		c.Bootstrap = false
+		c.BootstrapExpect = 3
+		c.Datacenter = "dc1"
+		c.Build = "2.1.0"
+	}
+	dir1, s1 := testServerWithConfig(t, conf)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	dir2, s2 := testServerWithConfig(t, conf)
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	// s3 runs an older version that does not support API gateway DNS, so the
+	// feature must stay disabled while it is a member.
+	dir3, s3 := testServerWithConfig(t, func(c *Config) {
+		conf(c)
+		c.Build = "2.0.0"
+	})
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	joinLAN(t, s2, s1)
+	joinLAN(t, s3, s1)
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	state := s1.fsm.State()
+
+	// The flag should not be set yet because s3 is below the minimum version.
+	_, entry, err := state.SystemMetadataGet(nil, structs.SystemMetadataAPIGatewayDNSEnabled)
+	require.NoError(t, err)
+	require.Nil(t, entry)
+
+	// Leave s3 so the remaining servers all meet the minimum version. The leader
+	// should then enable the feature cluster-wide.
+	require.NoError(t, s3.Leave())
+
+	retry.Run(t, func(r *retry.R) {
+		_, entry, err := state.SystemMetadataGet(nil, structs.SystemMetadataAPIGatewayDNSEnabled)
+		require.NoError(r, err)
+		require.NotNil(r, entry)
+		require.Equal(r, "true", entry.Value)
+	})
+}
+
 func TestLeader_ACL_Initialization_AnonymousToken(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
