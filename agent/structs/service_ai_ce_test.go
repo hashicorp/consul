@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-
 func TestStructs_ServiceAI_Clone(t *testing.T) {
 	t.Run("nil returns nil", func(t *testing.T) {
 		var ai *ServiceAI
