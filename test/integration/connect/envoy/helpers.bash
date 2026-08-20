@@ -238,7 +238,7 @@ function get_envoy_http_rbac_once {
   local HOSTPORT=$1
   run curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
-  echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener.filter_chains[0].filters[0].typed_config.http_filters[] | select(.name == "envoy.filters.http.rbac") | .typed_config'
+  echo "$output" | jq --raw-output '.configs[] | select(."@type" == "type.googleapis.com/envoy.admin.v3.ListenersConfigDump") | .dynamic_listeners[].active_state.listener.filter_chains[0].filters[0].typed_config.http_filters[] | select(.name == "envoy.filters.http.rbac") | .typed_config'
 }
 
 function assert_envoy_network_rbac_policy_count {
@@ -254,7 +254,7 @@ function get_envoy_network_rbac_once {
   local HOSTPORT=$1
   run curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
-  echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener.filter_chains[0].filters[] | select(.name == "envoy.filters.network.rbac") | .typed_config'
+  echo "$output" | jq --raw-output '.configs[] | select(."@type" == "type.googleapis.com/envoy.admin.v3.ListenersConfigDump") | .dynamic_listeners[].active_state.listener.filter_chains[0].filters[] | select(.name == "envoy.filters.network.rbac") | .typed_config'
 }
 
 function get_envoy_http_filter {
@@ -262,21 +262,48 @@ function get_envoy_http_filter {
   local FILTER_NAME=$2
   run retry_default curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
-  echo "$output" | jq --raw-output ".configs[2].dynamic_listeners[] | .active_state.listener.filter_chains[].filters[] | select(.name == \"envoy.filters.network.http_connection_manager\") | .typed_config.http_filters[] | select(.name == \"${FILTER_NAME}\")"
+  echo "$output" | jq --raw-output ".configs[] | select(.\"@type\" == \"type.googleapis.com/envoy.admin.v3.ListenersConfigDump\") | .dynamic_listeners[] | .active_state.listener.filter_chains[].filters[] | select(.name == \"envoy.filters.network.http_connection_manager\") | .typed_config.http_filters[] | select(.name == \"${FILTER_NAME}\")"
 }
 
 function get_envoy_listener_filters {
   local HOSTPORT=$1
   run retry_default curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
-  echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener | "\(.name) \( .filter_chains[0].filters | map(.name) | join(","))"'
+  echo "$output" | jq --raw-output '.configs[] | select(."@type" == "type.googleapis.com/envoy.admin.v3.ListenersConfigDump") | .dynamic_listeners[].active_state.listener | "\(.name) \((.filter_chains[0].filters // []) | map(.name) | join(","))"'
 }
 
 function get_envoy_http_filters {
   local HOSTPORT=$1
   run retry_default curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
-  echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener | "\(.name) \( .filter_chains[0].filters[] | select(.name == "envoy.filters.network.http_connection_manager") | .typed_config.http_filters | map(.name) | join(","))"'
+  echo "$output" | jq --raw-output '.configs[] | select(."@type" == "type.googleapis.com/envoy.admin.v3.ListenersConfigDump") | .dynamic_listeners[].active_state.listener | "\(.name) \((.filter_chains[0].filters // [])[] | select(.name == "envoy.filters.network.http_connection_manager") | .typed_config.http_filters | map(.name) | join(","))"'
+}
+
+# get_envoy_dns_listener_once returns the active listener JSON for the (UDP)
+# dns_filter listener whose name starts with LISTENER_NAME (e.g. "virtual_dns"
+# or "egress_dns"). It returns non-zero when the listener is not yet present so
+# that it can be retried while xDS converges.
+function get_envoy_dns_listener_once {
+  local HOSTPORT=$1
+  local LISTENER_NAME=$2
+  run curl -s -f $HOSTPORT/config_dump
+  [ "$status" -eq 0 ]
+  local body
+  body=$(echo "$output" | jq --raw-output ".configs[] | select(.\"@type\" == \"type.googleapis.com/envoy.admin.v3.ListenersConfigDump\") | .dynamic_listeners[] | select(.name | startswith(\"${LISTENER_NAME}:\")) | .active_state.listener")
+  if [ -z "$body" ]; then
+    return 1
+  fi
+  echo "$body"
+}
+
+# get_envoy_dns_listener retries until the named dns_filter listener is active
+# and echoes its listener JSON for further jq assertions.
+function get_envoy_dns_listener {
+  local HOSTPORT=$1
+  local LISTENER_NAME=$2
+  run retry_long get_envoy_dns_listener_once "$HOSTPORT" "$LISTENER_NAME"
+  [ "$status" -eq 0 ]
+  echo "$output"
 }
 
 function get_envoy_dynamic_cluster_once {
