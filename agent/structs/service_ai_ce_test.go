@@ -380,7 +380,7 @@ func TestStructs_NodeService_Validate_AI_CE_NotSupported(t *testing.T) {
 			}
 			err := sd.Validate()
 			require.Error(t, err, "expected CE to reject a service with an AI block")
-			require.True(t, strings.Contains(err.Error(), "ai block not supported in Consul CE"),
+			require.True(t, strings.Contains(err.Error(), "ai is ent only feature"),
 				"expected CE restriction message, got: %s", err.Error())
 		})
 	}

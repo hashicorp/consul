@@ -1633,7 +1633,7 @@ func (s *NodeService) Validate() error {
 	}
 
 	if s.AI != nil {
-		result = multierror.Append(fmt.Errorf("ai block not supported in Consul CE"))
+		result = multierror.Append(fmt.Errorf("ai is ent only feature"))
 	}
 
 	commonValidation := s.ValidateForAgent()
