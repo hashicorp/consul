@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: Include `Service.Meta` into available variables for `dashboard_url_templates`
+```
