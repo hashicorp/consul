@@ -5,12 +5,3 @@
 
 @import './skin';
 @import './layout';
-.consul-intention-permission-list > ul > li {
-  @extend %list-row-200;
-}
-.consul-intention-permission-list:not(.readonly) > ul > li {
-  @extend %with-composite-row-intent;
-}
-.consul-intention-permission-list .consul-intention-action-badge {
-  display: inline-flex;
-}
