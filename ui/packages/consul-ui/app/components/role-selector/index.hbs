@@ -107,15 +107,12 @@
 </ModalDialog>
 
 {{#if @showHeader}}
-  <div class="consul-nspace-form-section-header">
-    <div class="consul-nspace-form-section-header__text">
-      <p class="consul-nspace-form-section-title">Roles</p>
-      <p class="consul-nspace-form-section-description">{{@descriptionText}}</p>
-    </div>
+  <div class="consul-token-section-header">
+    <Hds::Text::Display @size="300" @tag="h2">Roles</Hds::Text::Display>
     {{#if (not @disabled)}}
       <Hds::Button
         @text='Create new role'
-        @size='medium'
+        @size='large'
         @color='tertiary'
         @icon='plus'
         class='type-dialog'
