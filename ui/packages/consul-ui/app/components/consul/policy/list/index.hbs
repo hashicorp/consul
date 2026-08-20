@@ -70,8 +70,8 @@
   </Consul::DataTable>
 
   {{#if this.itemToDelete}}
-    <Hds::Modal id="confirm-modal" @color="warning" @onClose={{this.cancelDelete}} as |M|>
-      <M.Header @icon="alert-triangle">Confirm delete</M.Header>
+    <Hds::Modal id="confirm-modal" @color="critical" @onClose={{this.cancelDelete}} as |M|>
+      <M.Header @icon="trash">Confirm delete</M.Header>
       <M.Body>
         <p>Are you sure you want to delete this policy?</p>
       </M.Body>

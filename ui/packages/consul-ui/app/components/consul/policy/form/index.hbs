@@ -3,116 +3,140 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<form>
-  <PolicyForm
-    @form={{@form}}
+<form class="consul-policy-form">
+  {{! Core fields: Policy ID, Name, Description, Rules, Valid Datacenters }}
+  <Consul::Policy::Fieldsets
+    @item={{@item}}
+    @create={{@create}}
+    @dc={{@dc}}
     @partition={{@partition}}
     @nspace={{@nspace}}
-    @item={{@item}}
-  >
-    {{!don't show template selection here, i.e. Service Identity}}
-    <:template></:template>
-  </PolicyForm>
-{{#if (and (not @create) @item @item.ID)}}
+    @onChange={{@onChange}}
+  />
+
+  {{! Applied to the following tokens — edit mode only }}
+  {{#if (and (not @create) @item @item.ID)}}
     <DataSource
-      @src={{uri '/${partition}/${nspace}/${dc}/tokens/for-policy/${id}'
+      @src={{uri "/${partition}/${nspace}/${dc}/tokens/for-policy/${id}"
         (hash
           partition=@partition
           nspace=@nspace
           dc=@dc
-          id=(or @id '')
+          id=(or @id "")
         )
       }}
       @onchange={{@onItemsChange}}
     />
     {{#if (gt @items.length 0)}}
-      <TokenList
-        @caption="Applied to the following tokens:"
-        @items={{@items}}
+      <div class="consul-policy-form__used-by">
+        <Hds::Separator />
+        <div class="consul-policy-form__usage">
+          <Hds::Form::Label>Applied to the following tokens:</Hds::Form::Label>
+          <TokenList @caption="Applied to the following tokens:" @items={{@items}} />
+        </div>
+      </div>
+    {{/if}}
+  {{/if}}
+
+  {{! Action buttons: Save + Cancel left, Delete right }}
+  <div class="consul-policy-form__actions">
+    <Hds::ButtonSet>
+      {{#if (and @create (can "create tokens"))}}
+        <Hds::Button
+          @text="Save"
+          type="submit"
+          {{on "click" @onCreate}}
+          disabled={{if (or @item.isPristine @item.isInvalid (eq @item.Name "")) "disabled"}}
+        />
+      {{else}}
+        {{#if (can "write policy" item=@item)}}
+          <Hds::Button
+            @text="Save"
+            type="submit"
+            {{on "click" @onUpdate}}
+            disabled={{if @item.isInvalid "disabled"}}
+          />
+        {{/if}}
+      {{/if}}
+      <Hds::Button
+        @text="Cancel"
+        @color="secondary"
+        type="reset"
+        {{on "click" @onCancel}}
+      />
+    </Hds::ButtonSet>
+
+    {{#if (and (not @create) (can "delete policy" item=@item))}}
+      <Hds::Button
+        @text="Delete"
+        @color="critical"
+        {{on "click" this.openDeleteModal}}
+        data-test-delete
       />
     {{/if}}
-{{/if}}
-    <div>
-      <Hds::ButtonSet>
-        {{#if (and @create (can "create tokens")) }}
-        {{! we only need to check for an empty name here as ember munges autofocus, once we have autofocus back revisit this}}
-          <Hds::Button
-            @text='Save'
-            type='submit'
-            {{ on 'click' @onCreate}}
-            disabled={{if (or @item.isPristine @item.isInvalid (eq @item.Name '')) 'disabled'}}
-          />
-        {{ else }}
-          {{#if (can "write policy" item=@item)}}
+  </div>
+
+  {{! Delete confirmation modal }}
+  {{#if this.showDeleteModal}}
+    {{#if (gt @items.length 0)}}
+      <Hds::Modal
+        @color="critical"
+        @onClose={{this.closeDeleteModal}}
+        data-test-delete-modal
+        as |M|
+      >
+        <M.Header @icon="alert-diamond">Policy in Use</M.Header>
+        <M.Body>
+          <p>
+            This Policy is currently in use. If you choose to delete this Policy, it will be removed
+            from the following <strong>{{@items.length}} Tokens</strong>:
+          </p>
+          <TokenList @items={{@items}} @target="_blank" />
+          <p>This action cannot be undone.</p>
+        </M.Body>
+        <M.Footer as |F|>
+          <Hds::ButtonSet>
             <Hds::Button
-              @text='Save'
-              type='submit'
-              {{ on 'click' @onUpdate}}
-              disabled={{if @item.isInvalid 'disabled'}}
+              @text="Yes, Delete"
+              @color="critical"
+              data-test-delete
+              {{on "click" this.confirmDelete}}
             />
-          {{/if}}
-        {{/if}}
-        <Hds::Button
-          @text='Cancel'
-          @color='secondary'
-          type='reset'
-          {{ on 'click' @onCancel}}
-        />
-        {{# if (and (not @create) (can "delete policy" item=@item) ) }}
-          <ConfirmationDialog @message="Are you sure you want to delete this Policy?">
-            <:action as |confirm|>
-              <Hds::Button
-                @text='Delete'
-                @color='critical'
-                {{on 'click' confirm}}
-                data-test-delete
-              />
-            </:action>
-            <:dialog as |execute cancel message|>
-              {{#if (gt @items.length 0)}}
-                <ModalDialog
-                  data-test-delete-modal
-                  @onclose={{cancel}}
-                  @open={{true}}
-                  @aria={{hash
-                  label="Policy in Use"
-                }}
-                >
-                  <:header>
-                    <h2>Policy in Use</h2>
-                  </:header>
-                  <:body>
-                    <p>
-                      This Policy is currently in use. If you choose to delete this Policy, it will be removed from the
-                      following <strong>{{@items.length}} Tokens</strong>:
-                    </p>
-                    <TokenList @items={{@items}} @target="_blank" />
-                    <p>
-                      This action cannot be undone. {{message}}
-                    </p>
-                  </:body>
-                  <:actions as |close|>
-                    <Hds::ButtonSet>
-                      <Hds::Button
-                        @text='Yes, Delete'
-                        data-test-delete
-                        @color='critical'
-                        {{on 'click' (queue execute (fn @onDelete @item))}}
-                      />
-                      <Hds::Button
-                        @text='Cancel'
-                        @color='secondary'
-                        {{on 'click' close}}
-                      />
-                    </Hds::ButtonSet>
-                  </:actions>
-                </ModalDialog>
-              {{else}}
-                <DeleteConfirmation @message={{message}} @execute={{queue execute (fn @onDelete @item)}} @cancel={{cancel}} />
-              {{/if}}
-            </:dialog>
-          </ConfirmationDialog>
-        {{/if}}
-      </Hds::ButtonSet>
-    </div>
+            <Hds::Button
+              @text="Cancel"
+              @color="secondary"
+              {{on "click" F.close}}
+            />
+          </Hds::ButtonSet>
+        </M.Footer>
+      </Hds::Modal>
+    {{else}}
+      <Hds::Modal
+        @color="critical"
+        @onClose={{this.closeDeleteModal}}
+        data-test-delete-modal
+        as |M|
+      >
+        <M.Header @icon="trash">Confirm delete</M.Header>
+        <M.Body>
+          <p>Are you sure you want to delete this Policy?</p>
+        </M.Body>
+        <M.Footer as |F|>
+          <Hds::ButtonSet>
+            <Hds::Button
+              @text="Delete"
+              @color="critical"
+              data-test-delete
+              {{on "click" this.confirmDelete}}
+            />
+            <Hds::Button
+              @text="Cancel"
+              @color="secondary"
+              {{on "click" F.close}}
+            />
+          </Hds::ButtonSet>
+        </M.Footer>
+      </Hds::Modal>
+    {{/if}}
+  {{/if}}
 </form>

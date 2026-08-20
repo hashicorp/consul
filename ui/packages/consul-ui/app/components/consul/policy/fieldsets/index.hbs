@@ -1,0 +1,203 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+<fieldset
+  disabled={{if (not (can "write policy" item=@item)) "disabled"}}
+>
+  {{! Policy ID — read-only, edit mode only }}
+  {{#unless @create}}
+    <Hds::Form::MaskedInput::Field
+      readonly
+      @isContentMasked={{false}}
+      @hasCopyButton={{true}}
+      @value={{@item.ID}}
+      as |F|
+    >
+      <F.Label>Policy ID</F.Label>
+    </Hds::Form::MaskedInput::Field>
+  {{/unless}}
+
+  {{! Name }}
+  <Hds::Form::TextInput::Field
+    @value={{@item.Name}}
+    name="policy[Name]"
+    @isInvalid={{if (and @item.error.Name (not @item.isPristine)) true false}}
+    {{on "input" this.handleChange}}
+    as |F|
+  >
+    <F.Label>Name</F.Label>
+    <F.HelperText>
+      Maximum 128 characters. May only include letters (uppercase and/or lowercase) and/or numbers.
+      Must be unique.
+    </F.HelperText>
+    {{#if (and @item.error.Name (not @item.isPristine))}}
+      <F.Error>{{@item.error.Name.validation}}</F.Error>
+    {{/if}}
+  </Hds::Form::TextInput::Field>
+
+  {{! Description — only for regular (non-identity) policies }}
+  {{#if (eq @item.template "")}}
+    <Hds::Form::Textarea::Field
+      @value={{@item.Description}}
+      name="policy[Description]"
+      @isOptional={{true}}
+      {{on "input" this.handleChange}}
+      as |F|
+    >
+      <F.Label>Description</F.Label>
+    </Hds::Form::Textarea::Field>
+  {{/if}}
+
+  {{! Rules / Code section }}
+  {{#if (eq @item.template "service-identity")}}
+    <Hds::CodeBlock
+      @language="hcl"
+      @ariaLabel="policy[Rules]"
+      @value={{service-identity-template
+        @item.Name
+        nspace=@nspace
+        partition=@partition
+        canUsePartitions=(can "use partitions")
+        canUseNspaces=(can "use nspaces")
+      }}
+      as |CB|
+    >
+      <CB.Title @tag="span">
+        Rules
+        <a
+          href='{{env "CONSUL_DOCS_URL"}}/secure/acl/rule'
+          rel="help noopener noreferrer"
+          target="_blank"
+          style="color: inherit;"
+        >(HCL Format)</a>
+      </CB.Title>
+    </Hds::CodeBlock>
+  {{else if (eq @item.template "node-identity")}}
+    <Hds::CodeBlock
+      @language="hcl"
+      @ariaLabel="policy[Rules]"
+      @value={{node-identity-template
+        @item.Name
+        partition=@partition
+        canUsePartitions=(can "use partitions")
+        canUseNspaces=(can "use nspaces")
+      }}
+      as |CB|
+    >
+      <CB.Title @tag="span">
+        Rules
+        <a
+          href='{{env "CONSUL_DOCS_URL"}}/secure/acl/rule'
+          rel="help noopener noreferrer"
+          target="_blank"
+          style="color: inherit;"
+        >(HCL Format)</a>
+      </CB.Title>
+    </Hds::CodeBlock>
+  {{else}}
+    <Hds::CodeEditor
+      @value={{@item.Rules}}
+      @ariaLabel="policy[Rules]"
+      @syntax="hcl"
+      @onInput={{fn this.handleChange "policy[Rules]"}}
+      as |CE|
+    >
+      <CE.Title @tag="span">
+        Rules
+        <a
+          href='{{env "CONSUL_DOCS_URL"}}/secure/acl/rule'
+          rel="help noopener noreferrer"
+          target="_blank"
+          style="color: inherit;"
+        >(HCL Format)</a>
+      </CE.Title>
+    </Hds::CodeEditor>
+    {{#if @item.error.Rules}}
+      <Hds::Form::Error>{{@item.error.Rules.validation}}</Hds::Form::Error>
+    {{/if}}
+  {{/if}}
+</fieldset>
+
+<Hds::Separator />
+
+{{! Valid Datacenters — only for node-identity: Datacenter dropdown }}
+{{#if (eq @item.template "node-identity")}}
+  <fieldset>
+    <DataSource
+      @src={{uri "/*/*/*/datacenters"}}
+      @onchange={{this.setDatacenters}}
+    />
+    <Hds::Form::SuperSelect::Single::Field
+      @options={{map-by "Name" this.datacenters}}
+      @selected={{or @item.Datacenter @dc}}
+      @searchField="Name"
+      @searchPlaceholder="Type a datacenter name"
+      @onChange={{fn this.handleChange "Datacenter"}}
+      @searchEnabled={{true}}
+      @label="Datacenter"
+      @listboxAriaLabel="Available datacenters"
+      @isOptional={{false}}
+      id="datacenter-select"
+      name="policy[Datacenter]"
+    as |F|>
+      <F.Options>{{F.options}}</F.Options>
+    </Hds::Form::SuperSelect::Single::Field>
+  </fieldset>
+{{else}}
+  {{! Valid Datacenters section — only for the default partition }}
+  {{#if (eq (or @partition "default") "default")}}
+    <fieldset>
+      <Hds::Text::Display @size="300" @tag="h2">Valid datacenters</Hds::Text::Display>
+
+      <Hds::Form::Toggle::Field
+        name="policy[isScoped]"
+        checked={{if (not this.isScoped) true false}}
+        {{on "change" this.handleChange}}
+        as |F|
+      >
+        <F.Label>All datacenters</F.Label>
+      </Hds::Form::Toggle::Field>
+
+      {{! Always load the datacenter list so checkboxes render in both states }}
+      <DataSource
+        @src={{uri "/*/*/*/datacenters"}}
+        @onchange={{this.setDatacenters}}
+      />
+
+      {{! Always render checkboxes.
+          When "All datacenters" is on (isScoped=false): checked + disabled.
+          When scoped (isScoped=true): interactive, reflecting current selection. }}
+      <div class="consul-policy-fieldsets__datacenter-checkboxes" role="group">
+        {{#each this.datacenters as |dc|}}
+          <Hds::Form::Checkbox::Field
+            @value={{dc.Name}}
+            name="policy[Datacenters]"
+            checked={{if (not this.isScoped) true (if (includes dc.Name @item.Datacenters) true false)}}
+            disabled={{if (not this.isScoped) true false}}
+            {{on "change" this.handleChange}}
+            as |F|
+          >
+            <F.Label>{{dc.Name}}</F.Label>
+          </Hds::Form::Checkbox::Field>
+        {{/each}}
+        {{! Render any selected datacenters that are no longer returned by the API }}
+        {{#each @item.Datacenters as |dc|}}
+          {{#if (not (find-by "Name" dc this.datacenters))}}
+            <Hds::Form::Checkbox::Field
+              @value={{dc}}
+              name="policy[Datacenters]"
+              checked={{true}}
+              disabled={{if (not this.isScoped) true false}}
+              {{on "change" this.handleChange}}
+              as |F|
+            >
+              <F.Label>{{dc}}</F.Label>
+            </Hds::Form::Checkbox::Field>
+          {{/if}}
+        {{/each}}
+      </div>
+    </fieldset>
+  {{/if}}
+{{/if}}
