@@ -1,0 +1,38 @@
+# Consul::Role::Fieldsets
+
+HDS-native fieldset component for the Role create/edit form. Mirrors `Consul::Token::Fieldsets`.
+
+Renders:
+- **Role ID** `Hds::Form::MaskedInput::Field` with copy button (edit mode only)
+- **Name** `Hds::Form::TextInput::Field` with helper text and inline error
+- **Description** `Hds::Form::Textarea::Field` (optional)
+- `Hds::Separator`
+- **Policies** `PolicySelector` inside a `<fieldset id="policies">`
+
+## Usage
+
+```hbs
+<Consul::Role::Fieldsets
+  @item={{item}}
+  @create={{create}}
+  @onChange={{action 'change'}}
+  @dc={{dc}}
+  @nspace={{nspace}}
+  @partition={{partition}}
+/>
+```
+
+## Arguments
+
+| Arg | Type | Required | Description |
+|---|---:|:---:|---|
+| `@item` | object | yes | Role model / changeset. |
+| `@create` | boolean | no | True when rendering the create flow (hides Role ID field). |
+| `@onChange` | function | no | Handler forwarded to Name/Description inputs. |
+| `@dc` | string | no | Datacenter id passed to `PolicySelector`. |
+| `@nspace` | string | no | Namespace passed to `PolicySelector`. |
+| `@partition` | string | no | Partition passed to `PolicySelector`. |
+
+## See
+
+- Template: ./index.hbs
