@@ -3,11 +3,13 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-/* The token create/edit form uses HDS::Separator for section dividers, so the
-   global app-view rules that add border-bottom, padding-bottom, and
+/* The token and role create/edit forms use HDS::Separator for section dividers,
+   so the global app-view rules that add border-bottom, padding-bottom, and
    margin-bottom on every fieldset are redundant and must be suppressed. */
 html[data-route='dc.acls.tokens.create'],
-html[data-route='dc.acls.tokens.edit'] {
+html[data-route='dc.acls.tokens.edit'],
+html[data-route='dc.acls.roles.create'],
+html[data-route='dc.acls.roles.edit'] {
   .app-view form:not(.filter-bar) fieldset {
     border-bottom: none;
     padding-bottom: 0;
