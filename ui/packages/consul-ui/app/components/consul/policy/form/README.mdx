@@ -1,24 +1,27 @@
 # Consul::Policy::Form
 
-A presentational component that renders the Policy edit/create form and the action buttons (Save / Cancel / Delete). It wraps the existing PolicyForm fieldset, conditionally loads tokens that use the policy, and delegates create/update/cancel/delete behavior to closure actions supplied by caller.
+A presentational component that renders the Policy create/edit form and the
+action buttons (Save / Cancel / Delete). It wraps `Consul::Policy::Fieldsets`,
+conditionally loads tokens that use the policy, and delegates create/update/
+cancel/delete behaviour to closure actions supplied by the caller.
 
 ## Usage
 
 ```hbs
 <Consul::Policy::Form
-  @form={{form}}
-  @partition={{partition}}
-  @nspace={{nspace}}
   @item={{item}}
   @create={{create}}
   @dc={{dc}}
+  @partition={{partition}}
+  @nspace={{nspace}}
   @id={{id}}
   @items={{items}}
-  @onCreate={{route-action 'create' item}}
-  @onUpdate={{route-action 'update' item}}
-  @onCancel={{route-action 'cancel' item}}
-  @onDelete={{route-action 'delete'}}
+  @onCreate={{fn this.onCreate item}}
+  @onUpdate={{fn this.onUpdate item}}
+  @onCancel={{fn this.onCancel item}}
+  @onDelete={{fn this.onDelete item}}
   @onItemsChange={{action (mut items) value="data"}}
+  @onChange={{action "change"}}
 />
 ```
 
@@ -26,37 +29,46 @@ A presentational component that renders the Policy edit/create form and the acti
 
 | Argument | Type | Required | Description |
 |---|---:|:---:|---|
-| `@form` | object | yes | Form builder / changeset used by PolicyForm. |
-| `@partition` | string | yes | Current partition. |
-| `@nspace` | string | yes | Current namespace. |
 | `@item` | object | yes | Policy model / changeset. |
-| `@create` | boolean | no | True when rendering the "create" flow. |
+| `@create` | boolean | no | True when rendering the create flow. |
 | `@dc` | string | no | Datacenter identifier used to build DataSource URIs. |
-| `@id` | string | no | Policy id (used to fetch tokens for the policy). |
-| `@items` | array | no | Tokens currently associated with the policy (passed from caller). |
-| `@onCreate` | function | no | Closure invoked to create the policy (caller typically passes `route-action 'create' item`). |
-| `@onUpdate` | function | no | Closure invoked to update the policy (caller typically passes `route-action 'update' item`). |
-| `@onCancel` | function | no | Closure invoked when Cancel is clicked (caller typically passes `route-action 'cancel' item` or a transition). |
-| `@onDelete` | function | no | Closure invoked to delete the policy (caller typically passes `route-action 'delete'`). |
-| `@onItemsChange` | function | no | Handler for DataSource `onchange`; recommended: `action (mut items) value="data"`. |
+| `@partition` | string | no | Current partition. |
+| `@nspace` | string | no | Current namespace. |
+| `@id` | string | no | Policy ID (used to fetch associated tokens). |
+| `@items` | array | no | Tokens currently associated with the policy (kept in sync via `@onItemsChange`). |
+| `@onCreate` | function | no | Invoked when Save is clicked in create mode. |
+| `@onUpdate` | function | no | Invoked when Save is clicked in edit mode. |
+| `@onCancel` | function | no | Invoked when Cancel is clicked. |
+| `@onDelete` | function | no | Invoked after the user confirms deletion. |
+| `@onItemsChange` | function | no | Handler for the DataSource `onchange` event; recommended: `action (mut items) value="data"`. |
+| `@onChange` | function | no | Forwarded to `Consul::Policy::Fieldsets` for all field input events. |
 
-## Behavior / Notes
+## Behaviour / Notes
 
-- When not in create mode and the policy has an ID, the component loads related tokens via the DataSource:
-  /{partition}/{nspace}/{dc}/tokens/for-policy/{id}. The caller should provide `@onItemsChange` to keep caller state in sync.
-- Save button:
-  - If `@create` is true and caller has permission → invokes `@onCreate`.
-  - Otherwise → invokes `@onUpdate` if provided.
-- Cancel button calls `@onCancel`. Pass a route-action (preferred) so route-level handlers (e.g. WithBlockingActions) are used, or pass a controller action if desired.
-- Delete button opens a confirmation dialog; actual delete is triggered by calling the provided `@onDelete` closure (confirmed via the dialog).
-- Keep argument names and usage consistent with existing callers. Pass route-action closures when the route/mixin provides the action (create/update/delete/cancel).
+- `Consul::Policy::Form` owns only the **delete modal** state
+  (`showDeleteModal`). Field state, `isScoped` toggle, and datacenter list are
+  owned by `Consul::Policy::Fieldsets`.
+- When not in create mode and the policy has an ID, the component loads related
+  tokens via DataSource `/${partition}/${nspace}/${dc}/tokens/for-policy/${id}`.
+  Pass `@onItemsChange` to keep caller state in sync.
+- **Save button**:
+  - `@create` is true and caller has `create tokens` permission → invokes `@onCreate`.
+  - Otherwise → invokes `@onUpdate` if the caller has `write policy` permission.
+- **Delete button** opens an `Hds::Modal` confirmation:
+  - If the policy has associated tokens the modal lists them before confirming.
+  - Actual delete is triggered by calling `@onDelete` (via `this.confirmDelete`).
+- **Action layout**: Save / Cancel (`Hds::ButtonSet`) are on the left; Delete
+  (`Hds::Button @color="critical"`) is on the right, matching the Figma design.
+
+## Sub-components
+
+- `Consul::Policy::Fieldsets` — HDS form fields (Policy ID, Name, Description,
+  Rules / CodeEditor, Valid Datacenters toggle + checkbox list).
 
 ## See
 
-- Component template: ./index.hbs  
-- Component class: ./index.js
-
-## Implementation hints
-
-- Invoke closure args directly inside the component (use `{{on 'click' @onCreate}}`, `{{on 'click' @onCancel}}`, `{{on 'click' (fn confirm @onDelete @item)}}`) so the calling context (route or controller) receives the event.
-- Avoid reserved/uppercase argument names (e.g. use `@local` not `@Local`).
+- Component template: [`./index.hbs`](./index.hbs)
+- Component class: [`./index.js`](./index.js)
+- Form layout styles: [`./index.scss`](./index.scss)
+- Fieldsets template: [`../fieldsets/index.hbs`](../fieldsets/index.hbs)
+- Fieldsets class: [`../fieldsets/index.js`](../fieldsets/index.js)

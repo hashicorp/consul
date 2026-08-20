@@ -11,6 +11,9 @@ export default class EditController extends Controller {
   @service('form')
   builder;
 
+  @service('dom')
+  dom;
+
   items = [];
 
   constructor() {
@@ -30,6 +33,26 @@ export default class EditController extends Controller {
         return prev;
       }, model)
     );
+  }
+
+  @action
+  change(e, value, item) {
+    const event = this.dom.normalizeEvent(e, value);
+    const form = this.form;
+    try {
+      form.handleEvent(event);
+    } catch (err) {
+      const target = event.target;
+      switch (target.name) {
+        case 'policy[isScoped]':
+          // isScoped is a UI-only toggle — not a real model property.
+          // The fieldsets component owns this state, so we silently swallow
+          // the "unknown property" error that the form builder would throw.
+          break;
+        default:
+          throw err;
+      }
+    }
   }
 
   // Forwarders replacing route-action usage

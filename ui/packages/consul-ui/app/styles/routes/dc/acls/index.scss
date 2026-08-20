@@ -3,17 +3,26 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-/* The token and role create/edit forms use HDS::Separator for section dividers,
-   so the global app-view rules that add border-bottom, padding-bottom, and
-   margin-bottom on every fieldset are redundant and must be suppressed. */
+/* The token, role and policy create/edit forms use HDS::Separator for section
+   dividers, so the global app-view rules that add border-bottom, padding-bottom,
+   and margin-bottom on every fieldset are redundant and must be suppressed.
+   Additionally the global `.app-shell__main table th span::after` rule injects
+   an info-circle icon into every HDS Table header span; suppress it on the
+   policy form's token table. */
 html[data-route='dc.acls.tokens.create'],
 html[data-route='dc.acls.tokens.edit'],
 html[data-route='dc.acls.roles.create'],
-html[data-route='dc.acls.roles.edit'] {
+html[data-route='dc.acls.roles.edit'],
+html[data-route='dc.acls.policies.create'],
+html[data-route='dc.acls.policies.edit'] {
   .app-view form:not(.filter-bar) fieldset {
     border-bottom: none;
     padding-bottom: 0;
     margin-bottom: 0;
+  }
+
+  .consul-policy-form table th span::after {
+    content: none;
   }
 }
 
