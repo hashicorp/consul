@@ -50,19 +50,6 @@ as |dc partition nspace item create|}}
           </h1>
       </:header>
       <:content>
-  {{#if (not create) }}
-        <div class="definition-table">
-            <dl>
-              <dt>Role ID</dt>
-              <dd>
-                <CopyableCode
-                  @value={{item.ID}}
-                  @name="Role ID"
-                />
-              </dd>
-            </dl>
-        </div>
-  {{/if}}
         <Consul::Role::Form
           @form={{this.form}}
           @item={{item}}
@@ -72,6 +59,7 @@ as |dc partition nspace item create|}}
           @create={{create}}
           @id={{route.params.id}}
           @items={{this.items}}
+          @onChange={{action 'change'}}
           @onCreate={{fn this.onCreate item}}
           @onUpdate={{fn this.onUpdate item}}
           @onCancel={{fn this.onCancel item}}

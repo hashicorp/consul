@@ -6,9 +6,9 @@
 export default function (visitable, submitable, deletable, cancelable, policySelector, tokenList) {
   return {
     visit: visitable(['/:dc/acls/roles/:role', '/:dc/acls/roles/create']),
-    ...submitable({}, 'main form > div'),
-    ...cancelable({}, 'main form > div'),
-    ...deletable({}, 'main form > div'),
+    ...submitable({}, 'main form .consul-role-form__actions'),
+    ...cancelable({}, 'main form .consul-role-form__actions'),
+    ...deletable({}, 'main form .consul-role-form__actions'),
     policies: policySelector(''),
     tokens: tokenList(),
   };
