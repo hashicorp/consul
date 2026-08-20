@@ -1676,8 +1676,71 @@ func (b *builder) validate(rt RuntimeConfig) error {
 		b.warn("%s", err.Error())
 	}
 
+	if err := validateTLSFiles(rt.TLS); err != nil {
+		return err
+	}
+
 	err := b.validateEnterpriseConfig(rt)
 	return err
+}
+
+// validateTLSFiles checks that any TLS cert, key, and CA file paths
+// configured for the internal RPC, HTTPS, and gRPC protocols actually exist
+// on disk. Building the runtime config never reads these files, so a typo'd
+// path would otherwise pass `consul validate` cleanly and only surface once
+// the agent tries to start and load TLS.
+func validateTLSFiles(tlsCfg tlsutil.Config) error {
+	protocols := []struct {
+		name string
+		cfg  tlsutil.ProtocolConfig
+	}{
+		{"tls.internal_rpc", tlsCfg.InternalRPC},
+		{"tls.https", tlsCfg.HTTPS},
+		{"tls.grpc", tlsCfg.GRPC},
+	}
+	for _, p := range protocols {
+		if err := validateTLSProtocolFiles(p.name, p.cfg); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateTLSProtocolFiles(name string, cfg tlsutil.ProtocolConfig) error {
+	files := []struct {
+		field string
+		path  string
+	}{
+		{"cert_file", cfg.CertFile},
+		{"key_file", cfg.KeyFile},
+		{"ca_file", cfg.CAFile},
+	}
+	for _, f := range files {
+		if f.path == "" {
+			continue
+		}
+		fi, err := os.Stat(f.path)
+		switch {
+		case err != nil && os.IsNotExist(err):
+			return fmt.Errorf("%s.%s %q does not exist", name, f.field, f.path)
+		case err != nil:
+			return fmt.Errorf("Error getting info on %s.%s: %s", name, f.field, err)
+		case fi.IsDir():
+			return fmt.Errorf("%s.%s %q is a directory, not a file", name, f.field, f.path)
+		}
+	}
+	if cfg.CAPath != "" {
+		fi, err := os.Stat(cfg.CAPath)
+		switch {
+		case err != nil && os.IsNotExist(err):
+			return fmt.Errorf("%s.ca_path %q does not exist", name, cfg.CAPath)
+		case err != nil:
+			return fmt.Errorf("Error getting info on %s.ca_path: %s", name, err)
+		case !fi.IsDir():
+			return fmt.Errorf("%s.ca_path %q is not a directory", name, cfg.CAPath)
+		}
+	}
+	return nil
 }
 
 // addrUnique checks if the given address is already in use for another
