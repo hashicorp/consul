@@ -22,9 +22,9 @@ const UNKNOWN_HEALTH_OPTION = { value: 'unknown', label: 'Unknown' };
 // Filter Bar. `value` maps to the same `status` filter values used by the
 // "Health" group inside the Filter Bar, so both stay in sync.
 const HEALTH_QUICK_FILTERS = [
-  { value: 'passing', label: 'Healthy', icon: 'check-circle-fill' },
-  { value: 'warning', label: 'Warning', icon: 'alert-triangle-fill' },
-  { value: 'critical', label: 'Not-healthy', icon: 'x-circle-fill' },
+  { value: 'passing', label: 'Healthy', icon: 'check-circle' },
+  { value: 'warning', label: 'Warning', icon: 'alert-triangle' },
+  { value: 'critical', label: 'Not-healthy', icon: 'x-circle' },
 ];
 
 const KIND_OPTIONS = [

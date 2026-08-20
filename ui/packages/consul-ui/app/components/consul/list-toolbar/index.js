@@ -77,22 +77,53 @@ export default class ConsulListToolbar extends Component {
   @action
   setupFilterBar(element) {
     this._filterBarElement = element;
+    // Fast path: expand immediately if the toggle is already collapsed.
     this.ensureExpanded();
+    // Robust path: a single afterRender check races the Filter Bar's own
+    // setup — on pages whose data resolves asynchronously (e.g. the
+    // service-instance tab, which merges in separately-loaded proxy checks)
+    // the toggle isn't yet collapsed when that check runs, so it never clicks
+    // and the area stays empty. Observe the toggle instead and re-expand
+    // whenever HDS (re-)renders it or flips it back to collapsed, so the fix
+    // no longer depends on catching one lucky moment.
+    this._expandObserver = new MutationObserver(this.expandIfCollapsed);
+    this._expandObserver.observe(element, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['aria-expanded'],
+    });
   }
 
-  ensureExpanded = () => {
+  willDestroy() {
+    super.willDestroy(...arguments);
+    if (this._expandObserver) {
+      this._expandObserver.disconnect();
+      this._expandObserver = undefined;
+    }
+  }
+
+  // Click the hidden applied-filters toggle if HDS has it collapsed. Clicking
+  // it open flips aria-expanded to "true", which does not re-trigger a click
+  // (the guard only fires on "false"), so there is no toggle loop.
+  expandIfCollapsed = () => {
     const element = this._filterBarElement;
     if (!element) {
       return;
     }
+    const toggle = element.querySelector('.hds-filter-bar__applied-filters-toggle-button');
+    if (toggle && toggle.getAttribute('aria-expanded') === 'false') {
+      toggle.click();
+    }
+  };
+
+  ensureExpanded = () => {
+    if (!this._filterBarElement) {
+      return;
+    }
     // Read the toggle state after render so we react to the Filter Bar's own
     // collapse on the latest filter change rather than a stale value.
-    schedule('afterRender', () => {
-      const toggle = element.querySelector('.hds-filter-bar__applied-filters-toggle-button');
-      if (toggle && toggle.getAttribute('aria-expanded') === 'false') {
-        toggle.click();
-      }
-    });
+    schedule('afterRender', this.expandIfCollapsed);
   };
 
   // Look up the human-readable label for a value within a filter group, used

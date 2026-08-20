@@ -11,22 +11,21 @@
 %healthcheck-output:not(:last-child) {
   margin-bottom: 24px;
 }
-%healthcheck-output::before {
-  margin-right: 15px;
-}
 %healthcheck-output > div {
   flex: 1 1 auto;
 }
-%healthcheck-output header,
+%healthcheck-output .health-check-output__title,
 %healthcheck-output dl:last-of-type {
   width: 100%;
 }
-%healthcheck-output header {
+%healthcheck-output .health-check-output__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin-bottom: 0.9em;
 }
 %healthcheck-output > div {
-  // 100% minus the width of the icon space (26)
-  width: calc(100% - 26px);
+  width: 100%;
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
@@ -58,19 +57,25 @@
   margin-bottom: 0.3em;
 }
 
+/* Output row: copy button on the left, followed by the raw output text with
+   no surrounding box. */
+%healthcheck-output dl:last-of-type dd {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
 %healthcheck-output pre {
-  padding: 12px;
-  padding-right: 40px;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
   white-space: pre-wrap;
-  position: relative;
 }
 %healthcheck-output pre code {
   word-wrap: break-word;
 }
 %healthcheck-output .copy-button {
-  position: absolute;
-  right: 0.5em;
-  top: .7em;
+  flex: 0 0 auto;
 }
 @media #{$--lt-spacious-healthcheck-output} {
   %healthcheck-output {
@@ -78,9 +83,6 @@
     padding-bottom: 15px;
     padding-left: 14px;
     padding-right: 19px;
-  }
-  %healthcheck-output::before {
-    margin-right: 8px;
   }
   %healthcheck-output dl:nth-last-of-type(2) {
     width: 100%;

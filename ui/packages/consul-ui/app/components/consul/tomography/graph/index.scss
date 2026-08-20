@@ -5,7 +5,9 @@
 
 .tomography-graph {
   .background {
-    fill: var(--token-color-surface-strong);
+    /* Figma target places the graph on the card's white surface with only
+       dashed ring outlines — no filled disc. */
+    fill: transparent;
   }
   .axis {
     fill: none;

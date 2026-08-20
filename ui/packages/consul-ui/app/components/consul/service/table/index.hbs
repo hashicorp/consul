@@ -8,6 +8,7 @@
     @items={{@items}}
     @columns={{this.columns}}
     @ariaLabel="Services"
+    @card={{@card}}
   >
     <:row as |item B|>
         {{! ---- Service name ---- }}
@@ -67,29 +68,55 @@
         </B.Td>
 
         {{! ---- Health ---- }}
-        <B.Td>
-          <span
-            class="consul-service-table__health"
-            {{hds-tooltip item.healthTooltipText options=(detached-tooltip-options)}}
-            data-test-service-health={{item.MeshStatus}}
-          >
-            {{#if (eq item.MeshStatus "passing")}}
-              <Hds::Icon @name="check-circle-fill" @color="var(--token-color-foreground-success)" @isInline={{true}} />
-              <span>Healthy</span>
-            {{else if (eq item.MeshStatus "warning")}}
-              <Hds::Icon @name="alert-triangle-fill" @color="var(--token-color-foreground-warning)" @isInline={{true}} />
-              <span>Warning</span>
-            {{else if (eq item.MeshStatus "critical")}}
-              <Hds::Icon @name="x-circle-fill" @color="var(--token-color-foreground-critical)" @isInline={{true}} />
-              <span>Not-healthy</span>
-            {{else if (eq item.MeshStatus "empty")}}
-              <Hds::Icon @name="minus-circle" @color="var(--token-color-foreground-faint)" @isInline={{true}} />
-              <span>No health checks</span>
-            {{else}}
-              <Hds::Icon @name="help" @color="var(--token-color-foreground-faint)" @isInline={{true}} />
-              <span>Unknown</span>
-            {{/if}}
-          </span>
+        <B.Td data-test-service-health={{item.MeshStatus}}>
+          {{#if (eq item.MeshStatus "empty")}}
+            {{! No health checks registered — plain text, no badge }}
+            <span>No service checks</span>
+          {{else if (eq item.MeshStatus "passing")}}
+            {{! Every check is passing }}
+            <Hds::Badge
+              @text="All checks passing"
+              @icon="check"
+              @color="success"
+              @type="filled"
+              @size="small"
+              {{hds-tooltip item.healthTooltipText options=(detached-tooltip-options)}}
+            />
+          {{else if (eq item.MeshStatus "critical")}}
+            {{! At least one critical check — show count if not all failing }}
+            <Hds::Badge
+              @icon="x"
+              @color="critical"
+              @type="filled"
+              @size="small"
+              @text={{if
+                (eq item.MeshChecksPassing 0)
+                "All checks failing"
+                (concat item.MeshChecksCritical "/" item.MeshChecksTotal " checks failing")
+              }}
+              {{hds-tooltip item.healthTooltipText options=(detached-tooltip-options)}}
+            />
+          {{else if (eq item.MeshStatus "warning")}}
+            {{! Warning checks but no critical — show failing count }}
+            <Hds::Badge
+              @icon="alert-triangle"
+              @color="warning"
+              @type="filled"
+              @size="small"
+              @text={{concat item.MeshChecksWarning "/" item.MeshChecksTotal " checks failing"}}
+              {{hds-tooltip item.healthTooltipText options=(detached-tooltip-options)}}
+            />
+          {{else}}
+            {{! unknown / peer-related states }}
+            <Hds::Badge
+              @text="Unknown"
+              @icon="help"
+              @color="neutral"
+              @type="outlined"
+              @size="small"
+              {{hds-tooltip item.healthTooltipText options=(detached-tooltip-options)}}
+            />
+          {{/if}}
         </B.Td>
 
         {{! ---- Service mesh ---- }}
