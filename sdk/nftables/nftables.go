@@ -209,28 +209,40 @@ func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn, d
 			cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", "nat", consulNATOutputChain,
 				"tcp", "dport", "53", "jump", DNSChain)
 		} else if cfg.ConsulDNSPort != 0 {
-			// Determine the DNS IP and IP-family keyword for address matching.
-			consulDNSIP := "127.0.0.1"
-			if dualStack {
-				consulDNSIP = "::1"
-			}
+			// Build the list of DNS IPs to write rules for.
+			//
+			// iptables equivalent (main branch):
+			//   - SetupWithAdditionalRules  (iptables,  IPv4): uses 127.0.0.1, guarded by !dualStack
+			//   - SetupWithAdditionalRulesIPv6 (ip6tables, IPv6): uses ::1,       runs only when dualStack
+			//
+			// nftables uses the inet family (single pass covering both IPv4 and IPv6), so
+			// when dualStack=true we must emit rules for BOTH loopback addresses here.
+			// When an explicit ConsulDNSIP is given, only that one address is used (unchanged).
+			var dnsIPs []string
 			if cfg.ConsulDNSIP != "" {
-				consulDNSIP = cfg.ConsulDNSIP
+				dnsIPs = []string{cfg.ConsulDNSIP}
+			} else if dualStack {
+				dnsIPs = []string{"127.0.0.1", "::1"}
+			} else {
+				dnsIPs = []string{"127.0.0.1"}
 			}
-			dnsIPKw := ipFamilyKeyword(consulDNSIP)
-			consulDNSHostPort := net.JoinHostPort(consulDNSIP, strconv.Itoa(cfg.ConsulDNSPort))
 
-			// Direct DNS traffic destined for the Consul DNS IP to the right port.
-			cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", "nat", DNSChain,
-				dnsIPKw, "daddr", consulDNSIP, "udp", "dport", "53", "dnat", "to", consulDNSHostPort)
-			cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", "nat", DNSChain,
-				dnsIPKw, "daddr", consulDNSIP, "tcp", "dport", "53", "dnat", "to", consulDNSHostPort)
+			for _, consulDNSIP := range dnsIPs {
+				dnsIPKw := ipFamilyKeyword(consulDNSIP)
+				consulDNSHostPort := net.JoinHostPort(consulDNSIP, strconv.Itoa(cfg.ConsulDNSPort))
 
-			// Jump outbound port-53 traffic destined for the Consul DNS IP into the DNS chain.
-			cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", "nat", consulNATOutputChain,
-				dnsIPKw, "daddr", consulDNSIP, "udp", "dport", "53", "jump", DNSChain)
-			cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", "nat", consulNATOutputChain,
-				dnsIPKw, "daddr", consulDNSIP, "tcp", "dport", "53", "jump", DNSChain)
+				// Direct DNS traffic destined for the Consul DNS IP to the right port.
+				cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", "nat", DNSChain,
+					dnsIPKw, "daddr", consulDNSIP, "udp", "dport", "53", "dnat", "to", consulDNSHostPort)
+				cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", "nat", DNSChain,
+					dnsIPKw, "daddr", consulDNSIP, "tcp", "dport", "53", "dnat", "to", consulDNSHostPort)
+
+				// Jump outbound port-53 traffic destined for the Consul DNS IP into the DNS chain.
+				cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", "nat", consulNATOutputChain,
+					dnsIPKw, "daddr", consulDNSIP, "udp", "dport", "53", "jump", DNSChain)
+				cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", "nat", consulNATOutputChain,
+					dnsIPKw, "daddr", consulDNSIP, "tcp", "dport", "53", "jump", DNSChain)
+			}
 		}
 
 		// Jump all outbound TCP traffic from the output hook into PROXY_OUTPUT.
