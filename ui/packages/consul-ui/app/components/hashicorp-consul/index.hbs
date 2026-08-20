@@ -5,6 +5,53 @@
 
 <App class='hashicorp-consul' ...attributes>
 
+  <:header>
+    <Hds::AppHeader>
+      <:logo>
+        <Hds::AppHeader::HomeLink
+          @icon='consul'
+          @text='Consul'
+          @href={{href-to 'index' params=(hash peer=undefined)}}
+          @isHrefExternal={{false}}
+        />
+      </:logo>
+      <:utilityActions>
+        <Hds::Dropdown @enableCollisionDetection={{true}} class='hds-app-header__dropdown' @listPosition='bottom-right' as |dd|>
+          <dd.ToggleIcon @icon='help' @text='Help & Support menu' />
+          <Debug::Navigation @dropdown={{dd}} />
+          <dd.Interactive
+            @href={{env 'CONSUL_DOCS_URL'}}
+            @isHrefExternal={{true}}
+          >
+            {{t "components.hashicorp-consul.side-nav.support-menu.docs"}}
+          </dd.Interactive>
+          <dd.Interactive
+            @href={{concat (env 'CONSUL_DOCS_LEARN_URL') '/consul'}}
+            @isHrefExternal={{true}}
+          >
+            {{t "components.hashicorp-consul.side-nav.support-menu.tutorials"}}
+          </dd.Interactive>
+          <dd.Interactive
+            @href={{env 'CONSUL_REPO_ISSUES_URL'}}
+            @isHrefExternal={{true}}
+          >
+            {{t "components.hashicorp-consul.side-nav.support-menu.feedback"}}
+          </dd.Interactive>
+        </Hds::Dropdown>
+
+        <Consul::Token::Selector
+          @dc={{@dc}}
+          @partition={{@partition}}
+          @nspace={{@nspace}}
+          @onchange={{@onchange}}
+          as |selector|
+        >
+          <Ref @target={{this}} @name='tokenSelector' @value={{selector}} />
+        </Consul::Token::Selector>
+      </:utilityActions>
+    </Hds::AppHeader>
+  </:header>
+
   <:notifications as |app|>
     {{#each this.flashMessages.queue as |flash|}}
       <app.Notification @delay={{sub flash.timeout flash.extendedTimeout}} @sticky={{flash.sticky}}>
@@ -73,56 +120,10 @@
   </:notifications>
 
   <:sideNav>
-    <Hds::AppSideNav @isResponsive={{false}} @isCollapsible={{false}} class='consul-side-nav' role="navigation" data-test-navigation>
-      <div class='consul-side-nav__header'>
-        <Hds::Interactive
-          class='consul-side-nav__home-link'
-          @href={{href-to 'index' params=(hash peer=undefined)}}
-          @isHrefExternal={{false}}
-          aria-label='Consul'
-        >
-          <Hds::Icon @name='consul-color' @stretched={{true}} />
-        </Hds::Interactive>
-
-        <div class='consul-side-nav__header-actions'>
-          <Hds::Dropdown class='hds-side-nav__dropdown' @listPosition='bottom-left' as |dd|>
-            <dd.ToggleIcon @icon='help' @text='Help & Support menu' />
-            <Debug::Navigation @dropdown={{dd}} />
-            <dd.Interactive
-              @href={{env 'CONSUL_DOCS_URL'}}
-              @isHrefExternal={{true}}
-            >
-              {{t "components.hashicorp-consul.side-nav.support-menu.docs"}}
-            </dd.Interactive>
-            <dd.Interactive
-              @href={{concat (env 'CONSUL_DOCS_LEARN_URL') '/consul'}}
-              @isHrefExternal={{true}}
-            >
-              {{t "components.hashicorp-consul.side-nav.support-menu.tutorials"}}
-            </dd.Interactive>
-            <dd.Interactive
-              @href={{env 'CONSUL_REPO_ISSUES_URL'}}
-              @isHrefExternal={{true}}
-            >
-              {{t "components.hashicorp-consul.side-nav.support-menu.feedback"}}
-            </dd.Interactive>
-          </Hds::Dropdown>
-
-          <Consul::Token::Selector
-            @dc={{@dc}}
-            @partition={{@partition}}
-            @nspace={{@nspace}}
-            @onchange={{@onchange}}
-            as |selector|
-          >
-            <Ref @target={{this}} @name='tokenSelector' @value={{selector}} />
-          </Consul::Token::Selector>
-        </div>
-      </div>
+    <Hds::AppSideNav @isResponsive={{false}} @isCollapsible={{false}} class='consul-side-nav' data-test-navigation>
 
       <Hds::AppSideNav::List
         class='consul-side-nav__selector-group'
-        aria-labelledby="context selectors"
         aria-label="context selectors"
         as |SNL|
       >
@@ -155,7 +156,7 @@
         />
       </Hds::AppSideNav::List>
 
-      <Hds::AppSideNav::List aria-label="main navigation" aria-labelledby='main navigation' as |SNL|>
+      <Hds::AppSideNav::List aria-label="main navigation" as |SNL|>
           {{#if (can 'access overview')}}
             <SNL.Link
               @text={{t "components.hashicorp-consul.side-nav.overview"}}

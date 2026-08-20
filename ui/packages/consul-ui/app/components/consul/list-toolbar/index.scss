@@ -1,0 +1,128 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+.consul-list-toolbar {
+  .consul-list-toolbar__controls {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* keep the "Search across" scope selector the same height as the search
+     input and filter dropdown it sits beside */
+  .consul-list-toolbar__search-across {
+    flex: 0 0 auto;
+
+    .hds-dropdown-toggle-button {
+      min-height: 2.25rem;
+    }
+  }
+
+  /* keep the Filter Bar sized to its content so it sits next to any
+     page-specific quick filters instead of stretching across the toolbar */
+  .consul-list-toolbar__filter-bar {
+    flex: 0 1 auto;
+    /* drop the default Filter Bar card chrome so it sits flush in the toolbar */
+    padding: 0;
+    background-color: transparent;
+    border: none;
+    border-radius: 0;
+
+    /* the applied-filters area is kept permanently expanded (see the
+       component JS), so hide its show/hide toggle button entirely */
+    .hds-filter-bar__applied-filters-toggle-button {
+      display: none;
+    }
+
+    .hds-filter-bar__filters-dropdown .hds-dropdown-toggle-button {
+      min-height: 2.25rem;
+    }
+
+    /* make the search input taller (to match the buttons) and wider */
+    .hds-filter-bar__search.hds-form-text-input {
+      min-height: 2.25rem;
+      max-width: none;
+      width: 420px;
+    }
+
+    /* drop the separator HDS draws above the applied-filters row */
+    .hds-filter-bar__applied-filters-list .hds-separator {
+      display: none;
+    }
+
+    /* the separator provided the top padding, so add a little back to keep the
+       applied-filter pills from hugging the controls above them */
+    .hds-filter-bar__applied-filters-list__content {
+      padding-top: 8px;
+    }
+
+    /* render the applied-filter HDS tags as filled, fully-rounded pills */
+    .hds-filter-bar__applied-filters .hds-tag {
+      border-radius: 9999px;
+      background-color: var(--token-color-surface-faint);
+      border-color: var(--token-color-border-faint);
+    }
+
+    /* HDS renders "Clear all filters" as a tertiary (link-like) button; give it
+       a solid neutral button look so it reads as an actionable control */
+    .hds-filter-bar__clear-button {
+      padding: 0 10px;
+      min-height: 1.75rem;
+      border: 1px solid transparent;
+      border-radius: 5px;
+      background-color: var(--token-color-surface-strong);
+      transition: background-color 0.15s ease, border-color 0.15s ease,
+        box-shadow 0.15s ease;
+
+      &,
+      &:hover,
+      &:active,
+      &:focus {
+        color: var(--token-color-foreground-strong);
+
+        .hds-icon {
+          color: var(--token-color-foreground-strong);
+        }
+      }
+
+      &:hover {
+        background-color: var(--token-color-surface-interactive-hover);
+        border-color: var(--token-color-border-strong);
+        box-shadow: var(--token-elevation-low-box-shadow);
+      }
+
+      &:active {
+        background-color: var(--token-color-surface-interactive-active);
+        border-color: var(--token-color-border-strong);
+        box-shadow: none;
+      }
+    }
+  }
+
+  /* Health quick-filter buttons are rendered by the consuming page via the
+     :quickFilters block, but their active highlight and per-status icon colour
+     are identical across pages, so they live here on the shared toolbar. */
+  .consul-list-toolbar__health {
+    flex: 0 0 auto;
+  }
+
+  [data-test-health-filter].is-selected {
+    background-color: var(--token-color-surface-interactive-active);
+  }
+
+  [data-test-health-filter='passing'] .hds-icon {
+    color: var(--token-color-foreground-success);
+  }
+
+  [data-test-health-filter='warning'] .hds-icon {
+    color: var(--token-color-foreground-warning);
+  }
+
+  [data-test-health-filter='critical'] .hds-icon {
+    color: var(--token-color-foreground-critical);
+  }
+}

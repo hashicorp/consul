@@ -46,11 +46,20 @@ Feature: dc / kvs / create
     ---
       dc: datacenter
     ---
-    And I click kv on the kvs
-    And I click create
+    # folders expand in place, so Create inside one comes from its row menu
+    And I click actions on the kvs
+    And pause for 200
+    And I click createInFolder on the kvs
     And I see the text "New Key / Value" in "h1"
-    And I see the text "key-value" in "[data-test-breadcrumbs] li:nth-child(2) a"
     And I see the "[data-test-kv-key]" element
+    Then I fill in with yaml
+    ---
+      additional: sub-key
+      value: value
+    ---
+    # the current page object is still the list, so submit via the DOM
+    And I click "main [type=submit]"
+    Then a PUT request was made to "/v1/kv/key-value/sub-key?dc=datacenter&ns=@namespace"
   Scenario: Clicking create from within a just created folder
     Given 1 datacenter model with the value "datacenter"
     When I visit the kv page for yaml
@@ -69,8 +78,9 @@ Feature: dc / kvs / create
     ---
     And I submit
     Then the url should be /datacenter/kv
-    And I click "[data-test-kv]"
-    And I click "[data-test-create]"
+    And I click "[data-test-actions-menu]"
+    And pause for 200
+    And I click "[data-test-create-in-folder]"
     And I see the text "New Key / Value" in "h1"
-    And I see the text "key-value" in "[data-test-breadcrumbs] li:nth-child(2) a"
+    And I see the text "Key/Values / key-value" in "[data-test-breadcrumbs] li"
     And I see the "[data-test-kv-key]" element

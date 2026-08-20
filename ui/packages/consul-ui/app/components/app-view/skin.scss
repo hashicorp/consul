@@ -6,6 +6,10 @@
 %app-view-title {
   border-bottom: var(--decor-border-100);
 }
+/* the tab nav carries its own full width rule, so the title's would double up */
+%app-view-title:has(+ .tab-nav) {
+  border-bottom: none;
+}
 %app-view-content form:not(.filter-bar) fieldset {
   border-bottom: var(--decor-border-200);
 }

@@ -7,6 +7,10 @@ export default function (visitable, creatable, clickable, intentions, popoverSel
   return creatable({
     visit: visitable('/:dc/intentions'),
     intentionList: intentions(),
-    sort: popoverSelect('[data-test-sort-control]'),
+    sort: {
+      action: clickable(
+        '.consul-intention-list-table thead th:nth-child(2) button.hds-table__th-button--sort'
+      ),
+    },
   });
 }

@@ -6,7 +6,7 @@
 {{#if (eq @item.Datacenter '')}}
 <a
   class="topology-metrics-card"
-  href={{href-to 'dc.services.index'}}
+  href={{href-to 'dc.services.index' @dc}}
   data-permission={{service/card-permissions @item}}
 >
   <p class="empty">

@@ -50,9 +50,40 @@ async function globalSetup(config) {
     // Login using the token from environment, passing baseURL
     const authResult = await loginWithToken(page, process.env.CONSUL_UI_TEST_TOKEN, baseURL);
     if (authResult?.authenticated) {
-      console.log('✅ Authentication successful.\n');
+      console.log('✅ Authentication successful via UI login.\n');
     } else {
-      console.log('⚠️  Authentication skipped: ACL login is unavailable in this environment.\n');
+      console.log('⚠️  UI login unavailable (ACLs disabled in dev build). Setting token via localStorage.\n');
+
+      // Fallback: set the token directly in localStorage when the UI login flow
+      // is not available (e.g. ember serve where operatorConfig.ACLsEnabled defaults to false).
+      // Resolve the full token shape from the API so the UI has AccessorID, Namespace, etc.
+      const secretID = process.env.CONSUL_UI_TEST_TOKEN;
+      if (secretID) {
+        let tokenPayload = { SecretID: secretID };
+        try {
+          const apiBase = baseURL.replace(':4200', ':8500'); // proxy → real Consul API
+          const resp = await page.request.get(`${apiBase}/v1/acl/token/self`, {
+            headers: { 'X-Consul-Token': secretID },
+          });
+          if (resp.ok()) {
+            const data = await resp.json();
+            tokenPayload = {
+              AccessorID: data.AccessorID,
+              SecretID: data.SecretID,
+              Namespace: data.Namespace || 'default',
+              Partition: data.Partition || 'default',
+            };
+          }
+        } catch (_) {
+          // If API lookup fails, fall back to minimal shape
+        }
+
+        await page.goto(`${baseURL}/ui/dc1/kv`, { waitUntil: 'domcontentloaded' });
+        await page.evaluate((payload) => {
+          localStorage.setItem('consul:token', JSON.stringify(payload));
+        }, tokenPayload);
+        console.log(`✅ Token set via localStorage fallback (AccessorID: ${tokenPayload.AccessorID || 'unknown'}).\n`);
+      }
     }
 
     // Save the authenticated state for all tests to reuse

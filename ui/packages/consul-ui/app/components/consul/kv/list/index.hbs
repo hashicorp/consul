@@ -3,64 +3,134 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<TabularCollection class='consul-kv-list' ...attributes @items={{@items}}>
-  <:header>
-    <th>Name</th>
-  </:header>
-  <:row as |item index|>
-    <td data-test-kv={{item.Key}} class={{if item.isFolder 'folder' 'file'}}>
-      <a href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}>{{right-trim
-          (left-trim item.Key @parent.Key)
-          '/'
-        }}</a>
-    </td>
-  </:row>
-  <:actions as |item index change checked|>
-    <PopoverMenu
-      @expanded={{if (eq checked index) true false}}
-      @onchange={{action change index}}
-      @keyboardAccess={{true}}
-    >
-      <:trigger>
-        More
-      </:trigger>
-      <:menu as |components api confirm keypressClick|>
-        {{#if (can 'write kv' item=item)}}
-          <components.MenuItem
-            data-test-edit
-            @href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}
-          >
-            <:label>
-              {{if item.isFolder 'View' 'Edit'}}
-            </:label>
-          </components.MenuItem>
-          <components.MenuItem data-test-delete class='dangerous' @onclick={{action @delete item}}>
-            <:label>
-              Delete
-            </:label>
-            <:confirmHeader>
-              Confirm Delete
-            </:confirmHeader>
-            <:confirmBody>
-              <p>
-                Are you sure you want to delete this KV entry?
-              </p>
-            </:confirmBody>
-            <:confirmFooter as |Params|>
-              <Params.button @text='Delete' {{on 'click' Params.confirmAction}} />
-            </:confirmFooter>
-          </components.MenuItem>
-        {{else}}
-          <components.MenuItem
-            data-test-edit
-            @href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}
-          >
-            <:label>
-              View
-            </:label>
-          </components.MenuItem>
+<div class="consul-kv-list" ...attributes>
+  <Consul::DataTable
+    @items={{this.rows}}
+    @columns={{this.columns}}
+    @paginated={{false}}
+    @ariaLabel="Key / Values"
+  >
+    <:row as |row B|>
+      {{! ---- Key name ---- }}
+      <B.Td>
+        <span class="consul-kv-list__cell" style={{row.indentStyle}}>
+          {{#if row.isFolder}}
+            <button
+              type="button"
+              class="consul-kv-list__toggle"
+              aria-label={{if row.expanded "Collapse folder" "Expand folder"}}
+              aria-expanded={{if row.expanded "true" "false"}}
+              data-test-kv-toggle
+              {{on "click" (fn this.toggle row.node)}}
+            >
+              <Hds::Icon @name={{if row.expanded "chevron-down" "chevron-right"}} @size="16" @isInline={{true}} />
+            </button>
+            <Hds::Icon class="consul-kv-list__icon" @name="folder" @size="16" @isInline={{true}} />
+            <button
+              type="button"
+              class="consul-kv-list__name"
+              data-test-kv={{row.node.Key}}
+              data-test-name
+              {{on "click" (fn this.toggle row.node)}}
+            >{{row.name}}</button>
+          {{else}}
+            <span class="consul-kv-list__toggle-spacer" aria-hidden="true"></span>
+            <Hds::Icon class="consul-kv-list__icon" @name="key" @size="16" @isInline={{true}} />
+            <a
+              class="consul-kv-list__name"
+              href={{href-to 'dc.kv.edit' row.node.Key}}
+              data-test-kv={{row.node.Key}}
+              data-test-name
+            >{{row.name}}</a>
+          {{/if}}
+        </span>
+      </B.Td>
+
+      {{! ---- Actions ---- }}
+      <B.Td @align="right">
+        {{! folders are opened by their row and keys by their name, so the menu
+            only ever holds the actions that need write access }}
+        {{#if (can "write kv" item=row.node)}}
+          <Hds::Dropdown @listPosition="bottom-right" class="consul-kv-list__actions" as |dd|>
+            <dd.ToggleIcon
+              @icon="more-horizontal"
+              @text="Open actions menu"
+              @hasChevron={{false}}
+              @size="small"
+              data-test-actions-menu
+            />
+            {{#if row.isFolder}}
+              {{#if (can "create kvs")}}
+                <dd.Interactive
+                  @icon="plus"
+                  @href={{href-to 'dc.kv.create' row.node.Key}}
+                  @isHrefExternal={{false}}
+                  data-test-create-in-folder
+                >Create</dd.Interactive>
+              {{/if}}
+            {{else}}
+              <dd.Interactive
+                @icon="edit"
+                @href={{href-to 'dc.kv.edit' row.node.Key}}
+                @isHrefExternal={{false}}
+                data-test-edit
+              >Edit</dd.Interactive>
+            {{/if}}
+            <dd.Separator />
+            <dd.Interactive
+              @color="critical"
+              @icon="trash"
+              data-test-delete
+              {{on "click" (fn this.confirmDelete row.node)}}
+            >Delete</dd.Interactive>
+          </Hds::Dropdown>
         {{/if}}
-      </:menu>
-    </PopoverMenu>
-  </:actions>
-</TabularCollection>
+      </B.Td>
+    </:row>
+  </Consul::DataTable>
+
+  {{! The table is unpaginated -- paging its rows would split a folder from its
+      children -- so this pages the entries the folder itself holds. }}
+  <Hds::Pagination::Numbered
+    class="consul-kv-list__pagination"
+    @totalItems={{this.totalItems}}
+    @currentPage={{this.currentPage}}
+    @currentPageSize={{this.pageSize}}
+    @pageSizes={{this.pageSizes}}
+    @onPageChange={{this.onPageChange}}
+    @onPageSizeChange={{this.onPageSizeChange}}
+  />
+
+  {{! Live subscription for each expanded folder's children, rendered outside
+      the table to keep the DOM valid (no nested <tr>). }}
+  {{#each this.expandedFolders as |key|}}
+    <DataSource
+      @src={{uri '/${partition}/${nspace}/${dc}/kvs/${key}'
+        (hash
+          partition=@partition
+          nspace=@nspace
+          dc=@dc
+          key=key
+        )
+      }}
+      @onchange={{fn this.setChildren key}}
+    />
+  {{/each}}
+
+  {{#if this.itemToDelete}}
+    <Hds::Modal id="confirm-modal" @color="critical" @onClose={{this.cancelDelete}} as |M|>
+      <M.Header @icon="alert-diamond">
+        {{if this.itemToDelete.isFolder "Delete this folder?" "Delete this key?"}}
+      </M.Header>
+      <M.Body>
+        <p>Are you sure you want to delete <strong>{{this.itemToDeleteName}}</strong>?</p>
+      </M.Body>
+      <M.Footer as |F|>
+        <Hds::ButtonSet>
+          <Hds::Button @text="Delete" @color="critical" data-test-id="confirm-action" {{on "click" this.invokeDelete}} />
+          <Hds::Button @text="Cancel" @color="secondary" {{on "click" F.close}} />
+        </Hds::ButtonSet>
+      </M.Footer>
+    </Hds::Modal>
+  {{/if}}
+</div>
