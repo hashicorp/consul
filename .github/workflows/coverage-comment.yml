@@ -44,6 +44,9 @@ jobs:
           PR_NUMBER=$(cat coverage-data/pr-number.txt 2>/dev/null || echo "")
           TOTAL=$(cat coverage-data/coverage-total.txt 2>/dev/null || echo "")
           RUN_ID=$(cat coverage-data/run-id.txt 2>/dev/null || echo "${{ github.event.workflow_run.id }}")
+          PATCH=$(cat coverage-data/patch.txt 2>/dev/null || echo "")
+          PATCH_COVD=$(cat coverage-data/patch-covered.txt 2>/dev/null || echo "")
+          PATCH_COVB=$(cat coverage-data/patch-coverable.txt 2>/dev/null || echo "")
 
           if [ -z "$PR_NUMBER" ] || [ -z "$TOTAL" ] || [ "$TOTAL" = "N/A" ]; then
             echo "No PR number or coverage data, skipping"
@@ -51,8 +54,13 @@ jobs:
           fi
 
           MARKER="<!-- coverage-report-comment -->"
-          BODY=$(printf '%s\n\n### Go Test Coverage: **%s**\n\nSee the [workflow run](https://github.com/%s/actions/runs/%s) for the full per-package breakdown and downloadable HTML report.' \
-            "$MARKER" "$TOTAL" "$GH_REPO" "$RUN_ID")
+          if [ -z "$PATCH" ] || [ "$PATCH" = "N/A" ]; then
+            PATCH_LINE="**Patch coverage:** N/A (no coverable Go lines changed)"
+          else
+            PATCH_LINE="**Patch coverage:** ${PATCH} (${PATCH_COVD}/${PATCH_COVB} changed lines covered)"
+          fi
+          BODY=$(printf '%s\n\n### Go Test Coverage: **%s**\n\n%s\n\nSee the [workflow run](https://github.com/%s/actions/runs/%s) for the full per-package breakdown and downloadable HTML report.' \
+            "$MARKER" "$TOTAL" "$PATCH_LINE" "$GH_REPO" "$RUN_ID")
 
           COMMENT_ID=$(gh api --paginate \
             "repos/${GH_REPO}/issues/${PR_NUMBER}/comments" \
