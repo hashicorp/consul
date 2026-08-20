@@ -56,19 +56,6 @@ as |dc partition nspace id item create|}}
           </h1>
       </:header>
       <:content>
-  {{#if (not create) }}
-        <div class="definition-table">
-            <dl>
-              <dt>Policy ID</dt>
-              <dd>
-                <CopyableCode
-                  @value={{item.ID}}
-                  @name="Policy ID"
-                />
-              </dd>
-            </dl>
-        </div>
-  {{/if}}
   {{#if (or (eq (policy/typeof item) 'policy-management') (eq (policy/typeof item) 'read-only'))}}
     <Hds::Alert @type="inline" @icon="star-fill" class="mb-3 mt-2" as |A|>
       <A.Title>Built-in policy</A.Title>
@@ -105,7 +92,6 @@ as |dc partition nspace id item create|}}
     </DataSource>
   {{else}}
         <Consul::Policy::Form
-          @form={{this.form}}
           @partition={{partition}}
           @nspace={{nspace}}
           @item={{item}}
@@ -118,6 +104,7 @@ as |dc partition nspace id item create|}}
           @onCancel={{fn this.onCancel item}}
           @onDelete={{fn this.onDelete item}}
           @onItemsChange={{action (mut this.items) value="data"}}
+          @onChange={{action "change"}}
         />
   {{/if}}
       </:content>
