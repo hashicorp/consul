@@ -4,27 +4,22 @@
  */
 
 .consul-role-list {
-  margin-top: 16px;
-
   /* Keep multi-word column headers on a single line. */
   .hds-table__th {
     white-space: nowrap;
   }
 
-  /* Let the Description column (2nd) absorb all the surplus width so the
-     trailing Actions column collapses to just the menu button. This table has
-     no naturally wide column, so without an explicit stretch column the spare
-     width would be spread across every column — including Actions, leaving a
-     large empty gap before the menu button. */
-  .hds-table__th:nth-child(2),
-  .hds-table__td:nth-child(2) {
+  /* Let the Description column (4th in the 5-column layout: Name, Identities,
+     Rules, Description, Actions) absorb all the surplus width so the trailing
+     Actions column collapses to just the menu button. */
+  .hds-table__th:nth-child(4),
+  .hds-table__td:nth-child(4) {
     width: 100%;
   }
 
-  /* Wrap long values (including unbreakable ones with no spaces, e.g. a role
-     name or description with no whitespace) onto multiple lines instead of
-     forcing the column endlessly wider. The trailing Actions column is excluded
-     so its menu button stays on one line. */
+  /* Wrap long values (including unbreakable ones with no spaces) onto multiple
+     lines instead of forcing the column endlessly wider. The trailing Actions
+     column is excluded so its menu button stays on one line. */
   .hds-table__td:not(:last-child) {
     overflow-wrap: anywhere;
   }
@@ -54,23 +49,20 @@
   }
 }
 
+/* Name cell: semibold link, wraps on long unbreakable values. */
 .consul-role-list__name {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
   font-weight: var(--token-typography-font-weight-semibold);
-
-  /* allow the flex container (and its link) to shrink below the name's
-     intrinsic width so a long, unbreakable name wraps instead of stretching
-     the column. */
+  overflow-wrap: anywhere;
   min-width: 0;
+}
 
-  a {
-    font-weight: var(--token-typography-font-weight-semibold);
-    overflow-wrap: anywhere;
-    min-width: 0;
-  }
+/* Badge rows used in the Identities and Rules columns: badges wrap onto
+   multiple lines when there are many of them. */
+.consul-role-list__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: flex-start;
 }
 
 .consul-role-list__description {

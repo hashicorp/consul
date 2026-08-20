@@ -10,15 +10,48 @@
     @ariaLabel="Roles"
   >
     <:row as |item B|>
-      {{! ---- Role name ---- }}
+      {{! ---- Name ---- }}
       <B.Td>
-        <span class="consul-role-list__name">
-          <a
-            data-test-role={{item.Name}}
-            data-test-name
-            href={{href-to 'dc.acls.roles.edit' item.ID}}
-          >{{item.Name}}</a>
-          <Consul::Token::Ruleset::List @item={{item}} />
+        <a
+          class="consul-role-list__name"
+          data-test-role={{item.Name}}
+          data-test-name
+          href={{href-to 'dc.acls.roles.edit' item.ID}}
+        >{{item.Name}}</a>
+      </B.Td>
+
+      {{! ---- Identities (ServiceIdentities + NodeIdentities) ---- }}
+      <B.Td>
+        <span class="consul-role-list__badges" data-test-identities>
+          {{#each item.ServiceIdentities as |identity|}}
+            <Hds::Badge
+              @text={{identity.ServiceName}}
+              @color="neutral"
+              @type="filled"
+              @size="small"
+            />
+          {{/each}}
+          {{#each item.NodeIdentities as |identity|}}
+            <Hds::Badge
+              @text={{identity.NodeName}}
+              @color="neutral"
+              @type="filled"
+              @size="small"
+            />
+          {{/each}}
+        </span>
+      </B.Td>
+
+      {{! ---- Rules (Policies) ---- }}
+      <B.Td>
+        <span class="consul-role-list__badges" data-test-rules>
+          {{#each item.Policies as |policy|}}
+            <Consul::Acl::RulesetBadge
+              @item={{policy}}
+              @type={{policy/typeof policy}}
+              data-test-policy
+            />
+          {{/each}}
         </span>
       </B.Td>
 
@@ -57,8 +90,8 @@
   </Consul::DataTable>
 
   {{#if this.itemToDelete}}
-    <Hds::Modal id="confirm-modal" @color="warning" @onClose={{this.cancelDelete}} as |M|>
-      <M.Header @icon="alert-triangle">Confirm delete</M.Header>
+    <Hds::Modal id="confirm-modal" @color="critical" @onClose={{this.cancelDelete}} as |M|>
+      <M.Header @icon="trash">Confirm delete</M.Header>
       <M.Body>
         <p>Are you sure you want to delete this role?</p>
       </M.Body>

@@ -12,7 +12,9 @@ import { action } from '@ember/object';
 // rendering lives in the template's :row block. The trailing "Actions" column
 // is right-aligned.
 const COLUMNS = [
-  { label: 'Role name' },
+  { label: 'Name' },
+  { label: 'Identities' },
+  { label: 'Rules' },
   { label: 'Description' },
   { label: 'Actions', align: 'right' },
 ];
