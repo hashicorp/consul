@@ -429,7 +429,11 @@ func TestSetup_IPv4_Dualstack(t *testing.T) {
 			},
 		},
 		{
-			// With dualStack=true and no explicit ConsulDNSIP, the default IPv6 address ::1 is used.
+			// With dualStack=true and no explicit ConsulDNSIP, the inet family requires
+			// rules for both loopback addresses: 127.0.0.1 (IPv4) and ::1 (IPv6).
+			// This mirrors the iptables behaviour where SetupWithAdditionalRules wrote
+			// the 127.0.0.1 rules via iptables and SetupWithAdditionalRulesIPv6 wrote
+			// the ::1 rules via ip6tables.
 			"Consul DNS port provided",
 			Config{
 				ProxyUserID:      "123",
@@ -448,6 +452,12 @@ func TestSetup_IPv4_Dualstack(t *testing.T) {
 				"nft add chain inet nat CONSUL_NAT_OUTPUT { type nat hook output priority -100 ; }",
 				"nft add chain inet nat CONSUL_NAT_PREROUTING { type nat hook prerouting priority -100 ; }",
 				"nft add rule inet nat CONSUL_PROXY_REDIRECT meta l4proto tcp redirect to :15001",
+				// IPv4 loopback rules (equivalent to iptables SetupWithAdditionalRules).
+				"nft add rule inet nat CONSUL_DNS_REDIRECT ip daddr 127.0.0.1 udp dport 53 dnat to 127.0.0.1:8600",
+				"nft add rule inet nat CONSUL_DNS_REDIRECT ip daddr 127.0.0.1 tcp dport 53 dnat to 127.0.0.1:8600",
+				"nft add rule inet nat CONSUL_NAT_OUTPUT ip daddr 127.0.0.1 udp dport 53 jump CONSUL_DNS_REDIRECT",
+				"nft add rule inet nat CONSUL_NAT_OUTPUT ip daddr 127.0.0.1 tcp dport 53 jump CONSUL_DNS_REDIRECT",
+				// IPv6 loopback rules (equivalent to ip6tables SetupWithAdditionalRulesIPv6).
 				"nft add rule inet nat CONSUL_DNS_REDIRECT ip6 daddr ::1 udp dport 53 dnat to [::1]:8600",
 				"nft add rule inet nat CONSUL_DNS_REDIRECT ip6 daddr ::1 tcp dport 53 dnat to [::1]:8600",
 				"nft add rule inet nat CONSUL_NAT_OUTPUT ip6 daddr ::1 udp dport 53 jump CONSUL_DNS_REDIRECT",
