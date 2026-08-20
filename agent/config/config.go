@@ -428,8 +428,81 @@ type ServiceDefinition struct {
 	Proxy             *ServiceProxy             `mapstructure:"proxy"`
 	Connect           *ServiceConnect           `mapstructure:"connect"`
 	Locality          *Locality                 `mapstructure:"locality"`
+	AI                *ServiceAI                `mapstructure:"ai"`
 
 	EnterpriseMeta `mapstructure:",squash"`
+}
+
+// ServiceAI is the config-layer representation of the `ai` block in a service
+// definition. It mirrors structs.ServiceAI but uses pointer fields and
+// mapstructure tags so it can be decoded from HCL/JSON config files.
+type ServiceAI struct {
+	Role           *string           `mapstructure:"role"`
+	InferenceModel *AIInferenceModel `mapstructure:"inference_model"`
+	MCPServer      *AIMCPServer      `mapstructure:"mcp_server"`
+	Agent          *AIAgent          `mapstructure:"agent"`
+}
+
+type AIInferenceModel struct {
+	Protocol *string          `mapstructure:"protocol"`
+	Path     *string          `mapstructure:"path"`
+	Auth     *AIAuth          `mapstructure:"auth"`
+	Defaults *AIModelDefaults `mapstructure:"defaults"`
+}
+
+type AIModelDefaults struct {
+	MaxTokens   *int     `mapstructure:"max_tokens"`
+	Temperature *float64 `mapstructure:"temperature"`
+}
+
+type AIMCPServer struct {
+	Transport       *string `mapstructure:"transport"`
+	Path            *string `mapstructure:"path"`
+	ProtocolVersion *string `mapstructure:"protocol_version"`
+	Auth            *AIAuth `mapstructure:"auth"`
+}
+
+type AIAgent struct {
+	Inference   *AIAgentInference   `mapstructure:"inference"`
+	MCP         *AIAgentMCP         `mapstructure:"mcp"`
+	RateLimits  *AIAgentRateLimits  `mapstructure:"rate_limits"`
+	Interceptor *AIAgentInterceptor `mapstructure:"interceptor"`
+}
+
+type AIAgentInference struct {
+	Specialization []string `mapstructure:"specialization"`
+	Vendor         *string  `mapstructure:"vendor"`
+}
+
+type AIAgentMCP struct {
+	Port *int            `mapstructure:"port"`
+	HITL *AIAgentMCPHITL `mapstructure:"hitl"`
+}
+
+type AIAgentMCPHITL struct {
+	Port            *int    `mapstructure:"port"`
+	ApprovalTimeout *string `mapstructure:"approval_timeout"`
+}
+
+type AIAgentRateLimits struct {
+	ToolCallsPerMinute *int `mapstructure:"tool_calls_per_minute"`
+	ToolCallsPerHour   *int `mapstructure:"tool_calls_per_hour"`
+}
+
+type AIAgentInterceptor struct {
+	Port *int `mapstructure:"port"`
+}
+
+type AIAuth struct {
+	Type   *string   `mapstructure:"type"`
+	Header *string   `mapstructure:"header"`
+	Secret *AISecret `mapstructure:"secret"`
+}
+
+type AISecret struct {
+	Provider *string `mapstructure:"provider"`
+	Path     *string `mapstructure:"path"`
+	Field    *string `mapstructure:"field"`
 }
 
 type CheckDefinition struct {

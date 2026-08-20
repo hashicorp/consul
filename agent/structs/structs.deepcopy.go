@@ -1015,6 +1015,66 @@ func (o *NodeService) DeepCopy() *NodeService {
 		retV := o.Connect.DeepCopy()
 		cp.Connect = *retV
 	}
+	if o.AI != nil {
+		cp.AI = new(ServiceAI)
+		*cp.AI = *o.AI
+		if o.AI.InferenceModel != nil {
+			cp.AI.InferenceModel = new(AIInferenceModel)
+			*cp.AI.InferenceModel = *o.AI.InferenceModel
+			if o.AI.InferenceModel.Auth != nil {
+				cp.AI.InferenceModel.Auth = new(AIAuth)
+				*cp.AI.InferenceModel.Auth = *o.AI.InferenceModel.Auth
+				if o.AI.InferenceModel.Auth.Secret != nil {
+					cp.AI.InferenceModel.Auth.Secret = new(AISecret)
+					*cp.AI.InferenceModel.Auth.Secret = *o.AI.InferenceModel.Auth.Secret
+				}
+			}
+			if o.AI.InferenceModel.Defaults != nil {
+				cp.AI.InferenceModel.Defaults = new(AIModelDefaults)
+				*cp.AI.InferenceModel.Defaults = *o.AI.InferenceModel.Defaults
+			}
+		}
+		if o.AI.MCPServer != nil {
+			cp.AI.MCPServer = new(AIMCPServer)
+			*cp.AI.MCPServer = *o.AI.MCPServer
+			if o.AI.MCPServer.Auth != nil {
+				cp.AI.MCPServer.Auth = new(AIAuth)
+				*cp.AI.MCPServer.Auth = *o.AI.MCPServer.Auth
+				if o.AI.MCPServer.Auth.Secret != nil {
+					cp.AI.MCPServer.Auth.Secret = new(AISecret)
+					*cp.AI.MCPServer.Auth.Secret = *o.AI.MCPServer.Auth.Secret
+				}
+			}
+		}
+		if o.AI.Agent != nil {
+			cp.AI.Agent = new(AIAgent)
+			*cp.AI.Agent = *o.AI.Agent
+			if o.AI.Agent.Inference != nil {
+				cp.AI.Agent.Inference = new(AIAgentInference)
+				*cp.AI.Agent.Inference = *o.AI.Agent.Inference
+				if o.AI.Agent.Inference.Specialization != nil {
+					cp.AI.Agent.Inference.Specialization = make([]string, len(o.AI.Agent.Inference.Specialization))
+					copy(cp.AI.Agent.Inference.Specialization, o.AI.Agent.Inference.Specialization)
+				}
+			}
+			if o.AI.Agent.MCP != nil {
+				cp.AI.Agent.MCP = new(AIAgentMCP)
+				*cp.AI.Agent.MCP = *o.AI.Agent.MCP
+				if o.AI.Agent.MCP.HITL != nil {
+					cp.AI.Agent.MCP.HITL = new(AIAgentMCPHITL)
+					*cp.AI.Agent.MCP.HITL = *o.AI.Agent.MCP.HITL
+				}
+			}
+			if o.AI.Agent.RateLimits != nil {
+				cp.AI.Agent.RateLimits = new(AIAgentRateLimits)
+				*cp.AI.Agent.RateLimits = *o.AI.Agent.RateLimits
+			}
+			if o.AI.Agent.Interceptor != nil {
+				cp.AI.Agent.Interceptor = new(AIAgentInterceptor)
+				*cp.AI.Agent.Interceptor = *o.AI.Agent.Interceptor
+			}
+		}
+	}
 	return &cp
 }
 
@@ -1198,6 +1258,66 @@ func (o *ServiceDefinition) DeepCopy() *ServiceDefinition {
 	}
 	if o.Connect != nil {
 		cp.Connect = o.Connect.DeepCopy()
+	}
+	if o.AI != nil {
+		cp.AI = new(ServiceAI)
+		*cp.AI = *o.AI
+		if o.AI.InferenceModel != nil {
+			cp.AI.InferenceModel = new(AIInferenceModel)
+			*cp.AI.InferenceModel = *o.AI.InferenceModel
+			if o.AI.InferenceModel.Auth != nil {
+				cp.AI.InferenceModel.Auth = new(AIAuth)
+				*cp.AI.InferenceModel.Auth = *o.AI.InferenceModel.Auth
+				if o.AI.InferenceModel.Auth.Secret != nil {
+					cp.AI.InferenceModel.Auth.Secret = new(AISecret)
+					*cp.AI.InferenceModel.Auth.Secret = *o.AI.InferenceModel.Auth.Secret
+				}
+			}
+			if o.AI.InferenceModel.Defaults != nil {
+				cp.AI.InferenceModel.Defaults = new(AIModelDefaults)
+				*cp.AI.InferenceModel.Defaults = *o.AI.InferenceModel.Defaults
+			}
+		}
+		if o.AI.MCPServer != nil {
+			cp.AI.MCPServer = new(AIMCPServer)
+			*cp.AI.MCPServer = *o.AI.MCPServer
+			if o.AI.MCPServer.Auth != nil {
+				cp.AI.MCPServer.Auth = new(AIAuth)
+				*cp.AI.MCPServer.Auth = *o.AI.MCPServer.Auth
+				if o.AI.MCPServer.Auth.Secret != nil {
+					cp.AI.MCPServer.Auth.Secret = new(AISecret)
+					*cp.AI.MCPServer.Auth.Secret = *o.AI.MCPServer.Auth.Secret
+				}
+			}
+		}
+		if o.AI.Agent != nil {
+			cp.AI.Agent = new(AIAgent)
+			*cp.AI.Agent = *o.AI.Agent
+			if o.AI.Agent.Inference != nil {
+				cp.AI.Agent.Inference = new(AIAgentInference)
+				*cp.AI.Agent.Inference = *o.AI.Agent.Inference
+				if o.AI.Agent.Inference.Specialization != nil {
+					cp.AI.Agent.Inference.Specialization = make([]string, len(o.AI.Agent.Inference.Specialization))
+					copy(cp.AI.Agent.Inference.Specialization, o.AI.Agent.Inference.Specialization)
+				}
+			}
+			if o.AI.Agent.MCP != nil {
+				cp.AI.Agent.MCP = new(AIAgentMCP)
+				*cp.AI.Agent.MCP = *o.AI.Agent.MCP
+				if o.AI.Agent.MCP.HITL != nil {
+					cp.AI.Agent.MCP.HITL = new(AIAgentMCPHITL)
+					*cp.AI.Agent.MCP.HITL = *o.AI.Agent.MCP.HITL
+				}
+			}
+			if o.AI.Agent.RateLimits != nil {
+				cp.AI.Agent.RateLimits = new(AIAgentRateLimits)
+				*cp.AI.Agent.RateLimits = *o.AI.Agent.RateLimits
+			}
+			if o.AI.Agent.Interceptor != nil {
+				cp.AI.Agent.Interceptor = new(AIAgentInterceptor)
+				*cp.AI.Agent.Interceptor = *o.AI.Agent.Interceptor
+			}
+		}
 	}
 	return &cp
 }

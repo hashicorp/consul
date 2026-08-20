@@ -4,6 +4,246 @@ package pbservice
 
 import "github.com/hashicorp/consul/agent/structs"
 
+func AIAgentToStructs(s *AIAgent, t *structs.AIAgent) {
+	if s == nil {
+		return
+	}
+	if s.Inference != nil {
+		var x structs.AIAgentInference
+		AIAgentInferenceToStructs(s.Inference, &x)
+		t.Inference = &x
+	}
+	if s.MCP != nil {
+		var x structs.AIAgentMCP
+		AIAgentMCPToStructs(s.MCP, &x)
+		t.MCP = &x
+	}
+	if s.RateLimits != nil {
+		var x structs.AIAgentRateLimits
+		AIAgentRateLimitsToStructs(s.RateLimits, &x)
+		t.RateLimits = &x
+	}
+	if s.Interceptor != nil {
+		var x structs.AIAgentInterceptor
+		AIAgentInterceptorToStructs(s.Interceptor, &x)
+		t.Interceptor = &x
+	}
+}
+func AIAgentFromStructs(t *structs.AIAgent, s *AIAgent) {
+	if s == nil {
+		return
+	}
+	if t.Inference != nil {
+		var x AIAgentInference
+		AIAgentInferenceFromStructs(t.Inference, &x)
+		s.Inference = &x
+	}
+	if t.MCP != nil {
+		var x AIAgentMCP
+		AIAgentMCPFromStructs(t.MCP, &x)
+		s.MCP = &x
+	}
+	if t.RateLimits != nil {
+		var x AIAgentRateLimits
+		AIAgentRateLimitsFromStructs(t.RateLimits, &x)
+		s.RateLimits = &x
+	}
+	if t.Interceptor != nil {
+		var x AIAgentInterceptor
+		AIAgentInterceptorFromStructs(t.Interceptor, &x)
+		s.Interceptor = &x
+	}
+}
+func AIAgentInferenceToStructs(s *AIAgentInference, t *structs.AIAgentInference) {
+	if s == nil {
+		return
+	}
+	t.Specialization = s.Specialization
+	t.Vendor = s.Vendor
+}
+func AIAgentInferenceFromStructs(t *structs.AIAgentInference, s *AIAgentInference) {
+	if s == nil {
+		return
+	}
+	s.Specialization = t.Specialization
+	s.Vendor = t.Vendor
+}
+func AIAgentInterceptorToStructs(s *AIAgentInterceptor, t *structs.AIAgentInterceptor) {
+	if s == nil {
+		return
+	}
+	t.Port = int(s.Port)
+}
+func AIAgentInterceptorFromStructs(t *structs.AIAgentInterceptor, s *AIAgentInterceptor) {
+	if s == nil {
+		return
+	}
+	s.Port = int32(t.Port)
+}
+func AIAgentMCPToStructs(s *AIAgentMCP, t *structs.AIAgentMCP) {
+	if s == nil {
+		return
+	}
+	t.Port = int(s.Port)
+	if s.HITL != nil {
+		var x structs.AIAgentMCPHITL
+		AIAgentMCPHITLToStructs(s.HITL, &x)
+		t.HITL = &x
+	}
+}
+func AIAgentMCPFromStructs(t *structs.AIAgentMCP, s *AIAgentMCP) {
+	if s == nil {
+		return
+	}
+	s.Port = int32(t.Port)
+	if t.HITL != nil {
+		var x AIAgentMCPHITL
+		AIAgentMCPHITLFromStructs(t.HITL, &x)
+		s.HITL = &x
+	}
+}
+func AIAgentMCPHITLToStructs(s *AIAgentMCPHITL, t *structs.AIAgentMCPHITL) {
+	if s == nil {
+		return
+	}
+	t.Port = int(s.Port)
+	t.ApprovalTimeout = s.ApprovalTimeout
+}
+func AIAgentMCPHITLFromStructs(t *structs.AIAgentMCPHITL, s *AIAgentMCPHITL) {
+	if s == nil {
+		return
+	}
+	s.Port = int32(t.Port)
+	s.ApprovalTimeout = t.ApprovalTimeout
+}
+func AIAgentRateLimitsToStructs(s *AIAgentRateLimits, t *structs.AIAgentRateLimits) {
+	if s == nil {
+		return
+	}
+	t.ToolCallsPerMinute = int(s.ToolCallsPerMinute)
+	t.ToolCallsPerHour = int(s.ToolCallsPerHour)
+}
+func AIAgentRateLimitsFromStructs(t *structs.AIAgentRateLimits, s *AIAgentRateLimits) {
+	if s == nil {
+		return
+	}
+	s.ToolCallsPerMinute = int32(t.ToolCallsPerMinute)
+	s.ToolCallsPerHour = int32(t.ToolCallsPerHour)
+}
+func AIAuthToStructs(s *AIAuth, t *structs.AIAuth) {
+	if s == nil {
+		return
+	}
+	t.Type = s.Type
+	t.Header = s.Header
+	if s.Secret != nil {
+		var x structs.AISecret
+		AISecretToStructs(s.Secret, &x)
+		t.Secret = &x
+	}
+}
+func AIAuthFromStructs(t *structs.AIAuth, s *AIAuth) {
+	if s == nil {
+		return
+	}
+	s.Type = t.Type
+	s.Header = t.Header
+	if t.Secret != nil {
+		var x AISecret
+		AISecretFromStructs(t.Secret, &x)
+		s.Secret = &x
+	}
+}
+func AIInferenceModelToStructs(s *AIInferenceModel, t *structs.AIInferenceModel) {
+	if s == nil {
+		return
+	}
+	t.Protocol = s.Protocol
+	t.Path = s.Path
+	if s.Auth != nil {
+		var x structs.AIAuth
+		AIAuthToStructs(s.Auth, &x)
+		t.Auth = &x
+	}
+	if s.Defaults != nil {
+		var x structs.AIModelDefaults
+		AIModelDefaultsToStructs(s.Defaults, &x)
+		t.Defaults = &x
+	}
+}
+func AIInferenceModelFromStructs(t *structs.AIInferenceModel, s *AIInferenceModel) {
+	if s == nil {
+		return
+	}
+	s.Protocol = t.Protocol
+	s.Path = t.Path
+	if t.Auth != nil {
+		var x AIAuth
+		AIAuthFromStructs(t.Auth, &x)
+		s.Auth = &x
+	}
+	if t.Defaults != nil {
+		var x AIModelDefaults
+		AIModelDefaultsFromStructs(t.Defaults, &x)
+		s.Defaults = &x
+	}
+}
+func AIMCPServerToStructs(s *AIMCPServer, t *structs.AIMCPServer) {
+	if s == nil {
+		return
+	}
+	t.Transport = s.Transport
+	t.Path = s.Path
+	t.ProtocolVersion = s.ProtocolVersion
+	if s.Auth != nil {
+		var x structs.AIAuth
+		AIAuthToStructs(s.Auth, &x)
+		t.Auth = &x
+	}
+}
+func AIMCPServerFromStructs(t *structs.AIMCPServer, s *AIMCPServer) {
+	if s == nil {
+		return
+	}
+	s.Transport = t.Transport
+	s.Path = t.Path
+	s.ProtocolVersion = t.ProtocolVersion
+	if t.Auth != nil {
+		var x AIAuth
+		AIAuthFromStructs(t.Auth, &x)
+		s.Auth = &x
+	}
+}
+func AIModelDefaultsToStructs(s *AIModelDefaults, t *structs.AIModelDefaults) {
+	if s == nil {
+		return
+	}
+	t.MaxTokens = int(s.MaxTokens)
+	t.Temperature = s.Temperature
+}
+func AIModelDefaultsFromStructs(t *structs.AIModelDefaults, s *AIModelDefaults) {
+	if s == nil {
+		return
+	}
+	s.MaxTokens = int32(t.MaxTokens)
+	s.Temperature = t.Temperature
+}
+func AISecretToStructs(s *AISecret, t *structs.AISecret) {
+	if s == nil {
+		return
+	}
+	t.Provider = s.Provider
+	t.Path = s.Path
+	t.Field = s.Field
+}
+func AISecretFromStructs(t *structs.AISecret, s *AISecret) {
+	if s == nil {
+		return
+	}
+	s.Provider = t.Provider
+	s.Path = t.Path
+	s.Field = t.Field
+}
 func AccessLogsConfigToStructs(s *AccessLogsConfig, t *structs.AccessLogsConfig) {
 	if s == nil {
 		return
@@ -150,6 +390,48 @@ func PeeringServiceMetaFromStructs(t *structs.PeeringServiceMeta, s *PeeringServ
 	s.SpiffeID = t.SpiffeID
 	s.Protocol = t.Protocol
 }
+func ServiceAIToStructs(s *ServiceAI, t *structs.ServiceAI) {
+	if s == nil {
+		return
+	}
+	t.Role = structs.ServiceAIRole(s.Role)
+	if s.InferenceModel != nil {
+		var x structs.AIInferenceModel
+		AIInferenceModelToStructs(s.InferenceModel, &x)
+		t.InferenceModel = &x
+	}
+	if s.MCPServer != nil {
+		var x structs.AIMCPServer
+		AIMCPServerToStructs(s.MCPServer, &x)
+		t.MCPServer = &x
+	}
+	if s.Agent != nil {
+		var x structs.AIAgent
+		AIAgentToStructs(s.Agent, &x)
+		t.Agent = &x
+	}
+}
+func ServiceAIFromStructs(t *structs.ServiceAI, s *ServiceAI) {
+	if s == nil {
+		return
+	}
+	s.Role = string(t.Role)
+	if t.InferenceModel != nil {
+		var x AIInferenceModel
+		AIInferenceModelFromStructs(t.InferenceModel, &x)
+		s.InferenceModel = &x
+	}
+	if t.MCPServer != nil {
+		var x AIMCPServer
+		AIMCPServerFromStructs(t.MCPServer, &x)
+		s.MCPServer = &x
+	}
+	if t.Agent != nil {
+		var x AIAgent
+		AIAgentFromStructs(t.Agent, &x)
+		s.Agent = &x
+	}
+}
 func ServiceConnectToStructs(s *ServiceConnect, t *structs.ServiceConnect) {
 	if s == nil {
 		return
@@ -199,6 +481,7 @@ func ServiceDefinitionToStructs(s *ServiceDefinition, t *structs.ServiceDefiniti
 	t.Proxy = ConnectProxyConfigPtrToStructs(s.Proxy)
 	t.EnterpriseMeta = EnterpriseMetaToStructs(s.EnterpriseMeta)
 	t.Connect = ServiceConnectPtrToStructs(s.Connect)
+	t.AI = ServiceAIPtrToStructs(s.AI)
 }
 func ServiceDefinitionFromStructs(t *structs.ServiceDefinition, s *ServiceDefinition) {
 	if s == nil {
@@ -227,6 +510,7 @@ func ServiceDefinitionFromStructs(t *structs.ServiceDefinition, s *ServiceDefini
 	s.Proxy = NewConnectProxyConfigPtrFromStructs(t.Proxy)
 	s.EnterpriseMeta = NewEnterpriseMetaFromStructs(t.EnterpriseMeta)
 	s.Connect = NewServiceConnectPtrFromStructs(t.Connect)
+	s.AI = NewServiceAIPtrFromStructs(t.AI)
 }
 func ServicePortToStructs(s *ServicePort, t *structs.ServicePort) {
 	if s == nil {
