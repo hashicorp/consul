@@ -39,12 +39,12 @@ as |dc partition nspace item|}}
           @title={{if
             (is "new partition" item=item)
               "New Partition"
-              (concat "Edit " item.Name)
+              item.Name
           }}
         />
       </h1>
     </:header>
-    <:content>
+  <:content>
 
       <Consul::Partition::Form
         @item={{item}}
