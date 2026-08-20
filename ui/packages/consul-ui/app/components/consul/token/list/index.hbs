@@ -26,7 +26,63 @@
           >
             {{#if item.Name}}{{truncate item.Name 100}}{{else}}{{substr item.AccessorID -8}}{{/if}}
           </a>
-          <Consul::Token::Ruleset::List @item={{item}} />
+          {{! Management badge stays under the name (global-management star badge) }}
+          {{#let (policy/group (or item.Policies item.ACLs.PolicyDefaults (array))) as |grouped|}}
+            {{#each grouped.management as |policy|}}
+              <Consul::Acl::RulesetBadge
+                @item={{policy}}
+                @type={{policy/typeof policy}}
+                data-test-policy
+              />
+            {{/each}}
+          {{/let}}
+        </span>
+      </B.Td>
+
+      {{! ---- Identities ---- }}
+      <B.Td>
+        <span class="consul-token-list__badges" data-test-identities>
+          {{#let (policy/group (or item.Policies item.ACLs.PolicyDefaults (array))) as |grouped|}}
+            {{#each grouped.identities as |policy|}}
+              <Consul::Acl::RulesetBadge
+                @item={{policy}}
+                @type={{policy/typeof policy}}
+                data-test-policy
+              />
+            {{/each}}
+          {{/let}}
+        </span>
+      </B.Td>
+
+      {{! ---- Rules-policies ---- }}
+      <B.Td>
+        <span class="consul-token-list__badges" data-test-rules-policies>
+          {{#if (token/is-legacy item)}}
+            <em class="consul-token-list__legacy-rules">Legacy rules</em>
+          {{else}}
+            {{#let (policy/group (or item.Policies item.ACLs.PolicyDefaults (array))) as |grouped|}}
+              {{#each grouped.policies as |policy|}}
+                <Consul::Acl::RulesetBadge
+                  @item={{policy}}
+                  @type={{policy/typeof policy}}
+                  data-test-policy
+                />
+              {{/each}}
+            {{/let}}
+          {{/if}}
+        </span>
+      </B.Td>
+
+      {{! ---- Rules-roles ---- }}
+      <B.Td>
+        <span class="consul-token-list__badges" data-test-rules-roles>
+          {{#each (or item.Roles item.ACLs.RoleDefaults (array)) as |role|}}
+            <Consul::Acl::RulesetBadge
+              @item={{role}}
+              @type={{policy/typeof role}}
+              data-test-policy
+            />
+          {{/each}}
         </span>
       </B.Td>
 
@@ -85,8 +141,8 @@
   </Consul::DataTable>
 
   {{#if this.itemToConfirm}}
-    <Hds::Modal id="confirm-modal" @color="warning" @onClose={{this.cancelConfirm}} as |M|>
-      <M.Header @icon="alert-triangle">
+    <Hds::Modal id="confirm-modal" @color={{if (eq this.confirmType 'delete') 'critical' 'warning'}} @onClose={{this.cancelConfirm}} as |M|>
+      <M.Header @icon={{if (eq this.confirmType 'delete') 'trash' 'alert-triangle'}}>
         {{#if (eq this.confirmType 'use')}}Confirm use{{else if (eq this.confirmType 'logout')}}Confirm logout{{else}}Confirm delete{{/if}}
       </M.Header>
       <M.Body>
