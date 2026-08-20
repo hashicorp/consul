@@ -9,16 +9,20 @@ import { action } from '@ember/object';
 
 // Column definitions for the tokens table. Sorting and searching continue to be
 // driven by the toolbar SearchBar, so columns are non-sortable here; cell
-// rendering lives in the template's :row block. The trailing "Actions" column
-// is right-aligned.
+// rendering lives in the template's :row block.
+//
+// Column order matches the HDS migration Figma design:
+//   Name | Identities | Rules-policies | Rules-roles | Scope | Description | Secret | Actions
 const COLUMNS = [
   { label: 'Name' },
+  { label: 'Identities' },
+  { label: 'Rules-policies' },
+  { label: 'Rules-roles' },
   { label: 'Scope' },
   { label: 'Description' },
   { label: 'Secret' },
   { label: 'Actions', align: 'right' },
 ];
-// Secret column shows the SecretID copy link; trailing Actions column is right-aligned.
 
 /**
  * Consul::Token::List

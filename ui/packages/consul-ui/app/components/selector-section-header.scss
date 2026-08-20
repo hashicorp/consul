@@ -35,3 +35,12 @@
   color: var(--token-color-foreground-primary, #3b3d45) !important;
   margin: 0 !important;
 }
+
+// HDS-migrated section header used by the token create/edit form.
+// Replaces .consul-nspace-form-section-header in that context.
+.consul-token-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}

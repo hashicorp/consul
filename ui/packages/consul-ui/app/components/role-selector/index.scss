@@ -12,3 +12,9 @@
     display: block;
   }
 }
+
+.child-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
