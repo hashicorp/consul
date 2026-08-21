@@ -84,6 +84,10 @@ function verify_rpm {
       docker_platform="linux/arm64"
       docker_image="arm64v8/fedora:36"
       ;;
+    *.s390x.rpm)
+      docker_platform="linux/s390x"
+      docker_image="s390x/fedora:36"
+      ;;
     *)
       echo "${artifact_path} did not match known patterns for rpms"
       exit 1
@@ -131,6 +135,10 @@ function verify_deb {
     *_arm64.deb)
       docker_platform="linux/arm64"
       docker_image="arm64v8/debian:bullseye"
+      ;;
+    *_s390x.deb)
+      docker_platform="linux/s390x"
+      docker_image="s390x/debian:bookworm"
       ;;
     *)
       echo "${artifact_path} did not match known patterns for debs"
@@ -232,6 +240,18 @@ function verify_zip {
         ./consul \
         "${expect_version}"
       fi
+      ;;
+
+    *_linux_s390x.zip)
+      docker run \
+        --platform=linux/s390x \
+        -v $(pwd):/workdir \
+        -v ${SCRIPT_DIR}:/scripts \
+        -w /workdir  \
+      s390x/debian \
+      /scripts/verify_bin.sh \
+      ./consul \
+      "${expect_version}"
       ;;
 
     *)
