@@ -351,6 +351,17 @@ type ACLToken struct {
 	// The time when this token was created
 	CreateTime time.Time `json:",omitempty"`
 
+	// IDPLogoutURL is a response-only field populated by the OIDC login
+	// callback when the auth method has IdP (front-channel) logout enabled. It
+	// contains the provider's RP-initiated logout URL (its end_session_endpoint
+	// with an id_token_hint) that the client opens in a browser during
+	// `consul logout` to terminate the IdP session.
+	//
+	// This field is NEVER persisted to the state store or Raft log and is not
+	// included in the token content Hash; it is only set on the RPC/HTTP
+	// response returned to the client that performed the login.
+	IDPLogoutURL string `json:",omitempty"`
+
 	// Hash of the contents of the token
 	//
 	// This is needed mainly for replication purposes. When replicating from
