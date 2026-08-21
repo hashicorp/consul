@@ -118,6 +118,8 @@ func init() {
 	registerEndpoint("/v1/operator/autopilot/configuration", []string{"GET", "PUT"}, (*HTTPHandlers).OperatorAutopilotConfiguration)
 	registerEndpoint("/v1/operator/autopilot/health", []string{"GET"}, (*HTTPHandlers).OperatorServerHealth)
 	registerEndpoint("/v1/operator/autopilot/state", []string{"GET"}, (*HTTPHandlers).OperatorAutopilotState)
+	registerEndpoint("/v1/operator/features", []string{"GET"}, (*HTTPHandlers).OperatorFeatureGateList)
+	registerEndpoint("/v1/operator/feature/", []string{"GET", "PUT"}, (*HTTPHandlers).OperatorFeatureGate)
 	registerEndpoint("/v1/peering/token", []string{"POST"}, (*HTTPHandlers).PeeringGenerateToken)
 	registerEndpoint("/v1/peering/establish", []string{"POST"}, (*HTTPHandlers).PeeringEstablish)
 	registerEndpoint("/v1/peering/", []string{"GET", "DELETE"}, (*HTTPHandlers).PeeringEndpoint)
