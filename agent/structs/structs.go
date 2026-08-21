@@ -1036,6 +1036,17 @@ func ValidateWeights(weights *Weights) error {
 	return nil
 }
 
+// ValidateServicePriority checks that a DNS SRV priority is valid.
+func ValidateServicePriority(priority *int) error {
+	if priority == nil {
+		return nil
+	}
+	if *priority < 0 || *priority > 65535 {
+		return fmt.Errorf("DNS SRV Priority must be between 0 and 65535")
+	}
+	return nil
+}
+
 // validateMetaPair checks that the given key/value pair is in a valid format
 func validateMetaPair(key, value string, allowConsulPrefix bool, allowedConsulKeys map[string]struct{}) error {
 	if key == "" {
@@ -1093,6 +1104,7 @@ type ServiceNode struct {
 	ServiceAddress           string
 	ServiceTaggedAddresses   map[string]ServiceAddress `json:",omitempty"`
 	ServiceWeights           Weights
+	ServicePriority          *int `json:",omitempty"`
 	ServiceMeta              map[string]string
 	ServicePort              int
 	ServicePorts             ServicePorts `bexpr:"-"`
@@ -1141,6 +1153,12 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 		}
 	}
 
+	var servicePriority *int
+	if s.ServicePriority != nil {
+		servicePriority = new(int)
+		*servicePriority = *s.ServicePriority
+	}
+
 	return &ServiceNode{
 		// Skip ID, see above.
 		Node: s.Node,
@@ -1157,6 +1175,7 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 		ServicePorts:             s.ServicePorts,
 		ServiceMeta:              nsmeta,
 		ServiceWeights:           s.ServiceWeights,
+		ServicePriority:          servicePriority,
 		ServiceEnableTagOverride: s.ServiceEnableTagOverride,
 		ServiceProxy:             s.ServiceProxy,
 		ServiceConnect:           s.ServiceConnect,
@@ -1184,6 +1203,7 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 		SocketPath:        s.ServiceSocketPath,
 		Meta:              s.ServiceMeta,
 		Weights:           &s.ServiceWeights,
+		Priority:          s.ServicePriority,
 		EnableTagOverride: s.ServiceEnableTagOverride,
 		Proxy:             s.ServiceProxy,
 		Connect:           s.ServiceConnect,
@@ -1413,6 +1433,7 @@ type NodeService struct {
 	Ports             ServicePorts `json:",omitempty" bexpr:"-"`
 	SocketPath        string       `json:",omitempty"` // TODO This might be integrated into Address somehow, but not sure about the ergonomics. Only one of (address,port) or socketpath can be defined.
 	Weights           *Weights
+	Priority          *int `json:",omitempty"`
 	EnableTagOverride bool
 	Locality          *Locality `json:",omitempty" bexpr:"-"`
 
@@ -1647,6 +1668,10 @@ func (s *NodeService) Validate() error {
 func (s *NodeService) ValidateForAgent() error {
 	var result error
 
+	if err := ValidateServicePriority(s.Priority); err != nil {
+		result = multierror.Append(result, err)
+	}
+
 	// TODO(partitions): remember to double check that this doesn't cross partition boundaries
 
 	// ConnectProxy validation
@@ -1836,6 +1861,7 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 		s.SocketPath != other.SocketPath ||
 		!reflect.DeepEqual(s.TaggedAddresses, other.TaggedAddresses) ||
 		!reflect.DeepEqual(s.Weights, other.Weights) ||
+		!reflect.DeepEqual(s.Priority, other.Priority) ||
 		!reflect.DeepEqual(s.Meta, other.Meta) ||
 		!reflect.DeepEqual(s.Locality, other.Locality) ||
 		s.EnableTagOverride != other.EnableTagOverride ||
@@ -1875,6 +1901,7 @@ func (s *ServiceNode) IsSameService(other *ServiceNode) bool {
 		!s.ServicePorts.IsSame(other.ServicePorts) ||
 		!reflect.DeepEqual(s.ServiceMeta, other.ServiceMeta) ||
 		!reflect.DeepEqual(s.ServiceWeights, other.ServiceWeights) ||
+		!reflect.DeepEqual(s.ServicePriority, other.ServicePriority) ||
 		s.ServiceEnableTagOverride != other.ServiceEnableTagOverride ||
 		!reflect.DeepEqual(s.ServiceProxy, other.ServiceProxy) ||
 		!reflect.DeepEqual(s.ServiceConnect, other.ServiceConnect) ||
@@ -1912,6 +1939,7 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 		ServiceSocketPath:        s.SocketPath,
 		ServiceMeta:              s.Meta,
 		ServiceWeights:           theWeights,
+		ServicePriority:          s.Priority,
 		ServiceEnableTagOverride: s.EnableTagOverride,
 		ServiceProxy:             s.Proxy,
 		ServiceConnect:           s.Connect,

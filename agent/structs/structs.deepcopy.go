@@ -1003,6 +1003,10 @@ func (o *NodeService) DeepCopy() *NodeService {
 		cp.Weights = new(Weights)
 		*cp.Weights = *o.Weights
 	}
+	if o.Priority != nil {
+		cp.Priority = new(int)
+		*cp.Priority = *o.Priority
+	}
 	if o.Locality != nil {
 		cp.Locality = new(Locality)
 		*cp.Locality = *o.Locality
@@ -1188,6 +1192,10 @@ func (o *ServiceDefinition) DeepCopy() *ServiceDefinition {
 	if o.Weights != nil {
 		cp.Weights = new(Weights)
 		*cp.Weights = *o.Weights
+	}
+	if o.Priority != nil {
+		cp.Priority = new(int)
+		*cp.Priority = *o.Priority
 	}
 	if o.Locality != nil {
 		cp.Locality = new(Locality)

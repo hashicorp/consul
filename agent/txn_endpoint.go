@@ -229,6 +229,7 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 							Passing: svc.Weights.Passing,
 							Warning: svc.Weights.Warning,
 						},
+						Priority:          svc.Priority,
 						EnableTagOverride: svc.EnableTagOverride,
 						EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(
 							svc.Partition,

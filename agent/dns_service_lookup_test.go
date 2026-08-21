@@ -378,18 +378,20 @@ func TestDNS_ServiceAddressWithTagLookup(t *testing.T) {
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	priority := 10
 
 	{
 		// This emulates a Nomad service registration.
 		// Using an internal RPC for Catalog.Register will not trigger the same condition.
 		err := a.Client().Agent().ServiceRegister(&api.AgentServiceRegistration{
-			Kind:    api.ServiceKindTypical,
-			ID:      "db-1",
-			Name:    "db",
-			Tags:    []string{"primary"},
-			Address: "127.0.0.1",
-			Port:    12345,
-			Checks:  make([]*api.AgentServiceCheck, 0),
+			Kind:     api.ServiceKindTypical,
+			ID:       "db-1",
+			Name:     "db",
+			Tags:     []string{"primary"},
+			Address:  "127.0.0.1",
+			Port:     12345,
+			Priority: &priority,
+			Checks:   make([]*api.AgentServiceCheck, 0),
 		})
 		require.NoError(t, err)
 	}
@@ -424,6 +426,7 @@ func TestDNS_ServiceAddressWithTagLookup(t *testing.T) {
 		srvRec, ok := in.Answer[0].(*dns.SRV)
 		require.True(t, ok, "Expected an SRV record in the Answer section")
 		require.Equal(t, uint16(12345), srvRec.Port)
+		require.Equal(t, uint16(10), srvRec.Priority)
 		require.Equal(t, "7f000001.addr.dc1.consul.", srvRec.Target)
 
 		aRec, ok := in.Extra[0].(*dns.A)
@@ -1185,6 +1188,7 @@ func TestDNS_ServiceLookup_ServiceAddress_SRV(t *testing.T) {
 		       `)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	priority := 0
 
 	// Register a node with a service whose address isn't an IP.
 	{
@@ -1193,10 +1197,11 @@ func TestDNS_ServiceLookup_ServiceAddress_SRV(t *testing.T) {
 			Node:       "foo",
 			Address:    "127.0.0.1",
 			Service: &structs.NodeService{
-				Service: "db",
-				Tags:    []string{"primary"},
-				Address: "www.google.com",
-				Port:    12345,
+				Service:  "db",
+				Tags:     []string{"primary"},
+				Address:  "www.google.com",
+				Port:     12345,
+				Priority: &priority,
 			},
 		}
 
@@ -1256,6 +1261,7 @@ func TestDNS_ServiceLookup_ServiceAddress_SRV(t *testing.T) {
 		if srvRec.Port != 12345 {
 			t.Fatalf("Bad: %#v", srvRec)
 		}
+		require.Equal(t, uint16(0), srvRec.Priority)
 		if srvRec.Target != "www.google.com." {
 			t.Fatalf("Bad: %#v", srvRec)
 		}
