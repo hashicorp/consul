@@ -3,9 +3,13 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-.consul-auth-method-list {
-  margin-top: 16px;
+/* When the toolbar lives above the table card (as a sibling, not inside it),
+   square off the card's top corners so the two elements form one visual unit. */
+.consul-auth-method-toolbar + .consul-auth-method-list .consul-data-table__card {
+  border-radius: 0 0 6px 6px;
+}
 
+.consul-auth-method-list {
   /* Keep multi-word column headers on a single line. */
   .hds-table__th {
     white-space: nowrap;
