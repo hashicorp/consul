@@ -1,0 +1,4 @@
+```release-note:bug
+ui: Fix broken "Configure dashboard" link in the service topology view by pointing it to the updated documentation URL.
+```
+
