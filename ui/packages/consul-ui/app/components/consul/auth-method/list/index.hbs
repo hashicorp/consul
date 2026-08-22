@@ -8,6 +8,7 @@
     @items={{@items}}
     @columns={{this.columns}}
     @ariaLabel="Auth Methods"
+    @card={{true}}
   >
     <:row as |item B|>
       {{! ---- Name (DisplayName, or Name when no DisplayName) ---- }}
@@ -24,7 +25,7 @@
               badge next to the name. }}
           {{#if (eq item.TokenLocality 'global')}}
             <span {{hds-tooltip "Creates global tokens" options=(detached-tooltip-options)}}>
-              <Hds::Badge @text="Global tokens" @color="highlight" @size="small" data-test-locality-global />
+              <Hds::Badge @text="Global Tokens" @color="highlight" @size="medium" data-test-locality-global />
             </span>
           {{/if}}
         </span>
