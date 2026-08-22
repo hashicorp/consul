@@ -1,0 +1,3 @@
+```release-note:bug
+agent: update maintenance check to passing before removing
+```
