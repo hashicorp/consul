@@ -44,6 +44,15 @@ export default class AuthDialog extends Component {
       // we are ok to fire and forget here
       this.repo.logout(get(this, 'previousToken.SecretID'));
     }
+    // If the auth method has IdP (front-channel) logout enabled, the login
+    // response carried the provider's RP-initiated logout URL. Open it in a
+    // new tab to terminate the IdP session too, mirroring what `consul
+    // logout` does on the CLI. This is a no-op when the field isn't present
+    // (e.g. IdP logout disabled, or this wasn't an SSO login).
+    const idpLogoutURL = get(this, 'previousToken.IDPLogoutURL');
+    if (typeof idpLogoutURL === 'string' && idpLogoutURL !== '') {
+      window.open(idpLogoutURL, '_blank', 'noopener,noreferrer');
+    }
     this.previousToken = null;
     this.args.onchange({ data: null, type: 'logout' });
   }
