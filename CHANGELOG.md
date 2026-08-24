@@ -1,3 +1,317 @@
+## 2.0.3 (August 7, 2026)
+SECURITY:
+
+* Update `brace-expansion` to address [GHSA-rgw5-rvv9-x895](https://github.com/advisories/GHSA-rgw5-rvv9-x895) (DoS via unbounded intermediate arrays). [[GH-23786](https://github.com/hashicorp/consul/issues/23786)]
+* Update `fast-uri` to address [GHSA-7p8r-x3mc-p8w7](https://github.com/advisories/GHSA-7p8r-x3mc-p8w7) (Host Confusion via backslash authority introducer). [[GH-23786](https://github.com/hashicorp/consul/issues/23786)]
+* Update `golang.org/x/text` to v0.39.0 to address [GO-2026-5970](https://pkg.go.dev/vuln/GO-2026-5970). [[GH-23761](https://github.com/hashicorp/consul/issues/23761)]
+* Update `google.golang.org/grpc` to v1.82.1 to address [GHSA-hrxh-6v49-42gf](https://github.com/advisories/GHSA-hrxh-6v49-42gf). [[GH-23761](https://github.com/hashicorp/consul/issues/23761)]
+* Update `socket.io-parser` to address [CVE-2026-69185](https://github.com/advisories/GHSA-2m8v-j782-fhvr) (Zero-attachment Memory Exhaustion). [[GH-23786](https://github.com/hashicorp/consul/issues/23786)]
+* Upgrade to use Go `1.26.5`. This resolves vulnerabilities
+[GO-2026-4970](https://pkg.go.dev/vuln/GO-2026-4970) (`os`).
+[GO-2026-5856](https://pkg.go.dev/vuln/GO-2026-5856) (`crypto/tls`). [[GH-23761](https://github.com/hashicorp/consul/issues/23761)]
+* agent: Fixed a denial-of-service vulnerability where `GET /v1/agent/connect/ca/roots`
+and `POST /v1/agent/connect/authorize` used the agent-side cache unconditionally, even
+when `http_config { use_cache = false }` was configured by the operator. A remote caller
+could bypass this setting and grow the agent cache without bound by varying the request
+ACL token. Both endpoints now skip the cache and issue a direct RPC when `use_cache` is
+disabled. (SECVULN-50292, SECVULN-50293) [[GH-23797](https://github.com/hashicorp/consul/issues/23797)]
+* agent: Fixed a nil-pointer dereference panic in `ShadowServiceRouterConfigEntry.CheckEnt`
+when a service-router config entry contained a route with a nil `Destination`. A crafted
+snapshot restore or replication message containing such an entry could crash the FSM
+decode path. The nil guard now treats a missing destination as non-enterprise data and
+continues decoding safely. (SECVULN-50291) [[GH-23797](https://github.com/hashicorp/consul/issues/23797)]
+* agent: Fixed a security bypass where a user-supplied public listener
+(`envoy_public_listener_json`) with an HTTP Connection Manager filter would skip Consul's
+inbound request-normalization defaults. An attacker could exploit the un-normalized path
+to bypass L7 intention `deny` rules using percent-encoded path equivalents. Consul now
+injects path normalization (enabled by default, unless the mesh config option
+`InsecureDisablePathNormalization` is set) on every HCM filter chain in user-provided
+public listeners before L7 intention enforcement is applied. (SECVULN-50295) [[GH-23797](https://github.com/hashicorp/consul/issues/23797)]
+* agent: Fixed an unauthenticated denial-of-service vulnerability where
+`PUT /v1/agent/check/update/:id`, `PUT /v1/agent/check/register`,
+`PUT /v1/agent/service/register`, and `POST /v1/agent/connect/authorize`
+decoded unbounded JSON request bodies before resolving the caller's ACL
+token. An unauthenticated caller could retain multiple large JSON decoder
+buffers concurrently inside the Consul process before each request was
+rejected with HTTP 403, causing attacker-controlled heap growth. All four
+endpoints now cap the request body at 512 KiB before any decoding occurs,
+returning HTTP 413 for oversized bodies. This limit applies to chunked
+transfer encoding as well as declared `Content-Length`.
+(SECVULN-50418) [[GH-23796](https://github.com/hashicorp/consul/issues/23796)]
+* agent: Fixed an unauthenticated denial-of-service vulnerability where the external gRPC
+and gRPC-TLS listeners accepted an unlimited number of TCP connections per source IP
+before any request processing, ACL check, or rate limiting could occur. A remote attacker
+could exhaust agent file descriptors, goroutines, and memory by opening many connections
+and withholding the gRPC or TLS handshake. A new per-client-IP connection limiter is now
+applied before the gRPC server observes the connection, controlled by the new
+`limits.grpc_max_conns_per_client` configuration option (default 100). The gRPC handshake
+timeout has also been reduced from the library default of 120 seconds to 20 seconds.
+(SECVULN-50294) [[GH-23797](https://github.com/hashicorp/consul/issues/23797)]
+
+IMPROVEMENTS:
+
+* ui: migrate yadda/Gherkin acceptance tests to native QUnit (harness, intentions/create, components, settings) [[GH-23741](https://github.com/hashicorp/consul/issues/23741)]
+* xds: Add two new opt-in `ProxyDefaults.spec.config` keys for controlling the `server` response header on API Gateway HTTP listeners: `envoy_suppress_envoy_headers` (removes the header entirely) and `envoy_server_header_name` (renames it to a custom value). If both are set, suppress takes precedence. [[GH-13027](https://github.com/hashicorp/consul/issues/13027)]
+
+BUG FIXES:
+
+* agent: Stop logging the raw ACL token in debug-level content-type logs. [[GH-23731](https://github.com/hashicorp/consul/issues/23731)]
+* api-gateway: Fixed a regression that caused an HTTP API gateway to reject its configuration with an "inconsistent protocols" error (resulting in intermittent 503s) when a backend service's `service-router` composed a route to a destination in a different service, namespace, or partition during discovery-chain synthesis. [[GH-23793](https://github.com/hashicorp/consul/issues/23793)]
+* serf: Fix WAN flood-join to ignore non-alive destination members (leaving/left/failed), allowing rejoined servers to heal back to alive in WAN membership. [[GH-23709](https://github.com/hashicorp/consul/issues/23709)]
+* xds: Addition of XFCC headers to GPRC request similar to HTTP request for connect-proxy inbound listener [[GH-23744](https://github.com/hashicorp/consul/issues/23744)]
+
+## 2.0.3+ent (August 7, 2026)
+
+SECURITY:
+
+* Update `golang.org/x/text` to v0.39.0 to address [GO-2026-5970](https://pkg.go.dev/vuln/GO-2026-5970). [[GH-23761](https://github.com/hashicorp/consul/issues/23761)]
+* Update `google.golang.org/grpc` to v1.82.1 to address [GHSA-hrxh-6v49-42gf](https://github.com/advisories/GHSA-hrxh-6v49-42gf). [[GH-23761](https://github.com/hashicorp/consul/issues/23761)]
+* Upgrade to use Go `1.26.5`. This resolves vulnerabilities
+[GO-2026-4970](https://pkg.go.dev/vuln/GO-2026-4970) (`os`).
+[GO-2026-5856](https://pkg.go.dev/vuln/GO-2026-5856) (`crypto/tls`). [[GH-23761](https://github.com/hashicorp/consul/issues/23761)]
+* agent: Fixed a denial-of-service vulnerability where `GET /v1/agent/connect/ca/roots`
+and `POST /v1/agent/connect/authorize` used the agent-side cache unconditionally, even
+when `http_config { use_cache = false }` was configured by the operator. A remote caller
+could bypass this setting and grow the agent cache without bound by varying the request
+ACL token. Both endpoints now skip the cache and issue a direct RPC when `use_cache` is
+disabled. (SECVULN-50292, SECVULN-50293)
+* agent: Fixed a nil-pointer dereference panic in `ShadowServiceRouterConfigEntry.CheckEnt`
+when a service-router config entry contained a route with a nil `Destination`. A crafted
+snapshot restore or replication message containing such an entry could crash the FSM
+decode path. The nil guard now treats a missing destination as non-enterprise data and
+continues decoding safely. (SECVULN-50291)
+* agent: Fixed a security bypass where a user-supplied public listener
+(`envoy_public_listener_json`) with an HTTP Connection Manager filter would skip Consul's
+inbound request-normalization defaults. An attacker could exploit the un-normalized path
+to bypass L7 intention `deny` rules using percent-encoded path equivalents. Consul now
+injects path normalization (enabled by default, unless the mesh config option
+`InsecureDisablePathNormalization` is set) on every HCM filter chain in user-provided
+public listeners before L7 intention enforcement is applied. (SECVULN-50295)
+* agent: Fixed an unauthenticated denial-of-service vulnerability (SECVULN-50418) where
+`PUT /v1/agent/check/update/:id` decoded an unbounded JSON request body before
+resolving the caller's ACL token. An unauthenticated caller could retain multiple
+large JSON decoder buffers concurrently inside the Consul process before each request
+was rejected with HTTP 403, causing attacker-controlled heap growth proportional to
+request body size and concurrency. The endpoint now caps the request body to
+`check_output_max_size` (default 4 KB, operator-configurable) plus 512 bytes for
+JSON framing before any decoding occurs, returning HTTP 413 for oversized bodies.
+This limit applies to chunked transfer encoding as well as declared `Content-Length`.
+(SECVULN-50418)
+* agent: Fixed an unauthenticated denial-of-service vulnerability where the external gRPC
+and gRPC-TLS listeners accepted an unlimited number of TCP connections per source IP
+before any request processing, ACL check, or rate limiting could occur. A remote attacker
+could exhaust agent file descriptors, goroutines, and memory by opening many connections
+and withholding the gRPC or TLS handshake. A new per-client-IP connection limiter is now
+applied before the gRPC server observes the connection, controlled by the new
+`limits.grpc_max_conns_per_client` configuration option (default 100). The gRPC handshake
+timeout has also been reduced from the library default of 120 seconds to 20 seconds.
+(SECVULN-50294)
+
+IMPROVEMENTS:
+
+* ui: migrate yadda/Gherkin acceptance tests to native QUnit (harness, intentions/create, components, settings) [[GH-23741](https://github.com/hashicorp/consul/issues/23741)]
+* xds: Add two new opt-in `ProxyDefaults.spec.config` keys for controlling the `server` response header on API Gateway HTTP listeners: `envoy_suppress_envoy_headers` (removes the header entirely) and `envoy_server_header_name` (renames it to a custom value). If both are set, suppress takes precedence.
+
+BUG FIXES:
+
+* agent: Stop logging the raw ACL token in debug-level content-type logs. [[GH-23731](https://github.com/hashicorp/consul/issues/23731)]
+* api-gateway: Fixed a bug where a single misconfigured route on an API Gateway listener could cause discovery-chain
+synthesis to fail for the entire listener, dropping the xDS configuration for every other route sharing it.
+The misconfigured route is now skipped and logged instead, while the rest of the listener's routes continue to be served.
+* api-gateway: Fixed a regression that caused an HTTP API gateway to reject its configuration with an "inconsistent protocols" error (resulting in intermittent 503s) when a backend service's `service-router` composed a route to a destination in a different service, namespace, or partition during discovery-chain synthesis.
+* serf: Fix WAN flood-join to ignore non-alive destination members (leaving/left/failed), allowing rejoined servers to heal back to alive in WAN membership. [[GH-23709](https://github.com/hashicorp/consul/issues/23709)]
+* xds: Addition of XFCC headers to GPRC request similar to HTTP request for connect-proxy inbound listener [[GH-23744](https://github.com/hashicorp/consul/issues/23744)]
+
+
+## 1.22.11+ent (August 7, 2026)
+
+SECURITY:
+
+* Update `golang.org/x/text` to v0.39.0 to address [GO-2026-5970](https://pkg.go.dev/vuln/GO-2026-5970). [[GH-23761](https://github.com/hashicorp/consul/issues/23761)]
+* Update `google.golang.org/grpc` to v1.82.1 to address [GHSA-hrxh-6v49-42gf](https://github.com/advisories/GHSA-hrxh-6v49-42gf). [[GH-23761](https://github.com/hashicorp/consul/issues/23761)]
+* Upgrade to use Go `1.26.5`. This resolves vulnerabilities
+[GO-2026-4970](https://pkg.go.dev/vuln/GO-2026-4970) (`os`).
+[GO-2026-5856](https://pkg.go.dev/vuln/GO-2026-5856) (`crypto/tls`). [[GH-23761](https://github.com/hashicorp/consul/issues/23761)]
+* agent: Fixed a denial-of-service vulnerability where `GET /v1/agent/connect/ca/roots`
+and `POST /v1/agent/connect/authorize` used the agent-side cache unconditionally, even
+when `http_config { use_cache = false }` was configured by the operator. A remote caller
+could bypass this setting and grow the agent cache without bound by varying the request
+ACL token. Both endpoints now skip the cache and issue a direct RPC when `use_cache` is
+disabled. (SECVULN-50292, SECVULN-50293)
+* agent: Fixed a nil-pointer dereference panic in `ShadowServiceRouterConfigEntry.CheckEnt`
+when a service-router config entry contained a route with a nil `Destination`. A crafted
+snapshot restore or replication message containing such an entry could crash the FSM
+decode path. The nil guard now treats a missing destination as non-enterprise data and
+continues decoding safely. (SECVULN-50291)
+* agent: Fixed a security bypass where a user-supplied public listener
+(`envoy_public_listener_json`) with an HTTP Connection Manager filter would skip Consul's
+inbound request-normalization defaults. An attacker could exploit the un-normalized path
+to bypass L7 intention `deny` rules using percent-encoded path equivalents. Consul now
+injects path normalization (enabled by default, unless the mesh config option
+`InsecureDisablePathNormalization` is set) on every HCM filter chain in user-provided
+public listeners before L7 intention enforcement is applied. (SECVULN-50295)
+* agent: Fixed an unauthenticated denial-of-service vulnerability (SECVULN-50418) where
+`PUT /v1/agent/check/update/:id` decoded an unbounded JSON request body before
+resolving the caller's ACL token. An unauthenticated caller could retain multiple
+large JSON decoder buffers concurrently inside the Consul process before each request
+was rejected with HTTP 403, causing attacker-controlled heap growth proportional to
+request body size and concurrency. The endpoint now caps the request body to
+`check_output_max_size` (default 4 KB, operator-configurable) plus 512 bytes for
+JSON framing before any decoding occurs, returning HTTP 413 for oversized bodies.
+This limit applies to chunked transfer encoding as well as declared `Content-Length`.
+(SECVULN-50418)
+* agent: Fixed an unauthenticated denial-of-service vulnerability where the external gRPC
+and gRPC-TLS listeners accepted an unlimited number of TCP connections per source IP
+before any request processing, ACL check, or rate limiting could occur. A remote attacker
+could exhaust agent file descriptors, goroutines, and memory by opening many connections
+and withholding the gRPC or TLS handshake. A new per-client-IP connection limiter is now
+applied before the gRPC server observes the connection, controlled by the new
+`limits.grpc_max_conns_per_client` configuration option (default 100). The gRPC handshake
+timeout has also been reduced from the library default of 120 seconds to 20 seconds.
+(SECVULN-50294)
+
+IMPROVEMENTS:
+
+* ui: migrate yadda/Gherkin acceptance tests to native QUnit (harness, intentions/create, components, settings) [[GH-23741](https://github.com/hashicorp/consul/issues/23741)]
+* xds: Add two new opt-in `ProxyDefaults.spec.config` keys for controlling the `server` response header on API Gateway HTTP listeners: `envoy_suppress_envoy_headers` (removes the header entirely) and `envoy_server_header_name` (renames it to a custom value). If both are set, suppress takes precedence.
+
+BUG FIXES:
+
+* agent: Stop logging the raw ACL token in debug-level content-type logs. [[GH-23731](https://github.com/hashicorp/consul/issues/23731)]
+* serf: Fix WAN flood-join to ignore non-alive destination members (leaving/left/failed), allowing rejoined servers to heal back to alive in WAN membership. [[GH-23709](https://github.com/hashicorp/consul/issues/23709)]
+* xds: Addition of XFCC headers to GPRC request similar to HTTP request for connect-proxy inbound listener [[GH-23744](https://github.com/hashicorp/consul/issues/23744)]
+
+
+## 1.21.17+ent (August 7, 2026)
+
+SECURITY:
+
+* Update `golang.org/x/text` to v0.39.0 to address [GO-2026-5970](https://pkg.go.dev/vuln/GO-2026-5970). [[GH-23761](https://github.com/hashicorp/consul/issues/23761)]
+* Update `google.golang.org/grpc` to v1.82.1 to address [GHSA-hrxh-6v49-42gf](https://github.com/advisories/GHSA-hrxh-6v49-42gf). [[GH-23761](https://github.com/hashicorp/consul/issues/23761)]
+* Upgrade to use Go `1.26.5`. This resolves vulnerabilities
+[GO-2026-4970](https://pkg.go.dev/vuln/GO-2026-4970) (`os`).
+[GO-2026-5856](https://pkg.go.dev/vuln/GO-2026-5856) (`crypto/tls`). [[GH-23761](https://github.com/hashicorp/consul/issues/23761)]
+* agent: Fixed a denial-of-service vulnerability where `GET /v1/agent/connect/ca/roots`
+and `POST /v1/agent/connect/authorize` used the agent-side cache unconditionally, even
+when `http_config { use_cache = false }` was configured by the operator. A remote caller
+could bypass this setting and grow the agent cache without bound by varying the request
+ACL token. Both endpoints now skip the cache and issue a direct RPC when `use_cache` is
+disabled. (SECVULN-50292, SECVULN-50293)
+* agent: Fixed a nil-pointer dereference panic in `ShadowServiceRouterConfigEntry.CheckEnt`
+when a service-router config entry contained a route with a nil `Destination`. A crafted
+snapshot restore or replication message containing such an entry could crash the FSM
+decode path. The nil guard now treats a missing destination as non-enterprise data and
+continues decoding safely. (SECVULN-50291)
+* agent: Fixed a security bypass where a user-supplied public listener
+(`envoy_public_listener_json`) with an HTTP Connection Manager filter would skip Consul's
+inbound request-normalization defaults. An attacker could exploit the un-normalized path
+to bypass L7 intention `deny` rules using percent-encoded path equivalents. Consul now
+injects path normalization (enabled by default, unless the mesh config option
+`InsecureDisablePathNormalization` is set) on every HCM filter chain in user-provided
+public listeners before L7 intention enforcement is applied (SECVULN-50295)
+* agent: Fixed an unauthenticated denial-of-service vulnerability (SECVULN-50418) where
+`PUT /v1/agent/check/update/:id` decoded an unbounded JSON request body before
+resolving the caller's ACL token. An unauthenticated caller could retain multiple
+large JSON decoder buffers concurrently inside the Consul process before each request
+was rejected with HTTP 403, causing attacker-controlled heap growth proportional to
+request body size and concurrency. The endpoint now caps the request body to
+`check_output_max_size` (default 4 KB, operator-configurable) plus 512 bytes for
+JSON framing before any decoding occurs, returning HTTP 413 for oversized bodies.
+This limit applies to chunked transfer encoding as well as declared `Content-Length`.
+(SECVULN-50418)
+* agent: Fixed an unauthenticated denial-of-service vulnerability where the external gRPC
+and gRPC-TLS listeners accepted an unlimited number of TCP connections per source IP
+before any request processing, ACL check, or rate limiting could occur. A remote attacker
+could exhaust agent file descriptors, goroutines, and memory by opening many connections
+and withholding the gRPC or TLS handshake. A new per-client-IP connection limiter is now
+applied before the gRPC server observes the connection, controlled by the new
+`limits.grpc_max_conns_per_client` configuration option (default 100). The gRPC handshake
+timeout has also been reduced from the library default of 120 seconds to 20 seconds.
+(SECVULN-50294)
+
+IMPROVEMENTS:
+
+* ui: migrate yadda/Gherkin acceptance tests to native QUnit (harness, intentions/create, components, settings) [[GH-23741](https://github.com/hashicorp/consul/issues/23741)]
+* xds: Add two new opt-in `ProxyDefaults.spec.config` keys for controlling the `server` response header on API Gateway HTTP listeners: `envoy_suppress_envoy_headers` (removes the header entirely) and `envoy_server_header_name` (renames it to a custom value). If both are set, suppress takes precedence.
+
+BUG FIXES:
+
+* agent: Stop logging the raw ACL token in debug-level content-type logs. [[GH-23731](https://github.com/hashicorp/consul/issues/23731)]
+* serf: Fix WAN flood-join to ignore non-alive destination members (leaving/left/failed), allowing rejoined servers to heal back to alive in WAN membership. [[GH-23709](https://github.com/hashicorp/consul/issues/23709)]
+* xds: Addition of XFCC headers to GPRC request similar to HTTP request for connect-proxy inbound listener [[GH-23744](https://github.com/hashicorp/consul/issues/23744)]
+
+
+## 2.0.2 (July 8, 2026)
+SECURITY:
+
+* Upgrade alpine base image version to 3.24 to address [CVE-2026-41989], [ALPINE-CVE-2026-2100]. [[GH-23711](https://github.com/hashicorp/consul/issues/23711)]
+* dependency: Upgrade Serf and Memberlist to use the latest versions. [[GH-23704](https://github.com/hashicorp/consul/issues/23704)]
+* xds: Return errors when injecting the L4 intention (RBAC) filter or the mTLS transport socket onto an inbound public listener, so the listener is not served without intention enforcement or mTLS. [[GH-23686](https://github.com/hashicorp/consul/issues/23686)]
+
+FEATURES:
+
+* config-entry(api-gateway): (Enterprise only) Add ExtAuthzFilter to HTTPRoute Filters and gateway-wide ExtAuthz toggle to the api-gateway config entry [[GH-23703](https://github.com/hashicorp/consul/issues/23703)]
+* config-entry: (Enterprise only) Addition of External Processor (ext_proc) Envoy Extension support to api-gateway and connect-proxy [[GH-23705](https://github.com/hashicorp/consul/issues/23705)]
+
+IMPROVEMENTS:
+
+* ci: upgrade GitHub Actions that used the deprecated Node 20 runtime to Node 24, and restore GOTOOLCHAIN=auto after setup-go so backward-compatibility and integration test lanes resolve the correct Go toolchain. [[GH-23687](https://github.com/hashicorp/consul/issues/23687)]
+* connect: update support for nomad and vault version to v2.0.3 [[GH-23624](https://github.com/hashicorp/consul/issues/23624)]
+* deps: Migrate `armon/go-metrics` to `hashicorp/go-metrics` and update Go dependencies across all modules [[GH-23635](https://github.com/hashicorp/consul/issues/23635)]
+
+BUG FIXES:
+
+* xds: only emit the client cert SDS block when both CertFile and KeyFile are set. [[GH-23679](https://github.com/hashicorp/consul/issues/23679)]
+
+
+## 2.0.2 Enterprise (July 7, 2026)
+SECURITY:
+
+* Upgrade alpine base image version to 3.24 to address [CVE-2026-41989], [ALPINE-CVE-2026-2100]. [[GH-23711](https://github.com/hashicorp/consul/issues/23711)]
+* dependency: Upgrade Serf and Memberlist to use the latest versions. [[GH-23704](https://github.com/hashicorp/consul/issues/23704)]
+* xds: Return errors when injecting the L4 intention (RBAC) filter or the mTLS transport socket onto an inbound public listener, so the listener is not served without intention enforcement or mTLS. [[GH-23686](https://github.com/hashicorp/consul/issues/23686)]
+
+FEATURES:
+
+* config-entry(api-gateway): (Enterprise only) Add ExtAuthzFilter to HTTPRoute Filters and gateway-wide ExtAuthz toggle to the api-gateway config entry
+* config-entry: (Enterprise only) Addition of External Processor (ext_proc) Envoy Extension support to api-gateway and connect-proxy
+
+IMPROVEMENTS:
+
+* ci: update GitHub Actions that were using deprecated node20 to node24. [[GH-23687](https://github.com/hashicorp/consul/issues/23687)]
+* connect: **(Enterprise Only)** update compatibility tests to use enterprise versions of Vault and Nomad at latest patch releases (Nomad ENT v1.8.21+ent, v1.9.13+ent, v1.10.13+ent, v1.11.7+ent, v2.0.3+ent; Vault ENT 1.18.15+ent, 1.19.19+ent, 1.20.13+ent, 1.21.8+ent, 2.0.3+ent)
+* deps: Migrate `armon/go-metrics` to `hashicorp/go-metrics` and update Go dependencies across all modules [[GH-23635](https://github.com/hashicorp/consul/issues/23635)]
+
+BUG FIXES:
+
+* xds: only emit the client cert SDS block when both CertFile and KeyFile are set. [[GH-23679](https://github.com/hashicorp/consul/issues/23679)]
+
+## 1.22.10+ent (July 7, 2026)
+SECURITY:
+
+* Upgrade alpine base image version to 3.24 to address [CVE-2026-41989], [ALPINE-CVE-2026-2100]. [[GH-23711](https://github.com/hashicorp/consul/issues/23711)]
+* dependency: Upgrade Serf and Memberlist to use the latest versions. [[GH-23704](https://github.com/hashicorp/consul/issues/23704)]
+* xds: Return errors when injecting the L4 intention (RBAC) filter or the mTLS transport socket onto an inbound public listener, so the listener is not served without intention enforcement or mTLS. [[GH-23686](https://github.com/hashicorp/consul/issues/23686)]
+
+IMPROVEMENTS:
+
+* ci: update GitHub Actions that were using deprecated node20 to node24. [[GH-23687](https://github.com/hashicorp/consul/issues/23687)]
+* connect: **(Enterprise Only)** update compatibility tests to use enterprise versions of Vault and Nomad at latest patch releases (Nomad ENT v1.8.21+ent, v1.9.13+ent, v1.10.13+ent, v1.11.7+ent, v2.0.3+ent; Vault ENT 1.18.15+ent, 1.19.19+ent, 1.20.13+ent, 1.21.8+ent, 2.0.3+ent)
+* deps: Migrate `armon/go-metrics` to `hashicorp/go-metrics` and update Go dependencies across all modules [[GH-23635](https://github.com/hashicorp/consul/issues/23635)]
+
+## 1.21.16+ent (July 7, 2026)
+SECURITY:
+
+* Upgrade alpine base image version to 3.24 to address [CVE-2026-41989], [ALPINE-CVE-2026-2100]. [[GH-23711](https://github.com/hashicorp/consul/issues/23711)]
+* dependency: Upgrade Serf and Memberlist to use the latest versions. [[GH-23704](https://github.com/hashicorp/consul/issues/23704)]
+* xds: Return errors when injecting the L4 intention (RBAC) filter or the mTLS transport socket onto an inbound public listener, so the listener is not served without intention enforcement or mTLS. [[GH-23686](https://github.com/hashicorp/consul/issues/23686)]
+
+IMPROVEMENTS:
+
+* ci: update GitHub Actions that were using deprecated node20 to node24. [[GH-23687](https://github.com/hashicorp/consul/issues/23687)]
+* connect: **(Enterprise Only)** update compatibility tests to use enterprise versions of Vault and Nomad at latest patch releases (Nomad ENT v1.8.21+ent, v1.9.13+ent, v1.10.13+ent, v1.11.7+ent, v2.0.3+ent; Vault ENT 1.18.15+ent, 1.19.19+ent, 1.20.13+ent, 1.21.8+ent, 2.0.3+ent)
+* deps: Migrate `armon/go-metrics` to `hashicorp/go-metrics` and update Go dependencies across all modules [[GH-23635](https://github.com/hashicorp/consul/issues/23635)]
+
 # 2.0.1 (June 18, 2026)
 
 SECURITY:
