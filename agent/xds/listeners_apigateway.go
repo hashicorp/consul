@@ -760,7 +760,7 @@ func (s *ResourceGenerator) makeInlineOverrideFilterChains(cfgSnap *proxycfg.Con
 		for _, cert := range inlineCerts {
 			hosts, err := cert.Hosts()
 			if err != nil {
-				return nil, fmt.Errorf("unable to parse hosts from x509 certificate: %v", hosts)
+				return nil, fmt.Errorf("unable to parse hosts from x509 certificate: %w", err)
 			}
 			// Deduplicate the hosts within a single certificate first. A
 			// certificate commonly repeats its CommonName in the SAN list, and
