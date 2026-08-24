@@ -568,7 +568,6 @@ function suite_setup {
     # that the BuildKit docker-container driver cannot resolve from the registry.
     echo "Rebuilding 'consul-dev-envoy:${ENVOY_VERSION}' image..."
     retry_default env DOCKER_BUILDKIT=0 docker build \
-        --platform "${DOCKER_DEFAULT_PLATFORM}" \
         -t consul-dev-envoy:${ENVOY_VERSION} \
         --build-arg ENVOY_VERSION=${ENVOY_VERSION} \
         -f Dockerfile-consul-envoy .
