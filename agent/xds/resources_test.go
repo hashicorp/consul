@@ -1363,6 +1363,73 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 			},
 		},
 		{
+			name: "api-gateway-with-header-match-invert",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+					entry.Listeners = []structs.APIGatewayListener{
+						{
+							Name:     "listener",
+							Protocol: structs.ListenerProtocolHTTP,
+							Port:     8080,
+						},
+					}
+					bound.Listeners = []structs.BoundAPIGatewayListener{
+						{
+							Name: "listener",
+							Routes: []structs.ResourceReference{{
+								Kind: structs.HTTPRoute,
+								Name: "route",
+							}},
+						},
+					}
+				}, []structs.BoundRoute{
+					&structs.HTTPRouteConfigEntry{
+						Kind: structs.HTTPRoute,
+						Name: "route",
+						Rules: []structs.HTTPRouteRule{
+							{
+								// Rule 1: route when X-Canary header is ABSENT (present + invert)
+								Matches: []structs.HTTPMatch{{
+									Headers: []structs.HTTPHeaderMatch{{
+										Match:  structs.HTTPHeaderMatchPresent,
+										Name:   "X-Canary",
+										Invert: true,
+									}},
+								}},
+								Services: []structs.HTTPService{{Name: "service"}},
+							},
+							{
+								// Rule 2: route when X-Version is NOT "v2" (exact + invert)
+								Matches: []structs.HTTPMatch{{
+									Headers: []structs.HTTPHeaderMatch{{
+										Match:  structs.HTTPHeaderMatchExact,
+										Name:   "X-Version",
+										Value:  "v2",
+										Invert: true,
+									}},
+								}},
+								Services: []structs.HTTPService{{Name: "service"}},
+							},
+						},
+						Parents: []structs.ResourceReference{{
+							Kind: structs.APIGateway,
+							Name: "api-gateway",
+						}},
+					},
+				}, nil, []proxycfg.UpdateEvent{{
+					CorrelationID: "discovery-chain:" + serviceUID.String(),
+					Result: &structs.DiscoveryChainResponse{
+						Chain: serviceChain,
+					},
+				}, {
+					CorrelationID: "upstream-target:" + serviceChain.ID() + ":" + serviceUID.String(),
+					Result: &structs.IndexedCheckServiceNodes{
+						Nodes: proxycfg.TestUpstreamNodes(t, "service"),
+					},
+				}})
+			},
+		},
+		{
 			name: "api-gateway-with-http-route-timeoutfilter-one-set",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
@@ -1534,6 +1601,92 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 						{
 							Name:     "listener",
 							Protocol: structs.ListenerProtocolHTTP,
+							Port:     8080,
+						},
+					}
+					bound.Listeners = []structs.BoundAPIGatewayListener{
+						{
+							Name: "listener",
+							Routes: []structs.ResourceReference{
+								{
+									Name: "http-route",
+									Kind: structs.HTTPRoute,
+								},
+							},
+						},
+					}
+				}, []structs.BoundRoute{
+					&structs.HTTPRouteConfigEntry{
+						Name: "http-route",
+						Kind: structs.HTTPRoute,
+						Parents: []structs.ResourceReference{
+							{
+								Kind: structs.APIGateway,
+								Name: "api-gateway",
+							},
+						},
+						Rules: []structs.HTTPRouteRule{
+							{
+								Services: []structs.HTTPService{
+									{Name: "http-service"},
+								},
+							},
+						},
+					},
+				}, nil, nil)
+			},
+		},
+		{
+			name: "api-gateway-http2-listener-with-http-route",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+					entry.Listeners = []structs.APIGatewayListener{
+						{
+							Name:     "listener",
+							Protocol: structs.ListenerProtocolHTTP2,
+							Port:     8080,
+						},
+					}
+					bound.Listeners = []structs.BoundAPIGatewayListener{
+						{
+							Name: "listener",
+							Routes: []structs.ResourceReference{
+								{
+									Name: "http-route",
+									Kind: structs.HTTPRoute,
+								},
+							},
+						},
+					}
+				}, []structs.BoundRoute{
+					&structs.HTTPRouteConfigEntry{
+						Name: "http-route",
+						Kind: structs.HTTPRoute,
+						Parents: []structs.ResourceReference{
+							{
+								Kind: structs.APIGateway,
+								Name: "api-gateway",
+							},
+						},
+						Rules: []structs.HTTPRouteRule{
+							{
+								Services: []structs.HTTPService{
+									{Name: "http-service"},
+								},
+							},
+						},
+					},
+				}, nil, nil)
+			},
+		},
+		{
+			name: "api-gateway-grpc-listener-with-http-route",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+					entry.Listeners = []structs.APIGatewayListener{
+						{
+							Name:     "listener",
+							Protocol: structs.ListenerProtocolGRPC,
 							Port:     8080,
 						},
 					}

@@ -380,6 +380,27 @@ func TestHTTPRoute(t *testing.T) {
 			},
 			validateErr: "Rule[0], Match[0], Headers[0], match type should be one of present, exact, prefix, suffix, or regex",
 		},
+		"rule matches header with invert true is valid": {
+			entry: &HTTPRouteConfigEntry{
+				Kind: HTTPRoute,
+				Name: "route-invert",
+				Parents: []ResourceReference{{
+					Name: "gateway",
+				}},
+				Rules: []HTTPRouteRule{{
+					Matches: []HTTPMatch{{
+						Headers: []HTTPHeaderMatch{
+							{Match: HTTPHeaderMatchPresent, Name: "X-Canary", Invert: true},
+							{Match: HTTPHeaderMatchExact, Name: "X-Version", Value: "v2", Invert: true},
+							{Match: HTTPHeaderMatchPrefix, Name: "X-Env", Value: "prod", Invert: true},
+							{Match: HTTPHeaderMatchSuffix, Name: "X-Env", Value: "-beta", Invert: true},
+							{Match: HTTPHeaderMatchRegularExpression, Name: "X-Id", Value: "^test-.*", Invert: true},
+						},
+					}},
+					Services: []HTTPService{{Name: "backend"}},
+				}},
+			},
+		},
 		"rule matches invalid header match name": {
 			entry: &HTTPRouteConfigEntry{
 				Kind: HTTPRoute,
@@ -1012,6 +1033,68 @@ func TestHTTPMatch_DeepEqual(t *testing.T) {
 				},
 			},
 			want: false,
+		},
+		"differing header invert — one inverted one not": {
+			match: HTTPMatch{
+				Headers: []HTTPHeaderMatch{
+					{
+						Match:  HTTPHeaderMatchExact,
+						Name:   "h1",
+						Value:  "a",
+						Invert: true,
+					},
+				},
+				Method: HTTPMatchMethodGet,
+				Path: HTTPPathMatch{
+					Match: HTTPPathMatchType(HTTPHeaderMatchPrefix),
+					Value: "/bender",
+				},
+			},
+			other: HTTPMatch{
+				Headers: []HTTPHeaderMatch{
+					{
+						Match:  HTTPHeaderMatchExact,
+						Name:   "h1",
+						Value:  "a",
+						Invert: false,
+					},
+				},
+				Method: HTTPMatchMethodGet,
+				Path: HTTPPathMatch{
+					Match: HTTPPathMatchType(HTTPHeaderMatchPrefix),
+					Value: "/bender",
+				},
+			},
+			want: false,
+		},
+		"identical headers with invert true are equal": {
+			match: HTTPMatch{
+				Headers: []HTTPHeaderMatch{
+					{
+						Match:  HTTPHeaderMatchPresent,
+						Name:   "X-Canary",
+						Invert: true,
+					},
+				},
+				Path: HTTPPathMatch{
+					Match: HTTPPathMatchPrefix,
+					Value: "/",
+				},
+			},
+			other: HTTPMatch{
+				Headers: []HTTPHeaderMatch{
+					{
+						Match:  HTTPHeaderMatchPresent,
+						Name:   "X-Canary",
+						Invert: true,
+					},
+				},
+				Path: HTTPPathMatch{
+					Match: HTTPPathMatchPrefix,
+					Value: "/",
+				},
+			},
+			want: true,
 		},
 		"different query matches": {
 			match: HTTPMatch{

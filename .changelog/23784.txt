@@ -1,0 +1,3 @@
+```release-note:feature
+api-gateway: Add `http2` and `grpc` as valid API Gateway listener protocols, enabling end-to-end HTTP/2 and gRPC from client to backend. Previously only `http` and `tcp` were accepted; the gateway would silently downgrade gRPC/HTTP2 traffic to HTTP/1.1 on the upstream hop. The new protocols render the correct downstream HTTP connection manager (HTTP/2 codec, `h2,http/1.1` ALPN) and align the upstream cluster to HTTP/2, closing the parity gap with Ingress Gateway.
+```

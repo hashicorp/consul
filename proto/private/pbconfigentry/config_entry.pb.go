@@ -459,8 +459,10 @@ func (MeshGatewayMode) EnumDescriptor() ([]byte, []int) {
 type APIGatewayListenerProtocol int32
 
 const (
-	APIGatewayListenerProtocol_ListenerProtocolHTTP APIGatewayListenerProtocol = 0
-	APIGatewayListenerProtocol_ListenerProtocolTCP  APIGatewayListenerProtocol = 1
+	APIGatewayListenerProtocol_ListenerProtocolHTTP  APIGatewayListenerProtocol = 0
+	APIGatewayListenerProtocol_ListenerProtocolTCP   APIGatewayListenerProtocol = 1
+	APIGatewayListenerProtocol_ListenerProtocolHTTP2 APIGatewayListenerProtocol = 2
+	APIGatewayListenerProtocol_ListenerProtocolGRPC  APIGatewayListenerProtocol = 3
 )
 
 // Enum value maps for APIGatewayListenerProtocol.
@@ -468,10 +470,14 @@ var (
 	APIGatewayListenerProtocol_name = map[int32]string{
 		0: "ListenerProtocolHTTP",
 		1: "ListenerProtocolTCP",
+		2: "ListenerProtocolHTTP2",
+		3: "ListenerProtocolGRPC",
 	}
 	APIGatewayListenerProtocol_value = map[string]int32{
-		"ListenerProtocolHTTP": 0,
-		"ListenerProtocolTCP":  1,
+		"ListenerProtocolHTTP":  0,
+		"ListenerProtocolTCP":   1,
+		"ListenerProtocolHTTP2": 2,
+		"ListenerProtocolGRPC":  3,
 	}
 )
 
@@ -6445,6 +6451,7 @@ type HTTPHeaderMatch struct {
 	Match         HTTPHeaderMatchType `protobuf:"varint,1,opt,name=Match,proto3,enum=hashicorp.consul.internal.configentry.HTTPHeaderMatchType" json:"Match,omitempty"`
 	Name          string              `protobuf:"bytes,2,opt,name=Name,proto3" json:"Name,omitempty"`
 	Value         string              `protobuf:"bytes,3,opt,name=Value,proto3" json:"Value,omitempty"`
+	Invert        bool                `protobuf:"varint,4,opt,name=Invert,proto3" json:"Invert,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6498,6 +6505,13 @@ func (x *HTTPHeaderMatch) GetValue() string {
 		return x.Value
 	}
 	return ""
+}
+
+func (x *HTTPHeaderMatch) GetInvert() bool {
+	if x != nil {
+		return x.Invert
+	}
+	return false
 }
 
 // mog annotation:
@@ -9497,11 +9511,12 @@ const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"\aHeaders\x18\x01 \x03(\v26.hashicorp.consul.internal.configentry.HTTPHeaderMatchR\aHeaders\x12N\n" +
 	"\x06Method\x18\x02 \x01(\x0e26.hashicorp.consul.internal.configentry.HTTPMatchMethodR\x06Method\x12H\n" +
 	"\x04Path\x18\x03 \x01(\v24.hashicorp.consul.internal.configentry.HTTPPathMatchR\x04Path\x12K\n" +
-	"\x05Query\x18\x04 \x03(\v25.hashicorp.consul.internal.configentry.HTTPQueryMatchR\x05Query\"\x8d\x01\n" +
+	"\x05Query\x18\x04 \x03(\v25.hashicorp.consul.internal.configentry.HTTPQueryMatchR\x05Query\"\xa5\x01\n" +
 	"\x0fHTTPHeaderMatch\x12P\n" +
 	"\x05Match\x18\x01 \x01(\x0e2:.hashicorp.consul.internal.configentry.HTTPHeaderMatchTypeR\x05Match\x12\x12\n" +
 	"\x04Name\x18\x02 \x01(\tR\x04Name\x12\x14\n" +
-	"\x05Value\x18\x03 \x01(\tR\x05Value\"u\n" +
+	"\x05Value\x18\x03 \x01(\tR\x05Value\x12\x16\n" +
+	"\x06Invert\x18\x04 \x01(\bR\x06Invert\"u\n" +
 	"\rHTTPPathMatch\x12N\n" +
 	"\x05Match\x18\x01 \x01(\x0e28.hashicorp.consul.internal.configentry.HTTPPathMatchTypeR\x05Match\x12\x14\n" +
 	"\x05Value\x18\x02 \x01(\tR\x05Value\"\x8b\x01\n" +
@@ -9739,10 +9754,12 @@ const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"\x16MeshGatewayModeDefault\x10\x00\x12\x17\n" +
 	"\x13MeshGatewayModeNone\x10\x01\x12\x18\n" +
 	"\x14MeshGatewayModeLocal\x10\x02\x12\x19\n" +
-	"\x15MeshGatewayModeRemote\x10\x03*O\n" +
+	"\x15MeshGatewayModeRemote\x10\x03*\x84\x01\n" +
 	"\x1aAPIGatewayListenerProtocol\x12\x18\n" +
 	"\x14ListenerProtocolHTTP\x10\x00\x12\x17\n" +
-	"\x13ListenerProtocolTCP\x10\x01*\x92\x02\n" +
+	"\x13ListenerProtocolTCP\x10\x01\x12\x19\n" +
+	"\x15ListenerProtocolHTTP2\x10\x02\x12\x18\n" +
+	"\x14ListenerProtocolGRPC\x10\x03*\x92\x02\n" +
 	"\x0fHTTPMatchMethod\x12\x16\n" +
 	"\x12HTTPMatchMethodAll\x10\x00\x12\x1a\n" +
 	"\x16HTTPMatchMethodConnect\x10\x01\x12\x19\n" +
