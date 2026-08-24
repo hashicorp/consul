@@ -558,7 +558,7 @@ function suite_setup {
 
     # pre-build the verify container
     echo "Rebuilding 'bats-verify' image..."
-    retry_default docker build --load -t bats-verify -f Dockerfile-bats .
+    retry_default docker buildx build --load --platform "${DOCKER_DEFAULT_PLATFORM}" -t bats-verify -f Dockerfile-bats .
 
     echo "Checking bats image..."
     docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 --rm -t bats-verify -v
