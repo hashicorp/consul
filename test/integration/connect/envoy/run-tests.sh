@@ -172,10 +172,10 @@ function start_consul {
   # inter-container traffic goes through the envoy-tests Docker network and
   # never touches these host-mapped ports, so the actual numbers don't matter.
   ports=(
-    '-p=127.0.0.1::8500'
-    '-p=127.0.0.1::8502'
-    '-p=127.0.0.1::9411'
-    '-p=127.0.0.1::16686'
+    '-p=8500:8500'
+    '-p=8502:8502'
+    '-p=9411:9411'
+    '-p=16686:16686'
   )
   case "$DC" in
     secondary)
