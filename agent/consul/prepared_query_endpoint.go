@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/adapter"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/structs/aclfilter"
@@ -489,6 +490,7 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 		}
 	}
 
+	adapter.PopulateLegacyCheckServiceNodePorts(reply.Nodes)
 	return nil
 }
 
@@ -539,6 +541,7 @@ func (p *PreparedQuery) ExecuteRemote(args *structs.PreparedQueryExecuteRemoteRe
 		reply.Nodes = reply.Nodes[:args.Limit]
 	}
 
+	adapter.PopulateLegacyCheckServiceNodePorts(reply.Nodes)
 	return nil
 }
 

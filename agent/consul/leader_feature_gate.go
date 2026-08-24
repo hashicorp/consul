@@ -92,7 +92,15 @@ func (s *Server) reconcileFeatureGates() error {
 		request.ExpectedStatusIndex = currentStatus.ModifyIndex
 	}
 
-	response, err := s.leaderRaftApply("FeatureGate.Apply", structs.FeatureGateRequestType, request)
+	// Feature-gate state is safe for pre-framework servers to omit: those
+	// binaries cannot consume it, and current binaries commit the complete
+	// policy and resolved status together. Always mark the command ignorable so
+	// a downgraded follower can replay entries written before it joined.
+	response, err := s.leaderRaftApply(
+		"FeatureGate.Apply",
+		structs.FeatureGateRequestType|structs.IgnoreUnknownTypeFlag,
+		request,
+	)
 	if err != nil {
 		return err
 	}
