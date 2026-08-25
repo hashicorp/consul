@@ -115,7 +115,7 @@ func assertHTTPRequestToVirtualAddress(t *testing.T, clientService libservice.Se
 		// functionality so it seems better to leave DNS alone.
 		//
 		// But, that means DNS queries aren't redirected to Consul out of the box.
-		// As a workaround, we `dig @localhost:53` which is iptables-redirected to
+		// As a workaround, we `dig @localhost:53` which is nftables-redirected to
 		// localhost:8600 where the Consul client responds with the virtual ip.
 		//
 		// In tproxy tests, Envoy is not configured with a unique listener for each
