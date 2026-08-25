@@ -38,6 +38,9 @@ func (n *nftablesExecutor) ApplyRules(_ string) error {
 
 	var cmd *exec.Cmd
 	if n.cfg.NetNS != "" {
+		if _, err := exec.LookPath("nsenter"); err != nil {
+			return fmt.Errorf("nsenter binary not found: %w", err)
+		}
 		cmd = exec.Command("nsenter", fmt.Sprintf("--net=%s", n.cfg.NetNS), "--", "nft", "-f", "-")
 	} else {
 		cmd = exec.Command("nft", "-f", "-")
