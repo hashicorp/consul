@@ -311,7 +311,7 @@ func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn, d
 // ip6tables rules for dual-stack pods. With nftables the inet address family covers
 // both IPv4 and IPv6 in a single SetupWithAdditionalRules call, making a separate
 // IPv6 pass unnecessary. The function is retained here as no-op for backward compatibility as a reference
-// for when consul-enterprise is migrated from iptables to nftables.
+// for migrated from iptables to nftables.
 func SetupWithAdditionalRulesIPv6(_ Config, _ AdditionalRulesFn, _ bool) error {
 	return nil
 }
