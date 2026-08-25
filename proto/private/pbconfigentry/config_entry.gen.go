@@ -715,6 +715,7 @@ func HTTPHeaderMatchToStructs(s *HTTPHeaderMatch, t *structs.HTTPHeaderMatch) {
 	t.Match = httpHeaderMatchToStructs(s.Match)
 	t.Name = s.Name
 	t.Value = s.Value
+	t.Invert = s.Invert
 }
 func HTTPHeaderMatchFromStructs(t *structs.HTTPHeaderMatch, s *HTTPHeaderMatch) {
 	if s == nil {
@@ -723,6 +724,7 @@ func HTTPHeaderMatchFromStructs(t *structs.HTTPHeaderMatch, s *HTTPHeaderMatch) 
 	s.Match = httpHeaderMatchFromStructs(t.Match)
 	s.Name = t.Name
 	s.Value = t.Value
+	s.Invert = t.Invert
 }
 func HTTPHeaderModifiersToStructs(s *HTTPHeaderModifiers, t *structs.HTTPHeaderModifiers) {
 	if s == nil {
