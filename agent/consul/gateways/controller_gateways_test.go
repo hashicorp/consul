@@ -4314,13 +4314,13 @@ func TestAPIGatewayControllerPopulatesWatchSetBeforeRegisteringTrigger(t *testin
 	triggerCalled := false
 	testController := &noopController{
 		triggers: make(map[controller.Request]struct{}),
-		onAddTrigger: func(actual controller.Request, trigger func(context.Context) error) {
+		onAddTrigger: func(actual controller.Request, _ func(context.Context) error) {
 			triggerCalled = true
 			require.Equal(t, request, actual)
 			// GetProtocol is called after each backend's discovery-chain read and
 			// compilation. Both calls must finish before the WatchSet is handed to
 			// the controller's asynchronous trigger.
-			require.Equal(t, 2, route.protocolCalls)
+			require.Equal(t, len(route.GetServiceNames()), route.protocolCalls)
 		},
 	}
 	reconciler := apiGatewayReconciler{

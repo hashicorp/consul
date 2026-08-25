@@ -1,3 +1,3 @@
 ```release-note:bug
-connect: prevent API gateway route reconciliation from concurrently reading and modifying discovery-chain watch sets
+api-gateway: Fix a race condition that could crash Consul servers while reconciling routes with multiple backend services.
 ```
