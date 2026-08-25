@@ -279,7 +279,7 @@ func (w *AgentConfigWatcher) handler(blockVal watch.BlockingParamVal,
 	cfg.PublicListener.BindAddress = resp.Address
 	cfg.PublicListener.BindPort = resp.Port
 	if resp.Proxy.LocalServiceSocketPath != "" {
-		w.logger.Error("Unhandled unix domain socket config %+v %+v", resp.Proxy, cfg.PublicListener)
+		w.logger.Error("Unhandled unix domain socket config", "proxy", resp.Proxy, "public_listener", cfg.PublicListener)
 	}
 	cfg.PublicListener.LocalServiceAddress = ipaddr.FormatAddressPort(
 		resp.Proxy.LocalServiceAddress, resp.Proxy.LocalServicePort)
