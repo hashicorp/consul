@@ -1,0 +1,24 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+/* Sits directly above the Exposed Paths table card. Shares the same card
+   chrome (border, radius) on three sides; the bottom border is removed so the
+   toolbar and the table card merge into a single visual unit with no gap or
+   doubled border between them (see the matching rule in
+   consul/exposed-path/table/index.scss). */
+.consul-exposed-path-toolbar {
+  padding: 8px;
+  background-color: var(--token-color-surface-faint);
+  border: 1px solid var(--token-color-border-faint);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+}
+
+/* Separator between the controls row (Search / Sort) and the applied-filters
+   area ("No filters applied" / active search tag) below. */
+.consul-exposed-path-toolbar .hds-filter-bar__actions {
+  border-bottom: 1px solid var(--token-color-border-faint);
+  padding-bottom: 8px;
+}
