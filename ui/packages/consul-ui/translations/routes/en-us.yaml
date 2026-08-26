@@ -235,11 +235,11 @@ dc:
           </p>
     instance:
       exposedpaths:
-        intro: |
-          <p>
-            The following list shows individual HTTP paths exposed through Envoy for external services like Prometheus. Read more about this in our <a href="{CONSUL_DOCS_URL}/connect/registration/service-registration#expose-paths-configuration-reference" target="_blank" rel="noopener noreferrer">documentation</a>.
-          </p>
-
+        intro:
+          body: The following table shows individual HTTP paths exposed through Envoy for external services like Prometheus.
+          footer:
+            link: "/connect/registration/service-registration#expose-paths-configuration-reference"
+            text: View documentation
         empty:
           body: |
             <p>

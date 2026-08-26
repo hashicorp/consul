@@ -211,7 +211,17 @@
             },
           },
           exposedpaths: {
-            _options: { path: '/exposed-paths', breadcrumb: { label: 'Exposed Paths', parent: 'dc.services.show.instances' } },
+            _options: {
+              path: '/exposed-paths',
+              queryParams: {
+                sortBy: 'sort',
+                search: {
+                  as: 'filter',
+                  replace: true,
+                },
+              },
+              breadcrumb: { label: 'Exposed Paths', parent: 'dc.services.show.instances' },
+            },
           },
           addresses: {
             _options: { path: '/addresses', breadcrumb: { label: 'Addresses', parent: 'dc.services.show.instances' } },
