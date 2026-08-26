@@ -120,20 +120,22 @@
         </B.Td>
 
         {{! ---- Service mesh ---- }}
-        <B.Td>
-          {{#if (or item.ConnectedWithProxy item.ConnectedWithGateway)}}
-            <span class="consul-service-table__mesh" data-test-mesh>
-              <span class="consul-service-table__mesh-icon" aria-hidden="true"></span>
-              {{#if (and item.ConnectedWithProxy item.ConnectedWithGateway)}}
-                <span>in service mesh with proxy and gateway</span>
-              {{else if item.ConnectedWithProxy}}
-                <span>in service mesh with proxy</span>
-              {{else}}
-                <span>in service mesh with gateway</span>
-              {{/if}}
-            </span>
-          {{/if}}
-        </B.Td>
+        {{#if this.showMesh}}
+          <B.Td>
+            {{#if (or item.ConnectedWithProxy item.ConnectedWithGateway)}}
+              <span class="consul-service-table__mesh" data-test-mesh>
+                <span class="consul-service-table__mesh-icon" aria-hidden="true"></span>
+                {{#if (and item.ConnectedWithProxy item.ConnectedWithGateway)}}
+                  <span>in service mesh with proxy and gateway</span>
+                {{else if item.ConnectedWithProxy}}
+                  <span>in service mesh with proxy</span>
+                {{else}}
+                  <span>in service mesh with gateway</span>
+                {{/if}}
+              </span>
+            {{/if}}
+          </B.Td>
+        {{/if}}
 
         {{! ---- Service type ---- }}
         <B.Td>
