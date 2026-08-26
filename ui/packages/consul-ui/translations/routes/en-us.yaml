@@ -170,7 +170,13 @@ dc:
       addresses:
         empty:
           header: No server adddresses.
-          body: <div>There don't seem to be any server addresses for this peer.</div>
+          body: |
+            <div>
+            {items, select,
+              0 {There don't seem to be any server addresses for this peer.}
+              other {No server addresses were found matching that search.}
+            }
+            </div>
   partitions:
     index:
       empty:

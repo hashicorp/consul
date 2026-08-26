@@ -81,6 +81,7 @@ import nspaces from 'consul-ui/tests/pages/dc/nspaces/index';
 import nspace from 'consul-ui/tests/pages/dc/nspaces/edit';
 import peers from 'consul-ui/tests/pages/dc/peers/index';
 import peersShow from 'consul-ui/tests/pages/dc/peers/show';
+import peersCreate from 'consul-ui/tests/pages/dc/peers/create';
 
 // utils
 const deletable = createDeletable(clickable);
@@ -235,8 +236,9 @@ export default {
   nspace: create(
     nspace(visitable, submitable, deletable, cancelable, policySelector, roleSelector)
   ),
-  peers: create(peers(visitable, creatable, consulPeerList, clickable)),
+  peers: create(peers(visitable, creatable, consulPeerList, clickable, collection)),
   peer: create(peersShow(visitable)),
+  peerCreate: create(peersCreate(visitable, submitable, clickable)),
   settings: create(settings(visitable, submitable, isPresent)),
   routingConfig: create(routingConfig(visitable, text)),
 };

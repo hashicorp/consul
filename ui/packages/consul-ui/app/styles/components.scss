@@ -140,6 +140,9 @@
 @import 'consul-ui/components/consul/peer';
 @import 'consul-ui/components/consul/peer/list';
 @import 'consul-ui/components/consul/peer/toolbar';
+@import 'consul-ui/components/consul/peer/exported/list';
+@import 'consul-ui/components/consul/peer/exported/toolbar';
+@import 'consul-ui/components/consul/peer/address/toolbar';
 @import 'consul-ui/components/peerings/badge';
 @import 'consul-ui/components/consul/node/peer-info';
 @import 'consul-ui/components/consul/peer/info';

@@ -3,6 +3,14 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-.border-bottom-primary {
-  border-bottom: 1px solid var(--token-color-border-primary);
+/* Gap between the tab nav and the table card — matches Figma (24px) and
+   Consul::Peer::Exported::List's equivalent rule. */
+.consul-peer-address-list {
+  margin-top: 24px;
+}
+
+.consul-peer-address-list__address {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }

@@ -335,6 +335,13 @@
             breadcrumb: { label: 'Peers' },
           },
         },
+        create: {
+          _options: {
+            path: '/create',
+            abilities: ['create peer'],
+            breadcrumb: { label: 'Add peer connection', parent: 'dc.peers' },
+          },
+        },
         show: {
           _options: {
             path: '/:name',

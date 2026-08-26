@@ -56,82 +56,84 @@
         as |sort filters items partition nspace|
       }}
 
-        {{#if (gt items.length 0)}}
-          {{#let (collection items) as |items|}}
-            <Consul::Service::Toolbar
-              @sources={{get items "ExternalSources"}}
-              @search={{this.search}}
-              @onsearch={{action (mut this.search) value="target.value"}}
-              @filter={{filters}}
-              @peer={{route.model.peer}}
-            />
-          {{/let}}
-        {{/if}}
-        <DataCollection
-          @type="service"
-          @sort={{sort.value}}
-          @filters={{filters}}
-          @search={{this.search}}
-          @items={{items}}
-          as |collection|
-        >
-          <collection.Collection>
-            <Consul::Service::Table
-              @items={{collection.items}}
-              @partition={{partition}}
-              @nspace={{nspace}}
-              @isPeerDetail={{true}}
-            />
-          </collection.Collection>
-          <collection.Empty>
-            <EmptyState
-              @login={{route.model.app.login.open}}
-              data-test-imported-services-empty
-            >
-              <:header>
-                <h2>
+        <div class="consul-peer-imported">
+          {{#if (gt items.length 0)}}
+            {{#let (collection items) as |items|}}
+              <Consul::Service::Toolbar
+                @sources={{get items "ExternalSources"}}
+                @search={{this.search}}
+                @onsearch={{action (mut this.search) value="target.value"}}
+                @filter={{filters}}
+                @peer={{route.model.peer}}
+              />
+            {{/let}}
+          {{/if}}
+          <DataCollection
+            @type="service"
+            @sort={{sort.value}}
+            @filters={{filters}}
+            @search={{this.search}}
+            @items={{items}}
+            as |collection|
+          >
+            <collection.Collection>
+              <Consul::Service::Table
+                @items={{collection.items}}
+                @partition={{partition}}
+                @nspace={{nspace}}
+                @isPeerDetail={{true}}
+              />
+            </collection.Collection>
+            <collection.Empty>
+              <EmptyState
+                @login={{route.model.app.login.open}}
+                data-test-imported-services-empty
+              >
+                <:header>
+                  <h2>
+                    {{t
+                      "routes.dc.peers.show.imported.empty.header"
+                      name=route.model.peer.Name
+                    }}
+                  </h2>
+                </:header>
+                <:body>
                   {{t
-                    "routes.dc.peers.show.imported.empty.header"
+                    "routes.dc.peers.show.imported.empty.body"
+                    items=items.length
                     name=route.model.peer.Name
+                    htmlSafe=true
                   }}
-                </h2>
-              </:header>
-              <:body>
-                {{t
-                  "routes.dc.peers.show.imported.empty.body"
-                  items=items.length
-                  name=route.model.peer.Name
-                  htmlSafe=true
-                }}
-              </:body>
-              <:actions>
-                <li>
-                  {{! what's the docs for peering?}}
-                  <Hds::Link::Standalone
-                    @text='Documentation on Peers'
-                    @href="{{env
-                      'CONSUL_DOCS_URL'
-                    }}/connect/cluster-peering"
-                    @icon='docs-link'
-                    @iconPosition='trailing'
-                    @size='small'
-                  />
-                </li>
-                <li>
-                  <Hds::Link::Standalone
-                    @text='Take the tutorial'
-                    @href="{{env
-                      'CONSUL_DOCS_URL'
-                    }}/connect/cluster-peering/create-manage-peering"
-                    @icon='learn-link'
-                    @iconPosition='trailing'
-                    @size='small'
-                  />
-                </li>
-              </:actions>
-            </EmptyState>
-          </collection.Empty>
-        </DataCollection>
+                </:body>
+                <:actions>
+                  <li>
+                    {{! what's the docs for peering?}}
+                    <Hds::Link::Standalone
+                      @text='Documentation on Peers'
+                      @href="{{env
+                        'CONSUL_DOCS_URL'
+                      }}/connect/cluster-peering"
+                      @icon='docs-link'
+                      @iconPosition='trailing'
+                      @size='small'
+                    />
+                  </li>
+                  <li>
+                    <Hds::Link::Standalone
+                      @text='Take the tutorial'
+                      @href="{{env
+                        'CONSUL_DOCS_URL'
+                      }}/connect/cluster-peering/create-manage-peering"
+                      @icon='learn-link'
+                      @iconPosition='trailing'
+                      @size='small'
+                    />
+                  </li>
+                </:actions>
+              </EmptyState>
+            </collection.Empty>
+          </DataCollection>
+        </div>
       {{/let}}
     </:loaded>
   </DataLoader>

@@ -21,6 +21,7 @@ import policy from 'consul-ui/search/predicates/policy';
 import authMethod from 'consul-ui/search/predicates/auth-method';
 import nspace from 'consul-ui/search/predicates/nspace';
 import peer from 'consul-ui/search/predicates/peer';
+import peerAddress from 'consul-ui/search/predicates/peer-address';
 import session from 'consul-ui/search/predicates/session';
 
 const predicates = {
@@ -38,6 +39,7 @@ const predicates = {
   policy: policy,
   nspace: nspace,
   peer: peer,
+  ['peer-address']: peerAddress,
   session: session,
 };
 
