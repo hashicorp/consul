@@ -54,9 +54,28 @@ const COLUMNS = [
  *
  * It does not perform any data fetching itself; it receives the already
  * fetched / filtered / searched `@items` from the data layer.
+ *
+ * @argument {boolean} [showMesh] - whether to render the "Service mesh"
+ *   column. Defaults to true. The gateway "linked services" tab's endpoint
+ *   (`/gateways/for-service`) never returns `ConnectedWithProxy` /
+ *   `ConnectedWithGateway`, so that column can never have real data there —
+ *   callers on that tab pass `@showMesh={{false}}` to omit it entirely rather
+ *   than show a column that's always empty.
  */
 export default class ConsulServiceTable extends Component {
-  columns = COLUMNS;
+  // Whether the "Service mesh" column is included, both in the header and in
+  // each row. Filtering it out of `columns` (rather than just hiding the cell)
+  // keeps the header/row cell counts in sync.
+  get showMesh() {
+    return this.args.showMesh !== false;
+  }
+
+  get columns() {
+    if (this.showMesh) {
+      return COLUMNS;
+    }
+    return COLUMNS.filter((column) => column.sortKey !== 'mesh');
+  }
 
   // Mirrors the link param logic from Consul::Service::List so that
   // cross-partition / cross-namespace / peered links keep working.

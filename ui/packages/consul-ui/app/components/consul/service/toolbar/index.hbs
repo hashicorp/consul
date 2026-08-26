@@ -18,11 +18,57 @@
   @filterGroups={{this.filterGroups}}
   @searchPlaceholder="Search"
 >
-  <:quickFilters as |t|>
+  <:quickFilters as |api|>
     {{!
       Health quick filters: mirrors (and stays in sync with) the "Health"
-      multi-select group inside the Filter Bar above.
+      multi-select group inside the Filter Bar above. The linked-services tab
+      has no Health filter group to stay in sync with, so it gets a grouped
+      sort dropdown (Health status / Service name) in this slot instead,
+      mirroring Consul::HealthCheck::Toolbar's grouped sort control.
+
+      The block param is named `api` (not `t`) because this block also calls
+      the global translation helper (t) — a param named `t` would shadow it
+      and silently break every translation call inside this block.
     }}
-    <Consul::ListToolbar::HealthFilter @filters={{this.healthQuickFilters}} @api={{t}} />
+    {{#if @linked}}
+      {{#if @sort}}
+        <Hds::Dropdown
+          class="consul-service-toolbar__sort"
+          @listPosition="bottom-right"
+          @preserveContentInDom={{true}}
+          data-test-sort-control
+          as |dd|
+        >
+          <dd.ToggleButton
+            @icon="swap-vertical"
+            @text={{this.sortLabel}}
+            @color="secondary"
+            data-test-sort-toggle
+          />
+
+          <dd.Title @text={{t "common.consul.status"}} />
+          <dd.Interactive
+            data-test-sort-option="Status:asc"
+            {{on "click" (fn @sort.change (hash target=(hash selected="Status:asc")))}}
+          >{{t "common.sort.status.asc"}}</dd.Interactive>
+          <dd.Interactive
+            data-test-sort-option="Status:desc"
+            {{on "click" (fn @sort.change (hash target=(hash selected="Status:desc")))}}
+          >{{t "common.sort.status.desc"}}</dd.Interactive>
+
+          <dd.Title @text={{t "common.consul.service-name"}} />
+          <dd.Interactive
+            data-test-sort-option="Name:asc"
+            {{on "click" (fn @sort.change (hash target=(hash selected="Name:asc")))}}
+          >{{t "common.sort.alpha.asc"}}</dd.Interactive>
+          <dd.Interactive
+            data-test-sort-option="Name:desc"
+            {{on "click" (fn @sort.change (hash target=(hash selected="Name:desc")))}}
+          >{{t "common.sort.alpha.desc"}}</dd.Interactive>
+        </Hds::Dropdown>
+      {{/if}}
+    {{else}}
+      <Consul::ListToolbar::HealthFilter @filters={{this.healthQuickFilters}} @api={{api}} />
+    {{/if}}
   </:quickFilters>
 </Consul::ListToolbar>

@@ -37,6 +37,29 @@ const KIND_OPTIONS = [
   { value: 'not-in-mesh', label: 'Not in service mesh' },
 ];
 
+// The gateway "linked services" tab only ever offered a single "Registered /
+// Not registered" filter (the `instance` predicate in
+// app/filter/predicates/service.js) — it has no Health/Service type/External
+// source data to filter on, so `@linked={{true}}` swaps in just this group
+// instead of the full services-index filter set.
+const INSTANCE_OPTIONS = [
+  { value: 'registered', label: 'Registered' },
+  { value: 'not-registered', label: 'Not Registered' },
+];
+
+// The linked-services tab has no health quick-filter buttons (see
+// `filterGroups`), so its `:quickFilters` slot renders a grouped sort
+// dropdown instead (Health status / Service name — mirrors
+// Consul::HealthCheck::Toolbar's grouped sort control). Maps a
+// `<Field>:<direction>` sort value to the translation key for its
+// toggle-button label.
+const SORT_LABEL_KEYS = {
+  'Status:asc': 'common.sort.status.asc',
+  'Status:desc': 'common.sort.status.desc',
+  'Name:asc': 'common.sort.alpha.asc',
+  'Name:desc': 'common.sort.alpha.desc',
+};
+
 /**
  * Consul::Service::Toolbar
  *
@@ -44,11 +67,25 @@ const KIND_OPTIONS = [
  * It supplies the concrete filter groups (Health / Service type / External
  * source) and the health quick-filter buttons, but owns no Filter Bar wiring
  * itself — that all lives in the generic toolbar.
+ *
+ * @argument {boolean} [linked] - render the reduced filter set used by the
+ *   gateway "linked services" tab (a single Instance/Registered filter, no
+ *   health quick-filters) instead of the full services-index filter set, and
+ *   a grouped sort dropdown (Health status / Service name) in its place.
+ * @argument {object} [sort] - `{ value, change }` sort state, as built by the
+ *   route template. Only used (and only rendered) in `@linked` mode.
  */
 export default class ConsulServiceToolbar extends Component {
   @service intl;
 
   healthQuickFilters = HEALTH_QUICK_FILTERS;
+
+  // Label shown on the linked-services sort dropdown's toggle button for the
+  // currently active sort value.
+  get sortLabel() {
+    const key = SORT_LABEL_KEYS[this.args.sort?.value];
+    return key ? this.intl.t(key) : '';
+  }
 
   // Display label for an external-source value, using its brand name when one
   // exists (e.g. "kubernetes" -> "Kubernetes") and falling back to the raw
@@ -73,6 +110,10 @@ export default class ConsulServiceToolbar extends Component {
   // source is only included when there are real external sources to choose
   // from (the synthetic "consul" option alone doesn't warrant the group).
   get filterGroups() {
+    if (this.args.linked) {
+      return [{ key: 'instance', text: 'Instance', options: INSTANCE_OPTIONS }];
+    }
+
     // On peer detail pages services can be "unknown", so offer that extra
     // Health option (matching the old search bar's peer-aware health states).
     const healthOptions = this.args.peer
