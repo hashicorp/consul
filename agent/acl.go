@@ -42,6 +42,25 @@ func (a *Agent) vetServiceRegister(token string, service *structs.NodeService) e
 	return a.vetServiceRegisterWithAuthorizer(authz, service)
 }
 
+// bootstrapEscapeHatchKeys is the set of Proxy.Config map keys that are
+// spliced verbatim into the Envoy bootstrap JSON by consul connect envoy.
+// These fields can embed arbitrary Envoy listener/cluster/filter
+// configuration — including code-executing HTTP filters — and therefore
+// require mesh:write in addition to the normal service:write grant.
+var bootstrapEscapeHatchKeys = map[string]bool{
+	"envoy_bootstrap_json_tpl":             true,
+	"envoy_extra_static_listeners_json":    true,
+	"envoy_public_listener_json":           true,
+	"envoy_listener_json":                  true,
+	"envoy_cluster_json":                   true,
+	"envoy_local_cluster_json":             true,
+	"envoy_extra_static_clusters_json":     true,
+	"envoy_extra_stats_sinks_json":         true,
+	"envoy_tracing_json":                   true,
+	"envoy_stats_config_json":              true,
+	"envoy_listener_tracing_json":          true,
+}
+
 func (a *Agent) vetServiceRegisterWithAuthorizer(authz acl.Authorizer, service *structs.NodeService) error {
 	var authzContext acl.AuthorizerContext
 
@@ -65,6 +84,19 @@ func (a *Agent) vetServiceRegisterWithAuthorizer(authz acl.Authorizer, service *
 		service.FillAuthzContext(&authzContext)
 		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(service.Proxy.DestinationServiceName, &authzContext); err != nil {
 			return err
+		}
+	}
+
+	// Bootstrap escape-hatch keys in Proxy.Config are spliced verbatim into the
+	// Envoy bootstrap JSON. They can embed arbitrary filter chain configuration —
+	// including code-executing HTTP filters — and therefore require mesh:write
+	// independently of service:write.
+	for key := range service.Proxy.Config {
+		if bootstrapEscapeHatchKeys[key] {
+			if err := authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext); err != nil {
+				return fmt.Errorf("mesh:write required to set bootstrap escape-hatch Proxy.Config key %q: %w", key, err)
+			}
+			break
 		}
 	}
 

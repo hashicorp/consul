@@ -363,7 +363,20 @@ func (e *ServiceConfigEntry) CanRead(authz acl.Authorizer) error {
 func (e *ServiceConfigEntry) CanWrite(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.ToAllowAuthorizer().ServiceWriteAllowed(e.Name, &authzContext)
+	if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(e.Name, &authzContext); err != nil {
+		return err
+	}
+	// Code-executing extensions (builtin/lua, builtin/wasm) run arbitrary code as
+	// the Envoy process user on every proxied request. Attaching them requires
+	// mesh:write in addition to service:write so the capability is independently
+	// auditable and cannot be reached via the standard application-team delegation
+	// pattern alone.
+	if e.EnvoyExtensions.HasCodeExecutingExtension() {
+		if err := authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext); err != nil {
+			return fmt.Errorf("mesh:write required to attach code-executing EnvoyExtensions (builtin/lua, builtin/wasm): %w", err)
+		}
+	}
+	return nil
 }
 
 func (e *ServiceConfigEntry) GetRaftIndex() *RaftIndex {

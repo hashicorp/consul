@@ -55,6 +55,108 @@ func TestConfigEntries_ACLs(t *testing.T) {
 	}
 
 	cases := []testcase{
+		// =================== service-defaults (no code-executing extensions) ===================
+		{
+			name: "service-defaults: no code-executing extension",
+			entry: &ServiceConfigEntry{
+				Kind: ServiceDefaults,
+				Name: "web",
+				EnvoyExtensions: EnvoyExtensions{
+					{Name: api.BuiltinAWSLambdaExtension, Arguments: map[string]interface{}{"ARN": "arn:aws:lambda:us-east-1:111122223333:function:my-function"}},
+				},
+			},
+			expectACLs: []testACL{
+				{
+					name:       "service:write only — allowed (no code-executing extension)",
+					authorizer: newAuthz(t, `service "web" { policy = "write" }`),
+					canRead:    true,
+					canWrite:   true,
+				},
+				{
+					name:       "service:read only — denied",
+					authorizer: newAuthz(t, `service "web" { policy = "read" }`),
+					canRead:    true,
+					canWrite:   false,
+				},
+			},
+		},
+		// =================== service-defaults (code-executing extensions: lua) ===================
+		{
+			name: "service-defaults: lua extension requires mesh:write",
+			entry: &ServiceConfigEntry{
+				Kind: ServiceDefaults,
+				Name: "web",
+				EnvoyExtensions: EnvoyExtensions{
+					{Name: api.BuiltinLuaExtension, Arguments: map[string]interface{}{
+						"Script":   "function envoy_on_request(h) end",
+						"Listener": "inbound",
+					}},
+				},
+			},
+			expectACLs: []testACL{
+				{
+					name:       "service:write only — denied (missing mesh:write)",
+					authorizer: newAuthz(t, `service "web" { policy = "write" }`),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service:write + mesh:write — allowed",
+					authorizer: newAuthz(t, `service "web" { policy = "write" } mesh = "write"`),
+					canRead:    true,
+					canWrite:   true,
+				},
+				{
+					name:       "mesh:write only (no service:write) — denied",
+					authorizer: newAuthz(t, `mesh = "write"`),
+					canRead:    false, // no service:read either
+					canWrite:   false,
+				},
+				{
+					name:       "service:write + mesh:read only — denied",
+					authorizer: newAuthz(t, `service "web" { policy = "write" } mesh = "read"`),
+					canRead:    true,
+					canWrite:   false,
+				},
+			},
+		},
+		// =================== service-defaults (code-executing extensions: wasm) ===================
+		{
+			name: "service-defaults: wasm extension requires mesh:write",
+			entry: &ServiceConfigEntry{
+				Kind: ServiceDefaults,
+				Name: "web",
+				EnvoyExtensions: EnvoyExtensions{
+					{Name: api.BuiltinWasmExtension, Arguments: map[string]interface{}{
+						"Protocol":     "http",
+						"ListenerType": "inbound",
+						"PluginConfig": map[string]interface{}{
+							"VmConfig": map[string]interface{}{
+								"Code": map[string]interface{}{
+									"Local": map[string]interface{}{
+										"Filename": "/etc/envoy/plugin.wasm",
+									},
+								},
+							},
+						},
+					}},
+				},
+			},
+			expectACLs: []testACL{
+				{
+					name:       "service:write only — denied (missing mesh:write)",
+					authorizer: newAuthz(t, `service "web" { policy = "write" }`),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service:write + mesh:write — allowed",
+					authorizer: newAuthz(t, `service "web" { policy = "write" } mesh = "write"`),
+					canRead:    true,
+					canWrite:   true,
+				},
+			},
+		},
 		// =================== proxy-defaults ===================
 		{
 			name:  "proxy-defaults",

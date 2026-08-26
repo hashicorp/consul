@@ -1,0 +1,11 @@
+```release-note:security
+acl: Require mesh:write in addition to service:write when attaching code-executing EnvoyExtensions (builtin/lua, builtin/wasm) to a service-defaults config entry. Previously a holder of service:write on a service could attach a Lua script or Wasm module that Envoy compiled and executed on every proxied request as the sidecar process user, with access to mTLS private keys, request bodies, and the host filesystem.
+```
+
+```release-note:security
+acl: Require mesh:write in addition to service:write when registering a connect-proxy sidecar with bootstrap escape-hatch Proxy.Config keys (envoy_bootstrap_json_tpl, envoy_extra_static_listeners_json, envoy_public_listener_json, envoy_listener_json, envoy_cluster_json, envoy_local_cluster_json, envoy_extra_static_clusters_json, envoy_extra_stats_sinks_json, envoy_tracing_json, envoy_stats_config_json, envoy_listener_tracing_json). Previously a holder of service:write on the proxy and its destination could inject arbitrary Envoy filter chain configuration into the sidecar bootstrap.
+```
+
+```release-note:breaking-change
+acl: Tokens that hold service:write but not mesh:write will now receive a permission-denied error when attempting to attach builtin/lua or builtin/wasm EnvoyExtensions to a service-defaults config entry, or when registering a connect-proxy sidecar with bootstrap escape-hatch Proxy.Config keys. Operators must grant mesh:write to any token that legitimately needs these capabilities.
+```

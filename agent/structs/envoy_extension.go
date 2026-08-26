@@ -30,6 +30,27 @@ func (c *EnvoyExtension) appendHash(h *customHasher) {
 
 type EnvoyExtensions []EnvoyExtension
 
+// codeExecutingExtensions is the set of built-in extension names that cause
+// Envoy to compile and execute caller-supplied code (Lua scripts, Wasm modules)
+// on every proxied request. Attaching any of these to a config entry requires
+// mesh:write in addition to the normal service:write check so that the
+// code-execution capability is gated on a separate, auditable permission.
+var codeExecutingExtensions = map[string]bool{
+	api.BuiltinLuaExtension:  true,
+	api.BuiltinWasmExtension: true,
+}
+
+// HasCodeExecutingExtension reports whether any extension in the slice is a
+// code-executing type (builtin/lua or builtin/wasm).
+func (es EnvoyExtensions) HasCodeExecutingExtension() bool {
+	for _, e := range es {
+		if codeExecutingExtensions[e.Name] {
+			return true
+		}
+	}
+	return false
+}
+
 func (es EnvoyExtensions) ToAPI() []api.EnvoyExtension {
 	extensions := make([]api.EnvoyExtension, len(es))
 	for i, e := range es {
