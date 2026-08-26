@@ -1,0 +1,15 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{! Exported-services-tab toolbar: search only, per Figma — no filter groups
+    and no quick-sort dropdown (sorting is the "Service name" column's own
+    click-to-sort, see Consul::Peer::Exported::List). }}
+<Consul::ListToolbar
+  class="consul-peer-exported-toolbar"
+  ...attributes
+  @search={{@search}}
+  @onsearch={{@onsearch}}
+  @searchPlaceholder="Search"
+/>

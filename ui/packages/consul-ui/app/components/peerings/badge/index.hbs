@@ -4,8 +4,14 @@
 }}
 
 {{#if @peering.State}}
-  <div class="peerings-badge {{lowercase @peering.State}}" {{hds-tooltip this.tooltip options=(detached-tooltip-options)}}>
-    <Peerings::Badge::Icon @state="{{@peering.State}}" />
-    <span class="peerings-badge__text">{{capitalize (lowercase @peering.State)}}</span>
-  </div>
+  <span {{hds-tooltip this.tooltip options=(detached-tooltip-options)}}>
+    <Hds::Badge
+      class={{if this.isDark "peerings-badge--dark"}}
+      @text={{capitalize (lowercase @peering.State)}}
+      @icon={{this.styles.icon}}
+      @color={{this.styles.color}}
+      @size="medium"
+      data-test-peering-status={{lowercase @peering.State}}
+    />
+  </span>
 {{/if}}

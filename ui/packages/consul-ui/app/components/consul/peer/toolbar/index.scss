@@ -3,6 +3,35 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
+/* The toolbar renders inside .consul-data-table__card, above the table (see
+   Consul::Peer::List). Give it the same faint-surface background, border and
+   squared bottom corners that the partitions / intentions / nodes / services
+   toolbars use, so the whole toolbar+table reads as one card. */
+.consul-peer-toolbar {
+  padding: 8px;
+  background-color: var(--token-color-surface-faint);
+  border: 1px solid var(--token-color-border-faint);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+
+  /* Sort dropdown sits at the right end of the quick-filters row. */
+  .consul-peer-toolbar__sort {
+    flex: 0 0 auto;
+    margin-left: auto;
+
+    .hds-dropdown-toggle-button {
+      min-height: 2.25rem;
+    }
+  }
+}
+
+/* Separator between the controls row (Filters / Search / Search across /
+   Sort) and the applied-filters area ("No filters applied" / active tags). */
+.consul-peer-toolbar .hds-filter-bar__actions {
+  border-bottom: 1px solid var(--token-color-border-faint);
+  padding-bottom: 8px;
+}
+
 /* The peers index uses the HDS Filter Bar for its toolbar, so drop the
    default header underline above it to avoid a doubled-up separator. */
 html[data-route='dc.peers.index'] .app-view > header .title {

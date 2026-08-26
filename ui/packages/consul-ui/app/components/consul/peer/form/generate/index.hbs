@@ -16,24 +16,47 @@
     {{#let (dom-guid) as |id reset|}}
       <form {{on "submit" (fn fsm.dispatch "LOAD")}} id={{id}}>
 
-        <fsm.State @matches={{array "idle" "error"}}>
-          <fsm.State @matches="error">
-            <Hds::Alert @type="inline" @color='critical' class='mb-3 mt-2' as |A|>
-              <A.Title>Error</A.Title>
-              <A.Description>{{fsm.state.context.error.message}}</A.Description>
-            </Hds::Alert>
-          </fsm.State>
-          {{yield
-            (hash
-              Fieldsets=(component
-                "consul/peer/form/generate/fieldsets" item=@item
-              )
-              Actions=(component
-                "consul/peer/form/generate/actions" item=@item id=id
+        <fsm.State @matches="error">
+          <Hds::Alert @type="inline" @color='critical' class='mb-3 mt-2' as |A|>
+            <A.Title>Error</A.Title>
+            <A.Description>{{fsm.state.context.error.message}}</A.Description>
+          </Hds::Alert>
+        </fsm.State>
+
+        {{! Regenerating an existing peer's token has no name/address fields
+            to fill in — it jumps straight to loading, so there's nothing to
+            keep showing. Creating a new peer does, and per Figma those
+            fields stay visible (filled in, behind the "Copy token" modal's
+            backdrop) rather than being swapped out once the token's ready —
+            so, unlike before, these aren't gated to only the idle/error
+            states. }}
+        {{yield
+          (hash
+            success=(state-matches fsm.state "success")
+            item=@item
+            Fieldsets=(if
+              (not @regenerate)
+              (component "consul/peer/form/generate/fieldsets" item=@item)
+            )
+            Actions=(if
+              (not (or @regenerate (state-matches fsm.state "success")))
+              (component
+                "consul/peer/form/generate/actions"
+                item=@item
+                id=id
+                onCancel=@onCancel
               )
             )
-          }}
-        </fsm.State>
+            TokenFieldsets=(if
+              (state-matches fsm.state "success")
+              (component
+                "consul/peer/form/token/fieldsets"
+                item=@item
+                token=fsm.state.context.PeeringToken
+              )
+            )
+          )
+        }}
 
         <fsm.State @matches="loading">
           <DataSource
@@ -48,31 +71,11 @@
               )
             }}
             @onchange={{queue
-              @onchange
+              (optional @onchange)
               (pick "data" (fn fsm.dispatch "SUCCESS"))
             }}
             @onerror={{queue (fn fsm.dispatch "ERROR")}}
           />
-        </fsm.State>
-
-        <fsm.State @matches="success">
-          {{yield
-            (hash
-              Fieldsets=(component
-                "consul/peer/form/token/fieldsets"
-                item=@item
-                token=fsm.state.context.PeeringToken
-                regenerate=@regenerate
-                onclick=(queue (set @item "Name" "") (fn fsm.dispatch "RESET"))
-              )
-              Actions=(component
-                "consul/peer/form/token/actions"
-                token=fsm.state.context.PeeringToken
-                item=@item
-                id=id
-              )
-            )
-          }}
         </fsm.State>
 
       </form>

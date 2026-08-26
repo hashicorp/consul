@@ -3,10 +3,15 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<Hds::Button
-  @text='Generate token'
-  form={{@id}}
-  type='submit'
-  disabled={{or (eq @item.Name.length 0)}}
-  ...attributes
-/>
+<Hds::ButtonSet ...attributes>
+  <Consul::Peer::Form::Cancel
+    @dirty={{or @item.Name @item.ServerExternalAddresses}}
+    @onconfirm={{@onCancel}}
+  />
+  <Hds::Button
+    @text='Generate token'
+    form={{@id}}
+    type='submit'
+    disabled={{not @item.Name}}
+  />
+</Hds::ButtonSet>

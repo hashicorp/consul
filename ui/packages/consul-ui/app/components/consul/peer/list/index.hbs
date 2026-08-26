@@ -4,13 +4,23 @@
 }}
 
 <div class="consul-peer-list" ...attributes>
+  {{! Default/initial ordering comes from the toolbar's Sort dropdown (data-layer
+      sort via DataCollection, see templates/dc/peers/index.hbs); no
+      @initialSortBy here so that upstream order isn't immediately overridden.
+      Column headers remain independently clickable for in-table sorting. }}
   <Consul::DataTable
     @items={{@items}}
     @columns={{this.columns}}
     @ariaLabel="Peers"
-    @initialSortBy="state"
-    @initialSortOrder="asc"
+    @card={{true}}
   >
+    {{! Passed straight through from the caller so the toolbar renders inside
+        .consul-data-table__card, forming one card with the table below it
+        (matching Consul::Partition::List::Table's pattern) instead of
+        floating above it with no background of its own. }}
+    <:toolbar>
+      {{yield to="toolbar"}}
+    </:toolbar>
     <:row as |item B|>
       {{! ---- Peer name ---- }}
       <B.Td>
@@ -56,8 +66,10 @@
       </B.Td>
 
       {{! ---- Actions ---- }}
+      {{! A peer already being deleted has nothing left to act on (per Figma,
+          the Actions cell is blank for a Deleting row). }}
       <B.Td @align="right">
-        {{#if (can "delete peer" item=item)}}
+        {{#if (and (can "delete peer" item=item) (not-eq item.State "DELETING"))}}
           <Hds::Dropdown @listPosition="bottom-right" class="consul-peer-list__actions" as |dd|>
             <dd.ToggleIcon
               @icon="more-horizontal"

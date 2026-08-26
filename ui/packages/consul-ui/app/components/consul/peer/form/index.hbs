@@ -9,21 +9,29 @@
     as |fsm|
   >
 
-    <TabNav
-      @items={{array
-        (hash
-          label=(t "components.consul.peer.form.generate-label")
-          selected=(state-matches fsm.state "generate")
-          state="GENERATE"
-        )
-        (hash
-          label=(t "components.consul.peer.form.establish-label")
-          selected=(state-matches fsm.state "initiate")
-          state="INITIATE"
-        )
-      }}
-      @onTabClicked={{pick "state" fsm.dispatch}}
-    />
+    {{! Tab order (Generate token, Establish peering) must match
+        consul/peer/form/index.js's TAB_EVENTS. Hds::Tabs requires one Panel
+        per Tab, but its panels stay mounted (just `hidden`) rather than
+        being torn down on switch, which would leave both tabs' same-named
+        form fields in the DOM at once. So Hds::Tabs only drives the tab
+        buttons here (its Panels are left empty) — the actual tab content
+        below is still gated by fsm.State, exactly as before, so only the
+        active tab is ever mounted. }}
+    <Hds::Tabs
+      @selectedTabIndex={{if (state-matches fsm.state "initiate") 1 0}}
+      @onClickTab={{fn this.onClickTab fsm.dispatch}}
+      as |T|
+    >
+      <T.Tab data-test-tab="generate">
+        {{t "components.consul.peer.form.generate-label"}}
+      </T.Tab>
+      <T.Tab data-test-tab="initiate">
+        {{t "components.consul.peer.form.establish-label"}}
+      </T.Tab>
+
+      <T.Panel />
+      <T.Panel />
+    </Hds::Tabs>
 
     <fsm.State @matches={{array "generate"}}>
 
@@ -32,7 +40,11 @@
         as |source|
       >
         {{yield
-          (hash Form=(component "consul/peer/form/generate" item=source.data))
+          (hash
+            Form=(component
+              "consul/peer/form/generate" item=source.data onCancel=@onCancel
+            )
+          )
         }}
       </DataSource>
 
@@ -45,7 +57,14 @@
         as |source|
       >
         {{yield
-          (hash Form=(component "consul/peer/form/initiate" item=source.data))
+          (hash
+            Form=(component
+              "consul/peer/form/initiate"
+              item=source.data
+              onCancel=@onCancel
+              onsubmit=@onSubmit
+            )
+          )
         }}
       </DataSource>
 
