@@ -4013,7 +4013,7 @@ func apiGatewayRouteServices(
 	entMeta *acl.EnterpriseMeta,
 ) ([]structs.ServiceName, []string, error) {
 	routeEntMeta := routeRef.EnterpriseMeta
-	if routeEntMeta.PartitionOrDefault() == "" && routeEntMeta.NamespaceOrDefault() == "" {
+	if entMeta != nil && routeEntMeta.PartitionOrEmpty() == "" && routeEntMeta.NamespaceOrEmpty() == "" {
 		routeEntMeta = *entMeta
 	}
 
