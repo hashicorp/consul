@@ -349,13 +349,11 @@ func TestACL_vetServiceRegister_bootstrapEscapeHatch(t *testing.T) {
 	err = a.vetServiceRegisterWithAuthorizer(authzServiceOnly, normalSidecar)
 	require.NoError(t, err)
 
-	// Verify each escape-hatch key individually triggers the mesh:write requirement.
+	// Verify each Proxy.Config escape-hatch key individually triggers the mesh:write requirement.
 	for _, key := range []string{
 		"envoy_bootstrap_json_tpl",
 		"envoy_extra_static_listeners_json",
 		"envoy_public_listener_json",
-		"envoy_listener_json",
-		"envoy_cluster_json",
 		"envoy_local_cluster_json",
 		"envoy_extra_static_clusters_json",
 		"envoy_extra_stats_sinks_json",
@@ -379,6 +377,32 @@ func TestACL_vetServiceRegister_bootstrapEscapeHatch(t *testing.T) {
 
 			err = a.vetServiceRegisterWithAuthorizer(authzWithMesh, svc)
 			require.NoError(t, err, "key %q: expected success with mesh:write", key)
+		})
+	}
+
+	// envoy_listener_json and envoy_cluster_json live in upstream Config maps, not Proxy.Config.
+	for _, key := range []string{"envoy_listener_json", "envoy_cluster_json"} {
+		t.Run("upstream/"+key, func(t *testing.T) {
+			svc := &structs.NodeService{
+				ID:      "web-sidecar-proxy",
+				Service: "web-sidecar-proxy",
+				Kind:    structs.ServiceKindConnectProxy,
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "web",
+					Upstreams: structs.Upstreams{
+						{
+							DestinationName: "backend",
+							Config:          map[string]interface{}{key: `{}`},
+						},
+					},
+				},
+			}
+			err := a.vetServiceRegisterWithAuthorizer(authzServiceOnly, svc)
+			require.Error(t, err, "upstream key %q: expected denial without mesh:write", key)
+			require.True(t, acl.IsErrPermissionDenied(err), "upstream key %q: expected permission denied, got: %v", key, err)
+
+			err = a.vetServiceRegisterWithAuthorizer(authzWithMesh, svc)
+			require.NoError(t, err, "upstream key %q: expected success with mesh:write", key)
 		})
 	}
 }

@@ -100,6 +100,20 @@ func (a *Agent) vetServiceRegisterWithAuthorizer(authz acl.Authorizer, service *
 		}
 	}
 
+	// envoy_listener_json and envoy_cluster_json live in per-upstream Config maps
+	// (not in the top-level Proxy.Config) and are injected verbatim into xDS
+	// listener/cluster resources for that upstream. Check all upstream configs too.
+	for i := range service.Proxy.Upstreams {
+		for key := range service.Proxy.Upstreams[i].Config {
+			if bootstrapEscapeHatchKeys[key] {
+				if err := authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext); err != nil {
+					return fmt.Errorf("mesh:write required to set bootstrap escape-hatch upstream Config key %q: %w", key, err)
+				}
+				break
+			}
+		}
+	}
+
 	return nil
 }
 
