@@ -92,9 +92,6 @@ html[data-route$='edit'] .app-view > header + div > *:first-child {
   border-top-width: 0 !important;
 }
 
-.consul-upstream-instance-list {
-  margin-top: 0 !important;
-}
 /* turn off top borders for things flush up to a filter bar */
 html[data-route='dc.services.index'] .consul-service-list ul,
 .consul-service-instance-list ul,
