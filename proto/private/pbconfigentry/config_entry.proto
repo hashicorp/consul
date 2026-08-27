@@ -726,6 +726,7 @@ message UpstreamLimits {
   int32 MaxPendingRequests = 2;
   // mog: func-to=pointerToIntFromInt32 func-from=int32FromPointerToInt
   int32 MaxConcurrentRequests = 3;
+  PassiveHealthCheck PassiveHealthCheck = 4;
 }
 
 // mog annotation:

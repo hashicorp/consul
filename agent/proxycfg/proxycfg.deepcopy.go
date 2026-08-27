@@ -399,6 +399,34 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 				cp.GatewayConfig.Defaults.MaxConcurrentRequests = new(int)
 				*cp.GatewayConfig.Defaults.MaxConcurrentRequests = *o.GatewayConfig.Defaults.MaxConcurrentRequests
 			}
+			if o.GatewayConfig.Defaults.PassiveHealthCheck != nil {
+				cp.GatewayConfig.Defaults.PassiveHealthCheck = new(structs.PassiveHealthCheck)
+				*cp.GatewayConfig.Defaults.PassiveHealthCheck = *o.GatewayConfig.Defaults.PassiveHealthCheck
+				if o.GatewayConfig.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx != nil {
+					cp.GatewayConfig.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx = new(uint32)
+					*cp.GatewayConfig.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx = *o.GatewayConfig.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx
+				}
+				if o.GatewayConfig.Defaults.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure != nil {
+					cp.GatewayConfig.Defaults.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure = new(uint32)
+					*cp.GatewayConfig.Defaults.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure = *o.GatewayConfig.Defaults.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure
+				}
+				if o.GatewayConfig.Defaults.PassiveHealthCheck.Consecutive5xx != nil {
+					cp.GatewayConfig.Defaults.PassiveHealthCheck.Consecutive5xx = new(uint32)
+					*cp.GatewayConfig.Defaults.PassiveHealthCheck.Consecutive5xx = *o.GatewayConfig.Defaults.PassiveHealthCheck.Consecutive5xx
+				}
+				if o.GatewayConfig.Defaults.PassiveHealthCheck.ConsecutiveGatewayFailure != nil {
+					cp.GatewayConfig.Defaults.PassiveHealthCheck.ConsecutiveGatewayFailure = new(uint32)
+					*cp.GatewayConfig.Defaults.PassiveHealthCheck.ConsecutiveGatewayFailure = *o.GatewayConfig.Defaults.PassiveHealthCheck.ConsecutiveGatewayFailure
+				}
+				if o.GatewayConfig.Defaults.PassiveHealthCheck.MaxEjectionPercent != nil {
+					cp.GatewayConfig.Defaults.PassiveHealthCheck.MaxEjectionPercent = new(uint32)
+					*cp.GatewayConfig.Defaults.PassiveHealthCheck.MaxEjectionPercent = *o.GatewayConfig.Defaults.PassiveHealthCheck.MaxEjectionPercent
+				}
+				if o.GatewayConfig.Defaults.PassiveHealthCheck.BaseEjectionTime != nil {
+					cp.GatewayConfig.Defaults.PassiveHealthCheck.BaseEjectionTime = new(time.Duration)
+					*cp.GatewayConfig.Defaults.PassiveHealthCheck.BaseEjectionTime = *o.GatewayConfig.Defaults.PassiveHealthCheck.BaseEjectionTime
+				}
+			}
 		}
 		if o.GatewayConfig.ExtAuthz != nil {
 			cp.GatewayConfig.ExtAuthz = new(structs.APIGatewayExtAuthz)
@@ -812,6 +840,34 @@ func (o *configSnapshotMeshGateway) DeepCopy() *configSnapshotMeshGateway {
 		if o.Limits.MaxConcurrentRequests != nil {
 			cp.Limits.MaxConcurrentRequests = new(int)
 			*cp.Limits.MaxConcurrentRequests = *o.Limits.MaxConcurrentRequests
+		}
+		if o.Limits.PassiveHealthCheck != nil {
+			cp.Limits.PassiveHealthCheck = new(structs.PassiveHealthCheck)
+			*cp.Limits.PassiveHealthCheck = *o.Limits.PassiveHealthCheck
+			if o.Limits.PassiveHealthCheck.EnforcingConsecutive5xx != nil {
+				cp.Limits.PassiveHealthCheck.EnforcingConsecutive5xx = new(uint32)
+				*cp.Limits.PassiveHealthCheck.EnforcingConsecutive5xx = *o.Limits.PassiveHealthCheck.EnforcingConsecutive5xx
+			}
+			if o.Limits.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure != nil {
+				cp.Limits.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure = new(uint32)
+				*cp.Limits.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure = *o.Limits.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure
+			}
+			if o.Limits.PassiveHealthCheck.Consecutive5xx != nil {
+				cp.Limits.PassiveHealthCheck.Consecutive5xx = new(uint32)
+				*cp.Limits.PassiveHealthCheck.Consecutive5xx = *o.Limits.PassiveHealthCheck.Consecutive5xx
+			}
+			if o.Limits.PassiveHealthCheck.ConsecutiveGatewayFailure != nil {
+				cp.Limits.PassiveHealthCheck.ConsecutiveGatewayFailure = new(uint32)
+				*cp.Limits.PassiveHealthCheck.ConsecutiveGatewayFailure = *o.Limits.PassiveHealthCheck.ConsecutiveGatewayFailure
+			}
+			if o.Limits.PassiveHealthCheck.MaxEjectionPercent != nil {
+				cp.Limits.PassiveHealthCheck.MaxEjectionPercent = new(uint32)
+				*cp.Limits.PassiveHealthCheck.MaxEjectionPercent = *o.Limits.PassiveHealthCheck.MaxEjectionPercent
+			}
+			if o.Limits.PassiveHealthCheck.BaseEjectionTime != nil {
+				cp.Limits.PassiveHealthCheck.BaseEjectionTime = new(time.Duration)
+				*cp.Limits.PassiveHealthCheck.BaseEjectionTime = *o.Limits.PassiveHealthCheck.BaseEjectionTime
+			}
 		}
 	}
 	return &cp
