@@ -670,6 +670,9 @@ func apiGatewayEffectiveUpstreamLimits(defaults, service *structs.UpstreamLimits
 		if service.MaxConcurrentRequests != nil {
 			effective.MaxConcurrentRequests = intPointer(*service.MaxConcurrentRequests)
 		}
+		if service.PassiveHealthCheck != nil {
+			effective.PassiveHealthCheck = service.PassiveHealthCheck.Clone()
+		}
 	}
 
 	if effective.IsZero() {
