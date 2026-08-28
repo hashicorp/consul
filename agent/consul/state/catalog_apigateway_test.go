@@ -198,4 +198,3 @@ func TestStateStore_GatewayServices_APIGateway_MultiRoute(t *testing.T) {
 	require.Equal(t, 9000, byService["tcp-backend"].Port)
 	require.Equal(t, "tcp", byService["tcp-backend"].Protocol)
 }
-

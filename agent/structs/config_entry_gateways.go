@@ -1311,8 +1311,8 @@ func (e *BoundAPIGatewayConfigEntry) ListRelatedServices() []ServiceID {
 // It also carries the listener configuration fields from the parent
 // APIGatewayListener so that consumers only need to hold a single struct.
 type BoundAPIGatewayListener struct {
-	Name     string
-	Routes   []ResourceReference
+	Name   string
+	Routes []ResourceReference
 	// Certificates is the set of inline/filesystem certificates that have
 	// been validated and bound to this listener by the controller.
 	Certificates []ResourceReference

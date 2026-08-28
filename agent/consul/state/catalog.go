@@ -1301,7 +1301,6 @@ func terminatingGatewayVirtualIPsSupported(tx ReadTxn, ws memdb.WatchSet) (bool,
 	return entry.Value != "", nil
 }
 
-
 // Services returns all services along with a list of associated tags.
 func (s *Store) Services(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta, peerName string, joinServiceNodes bool) (uint64, structs.ServiceNodes, error) {
 	tx := s.db.Txn(false)

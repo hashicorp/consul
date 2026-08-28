@@ -477,7 +477,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 				// HTTP/1.1) and so the chain protocol matches the synthesized chain
 				// used for route generation (avoiding a cluster-name mismatch).
 				chainProtocol := string(structs.ListenerProtocolHTTP)
-	
+
 				for _, listener := range snap.APIGateway.BoundListeners {
 					shouldBind := false
 					for _, parent := range route.Parents {
@@ -489,7 +489,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 					if !shouldBind {
 						continue
 					}
-	
+
 					// Use the listener's protocol (http, http2, or grpc) for the
 					// upstream so the gateway -> service hop matches the listener.
 					listenerProtocol := string(listener.Protocol)
@@ -499,13 +499,13 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 					if listenerProtocol != string(structs.ListenerProtocolHTTP) || chainProtocol == string(structs.ListenerProtocolHTTP) {
 						chainProtocol = listenerProtocol
 					}
-	
+
 					upstreamCfg := map[string]interface{}{}
 					structs.UpstreamConfig{
 						Protocol: listenerProtocol,
 						Limits:   effectiveLimits,
 					}.MergeInto(upstreamCfg)
-	
+
 					upstream := structs.Upstream{
 						DestinationName:      service.Name,
 						DestinationNamespace: service.NamespaceOrDefault(),
@@ -524,7 +524,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 					listenerKey := APIGatewayListenerKeyFromBoundListener(listener)
 					upstreams[listenerKey] = append(upstreams[listenerKey], upstream)
 				}
-	
+
 				upstreamID := NewUpstreamIDFromServiceName(service.ServiceName())
 				seenUpstreamIDs[upstreamID] = struct{}{}
 
@@ -569,13 +569,13 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 				if !shouldBind {
 					continue
 				}
-	
+
 				upstreamCfg := map[string]interface{}{}
 				structs.UpstreamConfig{
 					Protocol: "tcp",
 					Limits:   effectiveLimits,
 				}.MergeInto(upstreamCfg)
-	
+
 				upstream := structs.Upstream{
 					DestinationName:      service.Name,
 					DestinationNamespace: service.NamespaceOrDefault(),
@@ -586,7 +586,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 					Config:      upstreamCfg,
 					MeshGateway: meshGatewayConfig,
 				}
-	
+
 				listenerKey := APIGatewayListenerKeyFromBoundListener(listener)
 				upstreams[listenerKey] = append(upstreams[listenerKey], upstream)
 			}
