@@ -6004,12 +6004,22 @@ func (x *ListOfResourceReference) GetRef() []*ResourceReference {
 // output=config_entry.gen.go
 // name=Structs
 type BoundAPIGatewayListener struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=Name,proto3" json:"Name,omitempty"`
-	Certificates  []*ResourceReference   `protobuf:"bytes,2,rep,name=Certificates,proto3" json:"Certificates,omitempty"`
-	Routes        []*ResourceReference   `protobuf:"bytes,3,rep,name=Routes,proto3" json:"Routes,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	Name         string                 `protobuf:"bytes,1,opt,name=Name,proto3" json:"Name,omitempty"`
+	Certificates []*ResourceReference   `protobuf:"bytes,2,rep,name=Certificates,proto3" json:"Certificates,omitempty"`
+	Routes       []*ResourceReference   `protobuf:"bytes,3,rep,name=Routes,proto3" json:"Routes,omitempty"`
+	// Fields copied from APIGatewayListener by the controller at reconcile time.
+	Hostname string `protobuf:"bytes,4,opt,name=Hostname,proto3" json:"Hostname,omitempty"`
+	// mog: func-to=int func-from=int32
+	Port int32 `protobuf:"varint,5,opt,name=Port,proto3" json:"Port,omitempty"`
+	// mog: func-to=apiGatewayProtocolToStructs func-from=apiGatewayProtocolFromStructs
+	Protocol            APIGatewayListenerProtocol  `protobuf:"varint,6,opt,name=Protocol,proto3,enum=hashicorp.consul.internal.configentry.APIGatewayListenerProtocol" json:"Protocol,omitempty"`
+	TLS                 *APIGatewayTLSConfiguration `protobuf:"bytes,7,opt,name=TLS,proto3" json:"TLS,omitempty"`
+	Override            *APIGatewayPolicy           `protobuf:"bytes,8,opt,name=Override,proto3" json:"Override,omitempty"`
+	Default             *APIGatewayPolicy           `protobuf:"bytes,9,opt,name=Default,proto3" json:"Default,omitempty"`
+	MaxRequestHeadersKB *uint32                     `protobuf:"varint,10,opt,name=MaxRequestHeadersKB,proto3,oneof" json:"MaxRequestHeadersKB,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *BoundAPIGatewayListener) Reset() {
@@ -6061,6 +6071,55 @@ func (x *BoundAPIGatewayListener) GetRoutes() []*ResourceReference {
 		return x.Routes
 	}
 	return nil
+}
+
+func (x *BoundAPIGatewayListener) GetHostname() string {
+	if x != nil {
+		return x.Hostname
+	}
+	return ""
+}
+
+func (x *BoundAPIGatewayListener) GetPort() int32 {
+	if x != nil {
+		return x.Port
+	}
+	return 0
+}
+
+func (x *BoundAPIGatewayListener) GetProtocol() APIGatewayListenerProtocol {
+	if x != nil {
+		return x.Protocol
+	}
+	return APIGatewayListenerProtocol_ListenerProtocolHTTP
+}
+
+func (x *BoundAPIGatewayListener) GetTLS() *APIGatewayTLSConfiguration {
+	if x != nil {
+		return x.TLS
+	}
+	return nil
+}
+
+func (x *BoundAPIGatewayListener) GetOverride() *APIGatewayPolicy {
+	if x != nil {
+		return x.Override
+	}
+	return nil
+}
+
+func (x *BoundAPIGatewayListener) GetDefault() *APIGatewayPolicy {
+	if x != nil {
+		return x.Default
+	}
+	return nil
+}
+
+func (x *BoundAPIGatewayListener) GetMaxRequestHeadersKB() uint32 {
+	if x != nil && x.MaxRequestHeadersKB != nil {
+		return *x.MaxRequestHeadersKB
+	}
+	return 0
 }
 
 // mog annotation:
