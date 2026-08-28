@@ -66,9 +66,16 @@ func TestGenerateAPIGatewayDNSSANs(t *testing.T) {
 				Port:     8080,
 				Hostname: "listener.example.com",
 			}}
+			// BoundAPIGatewayListener carries a copy of the api-gateway listener
+			// config fields (populated by the controller at reconcile time), so
+			// the test must mirror that copy for generateAPIGatewayDNSSANs to see
+			// the listener hostname.
 			bound.Listeners = []structs.BoundAPIGatewayListener{{
-				Name:   "http-listener",
-				Routes: []structs.ResourceReference{ref},
+				Name:     "http-listener",
+				Protocol: structs.ListenerProtocolHTTP,
+				Port:     8080,
+				Hostname: "listener.example.com",
+				Routes:   []structs.ResourceReference{ref},
 			}}
 		}, []structs.BoundRoute{route}, nil, nil)
 
@@ -159,7 +166,7 @@ func TestWatchIngressLeafCert_RewatchOnSANChange(t *testing.T) {
 func newTestAPIGatewaySnapshot() *ConfigSnapshot {
 	snap := &ConfigSnapshot{Kind: structs.ServiceKindAPIGateway}
 	snap.APIGateway.GatewayConfigLoaded = true
-	snap.APIGateway.Listeners = map[string]structs.APIGatewayListener{}
+	snap.APIGateway.BoundListeners = map[string]structs.BoundAPIGatewayListener{}
 	snap.APIGateway.Upstreams = make(listenerRouteUpstreams)
 	snap.APIGateway.HTTPRoutes = watch.NewMap[structs.ResourceReference, *structs.HTTPRouteConfigEntry]()
 	return snap

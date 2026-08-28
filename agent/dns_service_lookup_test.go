@@ -679,12 +679,10 @@ func TestDNS_IngressServiceLookup(t *testing.T) {
 // gateway resolves at "<service>.api-gateway.consul" to the gateway node, the
 // API gateway analog of TestDNS_IngressServiceLookup.
 //
-// Unlike the ingress test (which lets the config-entry write inline-populate the
-// gateway-services table), the API gateway mapping is normally materialized by
-// the API gateway controller from the bound-api-gateway entry. To keep this test
-// deterministic and independent of controller timing, the required state — the
-// cluster-wide feature flag, the gateway service instance, and the
-// api-gateway/http-route/bound-api-gateway config entries — is written directly
+// The API gateway mapping is materialized by the controller from the
+// bound-api-gateway entry. To keep this test deterministic and independent of
+// controller timing, the gateway service instance and the
+// api-gateway/http-route/bound-api-gateway config entries are written directly
 // to the server's state store.
 func TestDNS_APIGatewayServiceLookup(t *testing.T) {
 	if testing.Short() {
@@ -705,14 +703,6 @@ func TestDNS_APIGatewayServiceLookup(t *testing.T) {
 	// the current table contents regardless.
 	var idx uint64
 	next := func() uint64 { idx++; return idx }
-
-	// Enable the cluster-wide API gateway DNS feature flag directly instead of
-	// waiting for the leader's version-check routine, so the gateway-services
-	// mappings are materialized deterministically.
-	require.NoError(t, store.SystemMetadataSet(next(), &structs.SystemMetadataEntry{
-		Key:   structs.SystemMetadataAPIGatewayDNSEnabled,
-		Value: "true",
-	}))
 
 	// Register a node hosting the API gateway service instance. Its node address
 	// is what DNS returns for the fronted service.

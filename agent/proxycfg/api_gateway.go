@@ -65,7 +65,6 @@ func (h *handlerAPIGateway) initialize(ctx context.Context) (ConfigSnapshot, err
 		return snap, err
 	}
 
-	snap.APIGateway.Listeners = make(map[string]structs.APIGatewayListener)
 	snap.APIGateway.BoundListeners = make(map[string]structs.BoundAPIGatewayListener)
 	snap.APIGateway.HTTPRoutes = watch.NewMap[structs.ResourceReference, *structs.HTTPRouteConfigEntry]()
 	snap.APIGateway.TCPRoutes = watch.NewMap[structs.ResourceReference, *structs.TCPRouteConfigEntry]()
@@ -255,6 +254,22 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 
 		seenRefs := make(map[structs.ResourceReference]any)
 		for _, listener := range gwConf.Listeners {
+			// The controller copies Port/Protocol/Hostname from the APIGatewayListener
+			// into BoundAPIGatewayListener at reconcile time. If this BoundAPIGateway
+			// snapshot arrived before the controller has run (Port==0), and we already
+			// have the APIGatewayConfigEntry, heal the missing fields from it so that
+			// xDS generation is not blocked on a second reconcile cycle.
+			if listener.Port == 0 && snap.APIGateway.GatewayConfig != nil {
+				for _, gwListener := range snap.APIGateway.GatewayConfig.Listeners {
+					if gwListener.Name == listener.Name {
+						listener.Port = gwListener.Port
+						listener.Protocol = gwListener.Protocol
+						listener.Hostname = gwListener.Hostname
+						listener.TLS = gwListener.TLS
+						break
+					}
+				}
+			}
 			snap.APIGateway.BoundListeners[listener.Name] = listener
 
 			// Subscribe to changes in each attached x-route config entry
@@ -343,26 +358,23 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 		})
 
 		snap.APIGateway.BoundGatewayConfigLoaded = true
+
+		// BoundListeners and route hostnames just changed — re-evaluate the
+		// leaf cert SANs. The SAN-equality guard inside watchIngressLeafCert
+		// makes this a no-op when nothing actually changed.
+		return h.watchIngressLeafCert(ctx, snap)
+
 	case *structs.APIGatewayConfigEntry:
 		snap.APIGateway.GatewayConfig = gwConf
 		snap.APIGateway.TLSConfig = gwConf.TLS
-
-		for _, listener := range gwConf.Listeners {
-			snap.APIGateway.Listeners[listener.Name] = listener
-		}
-
 		snap.APIGateway.GatewayConfigLoaded = true
 
 		// Watch the corresponding bound-api-gateway config entry
-		err := h.subscribeToConfigEntry(ctx, structs.BoundAPIGateway, h.service, h.proxyID.EnterpriseMeta, boundGatewayConfigWatchID)
-		if err != nil {
-			return err
-		}
+		return h.subscribeToConfigEntry(ctx, structs.BoundAPIGateway, h.service, h.proxyID.EnterpriseMeta, boundGatewayConfigWatchID)
+
 	default:
 		return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
 	}
-
-	return h.watchIngressLeafCert(ctx, snap)
 }
 
 func (h *handlerAPIGateway) handleFileSystemCertConfigUpdate(_ context.Context, u UpdateEvent, snap *ConfigSnapshot) error {
@@ -465,11 +477,11 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 				// HTTP/1.1) and so the chain protocol matches the synthesized chain
 				// used for route generation (avoiding a cluster-name mismatch).
 				chainProtocol := string(structs.ListenerProtocolHTTP)
-
-				for _, listener := range snap.APIGateway.Listeners {
+	
+				for _, listener := range snap.APIGateway.BoundListeners {
 					shouldBind := false
 					for _, parent := range route.Parents {
-						if h.referenceIsForListener(parent, listener, snap) {
+						if h.referenceIsForBoundListener(parent, listener, snap) {
 							shouldBind = true
 							break
 						}
@@ -477,7 +489,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 					if !shouldBind {
 						continue
 					}
-
+	
 					// Use the listener's protocol (http, http2, or grpc) for the
 					// upstream so the gateway -> service hop matches the listener.
 					listenerProtocol := string(listener.Protocol)
@@ -487,13 +499,13 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 					if listenerProtocol != string(structs.ListenerProtocolHTTP) || chainProtocol == string(structs.ListenerProtocolHTTP) {
 						chainProtocol = listenerProtocol
 					}
-
+	
 					upstreamCfg := map[string]interface{}{}
 					structs.UpstreamConfig{
 						Protocol: listenerProtocol,
 						Limits:   effectiveLimits,
 					}.MergeInto(upstreamCfg)
-
+	
 					upstream := structs.Upstream{
 						DestinationName:      service.Name,
 						DestinationNamespace: service.NamespaceOrDefault(),
@@ -509,10 +521,10 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 						MeshGateway: meshGatewayConfig,
 					}
 
-					listenerKey := APIGatewayListenerKeyFromListener(listener)
+					listenerKey := APIGatewayListenerKeyFromBoundListener(listener)
 					upstreams[listenerKey] = append(upstreams[listenerKey], upstream)
 				}
-
+	
 				upstreamID := NewUpstreamIDFromServiceName(service.ServiceName())
 				seenUpstreamIDs[upstreamID] = struct{}{}
 
@@ -546,10 +558,10 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 			seenUpstreamIDs.add(upstreamID)
 
 			// For each listener, check if this route should bind and, if so, create an upstream.
-			for _, listener := range snap.APIGateway.Listeners {
+			for _, listener := range snap.APIGateway.BoundListeners {
 				shouldBind := false
 				for _, parent := range route.Parents {
-					if h.referenceIsForListener(parent, listener, snap) {
+					if h.referenceIsForBoundListener(parent, listener, snap) {
 						shouldBind = true
 						break
 					}
@@ -557,13 +569,13 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 				if !shouldBind {
 					continue
 				}
-
+	
 				upstreamCfg := map[string]interface{}{}
 				structs.UpstreamConfig{
 					Protocol: "tcp",
 					Limits:   effectiveLimits,
 				}.MergeInto(upstreamCfg)
-
+	
 				upstream := structs.Upstream{
 					DestinationName:      service.Name,
 					DestinationNamespace: service.NamespaceOrDefault(),
@@ -574,8 +586,8 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 					Config:      upstreamCfg,
 					MeshGateway: meshGatewayConfig,
 				}
-
-				listenerKey := APIGatewayListenerKeyFromListener(listener)
+	
+				listenerKey := APIGatewayListenerKeyFromBoundListener(listener)
 				upstreams[listenerKey] = append(upstreams[listenerKey], upstream)
 			}
 
@@ -674,16 +686,19 @@ func intPointer(v int) *int {
 func (h *handlerAPIGateway) recompileDiscoveryChains(snap *ConfigSnapshot) error {
 	synthesizedChains := map[UpstreamID]*structs.CompiledDiscoveryChain{}
 
-	for name, listener := range snap.APIGateway.Listeners {
-		boundListener, ok := snap.APIGateway.BoundListeners[name]
-		if !ok || !snap.APIGateway.GatewayConfig.ListenerIsReady(name) {
-			// Skip any listeners that don't have a bound listener. Once the bound listener is created, this will be run again.
-			// skip any listeners that might be in an invalid state
+	for name, boundListener := range snap.APIGateway.BoundListeners {
+		// Skip incomplete listeners (Port==0 or Protocol=="") that haven't been
+		// reconciled by the controller yet — same guard as getReadyListeners.
+		if boundListener.Port == 0 || boundListener.Protocol == "" {
+			continue
+		}
+		if !snap.APIGateway.GatewayConfig.ListenerIsReady(name) {
+			// Skip any listeners that might be in an invalid state.
 			continue
 		}
 
 		// Create a synthesized discovery chain for each service.
-		services, upstreams, compiled, err := snap.APIGateway.synthesizeChains(h.source.Datacenter, listener, boundListener)
+		services, upstreams, compiled, err := snap.APIGateway.synthesizeChains(h.source.Datacenter, boundListener)
 		if err != nil {
 			return err
 		}
@@ -711,14 +726,12 @@ func (h *handlerAPIGateway) recompileDiscoveryChains(snap *ConfigSnapshot) error
 	return nil
 }
 
-// referenceIsForListener returns whether the provided structs.ResourceReference
-// targets the provided structs.APIGatewayListener. For this to be true, the kind
+// referenceIsForBoundListener returns whether the provided structs.ResourceReference
+// targets the provided structs.BoundAPIGatewayListener. For this to be true, the kind
 // and name must match the structs.APIGatewayConfigEntry containing the listener,
 // and the reference must specify either no section name or the name of the listener
 // as the section name.
-//
-// TODO This would probably be more generally useful as a helper in the structs pkg
-func (h *handlerAPIGateway) referenceIsForListener(ref structs.ResourceReference, listener structs.APIGatewayListener, snap *ConfigSnapshot) bool {
+func (h *handlerAPIGateway) referenceIsForBoundListener(ref structs.ResourceReference, listener structs.BoundAPIGatewayListener, snap *ConfigSnapshot) bool {
 	if ref.Kind != structs.APIGateway && ref.Kind != "" {
 		return false
 	}
@@ -737,10 +750,9 @@ func (h *handlerAPIGateway) watchIngressLeafCert(ctx context.Context, snap *Conf
 
 	// Compute the desired DNS SANs for the leaf cert. If a watch is already
 	// established with an identical (sorted) SAN set, there's nothing to do —
-	// re-establishing it would needlessly churn the certificate. This guard lets
-	// us safely call watchIngressLeafCert from both gateway-config and route
-	// updates (route hostnames contribute SANs but arrive after the gateway
-	// config has settled).
+	// re-establishing it would needlessly churn the certificate. This guard makes
+	// it safe to call watchIngressLeafCert from both bound-gateway-config and
+	// route updates without issuing redundant cert requests.
 	dnsSANs := h.generateAPIGatewayDNSSANs(snap)
 	if snap.APIGateway.LeafCertWatchCancel != nil && stringslice.Equal(snap.APIGateway.LeafCertDNSSANs, dnsSANs) {
 		return nil
@@ -830,9 +842,9 @@ func (h *handlerAPIGateway) generateAPIGatewayDNSSANs(snap *ConfigSnapshot) []st
 		}
 	}
 
-	// Add explicit hostnames declared on listeners and bound HTTP routes.
+	// Add explicit hostnames declared on bound listeners and bound HTTP routes.
 	hostSet := make(map[string]struct{})
-	for _, listener := range snap.APIGateway.Listeners {
+	for _, listener := range snap.APIGateway.BoundListeners {
 		if listener.Hostname != "" {
 			hostSet[listener.Hostname] = struct{}{}
 		}

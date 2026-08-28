@@ -778,10 +778,10 @@ type configSnapshotAPIGateway struct {
 	// (e.g. on unrelated route updates), preventing needless cert churn.
 	LeafCertDNSSANs []string
 
-	// Listeners is the original listener config from the api-gateway config
-	// entry to save us trying to pass fields through Upstreams
-	Listeners map[string]structs.APIGatewayListener
-
+	// BoundListeners is the reconciled listener state from the bound-api-gateway
+	// config entry. Each entry carries both the controller-managed route/cert
+	// bindings AND the operator-configured fields (Port, Protocol, TLS, etc.)
+	// copied from the corresponding APIGatewayListener at reconcile time.
 	BoundListeners map[string]structs.BoundAPIGatewayListener
 
 	// ComposeUpstreamRouting is the final committed feature decision captured
@@ -789,7 +789,7 @@ type configSnapshotAPIGateway struct {
 	ComposeUpstreamRouting bool
 }
 
-func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, listener structs.APIGatewayListener, boundListener structs.BoundAPIGatewayListener) ([]structs.IngressService, structs.Upstreams, []*structs.CompiledDiscoveryChain, error) {
+func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, boundListener structs.BoundAPIGatewayListener) ([]structs.IngressService, structs.Upstreams, []*structs.CompiledDiscoveryChain, error) {
 	chains := []*structs.CompiledDiscoveryChain{}
 
 	// We leverage the test trust domain knowing
@@ -814,16 +814,16 @@ DOMAIN_LOOP:
 		}
 	}
 
-	synthesizer := discoverychain.NewGatewayChainSynthesizer(datacenter, trustDomain, listener.Name, c.GatewayConfig)
+	synthesizer := discoverychain.NewGatewayChainSynthesizer(datacenter, trustDomain, boundListener.Name, c.GatewayConfig)
 	if c.ComposeUpstreamRouting {
 		synthesizer.EnableUpstreamRoutingComposition()
 	}
-	synthesizer.SetHostname(listener.GetHostname())
+	synthesizer.SetHostname(boundListener.GetHostname())
 	for _, routeRef := range boundListener.Routes {
 		switch routeRef.Kind {
 		case structs.HTTPRoute:
 			route, ok := c.HTTPRoutes.Get(routeRef)
-			if !ok || !structs.IsProtocolHTTPLike(string(listener.Protocol)) {
+			if !ok || !structs.IsProtocolHTTPLike(string(boundListener.Protocol)) {
 				continue
 			}
 			synthesizer.AddHTTPRoute(*route)
@@ -835,7 +835,7 @@ DOMAIN_LOOP:
 			}
 		case structs.TCPRoute:
 			route, ok := c.TCPRoutes.Get(routeRef)
-			if !ok || listener.Protocol != structs.ListenerProtocolTCP {
+			if !ok || boundListener.Protocol != structs.ListenerProtocolTCP {
 				continue
 			}
 			synthesizer.AddTCPRoute(*route)
@@ -867,9 +867,9 @@ DOMAIN_LOOP:
 			DestinationNamespace: service.NamespaceOrDefault(),
 			DestinationPartition: service.PartitionOrDefault(),
 			IngressHosts:         service.Hosts,
-			LocalBindPort:        listener.Port,
+			LocalBindPort:        boundListener.Port,
 			Config: map[string]interface{}{
-				"protocol": string(listener.Protocol),
+				"protocol": string(boundListener.Protocol),
 			},
 		})
 	}
@@ -952,6 +952,10 @@ func (c *configSnapshotIngressGateway) valid() bool {
 type APIGatewayListenerKey = IngressListenerKey
 
 func APIGatewayListenerKeyFromListener(l structs.APIGatewayListener) APIGatewayListenerKey {
+	return APIGatewayListenerKey{Protocol: string(l.Protocol), Port: l.Port}
+}
+
+func APIGatewayListenerKeyFromBoundListener(l structs.BoundAPIGatewayListener) APIGatewayListenerKey {
 	return APIGatewayListenerKey{Protocol: string(l.Protocol), Port: l.Port}
 }
 

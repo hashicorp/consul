@@ -1102,7 +1102,9 @@ func TestClustersFromSnapshotAPIGateway_HTTP2UpstreamDefault(t *testing.T) {
 					}
 					bound.Listeners = []structs.BoundAPIGatewayListener{
 						{
-							Name: "listener",
+							Name:     "listener",
+							Protocol: listenerProtocol,
+							Port:     8080,
 							Routes: []structs.ResourceReference{
 								{Name: "http-route", Kind: structs.HTTPRoute},
 							},

@@ -2707,7 +2707,7 @@ func makeListenerFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, err
 		fallthrough
 	default:
 		if opts.useRDS {
-			return nil, fmt.Errorf("RDS is not compatible with the tcp proxy filter")
+			return nil, fmt.Errorf("RDS is not compatible with the tcp proxy filter (protocol=%q filterName=%q cluster=%q)", opts.protocol, opts.filterName, opts.cluster)
 		} else if opts.cluster == "" {
 			return nil, fmt.Errorf("cluster name is required for a tcp proxy filter")
 		}

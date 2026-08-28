@@ -1301,19 +1301,6 @@ func terminatingGatewayVirtualIPsSupported(tx ReadTxn, ws memdb.WatchSet) (bool,
 	return entry.Value != "", nil
 }
 
-// apiGatewayDNSEnabled reports whether the cluster-wide flag that enables API
-// gateway DNS auto-registration has been set by the leader.
-func apiGatewayDNSEnabled(tx ReadTxn) (bool, error) {
-	_, entry, err := systemMetadataGetTxn(tx, nil, structs.SystemMetadataAPIGatewayDNSEnabled)
-	if err != nil {
-		return false, fmt.Errorf("failed system metadata lookup: %s", err)
-	}
-	if entry == nil {
-		return false, nil
-	}
-
-	return entry.Value != "", nil
-}
 
 // Services returns all services along with a list of associated tags.
 func (s *Store) Services(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta, peerName string, joinServiceNodes bool) (uint64, structs.ServiceNodes, error) {
@@ -3664,7 +3651,7 @@ func updateGatewayServices(tx WriteTxn, idx uint64, conf structs.ConfigEntry, en
 		noChange, gatewayServices, err = ingressConfigGatewayServices(tx, gateway, conf, entMeta)
 	case structs.TerminatingGateway:
 		noChange, gatewayServices, err = terminatingConfigGatewayServices(tx, gateway, conf, entMeta)
-	case structs.APIGateway, structs.BoundAPIGateway:
+	case structs.BoundAPIGateway:
 		noChange, gatewayServices, err = apiGatewayConfigGatewayServices(tx, gateway, conf, entMeta)
 	default:
 		return fmt.Errorf("config entry kind %q does not need gateway-services", conf.GetKind())
@@ -3865,76 +3852,28 @@ func ingressConfigGatewayServices(
 }
 
 // apiGatewayConfigGatewayServices constructs a list of GatewayService structs
-// for insertion into the memdb table, specific to API gateways. Unlike ingress
-// gateways, the set of services fronted by an API gateway is not declared in the
-// api-gateway config entry; it is resolved from the http-route / tcp-route config
-// entries that bind to the gateway, which the API gateway controller materializes
-// into the bound-api-gateway config entry. To build the gateway<->service mapping
-// we therefore need BOTH entries:
-//   - the api-gateway entry provides each listener's Port/Protocol/Hostname
-//   - the bound-api-gateway entry provides which routes bound to each listener
-//   - the route entries provide the target services (and custom hostnames)
-//
-// This function is invoked on writes to either entry; whichever one triggered the
-// update is provided as conf, and the other is read from the store. The boolean
-// returned indicates that there are no changes necessary to the memdb table.
+// for insertion into the memdb table, specific to API gateways. It is only
+// called on writes to the bound-api-gateway config entry, which the controller
+// materializes after reconciling routes. BoundAPIGatewayListener already carries
+// Port/Protocol/Hostname (copied from the api-gateway listener at reconcile
+// time), so no separate api-gateway entry lookup is needed. The boolean return
+// indicates that there are no changes necessary to the memdb table.
 func apiGatewayConfigGatewayServices(
 	tx ReadTxn,
 	gateway structs.ServiceName,
 	conf structs.ConfigEntry,
 	entMeta *acl.EnterpriseMeta,
 ) (bool, structs.GatewayServices, error) {
-	// Gate behavior on the cluster-wide feature flag. Until every server in the
-	// datacenter supports API gateway DNS (the leader sets this flag once that is
-	// true), we must NOT materialize mappings, otherwise mixed-version servers
-	// would diverge: new servers would create rows while old servers would not.
-	// Returning "no change" here is safe because the leader re-applies all bound
-	// gateways to backfill mappings at the moment it enables the flag.
-	enabled, err := apiGatewayDNSEnabled(tx)
-	if err != nil {
-		return false, nil, err
-	}
-	if !enabled {
-		return true, nil, nil
-	}
-
-	var apiGwConf *structs.APIGatewayConfigEntry
-	var boundConf *structs.BoundAPIGatewayConfigEntry
-
-	switch e := conf.(type) {
-	case *structs.APIGatewayConfigEntry:
-		apiGwConf = e
-		_, c, err := configEntryTxn(tx, nil, structs.BoundAPIGateway, conf.GetName(), entMeta)
-		if err != nil {
-			return false, nil, fmt.Errorf("failed to get bound-api-gateway config entry: %v", err)
-		}
-		if c != nil {
-			boundConf, _ = c.(*structs.BoundAPIGatewayConfigEntry)
-		}
-	case *structs.BoundAPIGatewayConfigEntry:
-		boundConf = e
-		_, c, err := configEntryTxn(tx, nil, structs.APIGateway, conf.GetName(), entMeta)
-		if err != nil {
-			return false, nil, fmt.Errorf("failed to get api-gateway config entry: %v", err)
-		}
-		if c != nil {
-			apiGwConf, _ = c.(*structs.APIGatewayConfigEntry)
-		}
-	default:
+	boundConf, ok := conf.(*structs.BoundAPIGatewayConfigEntry)
+	if !ok {
 		return false, nil, fmt.Errorf("unexpected config entry type: %T", conf)
 	}
 
-	// Build the desired set of gateway-service mappings. If either entry is missing
-	// (e.g. the api-gateway exists but no routes have bound yet, or vice versa) we
-	// fall through with an empty set, which truncates any stale mappings.
+	// Build the desired set of gateway-service mappings. If the bound entry is
+	// missing (no routes have bound yet) we fall through with an empty set,
+	// which truncates any stale mappings.
 	var gatewayServices structs.GatewayServices
-	if apiGwConf != nil && boundConf != nil {
-		// Index api-gateway listeners by name for port/protocol/hostname lookup.
-		listenersByName := make(map[string]structs.APIGatewayListener, len(apiGwConf.Listeners))
-		for _, l := range apiGwConf.Listeners {
-			listenersByName[l.Name] = l
-		}
-
+	if boundConf != nil {
 		// De-duplicate by (service, port) since a service may be targeted by
 		// multiple routes or bound on multiple listeners. We merge the hosts.
 		type svcKey struct {
@@ -3944,19 +3883,15 @@ func apiGatewayConfigGatewayServices(
 		seen := make(map[svcKey]*structs.GatewayService)
 
 		for _, boundListener := range boundConf.Listeners {
-			listener, ok := listenersByName[boundListener.Name]
-			if !ok {
-				// Bound listener with no matching api-gateway listener; skip.
-				continue
-			}
+			// BoundAPIGatewayListener carries Port/Protocol/Hostname copied
+			// from the api-gateway listener by the controller at reconcile time.
+			protocol := string(boundListener.Protocol)
 
-			protocol := string(listener.Protocol)
-
-			// Listener-level hostname (if any, and not the wildcard) acts as a
-			// default host for routed services.
+			// Listener-level hostname (if any) acts as the default host for
+			// routed services when the route declares no hostnames.
 			var listenerHosts []string
-			if listener.Hostname != "" {
-				listenerHosts = []string{listener.Hostname}
+			if boundListener.Hostname != "" {
+				listenerHosts = []string{boundListener.Hostname}
 			}
 
 			for _, routeRef := range boundListener.Routes {
@@ -3971,7 +3906,7 @@ func apiGatewayConfigGatewayServices(
 				}
 
 				for _, svc := range services {
-					key := svcKey{name: svc, port: listener.Port}
+					key := svcKey{name: svc, port: boundListener.Port}
 					if existing, ok := seen[key]; ok {
 						existing.Hosts = mergeStringSlices(existing.Hosts, hosts)
 						continue
@@ -3980,7 +3915,7 @@ func apiGatewayConfigGatewayServices(
 						Gateway:     gateway,
 						Service:     svc,
 						GatewayKind: structs.ServiceKindAPIGateway,
-						Port:        listener.Port,
+						Port:        boundListener.Port,
 						Protocol:    protocol,
 						Hosts:       append([]string(nil), hosts...),
 					}

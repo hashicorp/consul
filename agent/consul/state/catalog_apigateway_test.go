@@ -12,16 +12,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-// enableAPIGatewayDNS sets the cluster-wide feature flag that gates API gateway
-// DNS auto-registration, so the state store materializes gateway-services rows.
-func enableAPIGatewayDNS(t *testing.T, s *Store, idx uint64) {
-	t.Helper()
-	require.NoError(t, s.SystemMetadataSet(idx, &structs.SystemMetadataEntry{
-		Key:   structs.SystemMetadataAPIGatewayDNSEnabled,
-		Value: "true",
-	}))
-}
-
 // TestStateStore_GatewayServices_APIGateway verifies that writing a
 // bound-api-gateway config entry materializes gateway<->service mappings in the
 // gateway-services table (mirroring ingress gateways), which powers DNS
@@ -29,8 +19,6 @@ func enableAPIGatewayDNS(t *testing.T, s *Store, idx uint64) {
 func TestStateStore_GatewayServices_APIGateway(t *testing.T) {
 	s := testStateStore(t)
 	ws := memdb.NewWatchSet()
-
-	enableAPIGatewayDNS(t, s, 1)
 
 	// Register a node and an api-gateway service instance plus backend services.
 	testRegisterNode(t, s, 0, "node1")
@@ -86,8 +74,10 @@ func TestStateStore_GatewayServices_APIGateway(t *testing.T) {
 		Name: "api-gw",
 		Listeners: []structs.BoundAPIGatewayListener{
 			{
-				Name:   "http-listener",
-				Routes: []structs.ResourceReference{{Kind: structs.HTTPRoute, Name: "web-route"}},
+				Name:     "http-listener",
+				Port:     8443,
+				Protocol: structs.ListenerProtocolHTTP,
+				Routes:   []structs.ResourceReference{{Kind: structs.HTTPRoute, Name: "web-route"}},
 			},
 		},
 	}
@@ -130,8 +120,6 @@ func TestStateStore_GatewayServices_APIGateway(t *testing.T) {
 func TestStateStore_GatewayServices_APIGateway_MultiRoute(t *testing.T) {
 	s := testStateStore(t)
 	ws := memdb.NewWatchSet()
-
-	enableAPIGatewayDNS(t, s, 1)
 
 	testRegisterNode(t, s, 0, "node1")
 	testRegisterAPIService(t, s, 1, "node1", "api-gw")
@@ -180,12 +168,16 @@ func TestStateStore_GatewayServices_APIGateway_MultiRoute(t *testing.T) {
 		Name: "api-gw",
 		Listeners: []structs.BoundAPIGatewayListener{
 			{
-				Name:   "http-listener",
-				Routes: []structs.ResourceReference{{Kind: structs.HTTPRoute, Name: "web-route"}},
+				Name:     "http-listener",
+				Port:     8443,
+				Protocol: structs.ListenerProtocolHTTP,
+				Routes:   []structs.ResourceReference{{Kind: structs.HTTPRoute, Name: "web-route"}},
 			},
 			{
-				Name:   "tcp-listener",
-				Routes: []structs.ResourceReference{{Kind: structs.TCPRoute, Name: "tcp-route"}},
+				Name:     "tcp-listener",
+				Port:     9000,
+				Protocol: structs.ListenerProtocolTCP,
+				Routes:   []structs.ResourceReference{{Kind: structs.TCPRoute, Name: "tcp-route"}},
 			},
 		},
 	}
@@ -207,72 +199,3 @@ func TestStateStore_GatewayServices_APIGateway_MultiRoute(t *testing.T) {
 	require.Equal(t, "tcp", byService["tcp-backend"].Protocol)
 }
 
-// TestStateStore_GatewayServices_APIGateway_FeatureGated verifies that without
-// the cluster-wide flag (e.g. mid rolling upgrade), no mappings are created, so
-// mixed-version servers stay consistent.
-func TestStateStore_GatewayServices_APIGateway_FeatureGated(t *testing.T) {
-	s := testStateStore(t)
-	ws := memdb.NewWatchSet()
-
-	// NOTE: the feature flag is intentionally NOT set here.
-
-	testRegisterNode(t, s, 0, "node1")
-	testRegisterAPIService(t, s, 1, "node1", "api-gw")
-	testRegisterConnectService(t, s, 2, "node1", "web")
-
-	proxyDefaults := &structs.ProxyConfigEntry{
-		Name: structs.ProxyConfigGlobal,
-		Kind: structs.ProxyDefaults,
-		Config: map[string]interface{}{
-			"protocol": "http",
-		},
-	}
-	require.NoError(t, s.EnsureConfigEntry(4, proxyDefaults))
-
-	apigw := &structs.APIGatewayConfigEntry{
-		Kind: structs.APIGateway,
-		Name: "api-gw",
-		Listeners: []structs.APIGatewayListener{
-			{Name: "http-listener", Port: 8443, Protocol: structs.ListenerProtocolHTTP},
-		},
-	}
-	require.NoError(t, s.EnsureConfigEntry(5, apigw))
-
-	route := &structs.HTTPRouteConfigEntry{
-		Kind:    structs.HTTPRoute,
-		Name:    "web-route",
-		Parents: []structs.ResourceReference{{Kind: structs.APIGateway, Name: "api-gw"}},
-		Rules: []structs.HTTPRouteRule{
-			{Services: []structs.HTTPService{{Name: "web"}}},
-		},
-	}
-	require.NoError(t, s.EnsureConfigEntry(6, route))
-
-	bound := &structs.BoundAPIGatewayConfigEntry{
-		Kind: structs.BoundAPIGateway,
-		Name: "api-gw",
-		Listeners: []structs.BoundAPIGatewayListener{
-			{
-				Name:   "http-listener",
-				Routes: []structs.ResourceReference{{Kind: structs.HTTPRoute, Name: "web-route"}},
-			},
-		},
-	}
-	require.NoError(t, s.EnsureConfigEntry(7, bound))
-
-	// With the flag off, no mappings should be created.
-	_, res, err := s.GatewayServices(ws, "api-gw", nil)
-	require.NoError(t, err)
-	require.Empty(t, res, "no mappings expected while the feature flag is unset")
-
-	// Enabling the flag and re-applying the bound entry (what the leader backfill
-	// does) materializes the mappings.
-	enableAPIGatewayDNS(t, s, 8)
-	require.NoError(t, s.EnsureConfigEntry(9, bound))
-
-	_, res, err = s.GatewayServices(ws, "api-gw", nil)
-	require.NoError(t, err)
-	require.Len(t, res, 1)
-	require.Equal(t, "web", res[0].Service.Name)
-	require.Equal(t, structs.ServiceKindAPIGateway, res[0].GatewayKind)
-}

@@ -563,18 +563,42 @@ function suite_setup {
     echo "Checking bats image..."
     docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 --rm -t bats-verify -v
 
-    # pre-build the consul+envoy container
-    # env DOCKER_BUILDKIT=0 is required here because consul:local is a local image
-    # that the BuildKit docker-container driver cannot resolve from the registry.
+    # pre-build the consul+envoy container.
+    # LOCAL_BUILD=1: use --load so the desktop-linux BuildKit driver can
+    # resolve consul:local from the local image store.  In CI the legacy path
+    # (no --load) works because Docker Hub credentials are available and the
+    # image store is shared differently.
     echo "Rebuilding 'consul-dev-envoy:${ENVOY_VERSION}' image..."
-    retry_default env DOCKER_BUILDKIT=0 docker build \
-        -t consul-dev-envoy:${ENVOY_VERSION} \
-        --build-arg ENVOY_VERSION=${ENVOY_VERSION} \
-        -f Dockerfile-consul-envoy .
+    if [[ "${LOCAL_BUILD:-}" == "1" ]]; then
+        retry_default env DOCKER_BUILDKIT=1 docker build --load \
+            -t consul-dev-envoy:${ENVOY_VERSION} \
+            --build-arg ENVOY_VERSION=${ENVOY_VERSION} \
+            -f Dockerfile-consul-envoy .
+    else
+        retry_default env DOCKER_BUILDKIT=0 docker build \
+            -t consul-dev-envoy:${ENVOY_VERSION} \
+            --build-arg ENVOY_VERSION=${ENVOY_VERSION} \
+            -f Dockerfile-consul-envoy .
+    fi
 
-    # pre-build the test-sds-server container
+    # pre-build the test-sds-server image.
+    # LOCAL_BUILD=1: compile the binary locally for linux/amd64 (avoids pulling
+    # golang:* from Docker Hub, which may be blocked by macOS keychain helpers)
+    # and build using Dockerfile.local which just COPYs the pre-built binary
+    # into a minimal debian base.  CI uses the original Dockerfile that builds
+    # from source inside the container.
+    if [[ "${LOCAL_BUILD:-}" == "1" ]]; then
+        echo "Building 'test-sds-server' binary (linux/amd64) via local Go toolchain..."
+        CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+            -o test-sds-server/test-sds-server \
+            test-sds-server/sds.go
+        SDS_DOCKERFILE="test-sds-server/Dockerfile.local"
+    else
+        SDS_DOCKERFILE="test-sds-server/Dockerfile"
+    fi
+
     echo "Rebuilding 'test-sds-server' image..."
-    retry_default docker build --load -t test-sds-server -f test-sds-server/Dockerfile test-sds-server
+    retry_default docker build --load -t test-sds-server -f "${SDS_DOCKERFILE}" test-sds-server
 }
 
 function suite_teardown {

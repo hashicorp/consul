@@ -1497,11 +1497,10 @@ func TestHealth_ServiceNodes_Ingress_ACL(t *testing.T) {
 }
 
 // setupAPIGatewayDNSMapping writes, directly into the leader's state store, the
-// system-metadata feature flag plus the api-gateway / http-route /
-// bound-api-gateway config entries needed to materialize a gateway<->service
-// mapping (gateway "api-gw" fronting serviceName). This mirrors what the API
-// gateway controller + leader feature-flag routine produce, but does so
-// deterministically so the Health.ServiceNodes RPC can be exercised without
+// api-gateway / http-route / bound-api-gateway config entries needed to
+// materialize a gateway<->service mapping (gateway "api-gw" fronting
+// serviceName). This mirrors what the API gateway controller produces, but does
+// so deterministically so the Health.ServiceNodes RPC can be exercised without
 // depending on controller timing.
 func setupAPIGatewayDNSMapping(t *testing.T, s *Server, serviceName string) {
 	t.Helper()
@@ -1510,10 +1509,6 @@ func setupAPIGatewayDNSMapping(t *testing.T, s *Server, serviceName string) {
 	var idx uint64 = 1
 	next := func() uint64 { idx++; return idx }
 
-	require.NoError(t, store.SystemMetadataSet(next(), &structs.SystemMetadataEntry{
-		Key:   structs.SystemMetadataAPIGatewayDNSEnabled,
-		Value: "true",
-	}))
 	require.NoError(t, store.EnsureConfigEntry(next(), &structs.ProxyConfigEntry{
 		Kind:   structs.ProxyDefaults,
 		Name:   structs.ProxyConfigGlobal,

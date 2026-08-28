@@ -459,17 +459,43 @@ func containsString(items []string, val string) bool {
 	return false
 }
 
-// getReadyListeners returns a map containing the list of upstreams for each listener that is ready
+// getReadyListeners returns a map containing the list of upstreams for each listener that is ready.
+// It iterates over BoundListeners (the single source of truth) and assembles a readyListener for
+// each listener that is ready and has at least one bound upstream. listenerCfg is built from the
+// BoundAPIGatewayListener fields so that downstream callers that expect structs.APIGatewayListener
+// continue to work without further changes.
 func getReadyListeners(cfgSnap *proxycfg.ConfigSnapshot) map[string]readyListener {
 	ready := map[string]readyListener{}
-	for _, l := range cfgSnap.APIGateway.Listeners {
-		// Only include upstreams for listeners that are ready
-		if !cfgSnap.APIGateway.GatewayConfig.ListenerIsReady(l.Name) {
+	for _, boundListener := range cfgSnap.APIGateway.BoundListeners {
+		// Skip incomplete listeners that haven't been fully reconciled yet.
+		// A BoundAPIGatewayListener with Port == 0 or empty Protocol means the
+		// controller hasn't copied the APIGatewayListener fields yet; treating it
+		// as ready would produce a zero-key listenerKey and cause an
+		// "RDS is not compatible with the tcp proxy filter" error in makeListenerFilter.
+		if boundListener.Port == 0 || boundListener.Protocol == "" {
 			continue
 		}
 
+		// Only include upstreams for listeners that are ready
+		if !cfgSnap.APIGateway.GatewayConfig.ListenerIsReady(boundListener.Name) {
+			continue
+		}
+
+		// Build a structs.APIGatewayListener view from the BoundAPIGatewayListener so
+		// that downstream callers (ConsolidateHTTPRoutes, GatewayAuthFilterBuilder, etc.)
+		// continue to work without type changes.
+		l := structs.APIGatewayListener{
+			Name:                boundListener.Name,
+			Hostname:            boundListener.Hostname,
+			Port:                boundListener.Port,
+			Protocol:            boundListener.Protocol,
+			TLS:                 boundListener.TLS,
+			Override:            boundListener.Override,
+			Default:             boundListener.Default,
+			MaxRequestHeadersKB: boundListener.MaxRequestHeadersKB,
+		}
+
 		// For each route bound to the listener
-		boundListener := cfgSnap.APIGateway.BoundListeners[l.Name]
 		for _, routeRef := range boundListener.Routes {
 			switch routeRef.Kind {
 			case structs.HTTPRoute:
@@ -489,7 +515,7 @@ func getReadyListeners(cfgSnap *proxycfg.ConfigSnapshot) map[string]readyListene
 
 			// Filter to upstreams that attach to this specific listener since
 			// a route can bind to + have upstreams for multiple listeners
-			listenerKey := proxycfg.APIGatewayListenerKeyFromListener(l)
+			listenerKey := proxycfg.APIGatewayListenerKeyFromBoundListener(boundListener)
 			routeUpstreamsForListener, ok := routeUpstreams[listenerKey]
 			if !ok {
 				continue
@@ -497,7 +523,7 @@ func getReadyListeners(cfgSnap *proxycfg.ConfigSnapshot) map[string]readyListene
 
 			for _, upstream := range routeUpstreamsForListener {
 				// Insert or update readyListener for the listener to include this upstream
-				r, ok := ready[l.Name]
+				r, ok := ready[boundListener.Name]
 				if !ok {
 					r = readyListener{
 						listenerKey:      listenerKey,
@@ -508,7 +534,7 @@ func getReadyListeners(cfgSnap *proxycfg.ConfigSnapshot) map[string]readyListene
 				}
 				r.routeReferences[routeRef] = struct{}{}
 				r.upstreams = append(r.upstreams, upstream)
-				ready[l.Name] = r
+				ready[boundListener.Name] = r
 			}
 		}
 	}
