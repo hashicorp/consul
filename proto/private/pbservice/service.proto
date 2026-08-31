@@ -307,7 +307,6 @@ message AIAgentInterceptor {
   int32 Port = 1;
 }
 
-
 // PeeringServiceMeta is read-only information provided from an exported peer.
 //
 // mog annotation:
