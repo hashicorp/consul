@@ -446,7 +446,6 @@ type ServiceAI struct {
 type AIInferenceModel struct {
 	Protocol *string          `mapstructure:"protocol"`
 	Path     *string          `mapstructure:"path"`
-	Auth     *AIAuth          `mapstructure:"auth"`
 	Defaults *AIModelDefaults `mapstructure:"defaults"`
 }
 
@@ -459,7 +458,6 @@ type AIMCPServer struct {
 	Transport       *string `mapstructure:"transport"`
 	Path            *string `mapstructure:"path"`
 	ProtocolVersion *string `mapstructure:"protocol_version"`
-	Auth            *AIAuth `mapstructure:"auth"`
 }
 
 type AIAgent struct {
@@ -491,18 +489,6 @@ type AIAgentRateLimits struct {
 
 type AIAgentInterceptor struct {
 	Port *int `mapstructure:"port"`
-}
-
-type AIAuth struct {
-	Type   *string   `mapstructure:"type"`
-	Header *string   `mapstructure:"header"`
-	Secret *AISecret `mapstructure:"secret"`
-}
-
-type AISecret struct {
-	Provider *string `mapstructure:"provider"`
-	Path     *string `mapstructure:"path"`
-	Field    *string `mapstructure:"field"`
 }
 
 type CheckDefinition struct {

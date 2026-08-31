@@ -1049,14 +1049,6 @@ func (o *NodeService) DeepCopy() *NodeService {
 		if o.AI.InferenceModel != nil {
 			cp.AI.InferenceModel = new(AIInferenceModel)
 			*cp.AI.InferenceModel = *o.AI.InferenceModel
-			if o.AI.InferenceModel.Auth != nil {
-				cp.AI.InferenceModel.Auth = new(AIAuth)
-				*cp.AI.InferenceModel.Auth = *o.AI.InferenceModel.Auth
-				if o.AI.InferenceModel.Auth.Secret != nil {
-					cp.AI.InferenceModel.Auth.Secret = new(AISecret)
-					*cp.AI.InferenceModel.Auth.Secret = *o.AI.InferenceModel.Auth.Secret
-				}
-			}
 			if o.AI.InferenceModel.Defaults != nil {
 				cp.AI.InferenceModel.Defaults = new(AIModelDefaults)
 				*cp.AI.InferenceModel.Defaults = *o.AI.InferenceModel.Defaults
@@ -1065,14 +1057,6 @@ func (o *NodeService) DeepCopy() *NodeService {
 		if o.AI.MCPServer != nil {
 			cp.AI.MCPServer = new(AIMCPServer)
 			*cp.AI.MCPServer = *o.AI.MCPServer
-			if o.AI.MCPServer.Auth != nil {
-				cp.AI.MCPServer.Auth = new(AIAuth)
-				*cp.AI.MCPServer.Auth = *o.AI.MCPServer.Auth
-				if o.AI.MCPServer.Auth.Secret != nil {
-					cp.AI.MCPServer.Auth.Secret = new(AISecret)
-					*cp.AI.MCPServer.Auth.Secret = *o.AI.MCPServer.Auth.Secret
-				}
-			}
 		}
 		if o.AI.Agent != nil {
 			cp.AI.Agent = new(AIAgent)
@@ -1293,14 +1277,6 @@ func (o *ServiceDefinition) DeepCopy() *ServiceDefinition {
 		if o.AI.InferenceModel != nil {
 			cp.AI.InferenceModel = new(AIInferenceModel)
 			*cp.AI.InferenceModel = *o.AI.InferenceModel
-			if o.AI.InferenceModel.Auth != nil {
-				cp.AI.InferenceModel.Auth = new(AIAuth)
-				*cp.AI.InferenceModel.Auth = *o.AI.InferenceModel.Auth
-				if o.AI.InferenceModel.Auth.Secret != nil {
-					cp.AI.InferenceModel.Auth.Secret = new(AISecret)
-					*cp.AI.InferenceModel.Auth.Secret = *o.AI.InferenceModel.Auth.Secret
-				}
-			}
 			if o.AI.InferenceModel.Defaults != nil {
 				cp.AI.InferenceModel.Defaults = new(AIModelDefaults)
 				*cp.AI.InferenceModel.Defaults = *o.AI.InferenceModel.Defaults
@@ -1309,14 +1285,6 @@ func (o *ServiceDefinition) DeepCopy() *ServiceDefinition {
 		if o.AI.MCPServer != nil {
 			cp.AI.MCPServer = new(AIMCPServer)
 			*cp.AI.MCPServer = *o.AI.MCPServer
-			if o.AI.MCPServer.Auth != nil {
-				cp.AI.MCPServer.Auth = new(AIAuth)
-				*cp.AI.MCPServer.Auth = *o.AI.MCPServer.Auth
-				if o.AI.MCPServer.Auth.Secret != nil {
-					cp.AI.MCPServer.Auth.Secret = new(AISecret)
-					*cp.AI.MCPServer.Auth.Secret = *o.AI.MCPServer.Auth.Secret
-				}
-			}
 		}
 		if o.AI.Agent != nil {
 			cp.AI.Agent = new(AIAgent)

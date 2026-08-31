@@ -1872,9 +1872,6 @@ func (b *builder) serviceAIVal(v *ServiceAI) *structs.ServiceAI {
 			Protocol: stringVal(v.InferenceModel.Protocol),
 			Path:     stringVal(v.InferenceModel.Path),
 		}
-		if v.InferenceModel.Auth != nil {
-			im.Auth = serviceAIAuthVal(v.InferenceModel.Auth)
-		}
 		if v.InferenceModel.Defaults != nil {
 			im.Defaults = &structs.AIModelDefaults{
 				MaxTokens:   intVal(v.InferenceModel.Defaults.MaxTokens),
@@ -1888,9 +1885,6 @@ func (b *builder) serviceAIVal(v *ServiceAI) *structs.ServiceAI {
 			Transport:       stringVal(v.MCPServer.Transport),
 			Path:            stringVal(v.MCPServer.Path),
 			ProtocolVersion: stringVal(v.MCPServer.ProtocolVersion),
-		}
-		if v.MCPServer.Auth != nil {
-			ms.Auth = serviceAIAuthVal(v.MCPServer.Auth)
 		}
 		ai.MCPServer = ms
 	}
@@ -1928,24 +1922,6 @@ func (b *builder) serviceAIVal(v *ServiceAI) *structs.ServiceAI {
 		ai.Agent = ag
 	}
 	return ai
-}
-
-func serviceAIAuthVal(v *AIAuth) *structs.AIAuth {
-	if v == nil {
-		return nil
-	}
-	auth := &structs.AIAuth{
-		Type:   stringVal(v.Type),
-		Header: stringVal(v.Header),
-	}
-	if v.Secret != nil {
-		auth.Secret = &structs.AISecret{
-			Provider: stringVal(v.Secret.Provider),
-			Path:     stringVal(v.Secret.Path),
-			Field:    stringVal(v.Secret.Field),
-		}
-	}
-	return auth
 }
 
 func (b *builder) serviceLocalityVal(l *Locality) *structs.Locality {

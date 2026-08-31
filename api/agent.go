@@ -227,7 +227,6 @@ type AgentServiceAI struct {
 type AgentAIInferenceModel struct {
 	Protocol string                `json:",omitempty"`
 	Path     string                `json:",omitempty"`
-	Auth     *AgentAIAuth          `json:",omitempty"`
 	Defaults *AgentAIModelDefaults `json:",omitempty"`
 }
 
@@ -239,10 +238,9 @@ type AgentAIModelDefaults struct {
 
 // AgentAIMCPServer is the role-specific config for the mcp-server role.
 type AgentAIMCPServer struct {
-	Transport       string       `json:",omitempty"`
-	Path            string       `json:",omitempty"`
-	ProtocolVersion string       `json:",omitempty"`
-	Auth            *AgentAIAuth `json:",omitempty"`
+	Transport       string `json:",omitempty"`
+	Path            string `json:",omitempty"`
+	ProtocolVersion string `json:",omitempty"`
 }
 
 // AgentAIAgent is the role-specific config for the ai-agent role.
@@ -282,15 +280,6 @@ type AgentAIAgentRateLimits struct {
 // sidecar reaches over plaintext loopback.
 type AgentAIAgentInterceptor struct {
 	Port int `json:",omitempty"`
-}
-
-// AgentAIAuth references a credential used by a managed inference model or
-// external MCP server. The secret value is never inlined; only a reference is
-// carried.
-type AgentAIAuth struct {
-	Type   string         `json:",omitempty"`
-	Header string         `json:",omitempty"`
-	Secret *AgentAISecret `json:",omitempty"`
 }
 
 // AgentAISecret is a reference to a secret stored in an external provider. It

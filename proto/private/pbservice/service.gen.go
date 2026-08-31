@@ -130,41 +130,12 @@ func AIAgentRateLimitsFromStructs(t *structs.AIAgentRateLimits, s *AIAgentRateLi
 	s.ToolCallsPerMinute = int32(t.ToolCallsPerMinute)
 	s.ToolCallsPerHour = int32(t.ToolCallsPerHour)
 }
-func AIAuthToStructs(s *AIAuth, t *structs.AIAuth) {
-	if s == nil {
-		return
-	}
-	t.Type = s.Type
-	t.Header = s.Header
-	if s.Secret != nil {
-		var x structs.AISecret
-		AISecretToStructs(s.Secret, &x)
-		t.Secret = &x
-	}
-}
-func AIAuthFromStructs(t *structs.AIAuth, s *AIAuth) {
-	if s == nil {
-		return
-	}
-	s.Type = t.Type
-	s.Header = t.Header
-	if t.Secret != nil {
-		var x AISecret
-		AISecretFromStructs(t.Secret, &x)
-		s.Secret = &x
-	}
-}
 func AIInferenceModelToStructs(s *AIInferenceModel, t *structs.AIInferenceModel) {
 	if s == nil {
 		return
 	}
 	t.Protocol = s.Protocol
 	t.Path = s.Path
-	if s.Auth != nil {
-		var x structs.AIAuth
-		AIAuthToStructs(s.Auth, &x)
-		t.Auth = &x
-	}
 	if s.Defaults != nil {
 		var x structs.AIModelDefaults
 		AIModelDefaultsToStructs(s.Defaults, &x)
@@ -177,11 +148,6 @@ func AIInferenceModelFromStructs(t *structs.AIInferenceModel, s *AIInferenceMode
 	}
 	s.Protocol = t.Protocol
 	s.Path = t.Path
-	if t.Auth != nil {
-		var x AIAuth
-		AIAuthFromStructs(t.Auth, &x)
-		s.Auth = &x
-	}
 	if t.Defaults != nil {
 		var x AIModelDefaults
 		AIModelDefaultsFromStructs(t.Defaults, &x)
@@ -195,11 +161,6 @@ func AIMCPServerToStructs(s *AIMCPServer, t *structs.AIMCPServer) {
 	t.Transport = s.Transport
 	t.Path = s.Path
 	t.ProtocolVersion = s.ProtocolVersion
-	if s.Auth != nil {
-		var x structs.AIAuth
-		AIAuthToStructs(s.Auth, &x)
-		t.Auth = &x
-	}
 }
 func AIMCPServerFromStructs(t *structs.AIMCPServer, s *AIMCPServer) {
 	if s == nil {
@@ -208,11 +169,6 @@ func AIMCPServerFromStructs(t *structs.AIMCPServer, s *AIMCPServer) {
 	s.Transport = t.Transport
 	s.Path = t.Path
 	s.ProtocolVersion = t.ProtocolVersion
-	if t.Auth != nil {
-		var x AIAuth
-		AIAuthFromStructs(t.Auth, &x)
-		s.Auth = &x
-	}
 }
 func AIModelDefaultsToStructs(s *AIModelDefaults, t *structs.AIModelDefaults) {
 	if s == nil {
@@ -227,22 +183,6 @@ func AIModelDefaultsFromStructs(t *structs.AIModelDefaults, s *AIModelDefaults) 
 	}
 	s.MaxTokens = int32(t.MaxTokens)
 	s.Temperature = t.Temperature
-}
-func AISecretToStructs(s *AISecret, t *structs.AISecret) {
-	if s == nil {
-		return
-	}
-	t.Provider = s.Provider
-	t.Path = s.Path
-	t.Field = s.Field
-}
-func AISecretFromStructs(t *structs.AISecret, s *AISecret) {
-	if s == nil {
-		return
-	}
-	s.Provider = t.Provider
-	s.Path = t.Path
-	s.Field = t.Field
 }
 func AccessLogsConfigToStructs(s *AccessLogsConfig, t *structs.AccessLogsConfig) {
 	if s == nil {

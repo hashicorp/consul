@@ -52,11 +52,6 @@ func serviceAIRoleCases() map[string]*structs.ServiceAI {
 			InferenceModel: &structs.AIInferenceModel{
 				Protocol: "openai",
 				Path:     "/v1",
-				Auth: &structs.AIAuth{
-					Type:   "bearer",
-					Header: "Authorization",
-					Secret: &structs.AISecret{Provider: "vault", Path: "secret/ai", Field: "token"},
-				},
 				Defaults: &structs.AIModelDefaults{MaxTokens: 2048, Temperature: 0.7},
 			},
 		},
@@ -66,7 +61,6 @@ func serviceAIRoleCases() map[string]*structs.ServiceAI {
 				Transport:       "streamable-http",
 				Path:            "/mcp",
 				ProtocolVersion: "2025-03-26",
-				Auth:            &structs.AIAuth{Type: "bearer", Header: "Authorization"},
 			},
 		},
 		"ai-agent": {

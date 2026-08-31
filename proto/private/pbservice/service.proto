@@ -199,8 +199,7 @@ message ServiceAI {
 message AIInferenceModel {
   string Protocol = 1;
   string Path = 2;
-  AIAuth Auth = 3;
-  AIModelDefaults Defaults = 4;
+  AIModelDefaults Defaults = 3;
 }
 
 // AIModelDefaults carries optional request defaults for an inference model.
@@ -227,7 +226,6 @@ message AIMCPServer {
   string Transport = 1;
   string Path = 2;
   string ProtocolVersion = 3;
-  AIAuth Auth = 4;
 }
 
 // AIAgent is the role-specific config for the ai-agent role.
@@ -309,32 +307,6 @@ message AIAgentInterceptor {
   int32 Port = 1;
 }
 
-// AIAuth references a credential used by a managed inference model or external
-// MCP server.
-//
-// mog annotation:
-//
-// target=github.com/hashicorp/consul/agent/structs.AIAuth
-// output=service.gen.go
-// name=Structs
-message AIAuth {
-  string Type = 1;
-  string Header = 2;
-  AISecret Secret = 3;
-}
-
-// AISecret is a reference to a secret stored in an external provider.
-//
-// mog annotation:
-//
-// target=github.com/hashicorp/consul/agent/structs.AISecret
-// output=service.gen.go
-// name=Structs
-message AISecret {
-  string Provider = 1;
-  string Path = 2;
-  string Field = 3;
-}
 
 // PeeringServiceMeta is read-only information provided from an exported peer.
 //

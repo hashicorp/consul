@@ -35,9 +35,6 @@ const (
 	aiTransportStreamableHTTP = "streamable-http"
 	aiTransportSSE            = "sse"
 	aiTransportStdio          = "stdio"
-
-	aiAuthTypeBearer      = "bearer"
-	aiSecretProviderVault = "vault"
 )
 
 // ServiceAI is the inline `ai` block added to the standard Consul service
@@ -63,10 +60,6 @@ type AIInferenceModel struct {
 	// Path is the OpenAI-compatible base path (e.g. "/v1").
 	Path string `json:",omitempty"`
 
-	// Auth references the credential used to reach a managed/public model.
-	// It is nil for internally hosted (mesh) models.
-	Auth *AIAuth `json:",omitempty"`
-
 	// Defaults are optional request-shaping defaults.
 	Defaults *AIModelDefaults `json:",omitempty"`
 }
@@ -87,10 +80,6 @@ type AIMCPServer struct {
 
 	// ProtocolVersion is the MCP spec version this server implements.
 	ProtocolVersion string `json:",omitempty"`
-
-	// Auth references the credential used to reach an external MCP server.
-	// It is nil for internally hosted (mesh) MCP servers.
-	Auth *AIAuth `json:",omitempty"`
 }
 
 // AIAgent is the role-specific config for ServiceAIRoleAgent.
@@ -158,32 +147,6 @@ type AIAgentInterceptor struct {
 	Port int `json:",omitempty"`
 }
 
-// AIAuth references a credential used by a managed inference model or external
-// MCP server. The secret value is never inlined; only a reference is stored.
-type AIAuth struct {
-	// Type is the auth scheme. Only "bearer" is currently supported.
-	Type string `json:",omitempty"`
-
-	// Header is the request header the credential is injected into.
-	Header string `json:",omitempty"`
-
-	// Secret references where the credential is sourced from.
-	Secret *AISecret `json:",omitempty"`
-}
-
-// AISecret is a reference to a secret stored in an external provider. It never
-// holds the literal secret value.
-type AISecret struct {
-	// Provider is the secret backend. Only "vault" is currently supported.
-	Provider string `json:",omitempty"`
-
-	// Path is the provider path the secret is read from.
-	Path string `json:",omitempty"`
-
-	// Field is the field within the secret to use.
-	Field string `json:",omitempty"`
-}
-
 // Clone returns a deep copy of the AI block. It is nil-safe. A deep copy is
 // required because ServiceAI is carried on ServiceNode, which is held in the
 // shared Raft state store; PartialClone must hand out a fully independent copy
@@ -197,7 +160,6 @@ func (a *ServiceAI) Clone() *ServiceAI {
 
 	if a.InferenceModel != nil {
 		im := *a.InferenceModel
-		im.Auth = a.InferenceModel.Auth.clone()
 		if a.InferenceModel.Defaults != nil {
 			d := *a.InferenceModel.Defaults
 			im.Defaults = &d
@@ -207,7 +169,6 @@ func (a *ServiceAI) Clone() *ServiceAI {
 
 	if a.MCPServer != nil {
 		ms := *a.MCPServer
-		ms.Auth = a.MCPServer.Auth.clone()
 		out.MCPServer = &ms
 	}
 
@@ -244,18 +205,6 @@ func (a *ServiceAI) Clone() *ServiceAI {
 	}
 
 	return out
-}
-
-func (a *AIAuth) clone() *AIAuth {
-	if a == nil {
-		return nil
-	}
-	out := *a
-	if a.Secret != nil {
-		s := *a.Secret
-		out.Secret = &s
-	}
-	return &out
 }
 
 // UnmarshalJSON adds snake_case aliases for the multi-word child keys of the
@@ -401,7 +350,6 @@ func (m *AIInferenceModel) toAPI() *api.AgentAIInferenceModel {
 	return &api.AgentAIInferenceModel{
 		Protocol: m.Protocol,
 		Path:     m.Path,
-		Auth:     m.Auth.toAPI(),
 		Defaults: m.Defaults.toAPI(),
 	}
 }
@@ -424,7 +372,6 @@ func (s *AIMCPServer) toAPI() *api.AgentAIMCPServer {
 		Transport:       s.Transport,
 		Path:            s.Path,
 		ProtocolVersion: s.ProtocolVersion,
-		Auth:            s.Auth.toAPI(),
 	}
 }
 
@@ -488,27 +435,5 @@ func (i *AIAgentInterceptor) toAPI() *api.AgentAIAgentInterceptor {
 	}
 	return &api.AgentAIAgentInterceptor{
 		Port: i.Port,
-	}
-}
-
-func (a *AIAuth) toAPI() *api.AgentAIAuth {
-	if a == nil {
-		return nil
-	}
-	return &api.AgentAIAuth{
-		Type:   a.Type,
-		Header: a.Header,
-		Secret: a.Secret.toAPI(),
-	}
-}
-
-func (s *AISecret) toAPI() *api.AgentAISecret {
-	if s == nil {
-		return nil
-	}
-	return &api.AgentAISecret{
-		Provider: s.Provider,
-		Path:     s.Path,
-		Field:    s.Field,
 	}
 }

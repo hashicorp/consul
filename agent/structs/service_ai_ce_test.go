@@ -26,11 +26,6 @@ func TestStructs_ServiceAI_Clone(t *testing.T) {
 			InferenceModel: &AIInferenceModel{
 				Protocol: "openai",
 				Path:     "/v1",
-				Auth: &AIAuth{
-					Type:   "bearer",
-					Header: "Authorization",
-					Secret: &AISecret{Provider: "vault", Path: "p", Field: "f"},
-				},
 				Defaults: &AIModelDefaults{MaxTokens: 4096, Temperature: 0.2},
 			},
 		},
@@ -90,12 +85,7 @@ func TestStructs_ServiceAI_UnmarshalJSON(t *testing.T) {
 			"inference_model": {
 				"protocol": "openai",
 				"path": "/v1",
-				"defaults": { "max_tokens": 2048, "temperature": 0.7 },
-				"auth": {
-					"type": "bearer",
-					"header": "Authorization",
-					"secret": { "provider": "vault", "path": "secret/ai", "field": "token" }
-				}
+				"defaults": { "max_tokens": 2048, "temperature": 0.7 }
 			}
 		}`)
 		camel := []byte(`{
@@ -103,12 +93,7 @@ func TestStructs_ServiceAI_UnmarshalJSON(t *testing.T) {
 			"InferenceModel": {
 				"Protocol": "openai",
 				"Path": "/v1",
-				"Defaults": { "MaxTokens": 2048, "Temperature": 0.7 },
-				"Auth": {
-					"Type": "bearer",
-					"Header": "Authorization",
-					"Secret": { "Provider": "vault", "Path": "secret/ai", "Field": "token" }
-				}
+				"Defaults": { "MaxTokens": 2048, "Temperature": 0.7}
 			}
 		}`)
 
@@ -224,11 +209,6 @@ func TestStructs_ServiceAI_ToAPI(t *testing.T) {
 				Protocol: "openai",
 				Path:     "/v1",
 				Defaults: &AIModelDefaults{MaxTokens: 2048, Temperature: 0.7},
-				Auth: &AIAuth{
-					Type:   "bearer",
-					Header: "Authorization",
-					Secret: &AISecret{Provider: "vault", Path: "secret/ai", Field: "token"},
-				},
 			},
 		}
 		want := &api.AgentServiceAI{
@@ -237,11 +217,6 @@ func TestStructs_ServiceAI_ToAPI(t *testing.T) {
 				Protocol: "openai",
 				Path:     "/v1",
 				Defaults: &api.AgentAIModelDefaults{MaxTokens: 2048, Temperature: 0.7},
-				Auth: &api.AgentAIAuth{
-					Type:   "bearer",
-					Header: "Authorization",
-					Secret: &api.AgentAISecret{Provider: "vault", Path: "secret/ai", Field: "token"},
-				},
 			},
 		}
 		require.Equal(t, want, in.ToAPI())
@@ -254,11 +229,6 @@ func TestStructs_ServiceAI_ToAPI(t *testing.T) {
 				Transport:       "sse",
 				Path:            "/mcp",
 				ProtocolVersion: "2025-03-26",
-				Auth: &AIAuth{
-					Type:   "bearer",
-					Header: "Authorization",
-					Secret: &AISecret{Provider: "vault", Path: "secret/mcp", Field: "token"},
-				},
 			},
 		}
 		want := &api.AgentServiceAI{
@@ -267,11 +237,6 @@ func TestStructs_ServiceAI_ToAPI(t *testing.T) {
 				Transport:       "sse",
 				Path:            "/mcp",
 				ProtocolVersion: "2025-03-26",
-				Auth: &api.AgentAIAuth{
-					Type:   "bearer",
-					Header: "Authorization",
-					Secret: &api.AgentAISecret{Provider: "vault", Path: "secret/mcp", Field: "token"},
-				},
 			},
 		}
 		require.Equal(t, want, in.ToAPI())
