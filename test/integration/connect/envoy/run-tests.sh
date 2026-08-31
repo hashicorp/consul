@@ -21,9 +21,16 @@ if [[ -z "${ENVOY_VERSION:-}" ]]; then
 fi
 export ENVOY_VERSION
 
+# ENVOY_UID optionally sets the user ID Envoy containers run as.
+# On ARM64 hosts (e.g. Apple Silicon) running amd64 Envoy images under Rosetta
+# emulation the default non-root uid can cause socket bind failures.  Set
+# ENVOY_UID=0 to run Envoy as root and avoid those spurious errors locally.
+ENVOY_UID=${ENVOY_UID:-}
+
 export DOCKER_BUILDKIT=1
-# Always run tests on amd64 because that's what the CI environment uses.
-export DOCKER_DEFAULT_PLATFORM="linux/amd64"
+# Always run tests on amd64 in CI. Override with DOCKER_DEFAULT_PLATFORM for
+# local development on arm64 (e.g. Apple Silicon).
+export DOCKER_DEFAULT_PLATFORM="${DOCKER_DEFAULT_PLATFORM:-linux/amd64}"
 
 if [ ! -z "$DEBUG" ] ; then
   set -x
@@ -45,6 +52,14 @@ function command_error {
 trap 'command_error $? "${BASH_COMMAND}" "${LINENO}" "${FUNCNAME[0]:-main}" "${BASH_SOURCE[0]}:${BASH_LINENO[0]}"' ERR
 
 readonly WORKDIR_SNIPPET='-v envoy_workdir:/workdir'
+
+# Build a --user flag snippet from ENVOY_UID when set; otherwise empty so
+# existing CI behaviour (no --user flag) is completely unchanged.
+function envoy_user_snippet {
+  if [[ -n "${ENVOY_UID:-}" ]]; then
+    echo "--user ${ENVOY_UID}"
+  fi
+}
 
 function network_snippet {
     local DC="$1"
@@ -152,6 +167,11 @@ function start_consul {
   # 8500/8502 are for consul
   # 9411 is for zipkin which shares the network with consul
   # 16686 is for jaeger ui which also shares the network with consul
+  # Use random host-side ports (127.0.0.1:: notation) so the test suite works
+  # even when ports 8500/8502/9411/16686 are already in use on the host (e.g.
+  # by Docker Desktop gvproxy or a locally running Consul agent).  All
+  # inter-container traffic goes through the envoy-tests Docker network and
+  # never touches these host-mapped ports, so the actual numbers don't matter.
   ports=(
     '-p=8500:8500'
     '-p=8502:8502'
@@ -553,24 +573,27 @@ function suite_setup {
     docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 -d --name envoy_workdir_1 \
         $WORKDIR_SNIPPET \
         --net=none \
-        registry.k8s.io/pause &>/dev/null
+        registry.k8s.io/pause:3.9 &>/dev/null
 
     # pre-build the verify container
     echo "Rebuilding 'bats-verify' image..."
-    retry_default docker build -t bats-verify -f Dockerfile-bats .
+    retry_default docker buildx build --load --platform "${DOCKER_DEFAULT_PLATFORM}" -t bats-verify -f Dockerfile-bats .
 
     echo "Checking bats image..."
     docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 --rm -t bats-verify -v
 
     # pre-build the consul+envoy container
+    # env DOCKER_BUILDKIT=0 is required here because consul:local is a local image
+    # that the BuildKit docker-container driver cannot resolve from the registry.
     echo "Rebuilding 'consul-dev-envoy:${ENVOY_VERSION}' image..."
-    retry_default docker build -t consul-dev-envoy:${ENVOY_VERSION} \
+    retry_default env DOCKER_BUILDKIT=0 docker build \
+        -t consul-dev-envoy:${ENVOY_VERSION} \
         --build-arg ENVOY_VERSION=${ENVOY_VERSION} \
         -f Dockerfile-consul-envoy .
 
     # pre-build the test-sds-server container
     echo "Rebuilding 'test-sds-server' image..."
-    retry_default docker build -t test-sds-server -f test-sds-server/Dockerfile test-sds-server
+    retry_default docker build --load -t test-sds-server -f test-sds-server/Dockerfile test-sds-server
 }
 
 function suite_teardown {
@@ -736,10 +759,14 @@ function common_run_container_sidecar_proxy {
   # despite separate containers that don't share IPC namespace. Not quite
   # sure how this happens but may be due to unix socket being in some shared
   # location?
+  # ENVOY_UID=0: skip the entrypoint chown of /dev/stdout which fails on
+  # Docker Desktop for Mac when running in --net container: mode.
   docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 -d --name $(container_name_prev) \
+    $(envoy_user_snippet) \
     $WORKDIR_SNIPPET \
     $(network_snippet $CLUSTER) \
     $(aws_snippet) \
+    -e ENVOY_UID=0 \
     "${HASHICORP_DOCKER_PROXY}/envoyproxy/envoy:v${ENVOY_VERSION}" \
     envoy \
     -c /workdir/${CLUSTER}/envoy/${service}-bootstrap.json \
@@ -824,10 +851,14 @@ function common_run_container_gateway {
   # despite separate containers that don't share IPC namespace. Not quite
   # sure how this happens but may be due to unix socket being in some shared
   # location?
+  # ENVOY_UID=0: skip the entrypoint chown of /dev/stdout which fails on
+  # Docker Desktop for Mac when running in --net container: mode.
   docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 -d --name $(container_name_prev) \
+    $(envoy_user_snippet) \
     $WORKDIR_SNIPPET \
     $(network_snippet $DC) \
     $(aws_snippet) \
+    -e ENVOY_UID=0 \
     "${HASHICORP_DOCKER_PROXY}/envoyproxy/envoy:v${ENVOY_VERSION}" \
     envoy \
     -c /workdir/${DC}/envoy/${name}-bootstrap.json \

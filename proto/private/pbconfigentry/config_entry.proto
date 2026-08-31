@@ -726,6 +726,7 @@ message UpstreamLimits {
   int32 MaxPendingRequests = 2;
   // mog: func-to=pointerToIntFromInt32 func-from=int32FromPointerToInt
   int32 MaxConcurrentRequests = 3;
+  PassiveHealthCheck PassiveHealthCheck = 4;
 }
 
 // mog annotation:
@@ -1049,6 +1050,7 @@ message HTTPHeaderMatch {
   HTTPHeaderMatchType Match = 1;
   string Name = 2;
   string Value = 3;
+  bool Invert = 4;
 }
 
 enum HTTPPathMatchType {

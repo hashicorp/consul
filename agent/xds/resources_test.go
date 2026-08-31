@@ -1363,6 +1363,73 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 			},
 		},
 		{
+			name: "api-gateway-with-header-match-invert",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+					entry.Listeners = []structs.APIGatewayListener{
+						{
+							Name:     "listener",
+							Protocol: structs.ListenerProtocolHTTP,
+							Port:     8080,
+						},
+					}
+					bound.Listeners = []structs.BoundAPIGatewayListener{
+						{
+							Name: "listener",
+							Routes: []structs.ResourceReference{{
+								Kind: structs.HTTPRoute,
+								Name: "route",
+							}},
+						},
+					}
+				}, []structs.BoundRoute{
+					&structs.HTTPRouteConfigEntry{
+						Kind: structs.HTTPRoute,
+						Name: "route",
+						Rules: []structs.HTTPRouteRule{
+							{
+								// Rule 1: route when X-Canary header is ABSENT (present + invert)
+								Matches: []structs.HTTPMatch{{
+									Headers: []structs.HTTPHeaderMatch{{
+										Match:  structs.HTTPHeaderMatchPresent,
+										Name:   "X-Canary",
+										Invert: true,
+									}},
+								}},
+								Services: []structs.HTTPService{{Name: "service"}},
+							},
+							{
+								// Rule 2: route when X-Version is NOT "v2" (exact + invert)
+								Matches: []structs.HTTPMatch{{
+									Headers: []structs.HTTPHeaderMatch{{
+										Match:  structs.HTTPHeaderMatchExact,
+										Name:   "X-Version",
+										Value:  "v2",
+										Invert: true,
+									}},
+								}},
+								Services: []structs.HTTPService{{Name: "service"}},
+							},
+						},
+						Parents: []structs.ResourceReference{{
+							Kind: structs.APIGateway,
+							Name: "api-gateway",
+						}},
+					},
+				}, nil, []proxycfg.UpdateEvent{{
+					CorrelationID: "discovery-chain:" + serviceUID.String(),
+					Result: &structs.DiscoveryChainResponse{
+						Chain: serviceChain,
+					},
+				}, {
+					CorrelationID: "upstream-target:" + serviceChain.ID() + ":" + serviceUID.String(),
+					Result: &structs.IndexedCheckServiceNodes{
+						Nodes: proxycfg.TestUpstreamNodes(t, "service"),
+					},
+				}})
+			},
+		},
+		{
 			name: "api-gateway-with-http-route-timeoutfilter-one-set",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
@@ -1818,6 +1885,238 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 						Rules: []structs.HTTPRouteRule{
 							{
 								Services: []structs.HTTPService{{Name: "backend"}},
+							},
+						},
+					},
+				}, nil, nil)
+			},
+		},
+		{
+			name: "api-gateway-with-http-route-upstream-limits",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+					entry.Defaults = &structs.UpstreamLimits{
+						MaxConnections:        intPointer(50),
+						MaxPendingRequests:    intPointer(100),
+						MaxConcurrentRequests: intPointer(200),
+					}
+					entry.Listeners = []structs.APIGatewayListener{
+						{
+							Name:     "http-listener",
+							Protocol: structs.ListenerProtocolHTTP,
+							Port:     8080,
+						},
+					}
+					bound.Listeners = []structs.BoundAPIGatewayListener{
+						{
+							Name: "http-listener",
+							Routes: []structs.ResourceReference{
+								{Name: "http-route", Kind: structs.HTTPRoute},
+							},
+						},
+					}
+				}, []structs.BoundRoute{
+					&structs.HTTPRouteConfigEntry{
+						Kind: structs.HTTPRoute,
+						Name: "http-route",
+						Parents: []structs.ResourceReference{
+							{Kind: structs.APIGateway, Name: "api-gateway"},
+						},
+						Rules: []structs.HTTPRouteRule{
+							{
+								// Override only MaxConnections; the gateway defaults for
+								// MaxPendingRequests and MaxConcurrentRequests are inherited.
+								Services: []structs.HTTPService{{
+									Name: "backend",
+									Limits: &structs.UpstreamLimits{
+										MaxConnections: intPointer(20),
+									},
+								}},
+							},
+						},
+					},
+				}, nil, nil)
+			},
+		},
+		{
+			name: "api-gateway-with-tcp-route-upstream-limits",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+					entry.Defaults = &structs.UpstreamLimits{
+						MaxConnections:        intPointer(50),
+						MaxPendingRequests:    intPointer(100),
+						MaxConcurrentRequests: intPointer(200),
+					}
+					entry.Listeners = []structs.APIGatewayListener{
+						{
+							Name:     "tcp-listener",
+							Protocol: structs.ListenerProtocolTCP,
+							Port:     8080,
+						},
+					}
+					bound.Listeners = []structs.BoundAPIGatewayListener{
+						{
+							Name: "tcp-listener",
+							Routes: []structs.ResourceReference{
+								{Name: "tcp-route", Kind: structs.TCPRoute},
+							},
+						},
+					}
+				}, []structs.BoundRoute{
+					&structs.TCPRouteConfigEntry{
+						Kind: structs.TCPRoute,
+						Name: "tcp-route",
+						Parents: []structs.ResourceReference{
+							{Kind: structs.APIGateway, Name: "api-gateway"},
+						},
+						Services: []structs.TCPService{{Name: "tcp-backend"}},
+					},
+				}, nil, nil)
+			},
+		},
+		{
+			name: "api-gateway-with-upstream-passive-health-check",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+					entry.Defaults = &structs.UpstreamLimits{
+						MaxConnections: intPointer(50),
+						PassiveHealthCheck: &structs.PassiveHealthCheck{
+							Interval:    10 * time.Second,
+							MaxFailures: 5,
+						},
+					}
+					entry.Listeners = []structs.APIGatewayListener{
+						{
+							Name:     "http-listener",
+							Protocol: structs.ListenerProtocolHTTP,
+							Port:     8080,
+						},
+					}
+					bound.Listeners = []structs.BoundAPIGatewayListener{
+						{
+							Name: "http-listener",
+							Routes: []structs.ResourceReference{
+								{Name: "http-route", Kind: structs.HTTPRoute},
+							},
+						},
+					}
+				}, []structs.BoundRoute{
+					&structs.HTTPRouteConfigEntry{
+						Kind: structs.HTTPRoute,
+						Name: "http-route",
+						Parents: []structs.ResourceReference{
+							{Kind: structs.APIGateway, Name: "api-gateway"},
+						},
+						Rules: []structs.HTTPRouteRule{
+							{
+								// Per-service override: change MaxConnections and PassiveHealthCheck.
+								// Interval/MaxFailures are replaced as a whole (not merged sub-field by sub-field).
+								Services: []structs.HTTPService{{
+									Name: "backend",
+									Limits: &structs.UpstreamLimits{
+										MaxConnections: intPointer(20),
+										PassiveHealthCheck: &structs.PassiveHealthCheck{
+											Interval:    5 * time.Second,
+											MaxFailures: 3,
+										},
+									},
+								}},
+							},
+						},
+					},
+				}, nil, nil)
+			},
+		},
+		{
+			// Route-only circuit breakers: no gateway Defaults at all.
+			// The service Limits on the route are the sole source of all three
+			// numeric fields, so the cluster must carry exactly those thresholds
+			// with no values inherited from an absent gateway default.
+			name: "api-gateway-with-route-only-limits",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+					// No Defaults — gateway does not set any upstream limits.
+					entry.Listeners = []structs.APIGatewayListener{
+						{
+							Name:     "http-listener",
+							Protocol: structs.ListenerProtocolHTTP,
+							Port:     8080,
+						},
+					}
+					bound.Listeners = []structs.BoundAPIGatewayListener{
+						{
+							Name: "http-listener",
+							Routes: []structs.ResourceReference{
+								{Name: "http-route", Kind: structs.HTTPRoute},
+							},
+						},
+					}
+				}, []structs.BoundRoute{
+					&structs.HTTPRouteConfigEntry{
+						Kind: structs.HTTPRoute,
+						Name: "http-route",
+						Parents: []structs.ResourceReference{
+							{Kind: structs.APIGateway, Name: "api-gateway"},
+						},
+						Rules: []structs.HTTPRouteRule{
+							{
+								Services: []structs.HTTPService{{
+									Name: "payments",
+									Limits: &structs.UpstreamLimits{
+										MaxConnections:        intPointer(20),
+										MaxPendingRequests:    intPointer(40),
+										MaxConcurrentRequests: intPointer(80),
+									},
+								}},
+							},
+						},
+					},
+				}, nil, nil)
+			},
+		},
+		{
+			// Route-only passive health check: no gateway Defaults at all.
+			// The PassiveHealthCheck on the route service Limits is the sole
+			// source; the cluster must carry a fully-populated outlier_detection
+			// with no values inherited from an absent gateway default.
+			name: "api-gateway-with-route-only-passive-health-check",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+					// No Defaults — gateway does not set any upstream limits.
+					entry.Listeners = []structs.APIGatewayListener{
+						{
+							Name:     "http-listener",
+							Protocol: structs.ListenerProtocolHTTP,
+							Port:     8080,
+						},
+					}
+					bound.Listeners = []structs.BoundAPIGatewayListener{
+						{
+							Name: "http-listener",
+							Routes: []structs.ResourceReference{
+								{Name: "http-route", Kind: structs.HTTPRoute},
+							},
+						},
+					}
+				}, []structs.BoundRoute{
+					&structs.HTTPRouteConfigEntry{
+						Kind: structs.HTTPRoute,
+						Name: "http-route",
+						Parents: []structs.ResourceReference{
+							{Kind: structs.APIGateway, Name: "api-gateway"},
+						},
+						Rules: []structs.HTTPRouteRule{
+							{
+								Services: []structs.HTTPService{{
+									Name: "payments",
+									Limits: &structs.UpstreamLimits{
+										MaxConnections: intPointer(30),
+										PassiveHealthCheck: &structs.PassiveHealthCheck{
+											Interval:    5 * time.Second,
+											MaxFailures: 3,
+										},
+									},
+								}},
 							},
 						},
 					},
