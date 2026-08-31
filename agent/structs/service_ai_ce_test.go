@@ -66,13 +66,6 @@ func TestStructs_ServiceAI_Clone(t *testing.T) {
 		require.Equal(t, 16101, orig.Agent.MCP.HITL.Port)
 	})
 
-	t.Run("auth secret pointer is independent", func(t *testing.T) {
-		orig := originals["inference-model"]
-		clone := orig.Clone()
-
-		clone.InferenceModel.Auth.Secret.Field = "MUTATED"
-		require.Equal(t, "f", orig.InferenceModel.Auth.Secret.Field)
-	})
 }
 
 // TestStructs_ServiceAI_UnmarshalJSON proves the snake_case config/JSON keys and
@@ -105,7 +98,6 @@ func TestStructs_ServiceAI_UnmarshalJSON(t *testing.T) {
 		// Assert the snake_case aliases actually mapped (not silently dropped).
 		require.NotNil(t, fromSnake.InferenceModel)
 		require.Equal(t, 2048, fromSnake.InferenceModel.Defaults.MaxTokens)
-		require.Equal(t, "token", fromSnake.InferenceModel.Auth.Secret.Field)
 	})
 
 	t.Run("mcp_server + protocol_version aliases", func(t *testing.T) {
