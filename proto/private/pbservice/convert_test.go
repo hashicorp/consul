@@ -44,7 +44,7 @@ func TestServiceDefinition_RoundTrip(t *testing.T) {
 }
 
 // serviceAIRoleCases returns one representative ServiceAI payload per role,
-// exercising every nested sub-block plus the auth/secret reference path.
+// exercising every nested sub-block.
 func serviceAIRoleCases() map[string]*structs.ServiceAI {
 	return map[string]*structs.ServiceAI{
 		"inference-model": {
@@ -81,8 +81,8 @@ func serviceAIRoleCases() map[string]*structs.ServiceAI {
 	}
 }
 
-// TestServiceAI_ServiceDefinition_RoundTrip_Explicit pins each role shape and
-// the auth/secret path on a ServiceDefinition, proving the AI field survives a
+// TestServiceAI_ServiceDefinition_RoundTrip_Explicit pins each role shape
+// on a ServiceDefinition, proving the AI field survives a
 // structs -> proto -> structs round trip through the generated converters.
 func TestServiceAI_ServiceDefinition_RoundTrip_Explicit(t *testing.T) {
 	for name, ai := range serviceAIRoleCases() {
