@@ -18,6 +18,19 @@
 # wider impact are preferred.
 #
 repos:
+-   repo: https://github.com/hashicorp/hashiguard-hooks
+    rev: v0.2.0
+    hooks:
+    # Blocks commits that introduce internal Jira issue IDs (e.g. IPENG-123,
+    # CONSUL-456) into CE repository code, branch names, and commit messages.
+    # `pre-commit run hashiguard-check-jira-id` to run file check in isolation.
+    # `pre-commit run hashiguard-check-jira-id-msg` to run message check in isolation.
+    # `pre-commit run hashiguard-check-jira-id-branch` to run branch check in isolation.
+    # Note: the post-checkout hook requires one additional install step:
+    #   pre-commit install --hook-type post-checkout
+    -   id: hashiguard-check-jira-id
+    -   id: hashiguard-check-jira-id-msg
+    -   id: hashiguard-check-jira-id-branch
 -   repo: https://github.com/tekwizely/pre-commit-golang
     rev: v1.0.0-rc.1
     hooks:
