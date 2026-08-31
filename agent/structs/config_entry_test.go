@@ -2822,6 +2822,23 @@ func TestUpstreamLimits_Validate(t *testing.T) {
 			wantErr: true,
 			wantMsg: "cannot be negative",
 		},
+		{
+			name:    "valid-passive-health-check",
+			input:   UpstreamLimits{PassiveHealthCheck: &PassiveHealthCheck{Interval: 5 * time.Second, MaxFailures: 3}},
+			wantErr: false,
+		},
+		{
+			name:    "invalid-passive-health-check-negative-interval",
+			input:   UpstreamLimits{PassiveHealthCheck: &PassiveHealthCheck{Interval: -1 * time.Second}},
+			wantErr: true,
+			wantMsg: "cannot be negative",
+		},
+		{
+			name:    "invalid-passive-health-check-enforcing-consecutive-5xx",
+			input:   UpstreamLimits{PassiveHealthCheck: &PassiveHealthCheck{EnforcingConsecutive5xx: uintPointer(101)}},
+			wantErr: true,
+			wantMsg: "must be a percentage",
+		},
 	}
 
 	for _, tc := range tt {

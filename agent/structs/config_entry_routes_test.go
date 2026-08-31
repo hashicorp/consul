@@ -5,6 +5,7 @@ package structs
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -65,6 +66,36 @@ func TestTCPRoute(t *testing.T) {
 				}},
 			},
 			validateErr: "Service[0], max concurrent requests cannot be negative",
+		},
+		"service limits passive health check invalid interval": {
+			entry: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "route-phc-interval",
+				Services: []TCPService{{
+					Name: "foo",
+					Limits: &UpstreamLimits{
+						PassiveHealthCheck: &PassiveHealthCheck{
+							Interval: -1 * time.Second,
+						},
+					},
+				}},
+			},
+			validateErr: "cannot be negative",
+		},
+		"service limits passive health check invalid max ejection percent": {
+			entry: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "route-phc-pct",
+				Services: []TCPService{{
+					Name: "foo",
+					Limits: &UpstreamLimits{
+						PassiveHealthCheck: &PassiveHealthCheck{
+							MaxEjectionPercent: uintPointer(101),
+						},
+					},
+				}},
+			},
+			validateErr: "must be a percentage",
 		},
 		"normalize parent kind": {
 			entry: &TCPRouteConfigEntry{
@@ -240,6 +271,46 @@ func TestHTTPRoute(t *testing.T) {
 				}},
 			},
 			validateErr: "Rule[0], Service[0], max concurrent requests cannot be negative",
+		},
+		"service limits passive health check invalid interval": {
+			entry: &HTTPRouteConfigEntry{
+				Kind: HTTPRoute,
+				Name: "route-phc-interval",
+				Parents: []ResourceReference{{
+					Name: "gateway",
+				}},
+				Rules: []HTTPRouteRule{{
+					Services: []HTTPService{{
+						Name: "svc",
+						Limits: &UpstreamLimits{
+							PassiveHealthCheck: &PassiveHealthCheck{
+								Interval: -1 * time.Second,
+							},
+						},
+					}},
+				}},
+			},
+			validateErr: "cannot be negative",
+		},
+		"service limits passive health check invalid max ejection percent": {
+			entry: &HTTPRouteConfigEntry{
+				Kind: HTTPRoute,
+				Name: "route-phc-pct",
+				Parents: []ResourceReference{{
+					Name: "gateway",
+				}},
+				Rules: []HTTPRouteRule{{
+					Services: []HTTPService{{
+						Name: "svc",
+						Limits: &UpstreamLimits{
+							PassiveHealthCheck: &PassiveHealthCheck{
+								MaxEjectionPercent: uintPointer(101),
+							},
+						},
+					}},
+				}},
+			},
+			validateErr: "must be a percentage",
 		},
 		"normalize parent kind": {
 			entry: &HTTPRouteConfigEntry{
