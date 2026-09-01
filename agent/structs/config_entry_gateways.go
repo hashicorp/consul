@@ -908,8 +908,10 @@ func (e *APIGatewayConfigEntry) validateMergedListeners() error {
 
 func (e *APIGatewayConfigEntry) validateListeners() error {
 	validProtocols := map[APIGatewayListenerProtocol]bool{
-		ListenerProtocolHTTP: true,
-		ListenerProtocolTCP:  true,
+		ListenerProtocolHTTP:  true,
+		ListenerProtocolTCP:   true,
+		ListenerProtocolHTTP2: true,
+		ListenerProtocolGRPC:  true,
 	}
 	allowedCertificateKinds := map[string]bool{
 		FileSystemCertificate: true,
@@ -920,7 +922,7 @@ func (e *APIGatewayConfigEntry) validateListeners() error {
 
 	for _, listener := range e.Listeners {
 		if !validProtocols[listener.Protocol] {
-			return fmt.Errorf("unsupported listener protocol %q, must be one of 'tcp', or 'http'", listener.Protocol)
+			return fmt.Errorf("unsupported listener protocol %q, must be one of 'tcp', 'http', 'http2', or 'grpc'", listener.Protocol)
 		}
 		if listener.Protocol == ListenerProtocolTCP && listener.Hostname != "" {
 			// TODO: once we have SNI matching we should be able to implement this
@@ -975,9 +977,22 @@ func (e *APIGatewayConfigEntry) CanWrite(authz acl.Authorizer) error {
 type APIGatewayListenerProtocol string
 
 const (
-	ListenerProtocolHTTP APIGatewayListenerProtocol = "http"
-	ListenerProtocolTCP  APIGatewayListenerProtocol = "tcp"
+	ListenerProtocolHTTP  APIGatewayListenerProtocol = "http"
+	ListenerProtocolTCP   APIGatewayListenerProtocol = "tcp"
+	ListenerProtocolHTTP2 APIGatewayListenerProtocol = "http2"
+	ListenerProtocolGRPC  APIGatewayListenerProtocol = "grpc"
 )
+
+// APIGatewayListenerProtocolsCompatible reports whether a route (or discovery
+// chain) of protocol b can be served by a listener of protocol a. HTTP, HTTP/2
+// and gRPC are all L7/HTTP-like and are mutually compatible for routing; tcp is
+// only compatible with tcp.
+func APIGatewayListenerProtocolsCompatible(a, b APIGatewayListenerProtocol) bool {
+	if IsProtocolHTTPLike(string(a)) && IsProtocolHTTPLike(string(b)) {
+		return true
+	}
+	return a == b
+}
 
 // APIGatewayListener represents an individual listener for an APIGateway
 type APIGatewayListener struct {
@@ -990,7 +1005,7 @@ type APIGatewayListener struct {
 	// Port is the port at which this listener should bind.
 	Port int
 	// Protocol is the protocol that a listener should use. It must
-	// either be http or tcp.
+	// be one of http, tcp, http2, or grpc.
 	Protocol APIGatewayListenerProtocol
 	// TLS is the TLS settings for the listener.
 	TLS APIGatewayTLSConfiguration

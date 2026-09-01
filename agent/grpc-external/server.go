@@ -68,6 +68,14 @@ func NewServer(
 	opts := []grpc.ServerOption{
 		grpc.MaxConcurrentStreams(2048),
 		grpc.MaxRecvMsgSize(50 * 1024 * 1024),
+		// Bound the time a client may spend establishing a connection (including
+		// the TLS/HTTP2 handshake) before it is dropped. This limits how long an
+		// incomplete connection can hold server resources and, together with the
+		// per-client connection limiter applied to the listener, mitigates
+		// resource-exhaustion from clients that never complete the handshake.
+		// gRPC's default is 120s, which is far longer than a legitimate
+		// handshake requires.
+		grpc.ConnectionTimeout(20 * time.Second),
 		grpc.InTapHandle(agentmiddleware.ServerRateLimiterMiddleware(limiter, agentmiddleware.NewPanicHandler(logger), logger)),
 		grpc.StatsHandler(agentmiddleware.NewStatsHandler(metricsObj, metricsLabels)),
 		middleware.WithUnaryServerChain(unaryInterceptors...),

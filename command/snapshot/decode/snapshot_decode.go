@@ -12,7 +12,13 @@ import (
 	"path"
 	"strings"
 
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-raftchunking"
+	"github.com/hashicorp/raft"
+
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
@@ -20,10 +26,6 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/snapshot"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-raftchunking"
-	"github.com/hashicorp/raft"
-	"github.com/mitchellh/cli"
 )
 
 var requestTypeZeroValues = map[structs.MessageType]func() any{
@@ -54,6 +56,7 @@ var requestTypeZeroValues = map[structs.MessageType]func() any{
 	structs.PeeringTrustBundleWriteType:  func() any { return new(pbpeering.PeeringTrustBundle) },
 	structs.PeeringSecretsWriteType:      func() any { return new(pbpeering.PeeringSecrets) },
 	structs.ResourceOperationType:        func() any { return new(pbresource.Resource) },
+	structs.FeatureGateRequestType:       func() any { return new(structs.FeatureGateSnapshot) },
 }
 
 func New(ui cli.Ui) *cmd {

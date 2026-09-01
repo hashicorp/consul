@@ -92,6 +92,7 @@ const (
 	ResourceOperationType                       = 42
 	UpdateVirtualIPRequestType                  = 43
 	CensusRequestType                           = 44
+	FeatureGateRequestType                      = 45
 )
 
 const (
@@ -162,6 +163,7 @@ var requestTypeStrings = map[MessageType]string{
 	ResourceOperationType:           "Resource",
 	UpdateVirtualIPRequestType:      "UpdateManualVirtualIPRequestType",
 	CensusRequestType:               "Census",
+	FeatureGateRequestType:          "FeatureGate",
 }
 
 const (

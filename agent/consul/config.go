@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/agent/checks"
 	consulrate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/reporting"
+	"github.com/hashicorp/consul/agent/featuregate"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/gossip/libserf"
 	"github.com/hashicorp/consul/tlsutil"
@@ -392,6 +393,14 @@ type Config struct {
 	// bootstrapping.
 	AutopilotConfig *structs.AutopilotConfig
 
+	// FeatureGatesBootstrap is used only when creating the first cluster-wide
+	// feature-gate policy. Committed Raft state always takes precedence.
+	FeatureGatesBootstrap map[string]bool
+
+	// FeatureGateRegistry supplies compiled definitions. CE and Enterprise use
+	// the same interface and append edition-specific registrations at init.
+	FeatureGateRegistry featuregate.Registry
+
 	// ServerHealthInterval is the frequency with which the health of the
 	// servers in the cluster will be updated.
 	ServerHealthInterval time.Duration
@@ -444,6 +453,14 @@ type Config struct {
 	// CAConfig is used to apply the initial Connect CA configuration when
 	// bootstrapping.
 	CAConfig *structs.CAConfiguration
+
+	// TokenDirs is the startup-only allowlist of directories from which Vault
+	// auth-method credential files (JWT, AppRole role_id/secret_id, Kubernetes
+	// service-account token) may be read. It is set once from RuntimeConfig at
+	// agent startup and is intentionally not writable via the Connect CA API,
+	// so that an operator:write caller cannot widen the allowlist after the
+	// agent has started.
+	TokenDirs string
 
 	// ConfigEntryBootstrap contains a list of ConfigEntries to ensure are created
 	// If entries of the same Kind/Name exist already these will not update them.
@@ -590,6 +607,7 @@ func DefaultConfig() *Config {
 			MaxTrailingLogs:         250,
 			ServerStabilizationTime: 10 * time.Second,
 		},
+		FeatureGateRegistry: featuregate.DefaultRegistry(),
 
 		CAConfig: &structs.CAConfiguration{
 			Provider: "consul",
