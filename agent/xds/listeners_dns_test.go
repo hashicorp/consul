@@ -260,13 +260,13 @@ func TestMakeVirtualDNSDomains_Multiport(t *testing.T) {
 		Name:            "multi-svc",
 		DestinationPort: "grpc",
 	}
-	grpcUID.EnterpriseMeta.Normalize()
+	grpcUID.Normalize()
 
 	httpUID := proxycfg.UpstreamID{
 		Name:            "multi-svc",
 		DestinationPort: "http",
 	}
-	httpUID.EnterpriseMeta.Normalize()
+	httpUID.Normalize()
 
 	// Add both ports as separate DiscoveryChain entries (same service, different port keys).
 	// Each has its own VIP set.
