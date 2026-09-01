@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -97,12 +96,6 @@ func TestMakeVirtualDNSDomains_SkipsUnknownUpstream(t *testing.T) {
 }
 
 func TestMakeInlineDNSListener(t *testing.T) {
-	origGetAgentBindAddrFunc := netutil.GetAgentBindAddrFunc
-	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
-	t.Cleanup(func() {
-		netutil.GetAgentBindAddrFunc = origGetAgentBindAddrFunc
-	})
-
 	snap := proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, nil)
 	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
 	loopbackAddr, err := loopbackListenerAddress()
@@ -137,12 +130,6 @@ func TestMakeInlineDNSListener(t *testing.T) {
 }
 
 func TestMakeEgressDNSListener(t *testing.T) {
-	origGetAgentBindAddrFunc := netutil.GetAgentBindAddrFunc
-	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
-	t.Cleanup(func() {
-		netutil.GetAgentBindAddrFunc = origGetAgentBindAddrFunc
-	})
-
 	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
 	loopbackAddr, err := loopbackListenerAddress()
 	require.NoError(t, err)

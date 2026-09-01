@@ -19,7 +19,6 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/naming"
@@ -424,13 +423,6 @@ func listenerNameForEgressDNS(bindAddr string) string {
 }
 
 func loopbackListenerAddress() (string, error) {
-	ds, err := netutil.IsDualStack(nil, true)
-	if err != nil {
-		return "", err
-	}
-	if ds {
-		return "::1", nil
-	}
 	return "127.0.0.1", nil
 }
 
