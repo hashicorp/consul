@@ -263,6 +263,72 @@ func TestMakeInlineDNSListenerNoDomains(t *testing.T) {
 	require.Nil(t, msg)
 }
 
+func TestMakeVirtualDNSDomains_Multiport(t *testing.T) {
+	// Two UpstreamIDs for the same service with different named ports (multiport).
+	// virtualFQDNsForUpstream intentionally ignores DestinationPort, so both
+	// ports map to the same FQDN. Their VIPs must be unioned under that single entry.
+	snap := proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, nil)
+
+	grpcUID := proxycfg.UpstreamID{
+		Name:            "multi-svc",
+		DestinationPort: "grpc",
+	}
+	grpcUID.EnterpriseMeta.Normalize()
+
+	httpUID := proxycfg.UpstreamID{
+		Name:            "multi-svc",
+		DestinationPort: "http",
+	}
+	httpUID.EnterpriseMeta.Normalize()
+
+	// Add both ports as separate DiscoveryChain entries (same service, different port keys).
+	// Each has its own VIP set.
+	snap.ConnectProxy.DiscoveryChain[grpcUID] = &structs.CompiledDiscoveryChain{
+		ServiceName:    "multi-svc",
+		Namespace:      "default",
+		Partition:      snap.ProxyID.PartitionOrDefault(),
+		Datacenter:     snap.Datacenter,
+		AutoVirtualIPs: []string{"240.10.10.1"},
+	}
+	snap.ConnectProxy.DiscoveryChain[httpUID] = &structs.CompiledDiscoveryChain{
+		ServiceName:    "multi-svc",
+		Namespace:      "default",
+		Partition:      snap.ProxyID.PartitionOrDefault(),
+		Datacenter:     snap.Datacenter,
+		AutoVirtualIPs: []string{"240.10.10.2"},
+	}
+
+	// Allow both as implicit upstreams so GetUpstream does not skip them.
+	snap.ConnectProxy.IntentionUpstreams[grpcUID] = struct{}{}
+	snap.ConnectProxy.IntentionUpstreams[httpUID] = struct{}{}
+
+	domains := makeVirtualDNSDomains(snap)
+
+	// Build lookup map.
+	got := make(map[string][]string)
+	for _, d := range domains {
+		got[d.Name] = d.GetEndpoint().GetAddressList().GetAddress()
+	}
+
+	// Both ports share the same FQDN (DestinationPort is not part of the DNS name).
+	fqdn := "multi-svc.virtual.default.ns.default.ap.dc1.dc.consul"
+
+	addrs, ok := got[fqdn]
+	require.True(t, ok, "expected FQDN %q in DNS table", fqdn)
+
+	// VIPs from both named ports must be present and sorted.
+	require.Equal(t, []string{"240.10.10.1", "240.10.10.2"}, addrs)
+
+	// Only one entry in the table for the shared FQDN (no duplicate domain).
+	count := 0
+	for _, d := range domains {
+		if d.Name == fqdn {
+			count++
+		}
+	}
+	require.Equal(t, 1, count, "expected exactly one DNS domain entry for multiport service")
+}
+
 func TestListenerNamesForDNS(t *testing.T) {
 	require.Equal(t, "virtual_dns:127.0.0.1:8653", listenerNameForVirtualDNS("127.0.0.1"))
 	require.Equal(t, "virtual_dns:[::1]:8653", listenerNameForVirtualDNS("::1"))
