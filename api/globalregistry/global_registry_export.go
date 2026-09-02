@@ -3,19 +3,31 @@
 
 package globalregistry
 
-import "time"
+import (
+	"time"
+)
 
 const EventTopicGlobalRegistry = "global-registry"
 
 // Virtual table names used in GlobalRegistryDeltaExport for data that does not
 // live in memdb but is injected at payload-build time.
 const (
-	TableWANMembers     = "wan_members"
-	TableAgentSelf      = "agent_self"
-	TableACLAuthMethods = "acl_auth_methods"
-	TableACLStats       = "acl_stats"
-	TableCA             = "ca"
+	TableWANMembers                   = "wan_members"
+	TableAgentSelf                    = "agent_self"
+	TableACLAuthMethods               = "acl_auth_methods"
+	TableACLStats                     = "acl_stats"
+	TableCA                           = "ca"
+	GlobalRegistryPayloadTypeSnapshot = "SNAPSHOT"
+	GlobalRegistryPayloadTypeDelta    = "DELTA"
 )
+
+type GlobalRegistryPayload struct {
+	Type         string                        `json:"type"`
+	ClusterID    string                        `json:"clusterId"`
+	Timestamp    int64                         `json:"timestamp"`
+	SnapshotData *GlobalRegistrySnapshotExport `json:"snapshotData"`
+	DeltaData    []GlobalRegistryDeltaExport   `json:"deltaData"`
+}
 
 type GlobalRegistrySnapshotExport struct {
 	Nodes            []GlobalRegistryNodeRecord             `json:"nodes"`
