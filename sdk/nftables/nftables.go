@@ -51,7 +51,7 @@ type Config struct {
 	// ProxyInboundPort is the port of the proxy's inbound listener.
 	ProxyInboundPort int
 
-	// ProxyInboundPort is the port of the proxy's outbound listener.
+	// ProxyOutboundPort is the port of the proxy's outbound listener.
 	ProxyOutboundPort int
 
 	// ExcludeInboundPorts is the list of ports that should be excluded
