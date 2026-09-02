@@ -393,6 +393,7 @@
             "Name": "foo",
             "Port": 0,
             "Ports": [],
+            "Priority": null,
             "Proxy": null,
             "SocketPath": "",
             "TaggedAddresses": {},

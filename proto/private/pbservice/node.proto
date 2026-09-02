@@ -76,6 +76,8 @@ message NodeService {
 
   // mog: func-to=WeightsPtrToStructs func-from=NewWeightsPtrFromStructs
   Weights Weights = 8;
+  // mog: func-to=Int32PtrToIntPtr func-from=IntPtrToInt32Ptr
+  optional int32 Priority = 21;
   bool EnableTagOverride = 9;
 
   // Proxy is the configuration set for Kind = connect-proxy. It is mandatory in
