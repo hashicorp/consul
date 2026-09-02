@@ -24,3 +24,13 @@ var APIGatewayUpstreamRouting = registerFeature(Definition{
 	Description: "Compose API Gateway HTTPRoutes with upstream routing policy",
 	Owner:       "proxycfg",
 })
+
+// PeeringMultiportUpstreams gates multiport peering behavior introduced by
+// hashicorp/consul#13142 (per-port peered upstream/filter-chain/cluster/route
+// expansion paths).
+var PeeringMultiportUpstreams = registerFeature(Definition{
+	Name:        "peering-multiport-upstreams",
+	MinVersion:  version.Must(version.NewVersion("2.1.0")),
+	Description: "Enable multiport peering upstream expansion for proxycfg/xDS",
+	Owner:       "xds",
+})

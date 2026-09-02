@@ -60,10 +60,30 @@ func (s *ResourceGenerator) appendEntDiscoveryChainTargetClusters(
 	return out, false, nil
 }
 
+func (s *ResourceGenerator) appendEntPeeredMultiportClusters(
+	clusters []proto.Message,
+	_ *proxycfg.ConfigSnapshot,
+	_ proxycfg.UpstreamID,
+	_ *envoy_cluster_v3.Cluster,
+) ([]proto.Message, error) {
+	return clusters, nil
+}
+
+func (s *ResourceGenerator) appendEntGatewayOutgoingPeeringServiceMultiportClusters(
+	clusters []proto.Message,
+	_ *proxycfg.ConfigSnapshot,
+	_ proxycfg.PeeringServiceValue,
+	_ structs.CheckServiceNode,
+) ([]proto.Message, error) {
+	return clusters, nil
+}
+
 func (s *ResourceGenerator) appendEntTransparentProxyMultiportFilterChains(
 	_ *envoy_listener_v3.Listener,
 	_ structs.CheckServiceNodes,
 	_ string,
+	_ string,
+	_ *structs.CompiledDiscoveryChain,
 	_ string,
 	_ filterChainOpts,
 ) (bool, error) {

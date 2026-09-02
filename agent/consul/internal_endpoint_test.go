@@ -3050,6 +3050,38 @@ func TestInternal_PeeredUpstreams(t *testing.T) {
 		{Peer: "peer-b", ServiceName: structs.NewServiceName("web", structs.DefaultEnterpriseMetaInDefaultPartition())},
 	}
 	require.Equal(t, expect, out.Services)
+
+	// Enterprise builds allocate per-port VIPs and return them through the
+	// optional map, while the legacy Services field remains limited to base
+	// services in every build.
+	require.NoError(t, s1.fsm.State().EnsureRegistration(20, &structs.RegisterRequest{
+		Node:           "bar",
+		SkipNodeUpdate: true,
+		Service: &structs.NodeService{
+			Kind:    structs.ServiceKindTypical,
+			Service: "web",
+			ID:      "web-1",
+			Ports: structs.ServicePorts{
+				{Name: "http", Port: 8080, Default: true},
+				{Name: "metrics", Port: 9090},
+			},
+		},
+		PeerName: "peer-a",
+	}))
+
+	out = structs.IndexedPeeredServiceList{}
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.PeeredUpstreams", &args, &out))
+	require.Equal(t, expect, out.Services)
+	testInternalPeeredUpstreamsPortVIPs(t, out)
+
+	// Simulate an older client whose response type predates ServiceVIPs. The
+	// unknown optional field is ignored and only real services remain visible.
+	var legacyOut struct {
+		Services []structs.PeeredServiceName
+		structs.QueryMeta
+	}
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.PeeredUpstreams", &args, &legacyOut))
+	require.Equal(t, expect, legacyOut.Services)
 }
 
 func TestInternal_ServiceGatewayService_Terminating(t *testing.T) {

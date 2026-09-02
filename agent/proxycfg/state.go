@@ -316,23 +316,37 @@ type handlerState struct {
 	ch              chan UpdateEvent
 }
 
+func (h *handlerState) peeringMultiportUpstreamsEnabled() bool {
+	if h.featureGate == nil {
+		return true
+	}
+	return h.featureGate.Enabled(featuregate.PeeringMultiportUpstreams)
+}
+
+func (h *handlerState) refreshPeeringMultiportGate(snap *ConfigSnapshot) bool {
+	enabled := h.peeringMultiportUpstreamsEnabled()
+	snap.PeeringMultiportUpstreamsEnabled = enabled
+	return enabled
+}
+
 func newConfigSnapshotFromServiceInstance(s serviceInstance, config stateConfig) ConfigSnapshot {
 	// TODO: use serviceInstance type in ConfigSnapshot
 	return ConfigSnapshot{
-		Kind:                  s.kind,
-		Service:               s.service,
-		ServiceLocality:       s.locality,
-		ProxyID:               s.proxyID,
-		Address:               s.address,
-		Port:                  s.port,
-		Ports:                 s.ports,
-		ServiceMeta:           s.meta,
-		TaggedAddresses:       s.taggedAddresses,
-		Proxy:                 s.proxyCfg,
-		Datacenter:            config.source.Datacenter,
-		Locality:              GatewayKey{Datacenter: config.source.Datacenter, Partition: s.proxyID.PartitionOrDefault()},
-		ServerSNIFn:           config.serverSNIFn,
-		IntentionDefaultAllow: config.intentionDefaultAllow,
+		Kind:                             s.kind,
+		Service:                          s.service,
+		ServiceLocality:                  s.locality,
+		ProxyID:                          s.proxyID,
+		Address:                          s.address,
+		Port:                             s.port,
+		Ports:                            s.ports,
+		ServiceMeta:                      s.meta,
+		TaggedAddresses:                  s.taggedAddresses,
+		Proxy:                            s.proxyCfg,
+		Datacenter:                       config.source.Datacenter,
+		Locality:                         GatewayKey{Datacenter: config.source.Datacenter, Partition: s.proxyID.PartitionOrDefault()},
+		ServerSNIFn:                      config.serverSNIFn,
+		IntentionDefaultAllow:            config.intentionDefaultAllow,
+		PeeringMultiportUpstreamsEnabled: config.featureGate == nil || config.featureGate.Enabled(featuregate.PeeringMultiportUpstreams),
 	}
 }
 

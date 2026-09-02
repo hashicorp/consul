@@ -376,6 +376,7 @@ func testManager_BasicLifecycle(
 		DataSources: dataSources.ToDataSources(),
 	})
 	require.NoError(t, err)
+	expectSnap.PeeringMultiportUpstreamsEnabled = true
 
 	webProxyID := ProxyID{
 		ServiceID: webProxy.CompoundServiceID(),

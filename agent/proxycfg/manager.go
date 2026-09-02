@@ -266,7 +266,7 @@ func (m *Manager) watchFeatureGates() {
 			return
 		case <-watch:
 			if m.Logger != nil {
-				m.Logger.Debug("feature-gate store updated, refreshing catalog API Gateway snapshots")
+				m.Logger.Debug("feature-gate store updated, refreshing affected catalog snapshots")
 			}
 			m.featureGateDedup.signal()
 		}
@@ -282,20 +282,24 @@ func (m *Manager) featureGateRefresher() {
 	}
 }
 
-// refreshFeatureGates invalidates only server-catalog API Gateway snapshots.
-// Local agent registrations are Phase 1's explicit fail-closed boundary.
+// refreshFeatureGates invalidates server-catalog snapshots for kinds that
+// consume runtime feature-gate checks. Local agent registrations remain
+// explicitly unaffected.
 func (m *Manager) refreshFeatureGates() {
 	m.mu.Lock()
 	states := make([]*state, 0)
 	for _, proxyState := range m.proxies {
-		if proxyState.source == ProxySourceCatalog && proxyState.serviceInstance.kind == structs.ServiceKindAPIGateway {
+		if proxyState.source == ProxySourceCatalog &&
+			(proxyState.serviceInstance.kind == structs.ServiceKindAPIGateway ||
+				proxyState.serviceInstance.kind == structs.ServiceKindConnectProxy ||
+				proxyState.serviceInstance.kind == structs.ServiceKindMeshGateway) {
 			states = append(states, proxyState)
 		}
 	}
 	m.mu.Unlock()
 
 	if m.Logger != nil {
-		m.Logger.Debug("feature-gate refresh: dispatching to API Gateway states", "count", len(states))
+		m.Logger.Debug("feature-gate refresh: dispatching to catalog states", "count", len(states))
 	}
 	event := UpdateEvent{CorrelationID: featureGateWatchID}
 	for _, proxyState := range states {
