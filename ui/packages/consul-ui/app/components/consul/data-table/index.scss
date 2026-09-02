@@ -114,6 +114,14 @@
       &:active::before {
         background-color: var(--token-color-surface-interactive-active);
       }
+
+      /* the blanket `box-shadow: none` above has the same specificity as HDS's
+         own `:focus-visible::before` rule and is compiled after it, so it wins
+         the cascade and silently strips the keyboard focus ring. Restore it
+         explicitly so tabbing to a sort button is visible. */
+      &:focus-visible::before {
+        box-shadow: var(--token-focus-ring-action-box-shadow);
+      }
     }
 
     /* the legacy `%table th span::after` rule (app/components/table/index.scss)
@@ -143,6 +151,23 @@
      by the @for loop below). */
   .hds-table__tbody .hds-table__tr {
     cursor: default;
+  }
+
+  /* The legacy `%table td:not(.actions) > *:only-child` rule
+     (app/components/table/layout.scss) sets `overflow: hidden` on a cell's
+     lone child, sized for the old hand-rolled table's ellipsis-truncation.
+     Several row templates wrap their Name-column link in a single wrapper
+     <span> (e.g. Consul::Token::List, Consul::Service::Table,
+     Consul::Node::Table) — that span is the cell's only child, so it
+     inherits the `overflow: hidden`. An ancestor's `overflow: hidden` also
+     clips a focused descendant's native focus ring, so tabbing to the link
+     inside silently loses its keyboard focus ring. Undo just `overflow`
+     (leaving any inherited `white-space: nowrap` alone); a list that wants
+     real truncation opts in explicitly (see e.g. Consul::Peer::List's own
+     ellipsis rule, which sets `overflow` on the specific element it needs
+     truncated rather than relying on this legacy leak). */
+  .hds-table__tbody .hds-table__td > *:only-child {
+    overflow: visible;
   }
 
   /* Only the link column (@linkColumn, 1-based; defaults to the first column)
