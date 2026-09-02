@@ -3,7 +3,11 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<fieldset disabled={{if (not (can 'write token' item=@item)) 'disabled'}}>
+<fieldset disabled={{if (not (can 'write token' item=@item)) 'disabled'}} aria-label="Token details">
+  {{! aria-label above rather than a <legend>: each field below already has
+      its own <label>, and a visually-hidden <legend> is unreliable — browsers
+      give <legend> special fieldset-border layout treatment that the usual
+      clip-based hiding technique doesn't consistently override. }}
   <Hds::Form::TextInput::Field
     class='type-text'
     @value={{@item.Name}}

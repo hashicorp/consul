@@ -11,7 +11,13 @@ ${[0].map(
     // mock-api/v1/health/service/backend* and mock-api/v1/internal/ui/node/node)
     // so there's a reliable way to reach populated Upstreams/Exposed Paths
     // tabs regardless of what the random generation below produces.
-    [
+    //
+    // Opt-in only (CONSUL_MESH_SEED_ENABLE=1 pnpm start): unconditionally
+    // prepending these broke every acceptance test that assumes a specific
+    // service count/ordering/index (e.g. yaml-provided model overrides are
+    // merged onto the response by array index), since this endpoint is also
+    // what the test double serves under `ember test`.
+    (env('CONSUL_MESH_SEED_ENABLE', false) ? [
       `
       {
         "Name": "backend",
@@ -41,7 +47,7 @@ ${[0].map(
         "ChecksCritical": 2
       }
       `,
-    ].concat(
+    ] : []).concat(
     range(
       env(
         'CONSUL_SERVICE_COUNT',

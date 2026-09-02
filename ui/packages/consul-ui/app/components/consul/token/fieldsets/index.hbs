@@ -5,7 +5,17 @@
 
 <fieldset
   disabled={{if (not (can "write token" item=@item)) "disabled"}}
+  aria-label="Token details"
 >
+  {{! aria-label above (rather than a <legend>): the fields below
+      (AccessorID/Token/Scope/Name/Description) read fine on their own via
+      each field's own <label>, so a visible group heading would be
+      redundant — but the <fieldset> itself still needs an accessible name,
+      or it's announced as an unnamed group. A visually-hidden <legend>
+      would do the same job, but browsers give <legend> special fieldset-
+      border layout treatment that the usual clip-based hiding technique
+      doesn't reliably override, so aria-label sidesteps that entirely. }}
+
   {{! Read-only fields (AccessorID, Token, Scope) — edit mode only }}
   {{#unless @create}}
     <Hds::Form::MaskedInput::Field

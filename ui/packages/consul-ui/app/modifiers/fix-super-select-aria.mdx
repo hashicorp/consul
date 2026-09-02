@@ -7,17 +7,31 @@ Fixes multiple ARIA accessibility issues in SuperSelect (ember-power-select) com
 - **Invalid roles**: Changes `role="alert"` to `role="option"` on select options
 - **Broken references**: Removes invalid `aria-controls` pointing to non-existent elements
 - **Missing attributes**: Adds `aria-expanded` to comboboxes and `aria-label` to listboxes
+- **Popup-less combobox**: Redirects a combobox's `aria-controls`/`aria-owns` off the
+  unroled `.ember-basic-dropdown-content` wrapper and onto the `role="listbox"`
+  element nested inside it, so the popup a screen reader is told about actually
+  has one of the roles (`listbox`/`grid`/`tree`/`dialog`) the combobox pattern requires
 
 ```html
 <!-- Before -->
 <div role="alert" aria-selected="true">Option 1</div>
 <input role="combobox" aria-controls="missing-dropdown" />
 <ul role="listbox"></ul>
+<div role="combobox" aria-controls="ember-basic-dropdown-content-1">
+</div>
+<div id="ember-basic-dropdown-content-1"><!-- no role -->
+  <ul id="ember-power-select-options-1" role="listbox"></ul>
+</div>
 
 <!-- After -->
 <div role="option" aria-selected="true">Option 1</div>
 <input role="combobox" aria-expanded="false" />
 <ul role="listbox" aria-label="Available Options"></ul>
+<div role="combobox" aria-controls="ember-power-select-options-1">
+</div>
+<div id="ember-basic-dropdown-content-1">
+  <ul id="ember-power-select-options-1" role="listbox"></ul>
+</div>
 ```
 
 ## Usage

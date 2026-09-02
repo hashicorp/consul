@@ -144,6 +144,15 @@
                 as |CB|
               >
                 <CB.Title @tag='span'>
+                  {{! Every accordion row's code block otherwise shares the
+                      exact same visible title text ("Rules (HCL Format)"),
+                      which becomes this region's accessible name — with
+                      several rows expanded at once that's multiple
+                      role="region" elements sharing one label, which fails
+                      "region labels must be unique". Prefix it with the
+                      policy's own name, visually hidden, so each region's
+                      name is distinct without changing what's shown. }}
+                  <span class="policy-accordion__region-label">{{item.Name}}</span>
                   Rules
                   <a
                     href='{{env "CONSUL_DOCS_URL"}}/secure/acl/rule'
@@ -165,6 +174,7 @@
                 as |CB|
               >
                 <CB.Title @tag='span'>
+                  <span class="policy-accordion__region-label">{{item.Name}}</span>
                   Rules
                   <a
                     href='{{env "CONSUL_DOCS_URL"}}/secure/acl/rule'
@@ -177,6 +187,7 @@
             {{else}}
               <Hds::CodeBlock @language='hcl' @value={{or this.loadedItem.Rules this.item.Rules ''}} as |CB|>
                 <CB.Title @tag='span'>
+                  <span class="policy-accordion__region-label">{{item.Name}}</span>
                   Rules
                   <a
                     href='{{env "CONSUL_DOCS_URL"}}/secure/acl/rule'

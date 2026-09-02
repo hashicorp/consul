@@ -204,23 +204,29 @@ export default class ConsulIntentionForm extends Component {
         switch (target.name) {
           case 'SourceName':
           case 'DestinationName':
-            if (this.services.filterBy('Name', name).length === 0) {
+            // this.services/nspaces/partitions are only populated once their
+            // respective DataSource's `@onchange` has fired (see
+            // createServices/createNspaces/createPartitions below) -- a
+            // selection made before that resolves (or if it never does)
+            // would otherwise throw here and crash the whole app, so treat
+            // 'not loaded yet' the same as 'not already in the list'.
+            if ((this.services || []).filterBy('Name', name).length === 0) {
               selected = { Name: name };
-              this.services = [selected].concat(this.services.toArray());
+              this.services = [selected].concat((this.services || []).toArray());
             }
             break;
           case 'SourceNS':
           case 'DestinationNS':
-            if (this.nspaces.filterBy('Name', name).length === 0) {
+            if ((this.nspaces || []).filterBy('Name', name).length === 0) {
               selected = { Name: name };
-              this.nspaces = [selected].concat(this.nspaces.toArray());
+              this.nspaces = [selected].concat((this.nspaces || []).toArray());
             }
             break;
           case 'SourcePartition':
           case 'DestinationPartition':
-            if (this.partitions.filterBy('Name', name).length === 0) {
+            if ((this.partitions || []).filterBy('Name', name).length === 0) {
               selected = { Name: name };
-              this.partitions = [selected].concat(this.partitions.toArray());
+              this.partitions = [selected].concat((this.partitions || []).toArray());
             }
             break;
         }
