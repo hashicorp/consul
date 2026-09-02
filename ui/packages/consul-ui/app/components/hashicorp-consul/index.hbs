@@ -6,7 +6,14 @@
 <App class='hashicorp-consul' ...attributes>
 
   <:header>
-    <Hds::AppHeader>
+    {{! HDS's own NavigationNarrator (rendered by Hds::AppHeader) announces a
+      second, generic "page navigation is complete" message on every route
+      change alongside route/title's more informative "Navigated to X" live
+      region below. Silencing just the announced text here — rather than
+      disabling @hasA11yRefocus outright — keeps the narrator's other jobs
+      intact: it's also what renders the "Skip to main content" link and
+      moves focus on route change. }}
+    <Hds::AppHeader @a11yRefocusNavigationText="">
       <:logo>
         <Hds::AppHeader::HomeLink
           @icon='consul'
@@ -219,9 +226,13 @@
       </Hds::AppSideNav::List>
 
       <div data-test-footer id="contentinfo">
+        {{! @color='disabled' rendered #8c909c on #fafafa (3.05:1, fails
+          AA's 4.5:1) — this text isn't an actually-disabled control, so use
+          'faint' (5.19:1) instead, HDS's token for muted-but-readable text.
+          See docs/a11y-audit/01-shared-chrome.md #1 }}
         <Hds::Text::Display
           @size='100'
-          @color='disabled'
+          @color='faint'
         >
           {{t "components.hashicorp-consul.side-nav.footer" version=this.consulVersion}}
         </Hds::Text::Display>

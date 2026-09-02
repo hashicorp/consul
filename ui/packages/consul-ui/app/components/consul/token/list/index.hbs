@@ -16,6 +16,9 @@
           {{#if (eq item.AccessorID @token.AccessorID)}}
             <span
               class="consul-token-list__me"
+              role="group"
+              tabindex="-1"
+              aria-label="Your token"
               {{hds-tooltip "Your token" options=(detached-tooltip-options placement="top-start")}}
             ></span>
           {{/if}}

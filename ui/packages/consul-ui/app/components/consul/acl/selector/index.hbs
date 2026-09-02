@@ -7,7 +7,7 @@
   {{#if (can "use acls")}}
     <SNL.Title>{{t "components.hashicorp-consul.side-nav.acls.title"}}</SNL.Title>
   {{else}}
-    <SNL.Title {{hds-tooltip (t "components.hashicorp-consul.side-nav.acls.tooltip") options=(detached-tooltip-options)}}>
+    <SNL.Title role="group" tabindex="-1" aria-label={{t "components.hashicorp-consul.side-nav.acls.title"}} {{hds-tooltip (t "components.hashicorp-consul.side-nav.acls.tooltip") options=(detached-tooltip-options)}}>
       {{t "components.hashicorp-consul.side-nav.acls.title"}}
     </SNL.Title>
   {{/if}}

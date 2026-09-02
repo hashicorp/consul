@@ -11,7 +11,7 @@
   <header>
       <div>
           <div>
-              <nav class="app-view-breadcrumbs" aria-label="Breadcrumb" data-test-breadcrumbs>
+              <div class="app-view-breadcrumbs" data-test-breadcrumbs>
                 {{#if (not-eq @showBreadcrumb false)}}
                   {{#if (has-block 'breadcrumbs')}}
                     {{document-attrs class="with-breadcrumbs"}}
@@ -21,7 +21,7 @@
                     <Breadcrumbs @items={{this.computedBreadcrumbs}} />
                   {{/if}}
                 {{/if}}
-              </nav>
+              </div>
               <div class="title">
                 <div class="title-left-container">
                   {{yield to='header'}}

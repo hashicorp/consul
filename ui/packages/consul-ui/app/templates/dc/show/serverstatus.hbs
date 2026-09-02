@@ -66,7 +66,7 @@ as |item|}}
             role="region"
             data-test-server-info
           >
-            <header class="server-failure-tolerance__header" aria-label="Tolerance">
+            <header class="server-failure-tolerance__header">
               <h2 id="server-fault-tolerance-title">
                 {{compute (fn route.t 'tolerance.header')}}
               </h2>
@@ -109,6 +109,9 @@ as |item|}}
                 <h3>
                   {{compute (fn route.t 'tolerance.optimistic.header')}}
                   <span
+                    role="group"
+                    tabindex="-1"
+                    aria-label='With > 30 seconds between server failures, Consul can restore the Immediate Fault Tolerance by replacing failed active voters with healthy back-up voters when using redundancy zones.'
                     {{hds-tooltip 'With > 30 seconds between server failures, Consul can restore the Immediate Fault Tolerance by replacing failed active voters with healthy back-up voters when using redundancy zones.' options=(detached-tooltip-options)}}
                   >
                   </span>
@@ -136,7 +139,10 @@ as |item|}}
               'redundancy-zones'
             }}
           >
-            <header aria-label="Redundancy Zones">
+            {{! nested inside <section>, not a top-level banner landmark
+              (role=generic per HTML-AAM), so no unique label is needed. }}
+            {{!-- template-lint-disable no-duplicate-landmark-elements --}}
+            <header>
               <h2>
                 {{pluralize (t 'common.consul.redundancyzone')}}
               </h2>
@@ -145,7 +151,10 @@ as |item|}}
       {{#each item.RedundancyZones as |item|}}
         {{#if (gt item.Servers.length 0) }}
               <section>
-                <header aria-label="Redundancy Zone {{item.Name}}">
+                {{! nested inside <section>, not a top-level banner landmark
+                  (role=generic per HTML-AAM), so no unique label needed. }}
+                {{!-- template-lint-disable no-duplicate-landmark-elements --}}
+                <header>
                   <h3>
                     {{item.Name}}
                   </h3>
@@ -168,7 +177,10 @@ as |item|}}
 
       {{#if (gt item.Default.Servers.length 0)}}
               <section>
-                <header aria-label="Unassigned Servers">
+                {{! nested inside <section>, not a top-level banner landmark
+                  (role=generic per HTML-AAM), so no unique label needed. }}
+                {{!-- template-lint-disable no-duplicate-landmark-elements --}}
+                <header>
                   <h3>
                     {{compute (fn route.t 'unassigned')}}
                   </h3>
@@ -182,7 +194,10 @@ as |item|}}
           </section>
     {{else}}
           <section>
-            <header aria-label="Default Servers">
+            {{! nested inside <section>, not a top-level banner landmark
+              (role=generic per HTML-AAM), so no unique label is needed. }}
+            {{!-- template-lint-disable no-duplicate-landmark-elements --}}
+            <header>
               <h2>
                 {{compute (fn route.t 'servers')}}
               </h2>
@@ -195,7 +210,10 @@ as |item|}}
 
     {{#if (gt item.ReadReplicas.length 0)}}
           <section>
-            <header aria-label="Read Replicas">
+            {{! nested inside <section>, not a top-level banner landmark
+              (role=generic per HTML-AAM), so no unique label is needed. }}
+            {{!-- template-lint-disable no-duplicate-landmark-elements --}}
+            <header>
               <h2>
                 {{pluralize (t 'common.consul.readreplica')}}
               </h2>

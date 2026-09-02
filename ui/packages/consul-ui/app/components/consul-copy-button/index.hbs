@@ -14,7 +14,7 @@
 {{#let (fn dispatch 'SUCCESS') (fn dispatch 'ERROR') (fn dispatch 'RESET') as |success error reset|}}
     <button
       {{with-copyable @value success=(fn this.flash success reset) error=(fn this.flash error reset)}}
-      aria-label={{t 'components.consul-copy-button.title' name=@name}}
+      aria-label="{{t 'components.consul-copy-button.title' name=@name}} {{@value}}"
       type="button"
       class="copy-btn {{if (state-matches state 'success') 'is-copied'}}"
       {{hds-tooltip

@@ -16,11 +16,17 @@
           {{#if (eq (policy/typeof item) 'policy-management')}}
             <span
               class="consul-policy-list__type"
+              role="group"
+              tabindex="-1"
+              aria-label="Global Management Policy"
               {{hds-tooltip "Global Management Policy" options=(detached-tooltip-options placement="top-start")}}
             ></span>
           {{else if (eq (policy/typeof item) 'read-only')}}
             <span
               class="consul-policy-list__type"
+              role="group"
+              tabindex="-1"
+              aria-label="Global Read-only Policy"
               {{hds-tooltip "Global Read-only Policy" options=(detached-tooltip-options placement="top-start")}}
             ></span>
           {{/if}}

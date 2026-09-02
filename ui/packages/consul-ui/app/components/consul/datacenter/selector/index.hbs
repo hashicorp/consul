@@ -52,7 +52,11 @@
         @name='server-cluster'
         @color='var(--token-form-control-disabled-foreground-color)'
       />
-      <Hds::Text::Display @size='200' @color='disabled'>{{@dc.Name}}</Hds::Text::Display>
+      {{! @color='disabled' rendered #8c909c on #fafafa (3.05:1, fails AA's
+        4.5:1) — this label isn't an actually-disabled control, so use
+        'faint' (5.19:1) instead, HDS's token for muted-but-readable text.
+        See docs/a11y-audit/01-shared-chrome.md #1 }}
+      <Hds::Text::Display @size='200' @color='faint'>{{@dc.Name}}</Hds::Text::Display>
     </SNL.Item>
   {{/if}}
 {{/let}}

@@ -24,7 +24,7 @@
               old list showed only for global-locality methods) as a compact
               badge next to the name. }}
           {{#if (eq item.TokenLocality 'global')}}
-            <span {{hds-tooltip "Creates global tokens" options=(detached-tooltip-options)}}>
+            <span role="group" tabindex="-1" aria-label="Global Tokens" {{hds-tooltip "Creates global tokens" options=(detached-tooltip-options)}}>
               <Hds::Badge @text="Global Tokens" @color="highlight" @size="medium" data-test-locality-global />
             </span>
           {{/if}}

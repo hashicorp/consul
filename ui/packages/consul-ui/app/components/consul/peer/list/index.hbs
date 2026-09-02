@@ -33,6 +33,9 @@
         {{else}}
           <p
             data-test-peer={{item.Name}}
+            role="group"
+            tabindex="-1"
+            aria-label={{item.Name}}
             {{hds-tooltip item.Name options=(detached-tooltip-options)}}
           >{{item.Name}}</p>
         {{/if}}
@@ -47,6 +50,9 @@
       <B.Td>
         <span
           data-test-imported-count
+          role="group"
+          tabindex="-1"
+          aria-label={{format-number item.ImportedServiceCount}}
           {{hds-tooltip
             (t "routes.dc.peers.index.detail.imported.tooltip" name=item.Name)
             options=(detached-tooltip-options)
@@ -58,6 +64,9 @@
       <B.Td>
         <span
           data-test-exported-count
+          role="group"
+          tabindex="-1"
+          aria-label={{format-number item.ExportedServiceCount}}
           {{hds-tooltip
             (t "routes.dc.peers.index.detail.exported.tooltip" name=item.Name)
             options=(detached-tooltip-options)

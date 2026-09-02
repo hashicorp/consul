@@ -21,7 +21,7 @@
 
     <div class="consul-server-card__header">
       {{#if (eq @item.Status 'leader')}}
-        <span class="consul-server-card__leader-tile" {{hds-tooltip "Leader" options=(detached-tooltip-options)}}>
+        <span class="consul-server-card__leader-tile" tabindex="-1" {{hds-tooltip "Leader" options=(detached-tooltip-options)}}>
           <Hds::Icon @name="star-fill" @size="16" @color="var(--token-color-consul-brand)" />
         </span>
       {{/if}}

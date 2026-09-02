@@ -63,9 +63,9 @@
                     @width={{column.width}}
                     @sortOrder={{if (eq this.sortBy column.sortKey) this.sortOrder}}
                     @onClickSort={{fn this.setSortBy column.sortKey}}
-                  >{{column.label}}{{#if column.tooltip}}<span {{hds-tooltip column.tooltip options=(detached-tooltip-options)}}><Hds::Icon @name="info" @size="16" @isInline={{true}} /></span>{{/if}}</H.ThSort>
+                  >{{column.label}}{{#if column.tooltip}}<span role="group" tabindex="-1" aria-label={{column.tooltip}} {{hds-tooltip column.tooltip options=(detached-tooltip-options)}}><Hds::Icon @name="info" @size="16" @isInline={{true}} /></span>{{/if}}</H.ThSort>
                 {{else}}
-                  <H.Th @align={{column.align}} @width={{column.width}}>{{column.label}}{{#if column.tooltip}}<span {{hds-tooltip column.tooltip options=(detached-tooltip-options)}}><Hds::Icon @name="info" @size="16" @isInline={{true}} /></span>{{/if}}</H.Th>
+                  <H.Th @align={{column.align}} @width={{column.width}}>{{column.label}}{{#if column.tooltip}}<span role="group" tabindex="-1" aria-label={{column.tooltip}} {{hds-tooltip column.tooltip options=(detached-tooltip-options)}}><Hds::Icon @name="info" @size="16" @isInline={{true}} /></span>{{/if}}</H.Th>
                 {{/if}}
               {{/each}}
             </H.Tr>

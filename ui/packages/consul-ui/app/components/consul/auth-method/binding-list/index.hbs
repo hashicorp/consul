@@ -31,7 +31,7 @@
           as |bindTypeTooltip|
         }}
           {{#if bindTypeTooltip}}
-            <span {{hds-tooltip bindTypeTooltip options=(detached-tooltip-options)}}></span>
+            <span role="group" tabindex="-1" aria-label={{bindTypeTooltip}} {{hds-tooltip bindTypeTooltip options=(detached-tooltip-options)}}></span>
           {{/if}}
         {{/let}}
       </dd>

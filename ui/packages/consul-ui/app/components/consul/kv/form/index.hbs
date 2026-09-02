@@ -39,6 +39,7 @@
     {{#let (or readOnly api.disabled) as |isDisabled|}}
       <form onsubmit={{fn this.submit api}}>
         <fieldset {{disabled isDisabled}}>
+          <legend class="sr-only">Key/Value</legend>
           {{#if api.isCreate}}
             <div class='consul-kv-form__key'>
               <Hds::Form::TextInput::Field
@@ -71,7 +72,7 @@
                   <F.Label>Code</F.Label>
                 </Hds::Form::Toggle::Field>
               </LF.Item>
-              <label for='' class='type-text consul-kv-form__value{{if api.data.error.Value " has-error"}}'>
+              <label class='type-text consul-kv-form__value{{if api.data.error.Value " has-error"}}'>
                 {{#if this.json}}
                   {{#if isDisabled}}
                     <Hds::CodeBlock

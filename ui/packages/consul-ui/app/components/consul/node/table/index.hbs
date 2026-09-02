@@ -48,6 +48,9 @@
           @color="success"
           @type="filled"
           @size="small"
+          role="group"
+          tabindex="-1"
+          aria-label="Passing"
           {{hds-tooltip (this.healthTooltip item.Status) options=(detached-tooltip-options)}}
           data-test-status={{item.Status}}
         />
@@ -58,6 +61,9 @@
           @color="warning"
           @type="filled"
           @size="small"
+          role="group"
+          tabindex="-1"
+          aria-label="Warning"
           {{hds-tooltip (this.healthTooltip item.Status) options=(detached-tooltip-options)}}
           data-test-status={{item.Status}}
         />
@@ -68,6 +74,9 @@
           @color="critical"
           @type="filled"
           @size="small"
+          role="group"
+          tabindex="-1"
+          aria-label="Critical"
           {{hds-tooltip (this.healthTooltip item.Status) options=(detached-tooltip-options)}}
           data-test-status={{item.Status}}
         />
@@ -78,6 +87,9 @@
           @color="neutral"
           @type="outlined"
           @size="small"
+          role="group"
+          tabindex="-1"
+          aria-label="No health checks"
           {{hds-tooltip (this.healthTooltip item.Status) options=(detached-tooltip-options)}}
           data-test-status={{item.Status}}
         />

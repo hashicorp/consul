@@ -80,6 +80,9 @@
               @color="success"
               @type="filled"
               @size="small"
+              role="group"
+              tabindex="-1"
+              aria-label="All checks passing"
               {{hds-tooltip item.healthTooltipText options=(detached-tooltip-options)}}
             />
           {{else if (eq item.MeshStatus "critical")}}
@@ -94,6 +97,13 @@
                 "All checks failing"
                 (concat item.MeshChecksCritical "/" item.MeshChecksTotal " checks failing")
               }}
+              role="group"
+              tabindex="-1"
+              aria-label={{if
+                (eq item.MeshChecksPassing 0)
+                "All checks failing"
+                (concat item.MeshChecksCritical "/" item.MeshChecksTotal " checks failing")
+              }}
               {{hds-tooltip item.healthTooltipText options=(detached-tooltip-options)}}
             />
           {{else if (eq item.MeshStatus "warning")}}
@@ -104,6 +114,9 @@
               @type="filled"
               @size="small"
               @text={{concat item.MeshChecksWarning "/" item.MeshChecksTotal " checks failing"}}
+              role="group"
+              tabindex="-1"
+              aria-label={{concat item.MeshChecksWarning "/" item.MeshChecksTotal " checks failing"}}
               {{hds-tooltip item.healthTooltipText options=(detached-tooltip-options)}}
             />
           {{else}}
@@ -114,6 +127,9 @@
               @color="neutral"
               @type="outlined"
               @size="small"
+              role="group"
+              tabindex="-1"
+              aria-label="Unknown"
               {{hds-tooltip item.healthTooltipText options=(detached-tooltip-options)}}
             />
           {{/if}}

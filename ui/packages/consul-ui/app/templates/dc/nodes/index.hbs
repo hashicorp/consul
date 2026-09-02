@@ -55,7 +55,6 @@
                 <h1>
                   <route.Title @title='Nodes' />
                 </h1>
-                <label for='toolbar-toggle'></label>
               </:header>
               <:content>
                 <Consul::Node::AgentlessNotice @items={{items}} @filteredItems={{filtered}} @postfix={{concat route.params.partition route.params.dc}} />
