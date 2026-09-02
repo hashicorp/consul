@@ -270,24 +270,28 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				"upstream", uid, "ip_count", len(uniqueAddrs))
 		}
 
-		// Enterprise multiport upstreams create one filter chain per named port.
-		handled, err := s.appendEntTransparentProxyMultiportFilterChains(
-			outboundListener,
-			endpoints,
-			clusterName,
-			filterName,
-			filterChainOpts{
-				accessLogs:          &cfgSnap.Proxy.AccessLogs,
-				routeName:           uid.EnvoyID(),
-				protocol:            cfg.Protocol,
-				useRDS:              useRDS,
-				fetchTimeoutRDS:     cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
-				tracing:             tracing,
-				maxRequestHeadersKb: proxyCfg.MaxRequestHeadersKB,
-			},
-		)
-		if err != nil {
-			return nil, err
+		// Enterprise multiport upstreams create one filter chain per named port
+		// only for the compiler's default chain.
+		handled := false
+		if chain.Default {
+			handled, err = s.appendEntTransparentProxyMultiportFilterChains(
+				outboundListener,
+				endpoints,
+				clusterName,
+				filterName,
+				filterChainOpts{
+					accessLogs:          &cfgSnap.Proxy.AccessLogs,
+					routeName:           uid.EnvoyID(),
+					protocol:            cfg.Protocol,
+					useRDS:              useRDS,
+					fetchTimeoutRDS:     cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
+					tracing:             tracing,
+					maxRequestHeadersKb: proxyCfg.MaxRequestHeadersKB,
+				},
+			)
+			if err != nil {
+				return nil, err
+			}
 		}
 		if !handled {
 			endpoints := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[uid][chain.ID()]
@@ -518,20 +522,35 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		// Below we create a filter chain per upstream, rather than a listener per upstream
 		// as we do for explicit upstreams above.
 
-		filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
-			accessLogs:  &cfgSnap.Proxy.AccessLogs,
-			routeName:   uid.EnvoyID(),
-			clusterName: clusterName,
-			filterName: fmt.Sprintf("%s.%s.%s",
-				uid.Name,
-				uid.NamespaceOrDefault(),
-				uid.Peer),
+		filterName := fmt.Sprintf("%s.%s.%s",
+			uid.Name,
+			uid.NamespaceOrDefault(),
+			uid.Peer)
+
+		filterOpts := filterChainOpts{
+			accessLogs:          &cfgSnap.Proxy.AccessLogs,
+			routeName:           uid.EnvoyID(),
+			clusterName:         clusterName,
+			filterName:          filterName,
 			protocol:            cfg.Protocol,
 			useRDS:              false,
 			statPrefix:          "upstream_peered.",
 			tracing:             tracing,
 			maxRequestHeadersKb: proxyCfg.MaxRequestHeadersKB,
-		})
+		}
+
+		if err := s.appendEntPeeredUpstreamMultiportFilterChains(
+			outboundListener,
+			cfgSnap,
+			uid,
+			clusterName,
+			filterName,
+			filterOpts,
+		); err != nil {
+			return nil, err
+		}
+
+		filterChain, err := s.makeUpstreamFilterChain(filterOpts)
 		if err != nil {
 			return nil, err
 		}
@@ -2212,14 +2231,14 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 		peerNames := cfgSnap.MeshGateway.ExportedServicesWithPeers[svc]
 		chain := cfgSnap.MeshGateway.DiscoveryChain[svc]
 
-		filterChain, err := s.makeMeshGatewayPeerFilterChain(cfgSnap, svc, peerNames, chain)
+		filterChains, err := s.makeMeshGatewayPeerFilterChains(cfgSnap, svc, peerNames, chain)
 		if err != nil {
 			return nil, err
-		} else if filterChain == nil {
+		} else if len(filterChains) == 0 {
 			continue
 		}
 
-		l.FilterChains = append(l.FilterChains, filterChain)
+		l.FilterChains = append(l.FilterChains, filterChains...)
 	}
 
 	// We need 1 Filter Chain per remote cluster
@@ -2388,6 +2407,14 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 	})
 	l.FilterChains = append(l.FilterChains, peerServerFilterChains...)
 
+	if err := s.appendEntGatewayOutgoingPeeringServiceMultiportFilterChains(l, name, cfgSnap); err != nil {
+		return nil, err
+	}
+
+	if err := s.appendEntMeshGatewayMultiportFilterChains(l, name, cfgSnap); err != nil {
+		return nil, err
+	}
+
 	// This needs to get tacked on at the end as it has no
 	// matching and will act as a catch all
 	l.FilterChains = append(l.FilterChains, sniClusterChain)
@@ -2401,13 +2428,30 @@ func (s *ResourceGenerator) makeMeshGatewayPeerFilterChain(
 	peerNames []string,
 	chain *structs.CompiledDiscoveryChain,
 ) (*envoy_listener_v3.FilterChain, error) {
+	filterChains, err := s.makeMeshGatewayPeerFilterChains(cfgSnap, svc, peerNames, chain)
+	if err != nil || len(filterChains) == 0 {
+		return nil, err
+	}
+	return filterChains[len(filterChains)-1], nil
+}
+
+func (s *ResourceGenerator) makeMeshGatewayPeerFilterChains(
+	cfgSnap *proxycfg.ConfigSnapshot,
+	svc structs.ServiceName,
+	peerNames []string,
+	chain *structs.CompiledDiscoveryChain,
+) ([]*envoy_listener_v3.FilterChain, error) {
+	if len(peerNames) == 0 {
+		return nil, nil
+	}
+
 	var (
 		useHTTPFilter = structs.IsProtocolHTTPLike(chain.Protocol)
 		// RDS, Envoy's Route Discovery Service, is only used for HTTP services.
 		useRDS = useHTTPFilter
 	)
 	if useHTTPFilter && cfgSnap.MeshGateway.Leaf == nil {
-		return nil, nil // ignore; not ready
+		return nil, nil
 	}
 
 	var clusterName string
@@ -2459,31 +2503,7 @@ func (s *ResourceGenerator) makeMeshGatewayPeerFilterChain(
 		return nil, err
 	}
 
-	var peeredServerNames []string
-	if cfgSnap.MeshGatewayHasPartitionExport(svc) {
-		peeredServerNames = append(peeredServerNames, connect.ServiceSNI(
-			svc.Name,
-			"",
-			svc.NamespaceOrDefault(),
-			svc.PartitionOrDefault(),
-			cfgSnap.Datacenter,
-			cfgSnap.Roots.TrustDomain,
-		))
-	}
-	for _, peerName := range peerNames {
-		peeredSNI := connect.PeeredServiceSNI(
-			svc.Name,
-			svc.NamespaceOrDefault(),
-			svc.PartitionOrDefault(),
-			peerName,
-			cfgSnap.Roots.TrustDomain,
-		)
-		peeredServerNames = append(peeredServerNames, peeredSNI)
-	}
-	filterChain.FilterChainMatch = &envoy_listener_v3.FilterChainMatch{
-		ServerNames: peeredServerNames,
-	}
-
+	var peeredTransportSocket *envoy_core_v3.TransportSocket
 	if useHTTPFilter {
 		// We only terminate TLS if we're doing an L7 proxy.
 		var peerBundles []*pbpeering.PeeringTrustBundle
@@ -2493,14 +2513,84 @@ func (s *ResourceGenerator) makeMeshGatewayPeerFilterChain(
 			}
 		}
 
-		peeredTransportSocket, err := createDownstreamTransportSocketForConnectTLS(cfgSnap, cfgSnap.GetProxyConfig(s.Logger), peerBundles)
+		peeredTransportSocket, err = createDownstreamTransportSocketForConnectTLS(cfgSnap, cfgSnap.GetProxyConfig(s.Logger), peerBundles)
 		if err != nil {
 			return nil, err
 		}
 		filterChain.TransportSocket = peeredTransportSocket
 	}
 
-	return filterChain, nil
+	peeredServerNameSet := make(map[string]struct{}, len(peerNames))
+	for _, peerName := range peerNames {
+		peeredSNI := connect.PeeredServiceSNI(
+			svc.Name,
+			svc.NamespaceOrDefault(),
+			svc.PartitionOrDefault(),
+			peerName,
+			cfgSnap.Roots.TrustDomain,
+		)
+		peeredServerNameSet[peeredSNI] = struct{}{}
+	}
+	peeredServerNames := make([]string, 0, len(peeredServerNameSet))
+	for peeredSNI := range peeredServerNameSet {
+		peeredServerNames = append(peeredServerNames, peeredSNI)
+	}
+	sort.Strings(peeredServerNames)
+
+	perPortFilterChains, err := s.appendEntPeeredMultiportFilterChains(
+		cfgSnap,
+		svc,
+		peeredServerNames,
+		filterName,
+		chain,
+		useHTTPFilter,
+		peeredTransportSocket,
+		maxRequestHeadersKb,
+	)
+	if err != nil {
+		return nil, err
+	}
+	filterChain.FilterChainMatch = &envoy_listener_v3.FilterChainMatch{
+		ServerNames: peeredServerNames,
+	}
+
+	filterChains := append(perPortFilterChains, filterChain)
+	sortFilterChainsByMatch(filterChains)
+
+	return filterChains, nil
+}
+
+func sortFilterChainsByMatch(chains []*envoy_listener_v3.FilterChain) {
+	sort.SliceStable(chains, func(i, j int) bool {
+		left := chains[i].FilterChainMatch
+		right := chains[j].FilterChainMatch
+
+		leftHasALPN := left != nil && len(left.ApplicationProtocols) > 0
+		rightHasALPN := right != nil && len(right.ApplicationProtocols) > 0
+		if leftHasALPN != rightHasALPN {
+			return leftHasALPN
+		}
+
+		leftSNI, rightSNI := "", ""
+		if left != nil && len(left.ServerNames) > 0 {
+			leftSNI = left.ServerNames[0]
+		}
+		if right != nil && len(right.ServerNames) > 0 {
+			rightSNI = right.ServerNames[0]
+		}
+		if leftSNI != rightSNI {
+			return leftSNI < rightSNI
+		}
+
+		leftALPN, rightALPN := "", ""
+		if left != nil && len(left.ApplicationProtocols) > 0 {
+			leftALPN = left.ApplicationProtocols[0]
+		}
+		if right != nil && len(right.ApplicationProtocols) > 0 {
+			rightALPN = right.ApplicationProtocols[0]
+		}
+		return leftALPN < rightALPN
+	})
 }
 
 type filterChainOpts struct {

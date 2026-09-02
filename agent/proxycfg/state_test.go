@@ -596,17 +596,23 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 		billing            = structs.NewServiceName("billing", nil)
 		api                = structs.NewServiceName("api", nil)
 		apiA               = structs.NewServiceName("api-a", nil)
+		apiAHTTP           = structs.NewServiceName("http.api-a", nil)
+		apiAMetrics        = structs.NewServiceName("metrics.api-a", nil)
 		telemetryCollector = structs.NewServiceName(apimod.TelemetryCollectorName, nil)
 
 		apiUID                = NewUpstreamIDFromServiceName(api)
 		dbUID                 = NewUpstreamIDFromServiceName(db)
 		pqUID                 = UpstreamIDFromString("prepared_query:query")
 		extApiUID             = NewUpstreamIDFromServiceName(apiA)
+		extApiHTTPUID         = NewUpstreamIDFromServiceName(apiAHTTP)
+		extApiMetricsUID      = NewUpstreamIDFromServiceName(apiAMetrics)
 		extDBUID              = NewUpstreamIDFromServiceName(db)
 		telemetryCollectorUID = NewUpstreamIDFromServiceName(telemetryCollector)
 	)
 	// TODO(peering): NewUpstreamIDFromServiceName should take a PeerName
 	extApiUID.Peer = "peer-a"
+	extApiHTTPUID.Peer = "peer-a"
+	extApiMetricsUID.Peer = "peer-a"
 	extDBUID.Peer = "peer-a"
 
 	const peerTrustDomain = "1c053652-8512-4373-90cf-5a7f6263a994.consul"
@@ -3648,10 +3654,23 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 										Peer:        "peer-a",
 									},
 									{
+										// Earlier Part A producers also included synthetic
+										// identities in Services. New consumers must not
+										// create an independent peered-service watch for it.
+										ServiceName: apiAHTTP,
+										Peer:        "peer-a",
+									},
+									{
 										// This service is dynamic (not from static config)
 										ServiceName: db,
 										Peer:        "peer-a",
 									},
+								},
+								ServiceVIPs: map[string]string{
+									(structs.PeeredServiceName{ServiceName: apiA, Peer: "peer-a"}).String():        "240.0.0.1",
+									(structs.PeeredServiceName{ServiceName: apiAHTTP, Peer: "peer-a"}).String():    "240.0.0.2",
+									(structs.PeeredServiceName{ServiceName: db, Peer: "peer-a"}).String():          "240.0.0.3",
+									(structs.PeeredServiceName{ServiceName: apiAMetrics, Peer: "peer-a"}).String(): "240.0.0.4",
 								},
 							},
 						},
@@ -3679,6 +3698,12 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							extApiUID: {},
 						}
 						require.Equal(t, expect, snap.ConnectProxy.PeeredUpstreams)
+						require.Equal(t, map[UpstreamID]string{
+							extApiUID:        "240.0.0.1",
+							extApiHTTPUID:    "240.0.0.2",
+							extDBUID:         "240.0.0.3",
+							extApiMetricsUID: "240.0.0.4",
+						}, snap.ConnectProxy.PeeredPortUpstreamVIPs)
 
 						require.True(t, snap.ConnectProxy.PeerUpstreamEndpoints.IsWatched(extApiUID))
 						_, ok := snap.ConnectProxy.PeerUpstreamEndpoints.Get(extApiUID)
@@ -3834,6 +3859,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.Valid(), "proxy with roots/leaf/intentions is valid")
 
 						require.Empty(t, snap.ConnectProxy.PeeredUpstreams)
+						require.Empty(t, snap.ConnectProxy.PeeredPortUpstreamVIPs)
 
 						// db endpoint should have been cleaned up
 						require.False(t, snap.ConnectProxy.PeerUpstreamEndpoints.IsWatched(extDBUID))

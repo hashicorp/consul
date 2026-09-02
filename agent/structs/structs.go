@@ -2505,6 +2505,46 @@ func (psn PeeredServiceName) String() string {
 	return fmt.Sprintf("%v:%v", psn.ServiceName.String(), psn.Peer)
 }
 
+// PeeredServiceNameFromString reverses PeeredServiceName.String. The final
+// colon separates the service identity from the peer name.
+func PeeredServiceNameFromString(input string) (PeeredServiceName, bool) {
+	idx := strings.LastIndex(input, ":")
+	if idx <= 0 || idx == len(input)-1 {
+		return PeeredServiceName{}, false
+	}
+
+	return PeeredServiceName{
+		ServiceName: ServiceNameFromString(input[:idx]),
+		Peer:        input[idx+1:],
+	}, true
+}
+
+// BasePeeredServiceNames removes synthetic per-port projections from a list of
+// peered services. A projection has the established "<port>.<service>" name
+// and is recognized only when the corresponding base service is also present.
+// The input order is preserved.
+func BasePeeredServiceNames(services []PeeredServiceName) []PeeredServiceName {
+	all := make(map[string]struct{}, len(services))
+	for _, service := range services {
+		all[service.String()] = struct{}{}
+	}
+
+	result := make([]PeeredServiceName, 0, len(services))
+	for _, service := range services {
+		name := service.ServiceName.Name
+		idx := strings.Index(name, ".")
+		if idx > 0 && idx < len(name)-1 {
+			base := service
+			base.ServiceName.Name = name[idx+1:]
+			if _, ok := all[base.String()]; ok {
+				continue
+			}
+		}
+		result = append(result, service)
+	}
+	return result
+}
+
 type ServiceNameWithSamenessGroup struct {
 	SamenessGroup string
 	ServiceName
@@ -2561,7 +2601,16 @@ type IndexedServiceList struct {
 }
 
 type IndexedPeeredServiceList struct {
+	// Services is the legacy peered-upstream list. It intentionally contains
+	// only base services so older consumers never interpret synthetic per-port
+	// projections as independently exported services.
 	Services []PeeredServiceName
+	// ServiceVIPs maps a peered service (keyed by PeeredServiceName.String()) to
+	// the virtual IP assigned to it locally by the importing partition. This
+	// includes synthetic per-port entries (service name "<portName>.<serviceName>")
+	// used by enterprise multiport peering so that the dialing proxy can emit a
+	// distinct outbound filter chain per named port. May be empty.
+	ServiceVIPs map[string]string `json:",omitempty"`
 	QueryMeta
 }
 

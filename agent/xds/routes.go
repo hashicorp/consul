@@ -256,6 +256,10 @@ func (s *ResourceGenerator) makeRoutes(
 	return resources, nil
 }
 
+// routesForMeshGateway emits RDS resources for HTTP-like compiled discovery
+// chains. The corresponding mesh-gateway listener filter chain references the
+// same UpstreamID-based route name; enterprise helpers add matching
+// port-qualified resources where needed.
 func (s *ResourceGenerator) routesForMeshGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	if cfgSnap == nil {
 		return nil, errors.New("nil config given")
@@ -294,6 +298,11 @@ func (s *ResourceGenerator) routesForMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 			route.ValidateClusters = response.MakeBoolValue(true)
 		}
 		resources = append(resources, route)
+
+		resources, err = s.appendEntMeshGatewayPeeredMultiportRoutes(resources, cfgSnap, svc, chain, route)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return resources, nil
