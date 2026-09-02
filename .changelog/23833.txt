@@ -1,0 +1,3 @@
+```release-note:bug
+catalog: Fix missing legacy scalar `Port` field in RPC and streaming subscription responses for multiport services. Older agents that cannot decode `NodeService.Ports` now correctly receive the default port value. The backfill logic is applied at RPC and subscription adapter boundaries via the shared multiport adapter so it is used consistently across `Catalog`, `Health`, `PreparedQuery`, and streaming subscription responses.
+```
