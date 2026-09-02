@@ -8,7 +8,15 @@
   class="consul-intention-fieldsets"
   {{fix-super-select-aria}}
 >
-  <fieldset disabled={{@disabled}}>
+  <fieldset disabled={{@disabled}} aria-label="Intention details">
+    {{! aria-label above (rather than a <legend>): the Source/Destination
+        fieldsets and the radio cards below all read fine on their own via
+        their own labels, so a visible group heading would be redundant —
+        but this outer <fieldset> still needs an accessible name, or it's
+        announced as an unnamed group. A visually-hidden <legend> would do
+        the same job, but browsers give <legend> special fieldset-border
+        layout treatment that the usual clip-based hiding technique doesn't
+        reliably override, so aria-label sidesteps that entirely. }}
     <div role="group">
       <div class="consul-intention-fieldset-card">
         <fieldset>
@@ -153,7 +161,12 @@
         </fieldset>
       </div>
     </div>
-  <fieldset>
+  {{! A <div>, not a <fieldset>: this wraps a single field that already has
+      its own <label>, so there's no group of controls here needing a
+      <fieldset>+<legend> (or aria-label) for an accessible group name — a
+      <fieldset> around one field is just an unnamed group with nothing to
+      name. }}
+  <div>
     <Hds::Form::TextInput::Field
       name="Description"
       @value={{@item.Description}}
@@ -168,7 +181,7 @@
         <F.Error>{{@item.error.Description.validation}}</F.Error>
       {{/if}}
     </Hds::Form::TextInput::Field>
-  </fieldset>
+  </div>
     <div>
       <span class="label">Should this source connect to the destination?</span>
       <div role="radiogroup" class={{if @item.error.Action ' has-error'}}>

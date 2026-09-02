@@ -20,7 +20,18 @@
     @isOptional={{@isOptional}}
     @searchField={{@searchField}}
     @searchPlaceholder={{@searchPlaceholder}}
-    id={{@id}}
+    @id={{@id}}
+    {{!-- @id above, not the bare "id=" this used to be: Hds::Form::SuperSelect::
+        Single::Field has no ...attributes of its own, so a bare "id=" here
+        was captured as ...attributes further down and forwarded onto
+        ember-power-select's PowerSelect component, whose own template sets
+        the trigger's id (matching the label-for HDS wires up) *before* its
+        own ...attributes — and a later ...attributes always wins, so it
+        blanked the trigger's id to empty any time @id wasn't explicitly
+        passed in (true for every call site here), leaving the label's for
+        pointing at a nonexistent id. A named @id argument instead flows
+        through Hds::Form::Field's own id logic (used to compute the shared
+        id for both the label and the trigger) rather than clobbering it. --}}
   as |F|>
     {{#if @label}}
       <F.Label>{{@label}}</F.Label>
