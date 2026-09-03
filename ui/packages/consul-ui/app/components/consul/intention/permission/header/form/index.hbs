@@ -20,11 +20,12 @@
       changeset=this.changeset
     )}}
 
-    <fieldset>
+    {{! aria-label so this <fieldset> (which groups the header type/name/
+        information row below) has an accessible name of its own. }}
+    <fieldset aria-label="Header">
       <div class="header-row">
         {{! Header type }}
         <div class="header-col">
-          <span class="header-col-label">Header type</span>
           <group.Element
             @name="HeaderType"
             @type="select"
@@ -33,10 +34,11 @@
               @options={{this.headerTypes}}
               @selected={{this.headerType}}
               @onChange={{action 'change' 'HeaderType' this.changeset}}
-              @label="Header type"
-              @listboxAriaLabel="Header type options"
-              id="header-type-select"
+              {{! @id, not a bare "id=" — see the same fix in
+                  consul/intention/permission/form/index.hbs for why. }}
+              @id="header-type-select"
             as |F|>
+              <F.Label class="header-col-label">Header type</F.Label>
               <F.Options>{{get this.headerLabels F.options}}</F.Options>
             </Hds::Form::SuperSelect::Single::Field>
           </group.Element>
@@ -44,11 +46,11 @@
 
         {{! Header name }}
         <div class="header-col">
-          <span class="header-col-label">Header name</span>
           <group.Element
             @name="Name"
             @error={{changeset-get this.changeset 'error.Name'}}
           as |el|>
+            <el.Label class="header-col-label">Header name</el.Label>
             <el.Text
               placeholder="Enter header name"
               @value={{changeset-get this.changeset 'Name'}}
@@ -65,11 +67,11 @@
   {{#if this.shouldShowValueField}}
         {{! Header information (value) }}
         <div class="header-col">
-          <span class="header-col-label">Header information</span>
           <group.Element
             @name="Value"
             @error={{changeset-get this.changeset 'error.Value'}}
           as |el|>
+            <el.Label class="header-col-label">Header information</el.Label>
             <el.Text
               placeholder="Enter header information"
               @value={{changeset-get this.changeset 'Value'}}

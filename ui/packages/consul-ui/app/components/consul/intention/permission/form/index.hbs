@@ -20,10 +20,16 @@ as |group|>
     changeset=this.changeset
   )}}
 
-  <fieldset>
+  {{! A <div>, not a <fieldset>: Hds::Form::Radio::Group below already
+      renders its own <fieldset>+<legend>, so wrapping it in another
+      <fieldset> just adds an outer group with nothing to name it. The
+      @name here is "PermissionAction" rather than "Action" so these radio
+      inputs don't get grouped, by the browser or by AT, with the
+      unrelated "Action" radios on the page behind this modal. }}
+  <div>
     <div data-property="action">
       <Hds::Form::Radio::Group
-        @name="Action"
+        @name="PermissionAction"
         @layout="horizontal"
         as |G|
       >
@@ -39,27 +45,32 @@ as |group|>
         {{/each}}
       </Hds::Form::Radio::Group>
     </div>
-  </fieldset>
+  </div>
 
   <Hds::Separator />
-  <fieldset>
+  {{! aria-label (rather than relying on the <h2> below) so the <fieldset>
+      still has an accessible name of its own — see the same pattern in
+      consul/intention/form/fieldsets. }}
+  <fieldset aria-label="Path">
       <h2>Path</h2>
     <div>
         <group.Element
           @name="PathType"
           @type="select"
         as |el|>
-          <el.Label>
-            Path type
-          </el.Label>
           <Hds::Form::SuperSelect::Single::Field
             @options={{this.pathTypes}}
             @selected={{this.pathType}}
             @onChange={{action 'change' 'HTTP.PathType' this.changeset}}
-            @label="Path type"
-            @listboxAriaLabel="Path type options"
-            id="path-type-select"
+            {{! @id, not a bare "id=": Hds::Form::SuperSelect::Single::Field has
+                no ...attributes of its own, so a bare "id=" here is captured by
+                ...attributes further down and forwarded onto PowerSelect, whose
+                own template sets the trigger's id *before* its ...attributes —
+                and a later ...attributes always wins, blanking the trigger's id
+                and leaving the label's "for" pointing at a nonexistent one. }}
+            @id="path-type-select"
           as |F|>
+            <F.Label>Path type</F.Label>
             <F.Options>{{get this.pathLabels F.options}}</F.Options>
           </Hds::Form::SuperSelect::Single::Field>
         </group.Element>
@@ -92,7 +103,7 @@ as |group|>
   </fieldset>
 
   <Hds::Separator />
-  <fieldset>
+  <fieldset aria-label="Methods">
     <h2>Methods</h2>
     <p class="methods-description">All methods are applied by default unless specified</p>
     <Hds::Form::Toggle::Field
@@ -104,7 +115,11 @@ as |group|>
       <F.Label>All methods</F.Label>
     </Hds::Form::Toggle::Field>
 
-    <div class="checkbox-group" role="group">
+    {{! aria-label distinct from the outer <fieldset aria-label="Methods">
+        above — this inner role="group" needs its own accessible name too,
+        and a matching name on both would leave two same-named groups
+        nested inside one another, which AT can't tell apart. }}
+    <div class="checkbox-group" role="group" aria-label="HTTP methods">
       {{#each this.methods as |method|}}
         <Hds::Form::Checkbox::Field
           @value={{method}}
@@ -119,7 +134,7 @@ as |group|>
   </fieldset>
 
   <Hds::Separator />
-  <fieldset>
+  <fieldset aria-label="Headers">
     <h2>Headers</h2>
 
     <div class="headers-content">

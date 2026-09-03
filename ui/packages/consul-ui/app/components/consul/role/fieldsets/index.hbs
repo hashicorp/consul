@@ -3,7 +3,11 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
+{{! aria-label rather than a <legend>: every field inside already has its
+    own <F.Label>, so a visible group heading would be redundant — but the
+    <fieldset> itself still needs an accessible name of its own. }}
 <fieldset
+  aria-label="Role details"
   disabled={{if (not (can "write role" item=@item)) "disabled"}}
 >
   {{#unless @create}}
@@ -47,7 +51,9 @@
 
 <Hds::Separator />
 
-<fieldset id="policies">
+{{! aria-label rather than relying on PolicySelector's own "Policies"
+    heading, which is only rendered when @showHeader is true. }}
+<fieldset id="policies" aria-label="Policies">
   <PolicySelector
     @showHeader={{true}}
     @disabled={{not (can "write role" item=@item)}}

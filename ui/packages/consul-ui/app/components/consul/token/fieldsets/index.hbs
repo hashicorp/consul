@@ -87,7 +87,9 @@
 
 <Hds::Separator />
 
-<fieldset id="roles">
+{{! aria-label rather than relying on RoleSelector's own "Roles" heading,
+    which is only rendered when @showHeader is true. }}
+<fieldset id="roles" aria-label="Roles">
   <RoleSelector
     @showHeader={{true}}
     @disabled={{not (can "write token" item=@item)}}
@@ -100,7 +102,9 @@
 
 <Hds::Separator />
 
-<fieldset id="policies">
+{{! aria-label rather than relying on PolicySelector's own "Policies"
+    heading, which is only rendered when @showHeader is true. }}
+<fieldset id="policies" aria-label="Policies">
   <PolicySelector
     @showHeader={{true}}
     @disabled={{not (can "write token" item=@item)}}

@@ -4,8 +4,13 @@
 }}
 
 {{yield}}
+{{! aria-label so the <fieldset> has an accessible name of its own — the
+    "Policy" heading below is conditional (only when not overridden by the
+    :template block) and, either way, isn't tied to the fieldset via a
+    <legend>. }}
 <fieldset
   class='policy-form'
+  aria-label='Policy details'
   disabled={{if (not (can 'write policy' item=this.item)) 'disabled'}}
   {{fix-super-select-aria}}
   ...attributes
@@ -22,7 +27,7 @@
         you're using Consul for Connect features.
       </p>
       {{! this should use radio-group }}
-      <div role='radiogroup' class={{if this.item.error.Type ' has-error'}}>
+      <div role='radiogroup' aria-label='Policy type' class={{if this.item.error.Type ' has-error'}}>
         {{#each this.templates as |template|}}
           <label data-test-radiobutton={{concat 'template_' template.template}}>
             <span>{{template.name}}</span>
@@ -56,7 +61,7 @@
       <strong>{{this.item.error.Name.validation}}</strong>
     {{/if}}
   </label>
-  <label for='' class='type-text' data-test-rules>
+  <label class='type-text' data-test-rules>
     {{#if (eq this.item.template 'service-identity')}}
       <Hds::CodeBlock
         @language='hcl'
@@ -131,8 +136,11 @@
       @src={{uri '/*/*/*/datacenters'}}
       @onchange={{action (mut this.datacenters) value='data'}}
     />
-    <label class='type-select' data-test-datacenter>
-      <span>Datacenter</span>
+    {{! A <div>, not a <label>: the SuperSelect below is a custom
+        role="combobox" widget, not a native labelable control, so wrapping
+        it in a <label> doesn't give it an accessible name — its own
+        <F.Label> below does that instead. }}
+    <div class='type-select' data-test-datacenter>
       <Hds::Form::SuperSelect::Single::Field
         @options={{map-by 'Name' this.datacenters}}
         @selected={{or this.item.Datacenter @dc}}
@@ -140,14 +148,19 @@
         @searchPlaceholder="Type a datacenter name"
         @onChange={{action 'change' 'Datacenter'}}
         @searchEnabled={{true}}
-        @label="Datacenter"
-        @listboxAriaLabel="Available datacenters"
         @isOptional={{false}}
-        id="datacenter-select"
+        {{! @id, not a bare "id=": Hds::Form::SuperSelect::Single::Field has
+            no ...attributes of its own at this level, so a bare "id=" here
+            is captured further down and forwarded onto PowerSelect, whose
+            own template sets the trigger's id *before* its ...attributes —
+            and a later ...attributes always wins, blanking the trigger's id
+            and leaving the label's "for" pointing at a nonexistent one. }}
+        @id="datacenter-select"
       as |F|>
+        <F.Label>Datacenter</F.Label>
         <F.Options>{{F.options}}</F.Options>
       </Hds::Form::SuperSelect::Single::Field>
-    </label>
+    </div>
   {{else}}
     {{! only show Valid Datacenters for the default partition }}
     {{#if (eq (or @partition 'default') 'default')}}
@@ -170,7 +183,7 @@
         @onchange={{action (mut this.datacenters) value='data'}}
       />
 
-      <div class='checkbox-group' role='group'>
+      <div class='checkbox-group' role='group' aria-label='Datacenters'>
         {{#each this.datacenters as |dc|}}
           <label class='type-checkbox'>
             <input

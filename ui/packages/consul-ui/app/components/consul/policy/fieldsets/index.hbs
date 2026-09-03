@@ -3,7 +3,11 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
+{{! aria-label rather than a <legend>: every field inside already has its
+    own <F.Label>, so a visible group heading would be redundant — but the
+    <fieldset> itself still needs an accessible name of its own. }}
 <fieldset
+  aria-label="Policy details"
   disabled={{if (not (can "write policy" item=@item)) "disabled"}}
 >
   {{! Policy ID — read-only, edit mode only }}
@@ -124,7 +128,7 @@
 
 {{! Valid Datacenters — only for node-identity: Datacenter dropdown }}
 {{#if (eq @item.template "node-identity")}}
-  <fieldset>
+  <fieldset aria-label="Valid datacenters">
     <DataSource
       @src={{uri "/*/*/*/datacenters"}}
       @onchange={{this.setDatacenters}}
@@ -136,19 +140,26 @@
       @searchPlaceholder="Type a datacenter name"
       @onChange={{fn this.handleChange "Datacenter"}}
       @searchEnabled={{true}}
-      @label="Datacenter"
-      @listboxAriaLabel="Available datacenters"
       @isOptional={{false}}
-      id="datacenter-select"
+      {{! @id, not a bare "id=": Hds::Form::SuperSelect::Single::Field has
+          no ...attributes of its own at this level, so a bare "id=" here is
+          captured further down and forwarded onto PowerSelect, whose own
+          template sets the trigger's id *before* its ...attributes — and a
+          later ...attributes always wins, blanking the trigger's id and
+          leaving the label's "for" pointing at a nonexistent one. }}
+      @id="datacenter-select"
       name="policy[Datacenter]"
     as |F|>
+      <F.Label>Datacenter</F.Label>
       <F.Options>{{F.options}}</F.Options>
     </Hds::Form::SuperSelect::Single::Field>
   </fieldset>
 {{else}}
   {{! Valid Datacenters section — only for the default partition }}
   {{#if (eq (or @partition "default") "default")}}
-    <fieldset>
+    {{! aria-label (rather than relying on the heading below) so the
+        <fieldset> has an accessible name of its own. }}
+    <fieldset aria-label="Valid datacenters">
       <Hds::Text::Display @size="300" @tag="h2">Valid datacenters</Hds::Text::Display>
 
       <Hds::Form::Toggle::Field
@@ -169,7 +180,11 @@
       {{! Always render checkboxes.
           When "All datacenters" is on (isScoped=false): checked + disabled.
           When scoped (isScoped=true): interactive, reflecting current selection. }}
-      <div class="consul-policy-fieldsets__datacenter-checkboxes" role="group">
+      {{! aria-label distinct from the enclosing <fieldset aria-label="Valid
+          datacenters"> — this inner role="group" needs its own accessible
+          name too, and a matching name on both would leave two same-named
+          groups nested inside one another, which AT can't tell apart. }}
+      <div class="consul-policy-fieldsets__datacenter-checkboxes" role="group" aria-label="Datacenters">
         {{#each this.datacenters as |dc|}}
           <Hds::Form::Checkbox::Field
             @value={{dc.Name}}

@@ -62,6 +62,18 @@
     min-width: 0;
   }
 
+  // The Header name/information fields render their label text inside the
+  // same <label> that wraps the input (so the label has an accessible
+  // name), rather than as a separate sibling — so that <label> is now
+  // .header-col's only flex child, and needs the label-over-control
+  // stacking applied one level deeper.
+  .header-col > label {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+
   // Shared column label typography (matches HDS body-100 semibold)
   .header-col-label {
     font-size: var(--token-typography-body-100-font-size);
