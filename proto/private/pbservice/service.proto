@@ -170,6 +170,143 @@ message ServiceConnect {
   PeeringServiceMeta PeerMeta = 4;
 }
 
+// ServiceAI is the inline AI role block (CAMP). It carries the service's AI
+// semantics (inference-model, mcp-server, or ai-agent).
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ServiceAI
+// output=service.gen.go
+// name=Structs
+message ServiceAI {
+  // Role determines which role-specific sub-block is valid.
+  // mog: func-to=structs.ServiceAIRole func-from=string
+  string Role = 1;
+
+  // Exactly one of the following is set, matching Role.
+  AIInferenceModel InferenceModel = 2;
+  AIMCPServer MCPServer = 3;
+  AIAgent Agent = 4;
+}
+
+// AIInferenceModel is the role-specific config for the inference-model role.
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIInferenceModel
+// output=service.gen.go
+// name=Structs
+message AIInferenceModel {
+  string Protocol = 1;
+  string Path = 2;
+  AIModelDefaults Defaults = 3;
+}
+
+// AIModelDefaults carries optional request defaults for an inference model.
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIModelDefaults
+// output=service.gen.go
+// name=Structs
+message AIModelDefaults {
+  // mog: func-to=int func-from=int32
+  int32 MaxTokens = 1;
+  double Temperature = 2;
+}
+
+// AIMCPServer is the role-specific config for the mcp-server role.
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIMCPServer
+// output=service.gen.go
+// name=Structs
+message AIMCPServer {
+  string Transport = 1;
+  string Path = 2;
+  string ProtocolVersion = 3;
+}
+
+// AIAgent is the role-specific config for the ai-agent role.
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIAgent
+// output=service.gen.go
+// name=Structs
+message AIAgent {
+  AIAgentInference Inference = 1;
+  AIAgentMCP MCP = 2;
+  AIAgentRateLimits RateLimits = 3;
+  AIAgentInterceptor Interceptor = 4;
+}
+
+// AIAgentInference describes the inference specialization for an agent.
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIAgentInference
+// output=service.gen.go
+// name=Structs
+message AIAgentInference {
+  repeated string Specialization = 1;
+  string Vendor = 2;
+}
+
+// AIAgentMCP is the MCP egress configuration for an agent.
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIAgentMCP
+// output=service.gen.go
+// name=Structs
+message AIAgentMCP {
+  // mog: func-to=int func-from=int32
+  int32 Port = 1;
+  AIAgentMCPHITL HITL = 2;
+}
+
+// AIAgentMCPHITL is the human-in-the-loop approval configuration for MCP tool
+// calls.
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIAgentMCPHITL
+// output=service.gen.go
+// name=Structs
+message AIAgentMCPHITL {
+  // mog: func-to=int func-from=int32
+  int32 Port = 1;
+  string ApprovalTimeout = 2;
+}
+
+// AIAgentRateLimits are per-agent tool-call rate limits.
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIAgentRateLimits
+// output=service.gen.go
+// name=Structs
+message AIAgentRateLimits {
+  // mog: func-to=int func-from=int32
+  int32 ToolCallsPerMinute = 1;
+  // mog: func-to=int func-from=int32
+  int32 ToolCallsPerHour = 2;
+}
+
+// AIAgentInterceptor configures the co-located governance interceptor.
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIAgentInterceptor
+// output=service.gen.go
+// name=Structs
+message AIAgentInterceptor {
+  // mog: func-to=int func-from=int32
+  int32 Port = 1;
+}
+
 // PeeringServiceMeta is read-only information provided from an exported peer.
 //
 // mog annotation:
@@ -325,6 +462,10 @@ message ServiceDefinition {
   // Ports is a list of ports that the service exposes.
   // mog: func-to=PortsToStructs func-from=NewPortsFromStructs
   repeated ServicePort Ports = 20;
+
+  // AI is the inline AI role block (CAMP). Optional; nil for non-AI services.
+  // mog: func-to=ServiceAIPtrToStructs func-from=NewServiceAIPtrFromStructs
+  ServiceAI AI = 21;
 }
 
 // ServicePort contains the port information for a service.
