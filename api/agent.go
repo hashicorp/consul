@@ -159,6 +159,7 @@ type AgentService struct {
 	Proxy             *AgentServiceConnectProxyConfig `json:",omitempty"`
 	Connect           *AgentServiceConnect            `json:",omitempty"`
 	PeerName          string                          `json:",omitempty"`
+	AI                *AgentServiceAI                 `json:",omitempty" bexpr:"-"`
 	// NOTE: If we ever set the ContentHash outside of singular service lookup then we may need
 	// to include the Namespace in the hash. When we do, then we are in for lots of fun with tests.
 	// For now though, ignoring it works well enough.
@@ -209,6 +210,84 @@ type AgentServiceConnectProxyConfig struct {
 	MeshGateway            MeshGatewayConfig       `json:",omitempty"`
 	Expose                 ExposeConfig            `json:",omitempty"`
 	AccessLogs             *AccessLogsConfig       `json:",omitempty"`
+}
+
+// AgentServiceAI is the public twin of the internal structs.ServiceAI: the
+// inline AI role block on a service registration/lookup. It carries a Role
+// discriminator and exactly one role-specific sub-block. Field names mirror the
+// internal type so mapstructure-based conversion maps them automatically.
+type AgentServiceAI struct {
+	Role           string                 `json:",omitempty"`
+	InferenceModel *AgentAIInferenceModel `json:",omitempty"`
+	MCPServer      *AgentAIMCPServer      `json:",omitempty"`
+	Agent          *AgentAIAgent          `json:",omitempty"`
+}
+
+// AgentAIInferenceModel is the role-specific config for the inference-model role.
+type AgentAIInferenceModel struct {
+	Protocol string                `json:",omitempty"`
+	Path     string                `json:",omitempty"`
+	Defaults *AgentAIModelDefaults `json:",omitempty"`
+}
+
+// AgentAIModelDefaults carries optional request defaults for an inference model.
+type AgentAIModelDefaults struct {
+	MaxTokens   int     `json:",omitempty"`
+	Temperature float64 `json:",omitempty"`
+}
+
+// AgentAIMCPServer is the role-specific config for the mcp-server role.
+type AgentAIMCPServer struct {
+	Transport       string `json:",omitempty"`
+	Path            string `json:",omitempty"`
+	ProtocolVersion string `json:",omitempty"`
+}
+
+// AgentAIAgent is the role-specific config for the ai-agent role.
+type AgentAIAgent struct {
+	Inference   *AgentAIAgentInference   `json:",omitempty"`
+	MCP         *AgentAIAgentMCP         `json:",omitempty"`
+	RateLimits  *AgentAIAgentRateLimits  `json:",omitempty"`
+	Interceptor *AgentAIAgentInterceptor `json:",omitempty"`
+}
+
+// AgentAIAgentInference describes the inference specialization for an agent.
+type AgentAIAgentInference struct {
+	Specialization []string `json:",omitempty"`
+	Vendor         string   `json:",omitempty"`
+}
+
+// AgentAIAgentMCP is the MCP egress configuration for an agent.
+type AgentAIAgentMCP struct {
+	Port int                  `json:",omitempty"`
+	HITL *AgentAIAgentMCPHITL `json:",omitempty"`
+}
+
+// AgentAIAgentMCPHITL is the human-in-the-loop approval configuration for MCP
+// tool calls.
+type AgentAIAgentMCPHITL struct {
+	Port            int    `json:",omitempty"`
+	ApprovalTimeout string `json:",omitempty"`
+}
+
+// AgentAIAgentRateLimits are per-agent tool-call rate limits.
+type AgentAIAgentRateLimits struct {
+	ToolCallsPerMinute int `json:",omitempty"`
+	ToolCallsPerHour   int `json:",omitempty"`
+}
+
+// AgentAIAgentInterceptor configures the co-located governance interceptor the
+// sidecar reaches over plaintext loopback.
+type AgentAIAgentInterceptor struct {
+	Port int `json:",omitempty"`
+}
+
+// AgentAISecret is a reference to a secret stored in an external provider. It
+// never holds the literal secret value.
+type AgentAISecret struct {
+	Provider string `json:",omitempty"`
+	Path     string `json:",omitempty"`
+	Field    string `json:",omitempty"`
 }
 
 const (
@@ -365,6 +444,7 @@ type AgentServiceRegistration struct {
 	Checks            AgentServiceChecks
 	Proxy             *AgentServiceConnectProxyConfig `json:",omitempty"`
 	Connect           *AgentServiceConnect            `json:",omitempty"`
+	AI                *AgentServiceAI                 `json:",omitempty" bexpr:"-"`
 	Namespace         string                          `json:",omitempty" bexpr:"-" hash:"ignore"`
 	Partition         string                          `json:",omitempty" bexpr:"-" hash:"ignore"`
 	Locality          *Locality                       `json:",omitempty" bexpr:"-" hash:"ignore"`
