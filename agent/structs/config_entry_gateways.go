@@ -1308,10 +1308,32 @@ func (e *BoundAPIGatewayConfigEntry) ListRelatedServices() []ServiceID {
 
 // BoundAPIGatewayListener is an API gateway listener with information
 // about the routes and certificates that have successfully bound to it.
+// It also carries the listener configuration fields from the parent
+// APIGatewayListener so that consumers only need to hold a single struct.
 type BoundAPIGatewayListener struct {
-	Name         string
-	Routes       []ResourceReference
+	Name   string
+	Routes []ResourceReference
+	// Certificates is the set of inline/filesystem certificates that have
+	// been validated and bound to this listener by the controller.
 	Certificates []ResourceReference
+
+	// The following fields are copied from the corresponding APIGatewayListener
+	// when the controller reconciles. They are read-only after that point.
+	Hostname            string
+	Port                int
+	Protocol            APIGatewayListenerProtocol
+	TLS                 APIGatewayTLSConfiguration
+	Override            *APIGatewayPolicy `json:",omitempty"`
+	Default             *APIGatewayPolicy `json:",omitempty"`
+	MaxRequestHeadersKB *uint32           `json:",omitempty"`
+}
+
+// GetHostname returns the hostname for the listener, or "*" if unspecified.
+func (l BoundAPIGatewayListener) GetHostname() string {
+	if l.Hostname != "" {
+		return l.Hostname
+	}
+	return "*"
 }
 
 func sameResources(first, second []ResourceReference) bool {

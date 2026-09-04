@@ -69,7 +69,6 @@ func minimalAPIGatewaySnap() *ConfigSnapshot {
 			TCPRoutes:              watch.NewMap[structs.ResourceReference, *structs.TCPRouteConfigEntry](),
 			InlineCertificates:     watch.NewMap[structs.ResourceReference, *structs.InlineCertificateConfigEntry](),
 			FileSystemCertificates: watch.NewMap[structs.ResourceReference, *structs.FileSystemCertificateConfigEntry](),
-			Listeners:              make(map[string]structs.APIGatewayListener),
 			BoundListeners:         make(map[string]structs.BoundAPIGatewayListener),
 		},
 	}
