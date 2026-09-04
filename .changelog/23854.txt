@@ -1,0 +1,4 @@
+```release-note:bug
+connect: Fix data race in secondaryGetActivePrimaryCARoot by holding stateLock during primary root slice iteration.
+agent/cache: Fix memory leak in notifyBlockingQuery and notifyPollingQuery timer loops by replacing time.After with time.NewTimer and explicit timer.Stop().
+```

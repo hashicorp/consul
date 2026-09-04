@@ -203,13 +203,11 @@ func (c *CAManager) secondarySetPrimaryRoots(newRoots structs.IndexedCARoots) {
 }
 
 func (c *CAManager) secondaryGetActivePrimaryCARoot() (*structs.CARoot, error) {
-	// TODO: this could be a different lock, as long as its the same lock in secondarySetPrimaryRoots
 	c.stateLock.Lock()
-	primaryRoots := c.primaryRoots
-	c.stateLock.Unlock()
+	defer c.stateLock.Unlock()
 
-	for _, root := range primaryRoots.Roots {
-		if root.ID == primaryRoots.ActiveRootID && root.Active {
+	for _, root := range c.primaryRoots.Roots {
+		if root.ID == c.primaryRoots.ActiveRootID && root.Active {
 			return root, nil
 		}
 	}
