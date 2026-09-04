@@ -238,7 +238,7 @@ function get_envoy_http_rbac_once {
   local HOSTPORT=$1
   run curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
-  echo "$output" | jq --raw-output '.configs[] | select(."@type" == "type.googleapis.com/envoy.admin.v3.ListenersConfigDump") | .dynamic_listeners[].active_state.listener.filter_chains[0].filters[0].typed_config.http_filters[] | select(.name == "envoy.filters.http.rbac") | .typed_config'
+  echo "$output" | jq --raw-output '.configs[] | select(."@type" == "type.googleapis.com/envoy.admin.v3.ListenersConfigDump") | .dynamic_listeners[].active_state.listener | (.filter_chains[0].filters[0].typed_config.http_filters // [])[] | select(.name == "envoy.filters.http.rbac") | .typed_config'
 }
 
 function assert_envoy_network_rbac_policy_count {
