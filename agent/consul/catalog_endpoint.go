@@ -954,6 +954,14 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 			if err != nil {
 				return err
 			}
+			if services != nil {
+				for _, svc := range services.Services {
+					if svc.Port == 0 && len(svc.Ports) > 0 {
+						// Populate `port` with default port for backward compatibility
+						svc.Port = svc.DefaultPort()
+					}
+				}
+			}
 			reply.Index, reply.NodeServices = index, services
 
 			// Note: we filter the results with ACLs *before* applying the user-supplied
@@ -1022,6 +1030,14 @@ func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *stru
 			index, services, err := state.NodeServiceList(ws, args.Node, &args.EnterpriseMeta, args.PeerName)
 			if err != nil {
 				return err
+			}
+			if services != nil {
+				for _, svc := range services.Services {
+					if svc.Port == 0 && len(svc.Ports) > 0 {
+						// Populate `port` with default port for backward compatibility
+						svc.Port = svc.DefaultPort()
+					}
+				}
 			}
 
 			mergedServices := services
