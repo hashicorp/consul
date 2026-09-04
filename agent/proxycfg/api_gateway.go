@@ -666,9 +666,17 @@ func (h *handlerAPIGateway) recompileDiscoveryChains(snap *ConfigSnapshot) error
 		}
 
 		// Create a synthesized discovery chain for each service.
-		services, upstreams, compiled, err := snap.APIGateway.synthesizeChains(h.source.Datacenter, listener, boundListener)
+		services, upstreams, compiled, skipped, err := snap.APIGateway.synthesizeChains(h.source.Datacenter, listener, boundListener)
 		if err != nil {
 			return err
+		}
+		// An unrecognized route kind for a single routeRef must not abort
+		// synthesis for the rest of this listener (or discard chains already
+		// synthesized for other listeners in this same recompile pass). Skip
+		// it and record the error for the caller to log as a warning, same as
+		// the per-route Compile failures handled in Synthesize()..
+		for _, routeErr := range skipped {
+			h.logger.Warn("skipping misconfigured HTTPRoute during discovery chain synthesis", "listener", name, "error", routeErr)
 		}
 
 		if len(upstreams) == 0 {
