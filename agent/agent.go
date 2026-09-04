@@ -1637,6 +1637,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 
 	cfg.Reporting.License.Enabled = runtimeCfg.Reporting.License.Enabled
 	cfg.Reporting.SnapshotRetentionTime = runtimeCfg.Reporting.SnapshotRetentionTime
+	cfg.DefaultIntentionPolicy = runtimeCfg.DefaultIntentionPolicy
 
 	cfg.ServerRejoinAgeMax = runtimeCfg.ServerRejoinAgeMax
 	cfg.EnableXDSLoadBalancing = runtimeCfg.EnableXDSLoadBalancing
