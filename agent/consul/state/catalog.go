@@ -36,10 +36,11 @@ const (
 )
 
 const (
-	// minUUIDLookupLen is used as a minimum length of a node name required before
-	// we test to see if the name is actually a UUID and perform an ID-based node
-	// lookup.
-	minUUIDLookupLen = 2
+	// minUUIDLookupLen is the minimum UUID prefix length after
+	// resizeNodeLookupKey before we do an ID-based node lookup.
+	// A floor of 2 let odd-length names like "ba1" shrink to "ba"
+	// and match unrelated node IDs.
+	minUUIDLookupLen = 8
 )
 
 var (
@@ -1882,14 +1883,15 @@ func (s *Store) nodeServices(ws memdb.WatchSet, nodeNameOrID string, entMeta *ac
 	if n != nil {
 		ws.Add(watchCh)
 	} else {
-		if len(nodeNameOrID) < minUUIDLookupLen {
+		uuidPrefix := resizeNodeLookupKey(nodeNameOrID)
+		if len(uuidPrefix) < minUUIDLookupLen {
 			ws.Add(watchCh)
 			return true, 0, nil, nil, nil
 		}
 
 		// Attempt to lookup the node by its node ID
 		iter, err := tx.Get(tableNodes, indexUUID+"_prefix", Query{
-			Value:          resizeNodeLookupKey(nodeNameOrID),
+			Value:          uuidPrefix,
 			EnterpriseMeta: *entMeta,
 			PeerName:       peerName,
 		})
