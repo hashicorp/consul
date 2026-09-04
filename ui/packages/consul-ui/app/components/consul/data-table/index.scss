@@ -148,6 +148,14 @@
     box-shadow: none;
   }
 
+  /* The legacy `%table tbody tr { cursor: pointer }` rule (app/components/table)
+     applies a pointer cursor to every <tr> in the page. Reset it on HDS table
+     rows so the pointer only appears over the actual clickable link cell (handled
+     by the @for loop below). */
+  .hds-table__tbody .hds-table__tr {
+    cursor: default;
+  }
+
   /* Only the link column (@linkColumn, 1-based; defaults to the first column)
      holds the clickable link, so limit the pointer cursor and link styling to
      that cell rather than the entire row. The clickable column is published as
