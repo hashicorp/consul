@@ -513,6 +513,66 @@ func TestStore_Run_ExpiresEntries(t *testing.T) {
 	require.Equal(t, ttlcache.NotIndexed, e.expiry.Index())
 }
 
+func TestStore_Run_TerminalRPCMaterializer(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	store := NewStore(hclog.NewNullLogger())
+	store.idleTTL = 24 * time.Hour
+	go store.Run(ctx)
+
+	req := &aclNotFoundRPCRequest{}
+
+	ch := make(chan cache.UpdateEvent)
+	reqCtx, reqCancel := context.WithCancel(context.Background())
+	t.Cleanup(reqCancel)
+	require.NoError(t, store.Notify(reqCtx, req, "", ch))
+
+	assertRequestCount(t, store, req, 1)
+
+	// The materializer should exit on ACL not found once the waiter is released.
+	reqCancel()
+
+	retry.Run(t, func(r *retry.R) {
+		store.lock.Lock()
+		defer store.lock.Unlock()
+
+		require.Len(r, store.byKey, 0)
+	})
+}
+
+type aclNotFoundRPCRequest struct{}
+
+func (aclNotFoundRPCRequest) CacheInfo() cache.RequestInfo {
+	return cache.RequestInfo{
+		Key:        "web",
+		Token:      "deleted-token",
+		Datacenter: "dc1",
+	}
+}
+
+func (aclNotFoundRPCRequest) Type() string { return "test.ACLNotFoundRPCRequest" }
+
+func (aclNotFoundRPCRequest) NewMaterializer() (Materializer, error) {
+	return NewRPCMaterializer(aclNotFoundStreamClient{}, Deps{
+		Logger: hclog.NewNullLogger(),
+		View:   &fakeView{srvs: make(map[string]*pbservice.CheckServiceNode)},
+		Request: func(uint64) *pbsubscribe.SubscribeRequest {
+			return &pbsubscribe.SubscribeRequest{
+				Topic: pbsubscribe.Topic_ServiceHealth,
+				Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
+					NamedSubject: &pbsubscribe.NamedSubject{
+						Key:       "web",
+						Namespace: pbcommon.DefaultEnterpriseMeta.Namespace,
+					},
+				},
+				Token:      "deleted-token",
+				Datacenter: "dc1",
+			}
+		},
+	}), nil
+}
+
 func TestStore_Run_FailingMaterializer(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)

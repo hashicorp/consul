@@ -58,6 +58,11 @@ func (m *RPCMaterializer) Run(ctx context.Context) {
 		if ctx.Err() != nil {
 			return
 		}
+		if isTerminalError(err) {
+			m.mat.handleError(req, err)
+			return
+		}
+
 		m.mat.handleError(req, err)
 
 		if err := m.mat.retryWaiter.Wait(ctx); err != nil {
