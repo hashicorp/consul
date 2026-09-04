@@ -1,0 +1,3 @@
+```release-note:improvement
+dns: Added DNS locality-aware lookup for service and prepared-query DNS via `dns_config.locality_aware_lookup`, with optional mutually exclusive `locality_aware_lookup_service_allowlist` and `locality_aware_lookup_service_blocklist` to scope filtering to selected services using case-insensitive DNS service-name matching. Operators must provision Consul locality on agents and service instances. These options only affect in-agent DNS response candidate selection for `*.service.consul` and `*.query.consul`; direct `*.connect.consul` and `*.ingress.consul` lookups are excluded; Connect, xDS, service mesh, and Enterprise locality-aware routing behavior are unchanged.
+```

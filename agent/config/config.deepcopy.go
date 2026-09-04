@@ -14,6 +14,14 @@ import (
 // DeepCopy generates a deep copy of *RuntimeConfig
 func (o *RuntimeConfig) DeepCopy() *RuntimeConfig {
 	var cp RuntimeConfig = *o
+	if o.DNSLocalityAwareLookupServiceAllowlist != nil {
+		cp.DNSLocalityAwareLookupServiceAllowlist = make([]string, len(o.DNSLocalityAwareLookupServiceAllowlist))
+		copy(cp.DNSLocalityAwareLookupServiceAllowlist, o.DNSLocalityAwareLookupServiceAllowlist)
+	}
+	if o.DNSLocalityAwareLookupServiceBlocklist != nil {
+		cp.DNSLocalityAwareLookupServiceBlocklist = make([]string, len(o.DNSLocalityAwareLookupServiceBlocklist))
+		copy(cp.DNSLocalityAwareLookupServiceBlocklist, o.DNSLocalityAwareLookupServiceBlocklist)
+	}
 	if o.DNSServiceTTL != nil {
 		cp.DNSServiceTTL = make(map[string]time.Duration, len(o.DNSServiceTTL))
 		for k2, v2 := range o.DNSServiceTTL {
