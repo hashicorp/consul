@@ -328,6 +328,12 @@ func (o *ConfigSnapshotUpstreams) DeepCopy() *ConfigSnapshotUpstreams {
 			cp.PeerUpstreamEndpointsUseHostnames[k2] = v2
 		}
 	}
+	if o.PeeredPortUpstreamVIPs != nil {
+		cp.PeeredPortUpstreamVIPs = make(map[UpstreamID]string, len(o.PeeredPortUpstreamVIPs))
+		for k2, v2 := range o.PeeredPortUpstreamVIPs {
+			cp.PeeredPortUpstreamVIPs[k2] = v2
+		}
+	}
 	return &cp
 }
 
@@ -345,6 +351,10 @@ func (o *PeerServersValue) DeepCopy() *PeerServersValue {
 func (o *PeeringServiceValue) DeepCopy() *PeeringServiceValue {
 	var cp PeeringServiceValue = *o
 	cp.Nodes = o.Nodes.DeepCopy()
+	if o.Ports != nil {
+		cp.Ports = make([]string, len(o.Ports))
+		copy(cp.Ports, o.Ports)
+	}
 	return &cp
 }
 

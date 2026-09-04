@@ -362,7 +362,36 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		}
 
 		seenUpstreams := make(map[UpstreamID]struct{})
+
+		// Build the set of all peered service names present so we can detect
+		// enterprise multiport "synthetic" per-port entries. Those are named
+		// "<portName>.<baseServiceName>" and share the base service's peer and
+		// partition/namespace. They must NOT be registered as standalone peered
+		// upstreams: doing so makes the xDS generator emit a per-port cluster that
+		// lacks the base upstream's peering TLS metadata (no SNI/ALPN). Instead we
+		// record their locally-assigned virtual IPs in PeeredPortUpstreamVIPs below and
+		// expand them into correct per-port xDS resources off of the base upstream.
+		// In CE there are no such entries, so this detection is a no-op.
+		peeredServiceNames := make(map[string]struct{}, len(resp.Services))
 		for _, psn := range resp.Services {
+			peeredServiceNames[psn.String()] = struct{}{}
+		}
+		isSyntheticPerPort := func(psn structs.PeeredServiceName) bool {
+			name := psn.ServiceName.Name
+			idx := strings.Index(name, ".")
+			if idx <= 0 || idx >= len(name)-1 {
+				return false
+			}
+			base := psn
+			base.ServiceName.Name = name[idx+1:]
+			_, ok := peeredServiceNames[base.String()]
+			return ok
+		}
+
+		for _, psn := range resp.Services {
+			if isSyntheticPerPort(psn) {
+				continue
+			}
 			uid := NewUpstreamIDFromPeeredServiceName(psn)
 
 			if _, ok := seenUpstreams[uid]; ok {
@@ -376,6 +405,25 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 			}
 		}
 		snap.ConnectProxy.PeeredUpstreams = seenUpstreams
+
+		// Record the locally-assigned virtual IP for each peered upstream (including
+		// synthetic per-port entries) so that the listener generator can emit a
+		// distinct outbound filter chain per named port for multiport peered services.
+		// ServiceVIPs is intentionally decoded independently from Services: upgraded
+		// producers keep the legacy Services list base-only, while older Part A
+		// producers may still include the synthetic entries in both fields.
+		peeredPortUpstreamVIPs := make(map[UpstreamID]string, len(resp.ServiceVIPs))
+		for key, vip := range resp.ServiceVIPs {
+			if vip == "" {
+				continue
+			}
+			psn, ok := structs.PeeredServiceNameFromString(key)
+			if !ok {
+				continue
+			}
+			peeredPortUpstreamVIPs[NewUpstreamIDFromPeeredServiceName(psn)] = vip
+		}
+		snap.ConnectProxy.PeeredPortUpstreamVIPs = peeredPortUpstreamVIPs
 
 		//
 		// Clean up data

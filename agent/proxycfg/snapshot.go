@@ -104,6 +104,12 @@ type ConfigSnapshotUpstreams struct {
 	PeerUpstreamEndpoints watch.Map[UpstreamID, structs.CheckServiceNodes]
 
 	PeerUpstreamEndpointsUseHostnames map[UpstreamID]struct{}
+
+	// PeeredPortUpstreamVIPs maps a peered UpstreamID (including synthetic per-port
+	// entries with name "<portName>.<serviceName>") to the virtual IP assigned
+	// to it locally. Enterprise multiport peering uses this to emit a distinct
+	// outbound filter chain per named port on the dialing proxy.
+	PeeredPortUpstreamVIPs map[UpstreamID]string
 }
 
 // indexedTarget is used to associate the Raft modify index of a resource
@@ -385,6 +391,7 @@ type PeerServersValue struct {
 
 type PeeringServiceValue struct {
 	Nodes  structs.CheckServiceNodes
+	Ports  []string
 	UseCDS bool
 }
 
@@ -509,7 +516,9 @@ type configSnapshotMeshGateway struct {
 	// bundles has completed at least once.
 	PeeringTrustBundlesSet bool
 
-	// ServicePorts tracks which ports each service exposes.
+	// ServicePorts tracks which ports each local/exported service exposes.
+	// Imported peered services must not be stored here: sender mesh gateways
+	// preserve named-port ALPN through the existing SNI passthrough path.
 	// Maps ServiceName -> []portName
 	// This is populated from service metadata with key "ports" in format "name:number,name:number"
 	// Only port names are stored; port numbers are not needed for mesh gateway routing.
@@ -1192,6 +1201,44 @@ func (s *ConfigSnapshot) ToConfigSnapshotUpstreams() (*ConfigSnapshotUpstreams, 
 		// This is a coherence check and should never fail
 		return nil, fmt.Errorf("No upstream snapshot for gateway mode %q", s.Kind)
 	}
+}
+
+// PeeredUpstreamPortVIPs returns the per-port virtual IPs assigned locally for a
+// base peered upstream, keyed by named port. Enterprise multiport peering stores
+// these under synthetic upstream IDs whose Name is "<portName>.<baseServiceName>"
+// and which share the base upstream's Peer and partition/namespace. The base
+// upstream itself (Name == baseServiceName) is excluded. Returns nil if none.
+func (u *ConfigSnapshotUpstreams) PeeredUpstreamPortVIPs(base UpstreamID) map[string]string {
+	// An explicit destination_port upstream is already scoped to one named
+	// port and must not be expanded into the service's complete port set.
+	if base.DestinationPort != "" || len(u.PeeredPortUpstreamVIPs) == 0 {
+		return nil
+	}
+
+	suffix := "." + base.Name
+	var out map[string]string
+	for uid, vip := range u.PeeredPortUpstreamVIPs {
+		if vip == "" || uid.Peer != base.Peer || uid.Name == base.Name {
+			continue
+		}
+		if !acl.EqualPartitions(uid.PartitionOrDefault(), base.PartitionOrDefault()) ||
+			uid.NamespaceOrDefault() != base.NamespaceOrDefault() {
+			continue
+		}
+		if !strings.HasSuffix(uid.Name, suffix) {
+			continue
+		}
+
+		portName := strings.TrimSuffix(uid.Name, suffix)
+		if portName == "" || strings.Contains(portName, ".") {
+			continue
+		}
+		if out == nil {
+			out = make(map[string]string)
+		}
+		out[portName] = vip
+	}
+	return out
 }
 
 func (u *ConfigSnapshotUpstreams) UpstreamPeerMeta(uid UpstreamID) (structs.PeeringServiceMeta, bool) {

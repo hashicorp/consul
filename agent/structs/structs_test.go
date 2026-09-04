@@ -3436,3 +3436,31 @@ func TestServicePorts_GetPortWithName(t *testing.T) {
 	require.False(t, ok)
 	require.Equal(t, 0, p)
 }
+
+func TestPeeredServiceNameFromString(t *testing.T) {
+	expect := PeeredServiceName{
+		ServiceName: NewServiceName("web", nil),
+		Peer:        "peer-a",
+	}
+
+	actual, ok := PeeredServiceNameFromString(expect.String())
+	require.True(t, ok)
+	require.Equal(t, expect, actual)
+
+	for _, input := range []string{"", "web", ":peer-a", "web:"} {
+		_, ok := PeeredServiceNameFromString(input)
+		require.False(t, ok, input)
+	}
+}
+
+func TestBasePeeredServiceNames(t *testing.T) {
+	base := PeeredServiceName{ServiceName: NewServiceName("web", nil), Peer: "peer-a"}
+	http := PeeredServiceName{ServiceName: NewServiceName("http.web", nil), Peer: "peer-a"}
+	metrics := PeeredServiceName{ServiceName: NewServiceName("metrics.web", nil), Peer: "peer-a"}
+	unrelated := PeeredServiceName{ServiceName: NewServiceName("api.v1", nil), Peer: "peer-a"}
+
+	require.Equal(t,
+		[]PeeredServiceName{base, unrelated},
+		BasePeeredServiceNames([]PeeredServiceName{http, base, metrics, unrelated}),
+	)
+}

@@ -751,12 +751,17 @@ func (m *Internal) PeeredUpstreams(args *structs.PartitionSpecificRequest, reply
 				return err
 			}
 
-			result := make([]structs.PeeredServiceName, 0, len(vips))
+			allServices := make([]structs.PeeredServiceName, 0, len(vips))
+			serviceVIPs := make(map[string]string, len(vips))
 			for _, vip := range vips {
-				result = append(result, vip.Service)
+				allServices = append(allServices, vip.Service)
+				if ip, err := vip.IPWithOffset(); err == nil && ip != "" {
+					serviceVIPs[vip.Service.String()] = ip
+				}
 			}
+			result := structs.BasePeeredServiceNames(allServices)
 
-			reply.Index, reply.Services = index, result
+			reply.Index, reply.Services, reply.ServiceVIPs = index, result, serviceVIPs
 			return nil
 		})
 }
