@@ -262,7 +262,7 @@ function get_envoy_http_filter {
   local FILTER_NAME=$2
   run retry_default curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
-  echo "$output" | jq --raw-output ".configs[] | select(.\"@type\" == \"type.googleapis.com/envoy.admin.v3.ListenersConfigDump\") | .dynamic_listeners[] | .active_state.listener.filter_chains[].filters[] | select(.name == \"envoy.filters.network.http_connection_manager\") | .typed_config.http_filters[] | select(.name == \"${FILTER_NAME}\")"
+  echo "$output" | jq --raw-output ".configs[] | select(.\"@type\" == \"type.googleapis.com/envoy.admin.v3.ListenersConfigDump\") | .dynamic_listeners[] | .active_state.listener | (.filter_chains // [])[] | (.filters // [])[] | select(.name == \"envoy.filters.network.http_connection_manager\") | (.typed_config.http_filters // [])[] | select(.name == \"${FILTER_NAME}\")"
 }
 
 function get_envoy_listener_filters {
