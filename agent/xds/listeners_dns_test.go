@@ -187,7 +187,7 @@ func TestMakeEgressDNSListener(t *testing.T) {
 func TestVirtualFQDNsForUpstream(t *testing.T) {
 	snap := &proxycfg.ConfigSnapshot{Datacenter: "dc1"}
 
-	t.Run("empty name returns nil", func(t *testing.T) {
+	t.Run("empty name returns empty string", func(t *testing.T) {
 		require.Equal(t, "", virtualFQDNsForUpstream(snap, proxycfg.UpstreamID{}))
 	})
 
