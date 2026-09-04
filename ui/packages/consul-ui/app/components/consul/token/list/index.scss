@@ -23,6 +23,8 @@
 .consul-token-list__name {
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
   font-weight: var(--token-typography-font-weight-semibold);
 
   a {
@@ -39,10 +41,27 @@
   margin-right: 4px;
 }
 
+/* Badge cells (Identities, Rules-policies, Rules-roles): wrap badges onto
+   multiple lines when there are more than fit on one row, matching the Figma
+   design where e.g. token-0 shows 3 policy badges across two lines. */
+.consul-token-list__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: flex-start;
+}
+
 .consul-token-list__description {
   display: block;
   color: var(--token-color-foreground-faint);
   font-style: normal;
+}
+
+/* Legacy tokens show an italic note in the Rules-policies cell instead of
+   individual policy badges. */
+.consul-token-list__legacy-rules {
+  color: var(--token-color-foreground-faint);
+  font-style: italic;
 }
 
 /* The copy button extends %button, which adds ~2.2em of horizontal padding and
