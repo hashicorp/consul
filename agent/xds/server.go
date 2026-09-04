@@ -73,6 +73,19 @@ const (
 	// DefaultAuthCheckFrequency is the default value for
 	// Server.AuthCheckFrequency to use when the zero value is provided.
 	DefaultAuthCheckFrequency = 5 * time.Minute
+
+	// DefaultBootstrapGateTimeout is the default value for
+	// Server.BootstrapGateTimeout. It bounds how long an api-gateway xDS stream
+	// will hold its first push waiting for the snapshot's discovery-chain
+	// endpoints to be assembled (ITCO-15826).
+	//
+	// The gate is only ever expected to be satisfiable, but it must not be able
+	// to wedge a stream if that assumption is ever violated: Consul programs
+	// lds_config/cds_config with initial_fetch_timeout: 0s (wait forever), so a
+	// permanently-held first push means a gateway that never becomes ready at
+	// all. Past this deadline we push what we have — a gateway answering 503s is
+	// strictly better than one that never listens.
+	DefaultBootstrapGateTimeout = 30 * time.Second
 )
 
 // ACLResolverFunc is a shim to resolve ACLs. Since ACL enforcement is so far
@@ -104,6 +117,11 @@ type Server struct {
 	// This is only used during idle periods of stream interactions (i.e. when
 	// there has been no recent DiscoveryRequest).
 	AuthCheckFrequency time.Duration
+
+	// BootstrapGateTimeout bounds the api-gateway cold-start completeness gate
+	// applied to a stream's first push. Zero means DefaultBootstrapGateTimeout;
+	// a negative value disables the gate entirely.
+	BootstrapGateTimeout time.Duration
 
 	// ResourceMapMutateFn exclusively exists for testing purposes.
 	ResourceMapMutateFn func(resourceMap *xdscommon.IndexedResources)
@@ -158,6 +176,8 @@ func NewServer(
 		CfgFetcher:         cfgFetcher,
 		AuthCheckFrequency: DefaultAuthCheckFrequency,
 		activeStreams:      &activeStreamCounters{},
+
+		BootstrapGateTimeout: DefaultBootstrapGateTimeout,
 	}
 }
 

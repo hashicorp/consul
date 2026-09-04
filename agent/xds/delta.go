@@ -17,13 +17,13 @@ import (
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	"github.com/hashicorp/go-metrics"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-metrics"
 	goversion "github.com/hashicorp/go-version"
 
 	"github.com/hashicorp/consul/agent/envoyextensions"
@@ -134,9 +134,15 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 		nonce            uint64 // xDS requires a unique nonce to correlate response/request pairs
 		ready            bool   // set to true after the first snapshot arrives
 
+		// bootstrapGate holds this stream's FIRST xDS push until the api-gateway
+		// snapshot behind it is coherent (cold-start segfault gate, ITCO-15826).
+		// It is per-stream, bounded, and first-push only — see bootstrap_gate.go.
+		bootstrapGate = newBootstrapGate(s.BootstrapGateTimeout)
+
 		streamStartTime = time.Now()
 		streamStartOnce sync.Once
 	)
+	defer bootstrapGate.stop()
 
 	var (
 		// resourceMap is the SoTW we are incrementally attempting to sync to envoy.
@@ -210,6 +216,12 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			}
 			extendAuthTimer()
 
+		case <-bootstrapGate.expiryCh():
+			// The completeness gate has held this stream's first push for too
+			// long. Fall through to the state machine, which will now let it
+			// through rather than leave Envoy with no config at all.
+			bootstrapGate.markExpired()
+
 		case req, ok := <-reqCh:
 			if !ok {
 				// reqCh is closed when stream.Recv errors which is how we detect client
@@ -223,6 +235,13 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 			if req.TypeUrl == "" {
 				return status.Errorf(codes.InvalidArgument, "type URL is required for ADS")
+			}
+
+			// A resumed stream carries the resources Envoy already holds. That
+			// Envoy is past initialization with workers running, so the cold-start
+			// gate has nothing to protect and must not delay its updates.
+			if len(req.InitialResourceVersions) > 0 {
+				bootstrapGate.markResumedStream()
 			}
 
 			var proxyFeatures xdscommon.SupportedProxyFeatures
@@ -373,6 +392,16 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 			if !ready {
 				logger.Trace("Skipping delta computation because we haven't gotten a snapshot yet")
+				continue
+			}
+
+			// Bootstrap completeness gate (api-gw, ITCO-15826): hold this stream's
+			// FIRST push until every synthesized discovery chain has its EDS
+			// endpoints, so a cold-starting Envoy never initializes over CDS
+			// clusters that have no matching EDS. The hold is bounded, skipped for
+			// resumed streams, and applies only to the first push, so steady-state
+			// churn is never withheld. See bootstrap_gate.go.
+			if !bootstrapGate.allow(logger, snapshot) {
 				continue
 			}
 
