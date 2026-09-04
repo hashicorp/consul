@@ -1,0 +1,5 @@
+```release-note:improvement
+sdk: Replaced the `iptables` package with a new `nftables` package for transparent proxy traffic redirection.  
+
+cli: Migrated `consul connect redirect-traffic` command from `iptables`/`ip6tables` to `nftables` (`nft`). The command now uses the `sdk/nftables` package which applies rules atomically using the `inet` address family, covering both IPv4 and IPv6 in a single pass.
+```

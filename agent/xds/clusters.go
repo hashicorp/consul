@@ -392,7 +392,7 @@ func makeExposeClusterName(destinationPort int) string {
 // In transparent proxy mode there are potentially multiple passthrough clusters added.
 // The first is for destinations outside of Consul's catalog. This is for a plain TCP proxy.
 // All of these use Envoy's ORIGINAL_DST listener filter, which forwards to the original
-// destination address (before the iptables redirection).
+// destination address (before the nftables redirection).
 // The rest are for destinations inside the mesh, which require certificates for mTLS.
 func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot, xdsCfg *config.XDSCommonConfig) ([]proto.Message, error) {
 	// This size is an upper bound.
