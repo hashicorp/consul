@@ -59,6 +59,7 @@ func (ft discoChainTargets) groupedTargets() ([]discoChainTargetGroup, error) {
 
 func (s *ResourceGenerator) mapDiscoChainTargets(
 	cfgSnap *proxycfg.ConfigSnapshot,
+	uid proxycfg.UpstreamID,
 	chain *structs.CompiledDiscoveryChain,
 	node *structs.DiscoveryGraphNode,
 	upstreamConfig structs.UpstreamConfig,
@@ -155,7 +156,169 @@ func (s *ResourceGenerator) mapDiscoChainTargets(
 		failoverTargets.targets = append(failoverTargets.targets, ti)
 	}
 
+	// An aggregate cluster whose members have no EDS assignment is fatal to
+	// Envoy rather than merely degraded. Worker startup replays every known
+	// cluster into the new thread, and AggregateClusterLoadBalancer::
+	// onClusterAddOrUpdate faults on a member whose priority set was never
+	// populated (envoyproxy/envoy#35157, ITCO-15826). The identical state in a
+	// plain EDS cluster is benign: Envoy warms it, resolves it with zero hosts
+	// once initial_fetch_timeout fires and answers 503 UH until endpoints land.
+	//
+	// So when any member is not ready, render the base cluster as a plain EDS
+	// cluster over the primary target instead of as an aggregate. Route
+	// destinations are unaffected because they always reference the base
+	// cluster name, and failover is restored by the next snapshot once the
+	// member endpoints arrive.
+	//
+	// This complements the first-push bootstrap gate in agent/xds: the gate
+	// keeps a wholly incoherent snapshot away from a cold-starting Envoy,
+	// while this guard covers what the gate cannot -- a gate that expired on
+	// its timeout, and steady-state churn after the first push has opened it.
+	if failoverTargets.failover && !forMeshGateway && cfgSnap.Kind == structs.ServiceKindAPIGateway {
+		unready := failoverTargets.unreadyFailoverMembers(
+			chain,
+			upstreamsSnapshot.WatchedUpstreamEndpoints[uid],
+			upstreamsSnapshot.WatchedGatewayEndpoints[uid],
+			cfgSnap.Locality,
+		)
+		if len(unready) > 0 {
+			degradedTo := failoverTargets.degradeToSingleTarget(primaryTargetID)
+			switch {
+			case degradedTo == "":
+				// Every target was dropped while mapping, so there is nothing
+				// to degrade onto. Failover has been cleared, which leaves no
+				// targets and therefore no cluster at all -- a 503 NC that
+				// self-heals, rather than an aggregate over an empty member
+				// list, which is the same fatal shape as an unpopulated member.
+				s.Logger.Warn("api-gateway: emitting no cluster for upstream because it has no usable targets",
+					"upstream", uid,
+					"cluster", failoverTargets.baseClusterName,
+					"unready_targets", unready)
+			case degradedTo != primaryTargetID:
+				// The primary was dropped while mapping (reachable when it is a
+				// peered target whose peering metadata has not resolved yet).
+				// Falling back to the highest-priority remaining target is both
+				// safe -- a plain EDS cluster is benign no matter how ready it
+				// is -- and the correct reading of failover intent: the primary
+				// is unusable, so the next target in order takes over.
+				s.Logger.Warn("api-gateway: rendering upstream without failover over a non-primary target because the primary is unavailable; "+
+					"failover is restored automatically once the primary and member endpoints arrive",
+					"upstream", uid,
+					"cluster", failoverTargets.baseClusterName,
+					"primary_target", primaryTargetID,
+					"degraded_to", degradedTo,
+					"unready_targets", unready)
+			default:
+				s.Logger.Warn("api-gateway: rendering upstream without failover because member endpoints are not assembled; "+
+					"failover is restored automatically once the endpoints arrive",
+					"upstream", uid,
+					"cluster", failoverTargets.baseClusterName,
+					"unready_targets", unready)
+			}
+		}
+	}
+
 	return failoverTargets, nil
+}
+
+// unreadyFailoverMembers returns the IDs of mapped targets whose EDS assignment
+// would be skipped by endpoint generation -- that is, the members that would
+// leave an aggregate cluster pointing at an unpopulated priority set.
+//
+// It calls makeLoadAssignmentEndpointGroup, the very function endpoint
+// generation uses, rather than re-deriving the readiness rule, so the cluster
+// and endpoint paths cannot disagree about which members are ready.
+//
+// KNOWN LIMITATION: peered members are not covered. Their endpoints come from
+// makeUpstreamLoadAssignmentForPeerService, which is checked before
+// makeLoadAssignmentEndpointGroup in endpoints.go, so that function -- not this
+// one -- decides whether a peered member gets an assignment. It returns a nil
+// assignment, while CDS still emits the member cluster, in two cases:
+//
+//   - mesh gateway mode "local" while the local gateway endpoints are not yet
+//     watched (endpoints.go, the !ready early return), and
+//   - PeerUpstreamEndpoints not yet populated for the target.
+//
+// Either leaves an aggregate member unpopulated, which is the fatal shape. A
+// third nil case, PeerUpstreamEndpointsUseHostnames, is safe because the
+// cluster is then DNS-based and its endpoints come through CDS.
+//
+// This is not covered here because the decision depends on the mesh gateway
+// mode, and the mode endpoints.go uses for API gateways comes from
+// upstream.MeshGateway.Mode, whereas the upstreamConfig available at this point
+// is parsed from upstream.Config -- a different source. Reproducing the rule
+// from the wrong input would reintroduce exactly the CDS/EDS drift this
+// function exists to avoid, so covering peered members properly requires
+// threading the resolved mode into mapDiscoChainTargets. The bootstrap gate's
+// proxycfg predicate skips peered targets for the same reason, so both layers
+// share this gap. Reaching it needs an API gateway whose service-resolver fails
+// over to a peered target whose peering metadata has resolved but whose
+// endpoints have not -- a narrower topology than the one this guard targets.
+func (ft discoChainTargets) unreadyFailoverMembers(
+	chain *structs.CompiledDiscoveryChain,
+	upstreamEndpoints map[string]structs.CheckServiceNodes,
+	gatewayEndpoints map[string]structs.CheckServiceNodes,
+	localKey proxycfg.GatewayKey,
+) []string {
+	var unready []string
+	for _, ti := range ft.targets {
+		target := chain.Targets[ti.TargetID]
+		if target == nil {
+			continue
+		}
+		// Peered and external targets are served from a different endpoint path
+		// (makeUpstreamLoadAssignmentForPeerService, or no EDS at all), so
+		// makeLoadAssignmentEndpointGroup is not the authority on their
+		// readiness and gating on it here would be wrong. See the known
+		// limitation on this function.
+		if target.External || target.Peer != "" {
+			continue
+		}
+		if _, valid := makeLoadAssignmentEndpointGroup(
+			chain.Targets,
+			upstreamEndpoints,
+			gatewayEndpoints,
+			ti.TargetID,
+			localKey,
+			false,
+		); !valid {
+			unready = append(unready, ti.TargetID)
+		}
+	}
+	return unready
+}
+
+// degradeToSingleTarget rewrites the mapped targets so they render as a single
+// plain EDS cluster under the base cluster name, instead of an aggregate
+// cluster over per-target failover member clusters. This is always safe: an
+// unpopulated *aggregate* member is what faults during worker startup, whereas
+// a plain EDS cluster with no assignment simply warms, times out and resolves
+// with zero hosts.
+//
+// It prefers the primary target, and otherwise falls back to the
+// highest-priority target still present -- the primary can legitimately be
+// absent, because a peered target whose peering metadata has not resolved is
+// dropped while mapping. It returns the target ID it degraded onto, or the
+// empty string if no target remained, in which case failover is still cleared
+// so that no aggregate can be emitted over an empty member list.
+func (ft *discoChainTargets) degradeToSingleTarget(primaryTargetID string) string {
+	ft.failover = false
+	ft.failoverPolicy = structs.ServiceResolverFailoverPolicy{}
+
+	if len(ft.targets) == 0 {
+		return ""
+	}
+
+	chosen := ft.targets[0]
+	for _, ti := range ft.targets {
+		if ti.TargetID == primaryTargetID {
+			chosen = ti
+			break
+		}
+	}
+
+	ft.targets = []targetInfo{chosen}
+	return chosen.TargetID
 }
 
 func (ft discoChainTargets) sequential() ([]discoChainTargetGroup, error) {

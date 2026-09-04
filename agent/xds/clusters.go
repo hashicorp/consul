@@ -1674,7 +1674,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 		if upstream != nil {
 			destinationPort = upstream.DestinationPort
 		}
-		mappedTargets, err := s.mapDiscoChainTargets(cfgSnap, chain, node, upstreamConfig, forMeshGateway, destinationPort)
+		mappedTargets, err := s.mapDiscoChainTargets(cfgSnap, uid, chain, node, upstreamConfig, forMeshGateway, destinationPort)
 		if err != nil {
 			return nil, err
 		}
@@ -1685,7 +1685,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 		}
 
 		var failoverClusterNames []string
-		if mappedTargets.failover {
+		if mappedTargets.failover && len(targetGroups) > 0 {
 			for _, targetGroup := range targetGroups {
 				failoverClusterNames = append(failoverClusterNames, targetGroup.ClusterName)
 			}
@@ -1711,6 +1711,15 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			}
 
 			out = append(out, c)
+		} else if mappedTargets.failover {
+			// Every target was dropped while mapping (reachable when each is a
+			// peered target whose peering metadata has not resolved yet).
+			// Emitting the aggregate anyway would hand Envoy a cluster with an
+			// empty member list, which is the same unpopulated-member shape
+			// that faults during worker startup. Omitting the cluster entirely
+			// yields a 503 NC that self-heals on the next snapshot instead.
+			s.Logger.Warn("skipping aggregate cluster because it has no member clusters",
+				"cluster", mappedTargets.baseClusterName)
 		}
 
 		// Construct the target clusters.
