@@ -4267,6 +4267,73 @@ func TestAPIGatewayController(t *testing.T) {
 	}
 }
 
+func TestAPIGatewayControllerPopulatesWatchSetBeforeRegisteringTrigger(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	store := state.NewStateStore(nil)
+	updater := &Updater{
+		UpdateWithStatus: func(entry structs.ControlledConfigEntry) error { return nil },
+		Update:           func(entry structs.ConfigEntry) error { return nil },
+		Delete:           func(entry structs.ConfigEntry) error { return nil },
+	}
+
+	for i, entry := range []structs.ConfigEntry{
+		&structs.ServiceConfigEntry{
+			Kind:     structs.ServiceDefaults,
+			Name:     "backend-a",
+			Protocol: "http",
+		},
+		&structs.ServiceConfigEntry{
+			Kind:     structs.ServiceDefaults,
+			Name:     "backend-b",
+			Protocol: "http",
+		},
+	} {
+		require.NoError(t, store.EnsureConfigEntry(uint64(i+1), entry))
+	}
+
+	route := &protocolTrackingHTTPRoute{
+		HTTPRouteConfigEntry: &structs.HTTPRouteConfigEntry{
+			Kind: structs.HTTPRoute,
+			Name: "multi-backend-route",
+			Rules: []structs.HTTPRouteRule{
+				{Services: []structs.HTTPService{{Name: "backend-a"}}},
+				{Services: []structs.HTTPService{{Name: "backend-b"}}},
+			},
+		},
+	}
+
+	request := controller.Request{
+		Kind: structs.HTTPRoute,
+		Name: "multi-backend-route",
+		Meta: acl.DefaultEnterpriseMeta(),
+	}
+	triggerCalled := false
+	testController := &noopController{
+		triggers: make(map[controller.Request]struct{}),
+		onAddTrigger: func(actual controller.Request, _ func(context.Context) error) {
+			triggerCalled = true
+			require.Equal(t, request, actual)
+			// GetProtocol is called after each backend's discovery-chain read and
+			// compilation. Both calls must finish before the WatchSet is handed to
+			// the controller's asynchronous trigger.
+			require.Equal(t, len(route.GetServiceNames()), route.protocolCalls)
+		},
+	}
+	reconciler := apiGatewayReconciler{
+		logger:     hclog.Default(),
+		updater:    updater,
+		controller: testController,
+	}
+
+	require.NoError(t, reconciler.reconcileRoute(ctx, request, store, route))
+	require.True(t, triggerCalled)
+	require.True(t, route.Status.MatchesConditionStatus(routeAccepted()))
+}
+
 func TestNewAPIGatewayController(t *testing.T) {
 	t.Parallel()
 
@@ -4290,8 +4357,19 @@ func TestNewAPIGatewayController(t *testing.T) {
 }
 
 type noopController struct {
-	triggers map[controller.Request]struct{}
-	enqueued []controller.Request
+	triggers     map[controller.Request]struct{}
+	enqueued     []controller.Request
+	onAddTrigger func(controller.Request, func(context.Context) error)
+}
+
+type protocolTrackingHTTPRoute struct {
+	*structs.HTTPRouteConfigEntry
+	protocolCalls int
+}
+
+func (r *protocolTrackingHTTPRoute) GetProtocol() structs.APIGatewayListenerProtocol {
+	r.protocolCalls++
+	return r.HTTPRouteConfigEntry.GetProtocol()
 }
 
 func (n *noopController) Run(ctx context.Context) error { return nil }
@@ -4307,6 +4385,9 @@ func (n *noopController) WithQueueFactory(fn func(ctx context.Context, baseBacko
 
 func (n *noopController) AddTrigger(request controller.Request, trigger func(ctx context.Context) error) {
 	n.triggers[request] = struct{}{}
+	if n.onAddTrigger != nil {
+		n.onAddTrigger(request, trigger)
+	}
 }
 
 func (n *noopController) RemoveTrigger(request controller.Request) {
