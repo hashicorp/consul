@@ -6,6 +6,7 @@ package xds
 import (
 	"testing"
 
+	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
@@ -998,6 +999,146 @@ func TestGetReadyListeners_IncludesAllLoadedRoutes(t *testing.T) {
 	rl := ready["http-listener"]
 	require.Contains(t, rl.routeReferences, ref1)
 	require.Contains(t, rl.routeReferences, ref2)
+}
+
+// TestMakeCommonTLSContextAPIGateway_LeafWhenTLSEnabled verifies that enabling
+// `TLS { Enabled = true }` on the api-gateway (with no inline/file/SDS cert)
+// causes the listener to terminate downstream TLS using the gateway's Connect
+// leaf certificate — the zero-touch HTTPS path. It also verifies the prior
+// behavior is preserved: with TLS disabled and no certs, no TLS context is
+// produced (plain HTTP).
+func TestMakeCommonTLSContextAPIGateway_LeafWhenTLSEnabled(t *testing.T) {
+	makeSnap := func(tlsEnabled bool) *proxycfg.ConfigSnapshot {
+		return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil,
+			func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+				entry.TLS = structs.GatewayTLSConfig{Enabled: tlsEnabled}
+				entry.Listeners = []structs.APIGatewayListener{{
+					Name:     "http-listener",
+					Protocol: structs.ListenerProtocolHTTP,
+					Port:     8080,
+				}}
+				bound.Listeners = []structs.BoundAPIGatewayListener{{
+					Name: "http-listener",
+				}}
+			}, nil, nil, nil)
+	}
+
+	listenerCfg := structs.APIGatewayListener{
+		Name:     "http-listener",
+		Protocol: structs.ListenerProtocolHTTP,
+		Port:     8080,
+	}
+
+	t.Run("enabled produces leaf-backed TLS context", func(t *testing.T) {
+		snap := makeSnap(true)
+		tlsContext, err := makeCommonTLSContextFromSnapshotAPIGatewayListenerConfig(snap, listenerCfg)
+		require.NoError(t, err)
+		require.NotNil(t, tlsContext, "TLS { Enabled = true } must yield a downstream TLS context")
+		// The leaf cert is served inline (not via SDS) for the Connect leaf path.
+		require.NotEmpty(t, tlsContext.TlsCertificates,
+			"leaf-backed TLS context must carry the gateway's Connect leaf certificate")
+	})
+
+	t.Run("disabled with no certs stays plaintext", func(t *testing.T) {
+		snap := makeSnap(false)
+		tlsContext, err := makeCommonTLSContextFromSnapshotAPIGatewayListenerConfig(snap, listenerCfg)
+		require.NoError(t, err)
+		require.Nil(t, tlsContext, "no TLS config and no certs must remain plain HTTP (unchanged behavior)")
+	})
+}
+
+// TestHasCatchAllFilterChain verifies the helper that prevents appending a
+// duplicate catch-all (leaf) filter chain when one already exists.
+func TestHasCatchAllFilterChain(t *testing.T) {
+	withSNI := &envoy_listener_v3.FilterChain{
+		FilterChainMatch: &envoy_listener_v3.FilterChainMatch{ServerNames: []string{"web.example.com"}},
+	}
+	catchAllNilMatch := &envoy_listener_v3.FilterChain{}
+	catchAllEmptyNames := &envoy_listener_v3.FilterChain{
+		FilterChainMatch: &envoy_listener_v3.FilterChainMatch{},
+	}
+
+	require.False(t, hasCatchAllFilterChain(nil))
+	require.False(t, hasCatchAllFilterChain([]*envoy_listener_v3.FilterChain{withSNI}))
+	require.True(t, hasCatchAllFilterChain([]*envoy_listener_v3.FilterChain{withSNI, catchAllNilMatch}))
+	require.True(t, hasCatchAllFilterChain([]*envoy_listener_v3.FilterChain{catchAllEmptyNames}))
+}
+
+// TestAPIGatewayCustomCertPrecedenceOverLeaf locks in the precedence rule for the
+// "gateway-level TLS { Enabled = true } AND listener custom certs" combination:
+// every custom-cert configuration must produce a catch-all filter chain, which
+// makes hasCatchAllFilterChain return true and therefore suppresses appending an
+// additional Connect-leaf catch-all chain in makeAPIGatewayListeners. This proves
+// custom certs take precedence and that enabling gateway-level TLS does not
+// introduce a duplicate matcher or change existing behavior.
+func TestAPIGatewayCustomCertPrecedenceOverLeaf(t *testing.T) {
+	s := ResourceGenerator{}
+	filterOpts := listenerFilterOpts{
+		protocol:   "http",
+		routeName:  "test-route",
+		cluster:    "test-cluster",
+		statPrefix: "test",
+	}
+
+	// Gateway-level TLS is enabled; this is the config that would otherwise add a
+	// leaf catch-all when no custom cert is present.
+	tlsCfg := structs.GatewayTLSConfig{Enabled: true}
+
+	t.Run("single inline cert is catch-all (leaf suppressed)", func(t *testing.T) {
+		snap := &proxycfg.ConfigSnapshot{}
+		snap.APIGateway.TLSConfig = tlsCfg
+		certs := []structs.ConfigEntry{
+			&structs.InlineCertificateConfigEntry{
+				Kind:        structs.InlineCertificate,
+				Name:        "custom-inline",
+				Certificate: "-----BEGIN CERTIFICATE-----\nFAKE\n-----END CERTIFICATE-----",
+				PrivateKey:  "-----BEGIN PRIVATE KEY-----\nFAKE\n-----END PRIVATE KEY-----",
+			},
+		}
+
+		chains, err := s.makeInlineOverrideFilterChains(snap, tlsCfg, nil, "http", filterOpts, certs)
+		require.NoError(t, err)
+		require.Len(t, chains, 1, "single inline cert must produce exactly one chain")
+		require.True(t, hasCatchAllFilterChain(chains),
+			"single inline cert must be catch-all so the leaf default chain is suppressed")
+	})
+
+	t.Run("file-system cert is catch-all (leaf suppressed)", func(t *testing.T) {
+		snap := &proxycfg.ConfigSnapshot{}
+		snap.APIGateway.TLSConfig = tlsCfg
+		certs := []structs.ConfigEntry{
+			&structs.FileSystemCertificateConfigEntry{
+				Kind:        structs.FileSystemCertificate,
+				Name:        "custom-file",
+				Certificate: "/certs/web.pem",
+				PrivateKey:  "/certs/web-key.pem",
+			},
+		}
+
+		chains, err := s.makeInlineOverrideFilterChains(snap, tlsCfg, nil, "http", filterOpts, certs)
+		require.NoError(t, err)
+		require.Len(t, chains, 1, "file-system cert must consolidate into one chain")
+		require.True(t, hasCatchAllFilterChain(chains),
+			"file-system cert chain must be catch-all so the leaf default chain is suppressed")
+	})
+
+	t.Run("gateway SDS cert is catch-all (leaf suppressed)", func(t *testing.T) {
+		snap := &proxycfg.ConfigSnapshot{}
+		sdsCfg := structs.GatewayTLSConfig{
+			Enabled: true,
+			SDS: &structs.GatewayTLSSDSConfig{
+				ClusterName:  "sds-cluster",
+				CertResource: "api-gw-cert",
+			},
+		}
+		snap.APIGateway.TLSConfig = sdsCfg
+
+		chains, err := s.makeInlineOverrideFilterChains(snap, sdsCfg, nil, "http", filterOpts, nil)
+		require.NoError(t, err)
+		require.Len(t, chains, 1, "gateway SDS must produce one chain")
+		require.True(t, hasCatchAllFilterChain(chains),
+			"gateway SDS chain must be catch-all so the leaf default chain is suppressed")
+	})
 }
 
 // Made with Bob

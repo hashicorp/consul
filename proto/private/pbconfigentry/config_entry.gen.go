@@ -223,6 +223,23 @@ func BoundAPIGatewayListenerToStructs(s *BoundAPIGatewayListener, t *structs.Bou
 			}
 		}
 	}
+	t.Hostname = s.Hostname
+	t.Port = int(s.Port)
+	t.Protocol = apiGatewayProtocolToStructs(s.Protocol)
+	if s.TLS != nil {
+		APIGatewayTLSConfigurationToStructs(s.TLS, &t.TLS)
+	}
+	if s.Override != nil {
+		var x structs.APIGatewayPolicy
+		APIGatewayPolicyToStructs(s.Override, &x)
+		t.Override = &x
+	}
+	if s.Default != nil {
+		var x structs.APIGatewayPolicy
+		APIGatewayPolicyToStructs(s.Default, &x)
+		t.Default = &x
+	}
+	t.MaxRequestHeadersKB = s.MaxRequestHeadersKB
 }
 func BoundAPIGatewayListenerFromStructs(t *structs.BoundAPIGatewayListener, s *BoundAPIGatewayListener) {
 	if s == nil {
@@ -249,6 +266,25 @@ func BoundAPIGatewayListenerFromStructs(t *structs.BoundAPIGatewayListener, s *B
 			}
 		}
 	}
+	s.Hostname = t.Hostname
+	s.Port = int32(t.Port)
+	s.Protocol = apiGatewayProtocolFromStructs(t.Protocol)
+	{
+		var x APIGatewayTLSConfiguration
+		APIGatewayTLSConfigurationFromStructs(&t.TLS, &x)
+		s.TLS = &x
+	}
+	if t.Override != nil {
+		var x APIGatewayPolicy
+		APIGatewayPolicyFromStructs(t.Override, &x)
+		s.Override = &x
+	}
+	if t.Default != nil {
+		var x APIGatewayPolicy
+		APIGatewayPolicyFromStructs(t.Default, &x)
+		s.Default = &x
+	}
+	s.MaxRequestHeadersKB = t.MaxRequestHeadersKB
 }
 func ConditionToStructs(s *Condition, t *structs.Condition) {
 	if s == nil {
