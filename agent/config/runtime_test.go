@@ -2330,6 +2330,102 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 	run(t, testCase{
+		desc: "dns locality_aware_lookup is always when configured",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`{
+				"dns_config": { "locality_aware_lookup": "always" }
+			}`},
+		hcl: []string{`
+				dns_config = { locality_aware_lookup = "always" }
+			`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.DNSLocalityAwareLookup = "always"
+		},
+	})
+	run(t, testCase{
+		desc: "dns locality_aware_lookup is balanced when configured",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`{
+				"dns_config": { "locality_aware_lookup": "balanced" }
+			}`},
+		hcl: []string{`
+				dns_config = { locality_aware_lookup = "balanced" }
+			`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.DNSLocalityAwareLookup = "balanced"
+		},
+	})
+	run(t, testCase{
+		desc: "dns locality_aware_lookup_service_allowlist when configured",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`{
+				"dns_config": { "locality_aware_lookup_service_allowlist": ["db", "api"] }
+			}`},
+		hcl: []string{`
+				dns_config = { locality_aware_lookup_service_allowlist = ["db", "api"] }
+			`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.DNSLocalityAwareLookupServiceAllowlist = []string{"db", "api"}
+		},
+	})
+	run(t, testCase{
+		desc: "dns locality_aware_lookup_service_blocklist when configured",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`{
+				"dns_config": { "locality_aware_lookup_service_blocklist": ["cache"] }
+			}`},
+		hcl: []string{`
+				dns_config = { locality_aware_lookup_service_blocklist = ["cache"] }
+			`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.DNSLocalityAwareLookupServiceBlocklist = []string{"cache"}
+		},
+	})
+	run(t, testCase{
+		desc: "dns locality_aware_lookup allowlist and blocklist are mutually exclusive",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`{
+				"dns_config": {
+					"locality_aware_lookup_service_allowlist": ["db"],
+					"locality_aware_lookup_service_blocklist": ["cache"]
+				}
+			}`},
+		hcl: []string{`
+				dns_config = {
+					locality_aware_lookup_service_allowlist = ["db"]
+					locality_aware_lookup_service_blocklist = ["cache"]
+				}
+			`},
+		expectedErr: "dns_config.locality_aware_lookup_service_allowlist and locality_aware_lookup_service_blocklist are mutually exclusive",
+	})
+	run(t, testCase{
+		desc: "dns locality_aware_lookup_service_allowlist rejects empty service names",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`{
+				"dns_config": { "locality_aware_lookup_service_allowlist": [""] }
+			}`},
+		hcl: []string{`
+				dns_config = { locality_aware_lookup_service_allowlist = [""] }
+			`},
+		expectedErr: "dns_config.locality_aware_lookup_service_allowlist cannot contain empty service names",
+	})
+	run(t, testCase{
 		desc: "sidecar_service can't have ID",
 		args: []string{
 			`-data-dir=` + dataDir,
@@ -6621,6 +6717,8 @@ func TestLoad_FullConfig(t *testing.T) {
 		DNSAddrs:                               []net.Addr{tcpAddr("93.95.95.81:7001"), udpAddr("93.95.95.81:7001")},
 		DNSARecordLimit:                        29907,
 		DNSAllowStale:                          true,
+		DNSLocalityAwareLookup:                 "balanced",
+		DNSLocalityAwareLookupServiceAllowlist: []string{"db", "api"},
 		DNSDisableCompression:                  true,
 		DNSDomain:                              "7W1xXSqd",
 		DNSAltDomain:                           "1789hsd",

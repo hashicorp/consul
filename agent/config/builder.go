@@ -965,26 +965,29 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		AutopilotUpgradeVersionTag:       stringVal(c.Autopilot.UpgradeVersionTag),
 
 		// DNS
-		DNSAddrs:              dnsAddrs,
-		DNSAllowStale:         boolVal(c.DNS.AllowStale),
-		DNSARecordLimit:       intVal(c.DNS.ARecordLimit),
-		DNSDisableCompression: boolVal(c.DNS.DisableCompression),
-		DNSDomain:             stringVal(c.DNSDomain),
-		DNSAltDomain:          altDomain,
-		DNSEnableTruncate:     boolVal(c.DNS.EnableTruncate),
-		DNSMaxStale:           b.durationVal("dns_config.max_stale", c.DNS.MaxStale),
-		DNSNodeTTL:            b.durationVal("dns_config.node_ttl", c.DNS.NodeTTL),
-		DNSOnlyPassing:        boolVal(c.DNS.OnlyPassing),
-		DNSPort:               dnsPort,
-		DNSRecursorStrategy:   b.dnsRecursorStrategyVal(stringVal(c.DNS.RecursorStrategy)),
-		DNSRecursorTimeout:    b.durationVal("recursor_timeout", c.DNS.RecursorTimeout),
-		DNSRecursors:          dnsRecursors,
-		DNSServiceTTL:         dnsServiceTTL,
-		DNSSOA:                soa,
-		DNSUDPAnswerLimit:     intVal(c.DNS.UDPAnswerLimit),
-		DNSNodeMetaTXT:        boolValWithDefault(c.DNS.NodeMetaTXT, true),
-		DNSUseCache:           boolVal(c.DNS.UseCache),
-		DNSCacheMaxAge:        b.durationVal("dns_config.cache_max_age", c.DNS.CacheMaxAge),
+		DNSAddrs:                               dnsAddrs,
+		DNSAllowStale:                          boolVal(c.DNS.AllowStale),
+		DNSARecordLimit:                        intVal(c.DNS.ARecordLimit),
+		DNSLocalityAwareLookup:                 b.dnsLocalityAwareLookupVal(stringVal(c.DNS.LocalityAwareLookup)),
+		DNSLocalityAwareLookupServiceAllowlist: c.DNS.LocalityAwareLookupServiceAllowlist,
+		DNSLocalityAwareLookupServiceBlocklist: c.DNS.LocalityAwareLookupServiceBlocklist,
+		DNSDisableCompression:                  boolVal(c.DNS.DisableCompression),
+		DNSDomain:                              stringVal(c.DNSDomain),
+		DNSAltDomain:                           altDomain,
+		DNSEnableTruncate:                      boolVal(c.DNS.EnableTruncate),
+		DNSMaxStale:                            b.durationVal("dns_config.max_stale", c.DNS.MaxStale),
+		DNSNodeTTL:                             b.durationVal("dns_config.node_ttl", c.DNS.NodeTTL),
+		DNSOnlyPassing:                         boolVal(c.DNS.OnlyPassing),
+		DNSPort:                                dnsPort,
+		DNSRecursorStrategy:                    b.dnsRecursorStrategyVal(stringVal(c.DNS.RecursorStrategy)),
+		DNSRecursorTimeout:                     b.durationVal("recursor_timeout", c.DNS.RecursorTimeout),
+		DNSRecursors:                           dnsRecursors,
+		DNSServiceTTL:                          dnsServiceTTL,
+		DNSSOA:                                 soa,
+		DNSUDPAnswerLimit:                      intVal(c.DNS.UDPAnswerLimit),
+		DNSNodeMetaTXT:                         boolValWithDefault(c.DNS.NodeMetaTXT, true),
+		DNSUseCache:                            boolVal(c.DNS.UseCache),
+		DNSCacheMaxAge:                         b.durationVal("dns_config.cache_max_age", c.DNS.CacheMaxAge),
 
 		// HTTP
 		HTTPPort:              httpPort,
@@ -1478,6 +1481,19 @@ func (b *builder) validate(rt RuntimeConfig) error {
 	}
 	if rt.DNSARecordLimit < 0 {
 		return fmt.Errorf("dns_config.a_record_limit cannot be %d. Must be greater than or equal to zero", rt.DNSARecordLimit)
+	}
+	if len(rt.DNSLocalityAwareLookupServiceAllowlist) > 0 && len(rt.DNSLocalityAwareLookupServiceBlocklist) > 0 {
+		return fmt.Errorf("dns_config.locality_aware_lookup_service_allowlist and locality_aware_lookup_service_blocklist are mutually exclusive")
+	}
+	for _, name := range rt.DNSLocalityAwareLookupServiceAllowlist {
+		if name == "" {
+			return fmt.Errorf("dns_config.locality_aware_lookup_service_allowlist cannot contain empty service names")
+		}
+	}
+	for _, name := range rt.DNSLocalityAwareLookupServiceBlocklist {
+		if name == "" {
+			return fmt.Errorf("dns_config.locality_aware_lookup_service_blocklist cannot contain empty service names")
+		}
 	}
 	if err := structs.ValidateNodeMetadata(rt.NodeMeta, false); err != nil {
 		return fmt.Errorf("node_meta invalid: %v", err)
@@ -2041,6 +2057,20 @@ func (b *builder) dnsRecursorStrategyVal(v string) structs.RecursorStrategy {
 		b.err = multierror.Append(b.err, fmt.Errorf("dns_config.recursor_strategy: invalid strategy: %q", v))
 	}
 	return out
+}
+
+func (b *builder) dnsLocalityAwareLookupVal(v string) string {
+	if v == "" {
+		return "off"
+	}
+
+	switch v {
+	case "off", "always", "balanced":
+		return v
+	}
+
+	b.err = multierror.Append(b.err, fmt.Errorf("dns_config.locality_aware_lookup: invalid mode: %q", v))
+	return "off"
 }
 
 func (b *builder) requestsLimitsModeVal(v string) consulrate.Mode {

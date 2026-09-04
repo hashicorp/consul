@@ -215,6 +215,441 @@ func TestDNS_EncodeKVasRFC1464(t *testing.T) {
 	}
 }
 
+// TestLocalityMatches covers localityMatches for region/zone matching rules.
+func TestLocalityMatches(t *testing.T) {
+	tests := []struct {
+		name   string
+		local  *structs.Locality
+		remote *structs.Locality
+		want   bool
+	}{
+		{
+			name:   "exact region and zone match",
+			local:  &structs.Locality{Region: "eu-west", Zone: "1"},
+			remote: &structs.Locality{Region: "eu-west", Zone: "1"},
+			want:   true,
+		},
+		{
+			name:   "different zone does not match when local zone set",
+			local:  &structs.Locality{Region: "eu-west", Zone: "1"},
+			remote: &structs.Locality{Region: "eu-west", Zone: "2"},
+			want:   false,
+		},
+		{
+			name:   "region only local matches same region",
+			local:  &structs.Locality{Region: "eu-west"},
+			remote: &structs.Locality{Region: "eu-west", Zone: "2"},
+			want:   true,
+		},
+		{
+			name:   "region only local matches same region with empty remote zone",
+			local:  &structs.Locality{Region: "eu-west"},
+			remote: &structs.Locality{Region: "eu-west"},
+			want:   true,
+		},
+		{
+			name:   "nil remote locality does not match",
+			local:  &structs.Locality{Region: "eu-west", Zone: "1"},
+			remote: nil,
+			want:   false,
+		},
+		{
+			name:   "empty remote region does not match",
+			local:  &structs.Locality{Region: "eu-west", Zone: "1"},
+			remote: &structs.Locality{Zone: "1"},
+			want:   false,
+		},
+		{
+			name:   "nil local locality does not match",
+			local:  nil,
+			remote: &structs.Locality{Region: "eu-west", Zone: "1"},
+			want:   false,
+		},
+		{
+			name:   "empty local region does not match",
+			local:  &structs.Locality{Zone: "1"},
+			remote: &structs.Locality{Region: "eu-west", Zone: "1"},
+			want:   false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.want, localityMatches(tc.local, tc.remote))
+		})
+	}
+}
+
+// TestFilterCheckServiceNodesForLocalityAwareLookup covers DNS locality-aware
+// candidate filtering for "always" and "balanced" modes.
+func TestFilterCheckServiceNodesForLocalityAwareLookup(t *testing.T) {
+	makeNode := func(name string, locality *structs.Locality, nodeLocality *structs.Locality) structs.CheckServiceNode {
+		return structs.CheckServiceNode{
+			Node: &structs.Node{
+				Node:     name,
+				Locality: nodeLocality,
+			},
+			Service: &structs.NodeService{
+				ID:       name,
+				Service:  "db",
+				Locality: locality,
+			},
+		}
+	}
+
+	tests := []struct {
+		name      string
+		local     *structs.Locality
+		nodes     structs.CheckServiceNodes
+		mode      string
+		wantNames []string
+	}{
+		{
+			name:  "returns exact region and zone matches",
+			local: &structs.Locality{Region: "eu-west", Zone: "1"},
+			mode:  localityAwareLookupModeAlways,
+			nodes: structs.CheckServiceNodes{
+				makeNode("local-a", &structs.Locality{Region: "eu-west", Zone: "1"}, nil),
+				makeNode("other-zone", &structs.Locality{Region: "eu-west", Zone: "2"}, nil),
+				makeNode("local-b", &structs.Locality{Region: "eu-west", Zone: "1"}, nil),
+				makeNode("other-region", &structs.Locality{Region: "us-east", Zone: "1"}, nil),
+			},
+			wantNames: []string{"local-a", "local-b"},
+		},
+		{
+			name:  "balanced mode keeps locality matches when zones are evenly represented",
+			local: &structs.Locality{Region: "eu-west", Zone: "1"},
+			mode:  localityAwareLookupModeBalanced,
+			nodes: structs.CheckServiceNodes{
+				makeNode("zone-1-a", &structs.Locality{Region: "eu-west", Zone: "1"}, nil),
+				makeNode("zone-1-b", &structs.Locality{Region: "eu-west", Zone: "1"}, nil),
+				makeNode("zone-2-a", &structs.Locality{Region: "eu-west", Zone: "2"}, nil),
+				makeNode("zone-2-b", &structs.Locality{Region: "eu-west", Zone: "2"}, nil),
+			},
+			wantNames: []string{"zone-1-a", "zone-1-b"},
+		},
+		{
+			name:  "balanced mode falls back to full set when local zone is underrepresented",
+			local: &structs.Locality{Region: "eu-west", Zone: "1"},
+			mode:  localityAwareLookupModeBalanced,
+			nodes: structs.CheckServiceNodes{
+				makeNode("zone-1-a", &structs.Locality{Region: "eu-west", Zone: "1"}, nil),
+				makeNode("zone-2-a", &structs.Locality{Region: "eu-west", Zone: "2"}, nil),
+				makeNode("zone-2-b", &structs.Locality{Region: "eu-west", Zone: "2"}, nil),
+			},
+			wantNames: []string{"zone-1-a", "zone-2-a", "zone-2-b"},
+		},
+		{
+			name:  "balanced mode falls back to same-region tier when local zone is underrepresented",
+			local: &structs.Locality{Region: "eu-west", Zone: "1"},
+			mode:  localityAwareLookupModeBalanced,
+			nodes: structs.CheckServiceNodes{
+				makeNode("zone-1-a", &structs.Locality{Region: "eu-west", Zone: "1"}, nil),
+				makeNode("zone-2-a", &structs.Locality{Region: "eu-west", Zone: "2"}, nil),
+				makeNode("zone-2-b", &structs.Locality{Region: "eu-west", Zone: "2"}, nil),
+				makeNode("region-only-a", &structs.Locality{Region: "eu-west"}, nil),
+				makeNode("other-region", &structs.Locality{Region: "us-east", Zone: "1"}, nil),
+			},
+			wantNames: []string{"zone-1-a", "zone-2-a", "zone-2-b", "region-only-a"},
+		},
+		{
+			name:  "balanced mode falls back to full set when local zone is overrepresented",
+			local: &structs.Locality{Region: "eu-west", Zone: "1"},
+			mode:  localityAwareLookupModeBalanced,
+			nodes: structs.CheckServiceNodes{
+				makeNode("zone-1-a", &structs.Locality{Region: "eu-west", Zone: "1"}, nil),
+				makeNode("zone-1-b", &structs.Locality{Region: "eu-west", Zone: "1"}, nil),
+				makeNode("zone-2-a", &structs.Locality{Region: "eu-west", Zone: "2"}, nil),
+			},
+			wantNames: []string{"zone-1-a", "zone-1-b", "zone-2-a"},
+		},
+		{
+			name:  "always mode falls back to same-region matches when exact zone matches are absent",
+			local: &structs.Locality{Region: "eu-west", Zone: "1"},
+			mode:  localityAwareLookupModeAlways,
+			nodes: structs.CheckServiceNodes{
+				makeNode("region-only-a", &structs.Locality{Region: "eu-west"}, nil),
+				makeNode("region-only-b", &structs.Locality{Region: "eu-west", Zone: "2"}, nil),
+				makeNode("other-region", &structs.Locality{Region: "us-east", Zone: "1"}, nil),
+			},
+			wantNames: []string{"region-only-a", "region-only-b"},
+		},
+		{
+			name:  "balanced mode falls back to same-region matches when exact zone matches are absent",
+			local: &structs.Locality{Region: "eu-west", Zone: "1"},
+			mode:  localityAwareLookupModeBalanced,
+			nodes: structs.CheckServiceNodes{
+				makeNode("region-only-a", &structs.Locality{Region: "eu-west"}, nil),
+				makeNode("region-only-b", &structs.Locality{Region: "eu-west", Zone: "2"}, nil),
+				makeNode("other-region", &structs.Locality{Region: "us-east", Zone: "1"}, nil),
+			},
+			wantNames: []string{"region-only-a", "region-only-b"},
+		},
+		{
+			name:  "exact zone matches win over same-region matches",
+			local: &structs.Locality{Region: "eu-west", Zone: "1"},
+			mode:  localityAwareLookupModeAlways,
+			nodes: structs.CheckServiceNodes{
+				makeNode("exact-a", &structs.Locality{Region: "eu-west", Zone: "1"}, nil),
+				makeNode("region-only-a", &structs.Locality{Region: "eu-west"}, nil),
+				makeNode("other-zone", &structs.Locality{Region: "eu-west", Zone: "2"}, nil),
+			},
+			wantNames: []string{"exact-a"},
+		},
+		{
+			name:  "region only local keeps same region candidates",
+			local: &structs.Locality{Region: "eu-west"},
+			nodes: structs.CheckServiceNodes{
+				makeNode("same-region-zone", &structs.Locality{Region: "eu-west", Zone: "2"}, nil),
+				makeNode("same-region-no-zone", &structs.Locality{Region: "eu-west"}, nil),
+				makeNode("other-region", &structs.Locality{Region: "us-east", Zone: "1"}, nil),
+			},
+			wantNames: []string{"same-region-zone", "same-region-no-zone"},
+		},
+		{
+			name:  "falls back to node locality when service locality unset",
+			local: &structs.Locality{Region: "eu-west", Zone: "1"},
+			mode:  localityAwareLookupModeAlways,
+			nodes: structs.CheckServiceNodes{
+				makeNode("service-local", &structs.Locality{Region: "eu-west", Zone: "1"}, nil),
+				makeNode("node-local-only", nil, &structs.Locality{Region: "eu-west", Zone: "1"}),
+				makeNode("service-mismatch", &structs.Locality{Region: "eu-west", Zone: "2"}, nil),
+			},
+			wantNames: []string{"service-local", "node-local-only"},
+		},
+		{
+			name:  "falls back to node region locality when service locality unset",
+			local: &structs.Locality{Region: "eu-west", Zone: "1"},
+			mode:  localityAwareLookupModeAlways,
+			nodes: structs.CheckServiceNodes{
+				makeNode("node-region-only", nil, &structs.Locality{Region: "eu-west"}),
+				makeNode("other-region", nil, &structs.Locality{Region: "us-east", Zone: "1"}),
+			},
+			wantNames: []string{"node-region-only"},
+		},
+		{
+			name:  "service locality takes precedence over node locality",
+			local: &structs.Locality{Region: "eu-west", Zone: "1"},
+			mode:  localityAwareLookupModeAlways,
+			nodes: structs.CheckServiceNodes{
+				makeNode("service-local", &structs.Locality{Region: "eu-west", Zone: "1"}, &structs.Locality{Region: "us-east", Zone: "1"}),
+				makeNode("service-mismatch-node-local", &structs.Locality{Region: "eu-west", Zone: "2"}, &structs.Locality{Region: "eu-west", Zone: "1"}),
+				makeNode("node-local-only", nil, &structs.Locality{Region: "eu-west", Zone: "1"}),
+			},
+			wantNames: []string{"service-local", "node-local-only"},
+		},
+		{
+			name:  "falls back to full set when no matches",
+			local: &structs.Locality{Region: "eu-west", Zone: "1"},
+			nodes: structs.CheckServiceNodes{
+				makeNode("other-zone", &structs.Locality{Region: "eu-west", Zone: "2"}, nil),
+				makeNode("other-region", &structs.Locality{Region: "us-east", Zone: "1"}, nil),
+				makeNode("nil-locality", nil, nil),
+			},
+			wantNames: []string{"other-zone"},
+		},
+		{
+			name:  "local nil returns full set",
+			local: nil,
+			nodes: structs.CheckServiceNodes{
+				makeNode("a", &structs.Locality{Region: "eu-west", Zone: "1"}, nil),
+				makeNode("b", nil, nil),
+			},
+			wantNames: []string{"a", "b"},
+		},
+		{
+			name:  "local empty region returns full set",
+			local: &structs.Locality{Zone: "1"},
+			nodes: structs.CheckServiceNodes{
+				makeNode("a", &structs.Locality{Region: "eu-west", Zone: "1"}, nil),
+				makeNode("b", &structs.Locality{Region: "eu-west", Zone: "2"}, nil),
+			},
+			wantNames: []string{"a", "b"},
+		},
+		{
+			name:      "empty input remains empty",
+			local:     &structs.Locality{Region: "eu-west", Zone: "1"},
+			nodes:     nil,
+			wantNames: []string{},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			originalNames := checkServiceNodeNames(tc.nodes)
+			originalWasNil := tc.nodes == nil
+
+			got := filterCheckServiceNodesForLocalityAwareLookup(tc.nodes, tc.local, tc.mode)
+
+			require.Equal(t, tc.wantNames, checkServiceNodeNames(got))
+			require.Equal(t, originalNames, checkServiceNodeNames(tc.nodes))
+			require.Equal(t, originalWasNil, tc.nodes == nil)
+
+			if len(tc.wantNames) == len(tc.nodes) && len(tc.nodes) > 0 {
+				require.NotEqual(t, reflect.ValueOf(tc.nodes).Pointer(), reflect.ValueOf(got).Pointer())
+			}
+		})
+	}
+}
+
+func TestLocalityAwareLookupAppliesTo(t *testing.T) {
+	tests := []struct {
+		name      string
+		allowlist []string
+		blocklist []string
+		service   string
+		want      bool
+	}{
+		{
+			name:    "neither list applies to all services",
+			service: "db",
+			want:    true,
+		},
+		{
+			name:      "allowlist includes service",
+			allowlist: []string{"db", "api"},
+			service:   "db",
+			want:      true,
+		},
+		{
+			name:      "allowlist excludes service",
+			allowlist: []string{"db", "api"},
+			service:   "cache",
+			want:      false,
+		},
+		{
+			name:      "mixed-case allowlist matches lowercase service",
+			allowlist: []string{"DB", "Api"},
+			service:   "db",
+			want:      true,
+		},
+		{
+			name:      "lowercase allowlist matches mixed-case service",
+			allowlist: []string{"db", "api"},
+			service:   "DB",
+			want:      true,
+		},
+		{
+			name:      "blocklist excludes service",
+			blocklist: []string{"cache"},
+			service:   "cache",
+			want:      false,
+		},
+		{
+			name:      "blocklist includes other services",
+			blocklist: []string{"cache"},
+			service:   "db",
+			want:      true,
+		},
+		{
+			name:      "mixed-case blocklist excludes lowercase service",
+			blocklist: []string{"Cache"},
+			service:   "cache",
+			want:      false,
+		},
+		{
+			name:      "lowercase blocklist excludes mixed-case service",
+			blocklist: []string{"cache"},
+			service:   "Cache",
+			want:      false,
+		},
+		{
+			name:      "empty allowlist treated as unset",
+			allowlist: []string{},
+			service:   "db",
+			want:      true,
+		},
+		{
+			name:      "empty blocklist treated as unset",
+			blocklist: []string{},
+			service:   "db",
+			want:      true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := &dnsServerConfig{
+				LocalityAwareLookupServiceAllowlist: serviceNameSet(tc.allowlist),
+				LocalityAwareLookupServiceBlocklist: serviceNameSet(tc.blocklist),
+			}
+			require.Equal(t, tc.want, cfg.localityAwareLookupAppliesTo(tc.service))
+		})
+	}
+}
+
+func TestLocalityAwareLookupAppliesToLookup(t *testing.T) {
+	tests := []struct {
+		name      string
+		allowlist []string
+		blocklist []string
+		lookup    serviceLookup
+		want      bool
+	}{
+		{
+			name:   "regular service lookup applies",
+			lookup: serviceLookup{Service: "db"},
+			want:   true,
+		},
+		{
+			name:   "connect lookup does not apply",
+			lookup: serviceLookup{Service: "db", Connect: true},
+			want:   false,
+		},
+		{
+			name:   "ingress lookup does not apply",
+			lookup: serviceLookup{Service: "db", Ingress: true},
+			want:   false,
+		},
+		{
+			name:      "allowlist still scopes regular service lookup",
+			allowlist: []string{"db"},
+			lookup:    serviceLookup{Service: "cache"},
+			want:      false,
+		},
+		{
+			name:      "mixed-case allowlist applies through regular service lookup",
+			allowlist: []string{"DB"},
+			lookup:    serviceLookup{Service: "db"},
+			want:      true,
+		},
+		{
+			name:      "blocklist still scopes regular service lookup",
+			blocklist: []string{"cache"},
+			lookup:    serviceLookup{Service: "cache"},
+			want:      false,
+		},
+		{
+			name:      "mixed-case blocklist applies through regular service lookup",
+			blocklist: []string{"Cache"},
+			lookup:    serviceLookup{Service: "cache"},
+			want:      false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := &dnsServerConfig{
+				LocalityAwareLookupServiceAllowlist: serviceNameSet(tc.allowlist),
+				LocalityAwareLookupServiceBlocklist: serviceNameSet(tc.blocklist),
+			}
+			require.Equal(t, tc.want, cfg.localityAwareLookupAppliesToLookup(tc.lookup))
+		})
+	}
+}
+
+func checkServiceNodeNames(nodes structs.CheckServiceNodes) []string {
+	names := make([]string, 0, len(nodes))
+	for _, node := range nodes {
+		if node.Node == nil {
+			names = append(names, "")
+			continue
+		}
+		names = append(names, node.Node.Node)
+	}
+	return names
+}
+
 func TestDNS_Over_TCP(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
