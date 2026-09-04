@@ -55,6 +55,9 @@ const (
 
 	// caresDNSResolverName is the Envoy extension name for the c-ares resolver.
 	caresDNSResolverName = "envoy.network.dns_resolver.cares"
+
+	// loopbackListenerAddress is the address used by the local DNS listeners.
+	loopbackListenerAddress = "127.0.0.1"
 )
 
 // makeInlineDNSListener builds the inline virtual DNS UDP listener for a connect
@@ -74,11 +77,6 @@ func (s *ResourceGenerator) makeInlineDNSListener(cfgSnap *proxycfg.ConfigSnapsh
 		return nil, nil
 	}
 
-	loopbackAddr, err := loopbackListenerAddress()
-	if err != nil {
-		return nil, err
-	}
-
 	dnsFilterCfg := &envoy_dns_filter_v3.DnsFilterConfig{
 		StatPrefix: virtualDNSStatPrefix,
 		ServerConfig: &envoy_dns_filter_v3.DnsFilterConfig_ServerContextConfig{
@@ -96,8 +94,8 @@ func (s *ResourceGenerator) makeInlineDNSListener(cfgSnap *proxycfg.ConfigSnapsh
 	}
 
 	l := &envoy_listener_v3.Listener{
-		Name:             listenerNameForVirtualDNS(loopbackAddr),
-		Address:          makeUDPAddress(loopbackAddr, virtualDNSListenerPort),
+		Name:             listenerNameForVirtualDNS(loopbackListenerAddress),
+		Address:          makeUDPAddress(loopbackListenerAddress, virtualDNSListenerPort),
 		TrafficDirection: envoy_core_v3.TrafficDirection_OUTBOUND,
 		// The dns_filter is a UDP listener filter, so the listener must declare a
 		// UDP listener config in addition to binding a UDP socket.
@@ -330,11 +328,6 @@ func (s *ResourceGenerator) makeEgressDNSListener(recursors []string) (proto.Mes
 		return nil, nil
 	}
 
-	loopbackAddr, err := loopbackListenerAddress()
-	if err != nil {
-		return nil, err
-	}
-
 	caresCfg := &envoy_cares_v3.CaresDnsResolverConfig{
 		Resolvers: resolvers,
 	}
@@ -369,8 +362,8 @@ func (s *ResourceGenerator) makeEgressDNSListener(recursors []string) (proto.Mes
 	}
 
 	l := &envoy_listener_v3.Listener{
-		Name:              listenerNameForEgressDNS(loopbackAddr),
-		Address:           makeUDPAddress(loopbackAddr, egressDNSListenerPort),
+		Name:              listenerNameForEgressDNS(loopbackListenerAddress),
+		Address:           makeUDPAddress(loopbackListenerAddress, egressDNSListenerPort),
 		TrafficDirection:  envoy_core_v3.TrafficDirection_OUTBOUND,
 		UdpListenerConfig: &envoy_listener_v3.UdpListenerConfig{},
 		ListenerFilters:   []*envoy_listener_v3.ListenerFilter{dnsFilter},
@@ -420,10 +413,6 @@ func makeRecursorAddresses(recursors []string) []*envoy_core_v3.Address {
 // listenerNameForEgressDNS returns the stable Envoy listener name for the egress DNS listener.
 func listenerNameForEgressDNS(bindAddr string) string {
 	return egressDNSListenerName + ":" + net.JoinHostPort(bindAddr, strconv.Itoa(egressDNSListenerPort))
-}
-
-func loopbackListenerAddress() (string, error) {
-	return "127.0.0.1", nil
 }
 
 // makeUDPAddress builds an Envoy UDP socket address.

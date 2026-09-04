@@ -98,8 +98,7 @@ func TestMakeVirtualDNSDomains_SkipsUnknownUpstream(t *testing.T) {
 func TestMakeInlineDNSListener(t *testing.T) {
 	snap := proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, nil)
 	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
-	loopbackAddr, err := loopbackListenerAddress()
-	require.NoError(t, err)
+	loopbackAddr := loopbackListenerAddress
 
 	msg, err := s.makeInlineDNSListener(snap)
 	require.NoError(t, err)
@@ -131,8 +130,7 @@ func TestMakeInlineDNSListener(t *testing.T) {
 
 func TestMakeEgressDNSListener(t *testing.T) {
 	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
-	loopbackAddr, err := loopbackListenerAddress()
-	require.NoError(t, err)
+	loopbackAddr := loopbackListenerAddress
 
 	// No recursors configured -> no listener.
 	msg, err := s.makeEgressDNSListener(nil)
