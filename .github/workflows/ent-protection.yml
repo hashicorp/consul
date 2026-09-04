@@ -1,14 +1,15 @@
 ###############################################################################
 # ent-protection.yml
 #
-# Prevents ENT (enterprise) code from being introduced into this CE (community
-# edition) repository. Runs on EVERY pull request.
+# Prevents ENT (enterprise) code and internal tracking metadata from being
+# introduced into this CE (community edition) repository.
+# Runs on EVERY pull request from internal employees.
 #
 # ┌─────────────────────────────────────────────────────────────────────────┐
 # │  Enforcement model                                                      │
 # │                                                                         │
 # │  Detection  — runs on ALL pull requests. The check always fails when   │
-# │               ENT code is found.                                       │
+# │               a violation is found.                                     │
 # │                                                                         │
 # │  Merge-blocking — enforced automatically by GitHub's required-status-  │
 # │    check feature on protected branches (main, release/**). Code        │
@@ -20,7 +21,7 @@
 # │  Protected branches: main, release/**                                  │
 # └─────────────────────────────────────────────────────────────────────────┘
 #
-# Two complementary checks run in this public CE repository:
+# Two jobs run in this public CE repository:
 #
 #   ┌─────────────────────────────────────────────────────────────────────────┐
 #   │  Job 1 — ent-file-check  (pull_request, all branches)                   │
@@ -36,22 +37,31 @@
 #   ┌─────────────────────────────────────────────────────────────────────────┐
 #   │  Job 2 — ent-content-check  (pull_request only, all branches)           │
 #   │                                                                         │
-#   │  Scans every changed source / config file in the PR for well-known ENT  │
-#   │  content markers:                                                       │
+#   │  Computes the changed-file list once, then runs two scans in sequence   │
+#   │  on the same runner — no recomputation between checks:                  │
+#   │                                                                         │
+#   │  Step A — ENT content markers                                           │
+#   │    Scans every changed source / config file for well-known ENT markers: │
 #   │    • Go build constraints  (//go:build consulent / enterprise)          │
-#   │    • IBM copyright headers (ENT-owned files in consul)     │
+#   │    • IBM copyright headers (ENT-owned files in consul)                  │
 #   │    • ENT-only Go imports   (go-licensing)                               │
 #   │    • CI metadata           (VERSION_METADATA: "ent", +ent suffix)       │
 #   │    • Explicit ENT repo references in source                             │
 #   │                                                                         │
-#   │  Runs on pull_request events regardless of target branch. On PRs        │
-#   │  targeting protected branches the failed status check blocks the merge. │
+#   │  Step B — Internal Jira IDs                                             │
+#   │    Scans the PR description and the added lines of each changed file    │
+#   │    for internal Jira ticket IDs.               │
+#   │    Re-runs on the `edited` PR event so description corrections are also │
+#   │    validated after the initial `opened` check.                          │
+#   │                                                                         │
+#   │  On PRs targeting protected branches a failed status check blocks the  │
+#   │  merge. On feature branches a Slack alert fires for rapid remediation.  │
 #   └─────────────────────────────────────────────────────────────────────────┘
 #
 # Slack alerting:
-#   When a violation is detected on a non-protected branch, both jobs post a
-#   Slack message to #feed-consul-hygiene-alerts (id: C0BB6F78VB4) identifying 
-#   the branch, actor, and offending files so the team can act immediately.
+#   When a violation is detected on a non-protected branch, all jobs post a
+#   Slack message to #feed-consul-hygiene-alerts (id: C0BB6F78VB4) identifying
+#   the branch, actor, and offending content so the team can act immediately.
 #
 # Private-side repo-tree comparison:
 #   Private repo-tree comparison now runs in the ENT repository, where
@@ -70,10 +80,16 @@ on:
     # On PRs targeting protected branches (main, release/**) the failed status
     # check prevents merging. On PRs targeting feature branches the failure is
     # visible and the Slack alert fires for rapid remediation.
+    #
+    # `edited` is included so that the jira-id-check job re-runs whenever an
+    # author updates the PR description — description edits do not trigger
+    # `synchronize`, so without this event a Jira ID added post-open would
+    # not be caught until the next commit push.
     types:
       - opened
       - synchronize
       - reopened
+      - edited
 
 permissions:
   contents: read
@@ -254,18 +270,59 @@ jobs:
             echo "PR targets non-protected branch '${BRANCH}' — detection+alert mode."
           fi
 
-      # ─── Scan for ENT-specific content patterns ───────────────────────────
+      # ─── Step A: Scan for ENT-specific content patterns ───────────────────
       # Custom patterns can be added per-environment via ENT_MARKER_PATTERNS_FILE.
       # See .github/scripts/check-ent-content-markers.sh for the default set.
+      #
+      # continue-on-error: true ensures Step B (Jira ID scan) ALWAYS runs even
+      # when Step A finds violations. Without this, a PR with both ENT content
+      # AND a Jira ID would only report the ENT violation — the Jira check would
+      # be silently skipped. The job is failed explicitly at the end instead.
       - name: Scan for ENT content markers
         id: content-scan
+        continue-on-error: true
         run: |
           chmod +x .github/scripts/check-ent-content-markers.sh
           .github/scripts/check-ent-content-markers.sh /tmp/changed-files.txt \
             2>&1 | tee /tmp/content-scan-output.txt
-          exit ${PIPESTATUS[0]}
+
+      # ─── Step B: Scan PR description and added lines for Jira IDs ─────────
+      # Reuses /tmp/changed-files.txt computed above — no second git diff.
+      # BASE_SHA/HEAD_SHA allow the script to diff only the lines this PR
+      # introduced; pre-existing Jira IDs in unmodified context are ignored.
+      # JIRA_CHECK_PR_BODY is passed via env to avoid shell-quoting issues
+      # with arbitrary user-supplied text.
+      # Also runs on the `edited` PR event so Jira IDs added to the description
+      # after the initial open are caught without waiting for a new commit.
+      - name: Scan for internal Jira IDs
+        id: jira-id-scan
+        continue-on-error: true
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.sha }}
+          JIRA_CHECK_PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          chmod +x .github/scripts/check-jira-ids.sh
+          .github/scripts/check-jira-ids.sh /tmp/changed-files.txt \
+            2>&1 | tee /tmp/jira-id-scan-output.txt
+
+      # ─── Fail the job if either scan found violations ─────────────────────
+      # Both scans above use continue-on-error so they always both run and
+      # report all violations in one CI run. This step converts their outcomes
+      # back into a hard job failure that blocks merging on protected branches.
+      - name: Fail job if any violations were found
+        if: steps.content-scan.outcome == 'failure' || steps.jira-id-scan.outcome == 'failure'
+        run: |
+          if [[ "${{ steps.content-scan.outcome }}" == "failure" ]]; then
+            echo "::error::ENT content marker check failed — see 'Scan for ENT content markers' step above."
+          fi
+          if [[ "${{ steps.jira-id-scan.outcome }}" == "failure" ]]; then
+            echo "::error::Jira ID check failed — see 'Scan for internal Jira IDs' step above."
+          fi
+          exit 1
 
       # ─── Slack alert for non-protected branch violations to #feed-consul-hygiene-alerts (id: C0BB6F78VB4) ──────────────────
+      # Fires when either Step A or Step B failed on a non-protected branch.
       - name: Alert Slack on non-protected branch violation
         if: failure() && steps.branch-type.outputs.protected == 'false'
         env:
@@ -274,24 +331,19 @@ jobs:
           HEAD_BRANCH: ${{ github.head_ref }}
           ACTOR: ${{ github.actor }}
           PR_URL: ${{ github.event.pull_request.html_url }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           [ -z "$SLACK_WEBHOOK_URL" ] && exit 0
-          SUMMARY=$(grep '::error::' /tmp/content-scan-output.txt 2>/dev/null | head -5 | sed 's/::error:://' | sed 's/^/• /' || echo "(see CI log)")
-          PAYLOAD=$(cat <<EOF
-          {
-            "text": ":warning: *ENT content markers detected in CE PR (non-protected branch)*",
-            "blocks": [
-              {
-                "type": "section",
-                "text": {
-                  "type": "mrkdwn",
-                  "text": ":warning: *ENT content markers found in <${{ github.repository }}>*\nPR branch: *${HEAD_BRANCH}* → *${BRANCH}*  |  Actor: *${ACTOR}*\n\n${SUMMARY}\n\n<${PR_URL}|View PR> — Please remove ENT-specific content from this branch."
-                }
-              }
-            ]
-          }
-          EOF
-          )
+          # Combine output from both scans for a single actionable alert.
+          SUMMARY=$(cat \
+              <(grep '::error::' /tmp/content-scan-output.txt 2>/dev/null | sed 's/::error::[^:]*:://') \
+              <(grep '::error::' /tmp/jira-id-scan-output.txt  2>/dev/null | sed 's/::error::[^:]*::://') \
+            | head -8 | sed 's/^/• /' || echo "(see CI log)")
+          PAYLOAD=$(jq -cn \
+            --arg summary ":warning: *ENT / Jira ID violations detected in CE PR*" \
+            --arg detail "$(printf ':warning: *Protection violations found in <%s>*\nPR branch: *%s* → *%s*  |  Actor: *%s*\n\n%s\n\n<%s|View PR> — <%s|View CI run>\n\nPlease remove ENT content and internal ticket references from this branch.' \
+              "${{ github.repository }}" "$HEAD_BRANCH" "$BRANCH" "$ACTOR" "$SUMMARY" "$PR_URL" "$RUN_URL")" \
+            '{"text":$summary,"blocks":[{"type":"section","text":{"type":"mrkdwn","text":$detail}}]}')
           curl -fsSL -X POST -H 'Content-type: application/json' \
             --data "$PAYLOAD" \
             "$SLACK_WEBHOOK_URL"
