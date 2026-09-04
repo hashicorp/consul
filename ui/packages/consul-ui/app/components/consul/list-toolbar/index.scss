@@ -4,29 +4,9 @@
  */
 
 .consul-list-toolbar {
-  .consul-list-toolbar__controls {
-    display: flex;
-    align-items: flex-start;
-    justify-content: flex-start;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
-  /* keep the "Search across" scope selector the same height as the search
-     input and filter dropdown it sits beside */
-  .consul-list-toolbar__search-across {
-    flex: 0 0 auto;
-
-    .hds-dropdown-toggle-button {
-      min-height: 2.25rem;
-    }
-  }
-
-  /* keep the Filter Bar sized to its content so it sits next to any
-     page-specific quick filters instead of stretching across the toolbar */
+  /* The FilterBar is now the sole container — drop its default card chrome
+     so it sits flush inside the .consul-node-table card. */
   .consul-list-toolbar__filter-bar {
-    flex: 0 1 auto;
-    /* drop the default Filter Bar card chrome so it sits flush in the toolbar */
     padding: 0;
     background-color: transparent;
     border: none;
@@ -42,7 +22,7 @@
       min-height: 2.25rem;
     }
 
-    /* make the search input taller (to match the buttons) and wider */
+    /* make the search input taller (to match the other buttons) and wider */
     .hds-filter-bar__search.hds-form-text-input {
       min-height: 2.25rem;
       max-width: none;
@@ -54,20 +34,18 @@
       display: none;
     }
 
-    /* the separator provided the top padding, so add a little back to keep the
-       applied-filter pills from hugging the controls above them */
     .hds-filter-bar__applied-filters-list__content {
-      padding-top: 8px;
+      padding-top: 0;
     }
 
-    /* render the applied-filter HDS tags as filled, fully-rounded pills */
+    /* render the applied-filter HDS tags as fully-rounded pills */
     .hds-filter-bar__applied-filters .hds-tag {
       border-radius: 9999px;
       background-color: var(--token-color-surface-faint);
       border-color: var(--token-color-border-faint);
     }
 
-    /* HDS renders "Clear all filters" as a tertiary (link-like) button; give it
+    /* HDS renders "Clear all filters" as a tertiary link-like button; give it
        a solid neutral button look so it reads as an actionable control */
     .hds-filter-bar__clear-button {
       padding: 0 10px;
@@ -101,15 +79,32 @@
         box-shadow: none;
       }
     }
+
+    /* The right-actions area (hds-filter-bar__actions__right) hosts the
+       Search Across dropdown and health quick-filter buttons. Stretch it to
+       fill remaining bar width so the inner wrapper can use space-between. */
+    .hds-filter-bar__actions__right {
+      flex: 1;
+    }
+
+    /* Inner wrapper: Search Across sits at the left edge, quick filters
+       (health buttons) sit at the right edge. */
+    .consul-list-toolbar__actions-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      gap: 8px;
+    }
+
+    /* keep the Search Across toggle button the same height as the other controls */
+    .consul-list-toolbar__search-across .hds-dropdown-toggle-button {
+      min-height: 2.25rem;
+    }
   }
 
-  /* Health quick-filter buttons are rendered by the consuming page via the
-     :quickFilters block, but their active highlight and per-status icon colour
-     are identical across pages, so they live here on the shared toolbar. */
-  .consul-list-toolbar__health {
-    flex: 0 0 auto;
-  }
-
+  /* Health quick-filter buttons: active highlight and per-status icon colours
+     are shared across all pages that use this toolbar. */
   [data-test-health-filter].is-selected {
     background-color: var(--token-color-surface-interactive-active);
   }

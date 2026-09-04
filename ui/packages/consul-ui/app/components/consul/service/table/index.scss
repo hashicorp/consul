@@ -3,6 +3,12 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
+/* When the toolbar lives above the table card (as a sibling, not inside it),
+   square off the card's top corners so the two elements form one visual unit. */
+.consul-service-toolbar + .consul-service-table .consul-data-table__card {
+  border-radius: 0 0 6px 6px;
+}
+
 .consul-service-table {
   .consul-service-table__name {
     display: inline-flex;
@@ -62,7 +68,6 @@
     gap: 6px;
   }
 
-  .consul-service-table__health,
   .consul-service-table__mesh {
     display: inline-flex;
     align-items: center;

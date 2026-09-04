@@ -27,10 +27,11 @@ export default function (
     exposedPaths: collection('[data-test-proxy-exposed-paths] > tbody tr', {
       combinedAddress: text('[data-test-combined-address]'),
     }),
-    addresses: collection('.consul-tagged-addresses [data-test-tabular-row]', {
-      address: text('[data-test-address]'),
+    addresses: collection('[data-test-addresses] [data-test-address-card]', {
+      tag: text('[data-test-address-tag]'),
+      address: text('[data-test-address-value]'),
     }),
-    metadata: collection('.metadata [data-test-tabular-row]', {}),
+    metadata: collection('.metadata [data-test-metadata-key]', {}),
   };
   page.tabs.healthChecksTab = {
     criticalSerfNotice: present('[data-test-critical-serf-notice]'),

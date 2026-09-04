@@ -70,19 +70,18 @@ as |sort filters items partition nspace|}}
         </h1>
         <label for="toolbar-toggle"></label>
     </:header>
-    <:toolbar>
-{{#if (gt items.length 0) }}
-  {{#let (collection items) as |items|}}
+    <:content>
+      {{! Toolbar is rendered outside DataCollection so it persists when
+          filters/search reduce the visible rows to zero. It only appears
+          when there are actual services in the catalog. }}
+      {{#if (gt items.length 0)}}
         <Consul::Service::Toolbar
-          @sources={{get items 'ExternalSources'}}
+          @sources={{get (collection items) 'ExternalSources'}}
           @search={{this.search}}
           @onsearch={{action (mut this.search) value="target.value"}}
           @filter={{filters}}
         />
-  {{/let}}
-{{/if}}
-    </:toolbar>
-    <:content>
+      {{/if}}
       <DataCollection
         @type="service"
         @sort={{sort.value}}
@@ -95,6 +94,7 @@ as |sort filters items partition nspace|}}
             @items={{collection.items}}
             @partition={{partition}}
             @nspace={{nspace}}
+            @card={{true}}
           />
         </collection.Collection>
         <collection.Empty>
