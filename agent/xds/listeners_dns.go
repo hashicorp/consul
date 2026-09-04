@@ -144,7 +144,7 @@ func makeVirtualDNSDomains(cfgSnap *proxycfg.ConfigSnapshot) []*envoy_dns_table_
 			continue
 		}
 
-		fqdn := virtualFQDNsForUpstream(cfgSnap, uid)
+		fqdn := virtualFQDNForUpstream(cfgSnap, uid)
 		if fqdn == "" {
 			continue
 		}
@@ -156,7 +156,7 @@ func makeVirtualDNSDomains(cfgSnap *proxycfg.ConfigSnapshot) []*envoy_dns_table_
 
 	// Upstreams reached through a peer.
 	cfgSnap.ConnectProxy.PeerUpstreamEndpoints.ForEachKey(func(uid proxycfg.UpstreamID) bool {
-		fqdn := virtualFQDNsForUpstream(cfgSnap, uid)
+		fqdn := virtualFQDNForUpstream(cfgSnap, uid)
 		if fqdn == "" {
 			return true
 		}
@@ -276,12 +276,12 @@ func virtualIPsForNodes(cfgSnap *proxycfg.ConfigSnapshot, nodes structs.CheckSer
 	return addrs
 }
 
-// virtualFQDNsForUpstream returns the fully-expanded virtual DNS name for an upstream service.
+// virtualFQDNForUpstream returns the fully-expanded virtual DNS name for an upstream service.
 //
 // The returned name includes the upstream's namespace, partition and datacenter, matching:
 //
 //	<Service-Name>.virtual.<Namespace>.ns.<Admin-Partition>.ap.<Datacenter>.dc.consul
-func virtualFQDNsForUpstream(cfgSnap *proxycfg.ConfigSnapshot, uid proxycfg.UpstreamID) string {
+func virtualFQDNForUpstream(cfgSnap *proxycfg.ConfigSnapshot, uid proxycfg.UpstreamID) string {
 	if uid.Name == "" {
 		return ""
 	}

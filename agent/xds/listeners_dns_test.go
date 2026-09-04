@@ -55,7 +55,7 @@ func TestMakeVirtualDNSDomains_SkipsCrossPartitionConfiguredVIPs(t *testing.T) {
 	}
 
 	domains := makeVirtualDNSDomains(snap)
-	fqdn := virtualFQDNsForUpstream(snap, uid)
+	fqdn := virtualFQDNForUpstream(snap, uid)
 
 	for _, d := range domains {
 		require.NotEqual(t, fqdn, d.Name)
@@ -86,7 +86,7 @@ func TestMakeVirtualDNSDomains_SkipsUnknownUpstream(t *testing.T) {
 	delete(snap.ConnectProxy.IntentionUpstreams, uid)
 
 	domains := makeVirtualDNSDomains(snap)
-	fqdn := virtualFQDNsForUpstream(snap, uid)
+	fqdn := virtualFQDNForUpstream(snap, uid)
 
 	for _, d := range domains {
 		require.NotEqual(t, fqdn, d.Name)
@@ -182,32 +182,32 @@ func TestMakeEgressDNSListener(t *testing.T) {
 	require.Equal(t, uint32(5353), got["1.1.1.1"])
 }
 
-func TestVirtualFQDNsForUpstream(t *testing.T) {
+func TestVirtualFQDNForUpstream(t *testing.T) {
 	snap := &proxycfg.ConfigSnapshot{Datacenter: "dc1"}
 
 	t.Run("empty name returns nil", func(t *testing.T) {
-		require.Equal(t, "", virtualFQDNsForUpstream(snap, proxycfg.UpstreamID{}))
+		require.Equal(t, "", virtualFQDNForUpstream(snap, proxycfg.UpstreamID{}))
 	})
 
 	t.Run("uses upstream datacenter when set", func(t *testing.T) {
 		uid := proxycfg.NewUpstreamIDFromServiceName(structs.NewServiceName("db", nil))
 		uid.Datacenter = "dc2"
 
-		fqdns := virtualFQDNsForUpstream(snap, uid)
+		fqdns := virtualFQDNForUpstream(snap, uid)
 		require.Equal(t, "db.virtual.default.ns.default.ap.dc2.dc.consul", fqdns)
 	})
 
 	t.Run("falls back to snapshot datacenter", func(t *testing.T) {
 		uid := proxycfg.NewUpstreamIDFromServiceName(structs.NewServiceName("web", nil))
 
-		fqdns := virtualFQDNsForUpstream(snap, uid)
+		fqdns := virtualFQDNForUpstream(snap, uid)
 		require.Equal(t, "web.virtual.default.ns.default.ap.dc1.dc.consul", fqdns)
 	})
 
 	t.Run("no datacenter keeps expanded form with empty dc segment", func(t *testing.T) {
 		uid := proxycfg.NewUpstreamIDFromServiceName(structs.NewServiceName("cache", nil))
 
-		fqdns := virtualFQDNsForUpstream(&proxycfg.ConfigSnapshot{}, uid)
+		fqdns := virtualFQDNForUpstream(&proxycfg.ConfigSnapshot{}, uid)
 		require.Equal(t, "", fqdns)
 	})
 }
@@ -250,7 +250,7 @@ func TestMakeInlineDNSListenerNoDomains(t *testing.T) {
 
 func TestMakeVirtualDNSDomains_Multiport(t *testing.T) {
 	// Two UpstreamIDs for the same service with different named ports (multiport).
-	// virtualFQDNsForUpstream intentionally ignores DestinationPort, so both
+	// virtualFQDNForUpstream intentionally ignores DestinationPort, so both
 	// ports map to the same FQDN. Their VIPs must be unioned under that single entry.
 	snap := proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, nil)
 
