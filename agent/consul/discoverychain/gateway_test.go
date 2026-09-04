@@ -825,9 +825,10 @@ func TestGatewayChainSynthesizer_Synthesize(t *testing.T) {
 			}
 
 			chains := append([]*structs.CompiledDiscoveryChain{tc.chain}, tc.extra...)
-			ingressServices, discoveryChains, err := tc.synthesizer.Synthesize(chains...)
+			ingressServices, discoveryChains, skipped, err := tc.synthesizer.Synthesize(chains...)
 
 			require.NoError(t, err)
+			require.Empty(t, skipped)
 			require.Equal(t, tc.expectedIngressServices, ingressServices)
 			require.Equal(t, tc.expectedDiscoveryChains, discoveryChains)
 		})
@@ -1060,9 +1061,10 @@ func TestGatewayChainSynthesizer_ComplexChain(t *testing.T) {
 			tc.synthesizer.AddHTTPRoute(*tc.route)
 
 			chains := []*structs.CompiledDiscoveryChain{compiled}
-			_, discoveryChains, err := tc.synthesizer.Synthesize(chains...)
+			_, discoveryChains, skipped, err := tc.synthesizer.Synthesize(chains...)
 
 			require.NoError(t, err)
+			require.Empty(t, skipped)
 			require.Len(t, discoveryChains, 1)
 			require.Equal(t, tc.expectedDiscoveryChain, discoveryChains[0])
 		})
@@ -1202,7 +1204,7 @@ func TestGatewaySynthesis_ProxyDefaultsFallback_StateFaithful(t *testing.T) {
 		})
 	}
 
-	synthesize := func(t *testing.T, backend *structs.CompiledDiscoveryChain) ([]*structs.CompiledDiscoveryChain, error) {
+	synthesize := func(t *testing.T, backend *structs.CompiledDiscoveryChain) ([]*structs.CompiledDiscoveryChain, []error, error) {
 		t.Helper()
 		synth := NewGatewayChainSynthesizer("dc1", "domain", "listener", &structs.APIGatewayConfigEntry{
 			Kind: structs.APIGateway,
@@ -1219,8 +1221,8 @@ func TestGatewaySynthesis_ProxyDefaultsFallback_StateFaithful(t *testing.T) {
 				Services: []structs.HTTPService{{Name: "x"}},
 			}},
 		})
-		_, chains, err := synth.Synthesize(backend)
-		return chains, err
+		_, chains, skipped, err := synth.Synthesize(backend)
+		return chains, skipped, err
 	}
 
 	// Sanity: with proxy-defaults=http, the REAL chain for x resolves http and
@@ -1244,9 +1246,11 @@ func TestGatewaySynthesis_ProxyDefaultsFallback_StateFaithful(t *testing.T) {
 		chain, err := compileBackendChain(t, proxyDefaultsHTTP, xRouter)
 		require.NoError(t, err)
 
-		chains, err := synthesize(t, chain)
+		chains, skipped, err := synthesize(t, chain)
 		require.NoError(t, err,
 			"gateway synthesis must not spuriously resolve y as tcp when the real chain is http")
+		require.Empty(t, skipped,
+			"a correctly-configured route must not be skipped")
 		require.NotEmpty(t, chains)
 	})
 
@@ -1260,8 +1264,9 @@ func TestGatewaySynthesis_ProxyDefaultsFallback_StateFaithful(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "http", chain.Protocol)
 
-		chains, err := synthesize(t, chain)
+		chains, skipped, err := synthesize(t, chain)
 		require.NoError(t, err)
+		require.Empty(t, skipped)
 		require.NotEmpty(t, chains)
 	})
 }
