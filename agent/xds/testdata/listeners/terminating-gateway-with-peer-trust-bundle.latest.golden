@@ -186,7 +186,7 @@
                           "authenticated": {
                             "principalName": {
                               "safeRegex": {
-                                "regex": "^spiffe://1c053652-8512-4373-90cf-5a7f6263a994.consul/ns/default/dc/[^/]+/svc/source$"
+                                "regex": "^spiffe://1c053652-8512-4373-90cf-5a7f6263a994\\.consul/ns/default/dc/[^/]+/svc/source$"
                               }
                             }
                           }
@@ -195,7 +195,7 @@
                           "authenticated": {
                             "principalName": {
                               "safeRegex": {
-                                "regex": "^spiffe://d89ac423-e95a-475d-94f2-1c557c57bf31.consul/ns/default/dc/[^/]+/svc/source$"
+                                "regex": "^spiffe://d89ac423-e95a-475d-94f2-1c557c57bf31\\.consul/ns/default/dc/[^/]+/svc/source$"
                               }
                             }
                           }
