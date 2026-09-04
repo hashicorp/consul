@@ -29,11 +29,6 @@
         as |dc partition nspace item|
       }}
         <AppView>
-          <:breadcrumbs>
-            <Hds::Breadcrumb>
-              <Hds::Breadcrumb::Item @text="All Peers" @route="dc.peers" @model={{route.params.dc}} data-test-back />
-            </Hds::Breadcrumb>
-          </:breadcrumbs>
           <:header>
             <h1>
               <route.Title @title={{item.Name}} />

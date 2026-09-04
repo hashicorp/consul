@@ -1,0 +1,96 @@
+# breadcrumbs
+
+The `BreadcrumbsService` computes a deterministic breadcrumb chain for any
+route in the application using the `breadcrumb` metadata declared on each
+route's `_options` block in `vendor/consul-ui/routes.js`.
+
+## API
+
+### `computeBreadcrumbs(routeName, routeParams) → BreadcrumbItem[]`
+
+Returns an ordered array of `BreadcrumbItem` objects (root → leaf).
+
+```js
+// Example: current route is dc.services.show.instances
+const items = this.breadcrumbs.computeBreadcrumbs(
+  'dc.services.show.instances',
+  { dc: 'dc-1', name: 'web' }
+);
+// → [
+//     { label: 'Services',   route: 'dc.services',            isCurrent: false, isClickable: true  },
+//     { label: 'web',        route: 'dc.services.show',        isCurrent: false, isClickable: true  },
+//     { label: 'Instances',  route: 'dc.services.show.instances', isCurrent: true,  isClickable: false },
+//   ]
+```
+
+| Param         | Type   | Description                                       |
+|---------------|--------|---------------------------------------------------|
+| `routeName`   | string | Fully-qualified Ember route, e.g. `dc.services`   |
+| `routeParams` | object | Current URL params (`dc`, `name`, `id`, …)        |
+
+### `shouldShowBreadcrumbs(routeName) → boolean`
+
+Returns `false` when the route opts out via `breadcrumb: { show: false }`.
+
+```js
+this.breadcrumbs.shouldShowBreadcrumbs('dc.services'); // true
+this.breadcrumbs.shouldShowBreadcrumbs('index');       // false (no metadata)
+```
+
+### `getBreadcrumbConfig(routeName) → object | null`
+
+Returns the raw `breadcrumb` config block, or `null` when none is defined.
+
+```js
+const cfg = this.breadcrumbs.getBreadcrumbConfig('dc.services.show');
+// → { label: 'name', parent: 'dc.services' }
+```
+
+## BreadcrumbItem shape
+
+```ts
+interface BreadcrumbItem {
+  label:       string;   // resolved label (static string or dynamic param value)
+  route:       string;   // fully-qualified Ember route name
+  params:      object;   // routeParams passed into computeBreadcrumbs
+  isCurrent:   boolean;  // true only for the last item in the chain
+  isClickable: boolean;  // false only for the current (last) item
+}
+```
+
+## Route metadata schema
+
+Add a `breadcrumb` key to any route's `_options` block in
+`vendor/consul-ui/routes.js`:
+
+```js
+show: {
+  _options: {
+    path: '/:name',
+    breadcrumb: {
+      label: 'name',          // param key → resolved dynamically; or static string
+      parent: 'dc.services',  // fully-qualified parent route name
+      // show: false          // omit or true to show; false hides breadcrumbs for this route
+    },
+  },
+},
+```
+
+## Usage in a component
+
+```js
+import Component from '@glimmer/component';
+import { inject as service } from '@ember/service';
+import { tracked } from '@glimmer/tracking';
+
+export default class MyComponent extends Component {
+  @service breadcrumbs;
+
+  get items() {
+    return this.breadcrumbs.computeBreadcrumbs(
+      this.args.routeName,
+      this.args.routeParams
+    );
+  }
+}
+```

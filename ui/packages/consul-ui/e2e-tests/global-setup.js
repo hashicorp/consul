@@ -52,7 +52,9 @@ async function globalSetup(config) {
     if (authResult?.authenticated) {
       console.log('✅ Authentication successful via UI login.\n');
     } else {
-      console.log('⚠️  UI login unavailable (ACLs disabled in dev build). Setting token via localStorage.\n');
+      console.log(
+        '⚠️  UI login unavailable (ACLs disabled in dev build). Setting token via localStorage.\n'
+      );
 
       // Fallback: set the token directly in localStorage when the UI login flow
       // is not available (e.g. ember serve where operatorConfig.ACLsEnabled defaults to false).
@@ -80,9 +82,14 @@ async function globalSetup(config) {
 
         await page.goto(`${baseURL}/ui/dc1/kv`, { waitUntil: 'domcontentloaded' });
         await page.evaluate((payload) => {
-          localStorage.setItem('consul:token', JSON.stringify(payload));
+          // eslint-disable-next-line no-undef
+          window.localStorage.setItem('consul:token', JSON.stringify(payload));
         }, tokenPayload);
-        console.log(`✅ Token set via localStorage fallback (AccessorID: ${tokenPayload.AccessorID || 'unknown'}).\n`);
+        console.log(
+          `✅ Token set via localStorage fallback (AccessorID: ${
+            tokenPayload.AccessorID || 'unknown'
+          }).\n`
+        );
       }
     }
 

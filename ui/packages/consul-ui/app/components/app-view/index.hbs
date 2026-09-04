@@ -1,5 +1,5 @@
 {{!
-  Copyright (c) HashiCorp, Inc.
+  Copyright IBM Corp. 2024, 2026
   SPDX-License-Identifier: BUSL-1.1
 }}
 
@@ -12,9 +12,14 @@
       <div>
           <div>
               <nav class="app-view-breadcrumbs" aria-label="Breadcrumb" data-test-breadcrumbs>
-                {{#if (if (not-eq @showBreadcrumb undefined) @showBreadcrumb (has-block 'breadcrumbs'))}}
-                  {{document-attrs class="with-breadcrumbs"}}
-                  {{yield to='breadcrumbs'}}
+                {{#if (not-eq @showBreadcrumb false)}}
+                  {{#if (has-block 'breadcrumbs')}}
+                    {{document-attrs class="with-breadcrumbs"}}
+                    {{yield to='breadcrumbs'}}
+                  {{else if this.computedBreadcrumbs.length}}
+                    {{document-attrs class="with-breadcrumbs"}}
+                    <Breadcrumbs @items={{this.computedBreadcrumbs}} />
+                  {{/if}}
                 {{/if}}
               </nav>
               <div class="title">
