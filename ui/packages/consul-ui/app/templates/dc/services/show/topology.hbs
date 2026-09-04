@@ -167,6 +167,7 @@ as |nspace dc items topology|}}
               Name=(get items "firstObject.Name")
               Namespace=(or (get items "firstObject.Namespace") '')
               Partition=(or (get items "firstObject.Partition") '')
+              Meta=(or (get items "firstObject.Meta") (hash))
             )
           )
         }}
