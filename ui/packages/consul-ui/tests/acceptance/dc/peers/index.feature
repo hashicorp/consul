@@ -18,9 +18,7 @@ Feature: dc / peers / index: Peers List
     Then I see 3 peer models
 
   Scenario: Sorting peers
-    When I click selected on the sort
-    # alpha
-    When I click options.2.button on the sort
+    When I click name on the sort
     Then I see name on the peers vertically like yaml
     ---
     - a-peer
@@ -30,14 +28,14 @@ Feature: dc / peers / index: Peers List
   Scenario: Searching peers
     Then I fill in with yaml
     ---
-    s: a-peer
+    search: a-peer
     ---
     And I see 1 peer model
     And I see 1 peer model with the name "a-peer"
   Scenario: Empty state searching peers
     Then I fill in with yaml
     ---
-    s: no-match 
+    search: no-match
     ---
     And I see 0 peer model
     Then I see the text "No peers found" in ".empty-state h2"
@@ -47,7 +45,7 @@ Feature: dc / peers / index: Peers List
     And ACLs are disabled
     Then I fill in with yaml
     ---
-    s: no-match 
+    search: no-match
     ---
     And I see 0 peer model
     Then I see the text "No peers found" in ".empty-state h2"

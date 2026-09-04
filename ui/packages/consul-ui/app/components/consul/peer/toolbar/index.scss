@@ -1,0 +1,10 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+/* The peers index uses the HDS Filter Bar for its toolbar, so drop the
+   default header underline above it to avoid a doubled-up separator. */
+html[data-route='dc.peers.index'] .app-view > header .title {
+  border-bottom: none;
+}

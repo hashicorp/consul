@@ -141,13 +141,13 @@ Feature: dc / nodes / index
     And I see 3 node models
     Then I fill in with yaml
     ---
-    s: node-01
+    search: node-01
     ---
     And I see 1 node model
     And I see 1 node model with the name "node-01"
     Then I fill in with yaml
     ---
-    s: 10.0.0.1
+    search: 10.0.0.1
     ---
     And I see 1 node model
     And I see 1 node model with the name "node-02"

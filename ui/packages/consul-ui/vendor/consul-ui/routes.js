@@ -394,6 +394,14 @@
           _options: {
             template: '../index',
             path: '/*key',
+            queryParams: {
+              sortBy: 'sort',
+              kind: 'kind',
+              search: {
+                as: 'filter',
+                replace: true,
+              },
+            },
           },
         },
         edit: {

@@ -32,6 +32,7 @@ Feature: dc / kvs / list-order
     ---
       dc: datacenter
     ---
+    # the first page of the listing, which holds 10 entries
     Then I see name on the kvs like yaml
     ---
       - __secretzzz/
@@ -44,13 +45,4 @@ Feature: dc / kvs / list-order
       - configuration/
       - content-service/
       - currentRepository-jobs/
-      - currentRepository-service/
-      - first-service/
-      - logs-service/
-      - rabmq-svc/
-      - rabmqUtilities/
-      - schedule-service/
-      - vanApp-service/
-      - vanCat-service/
-      - vanTaxi-service/
     ---

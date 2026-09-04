@@ -43,11 +43,11 @@
         @selected={{eq nspace.Name Selector.item.Name}}
         @href={{href-to
           "dc.services.index"
+          @dc.Name
           params=(hash
             partition=(if (gt @partition.length 0) @partition undefined)
             nspace=Selector.item.Name
             peer=undefined
-            dc=@dc.Name
           )
         }}
         @isHrefExternal={{false}}

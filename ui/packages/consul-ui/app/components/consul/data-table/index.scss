@@ -1,0 +1,181 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+.consul-data-table {
+  /* Leave breathing room below the table/pagination. The `index` and
+     `instances` routes are deliberately excluded from the global
+     `.app-shell__main` bottom margin (a holdover from the old full-height
+     scrolling list), so without this the pagination sits flush against the
+     bottom of the viewport. */
+  margin-bottom: 2em;
+
+  /* The viewport positions the edge fade overlays over the scroll area. */
+  .consul-data-table__viewport {
+    position: relative;
+  }
+
+  /* Allow the table to scroll horizontally within this container when its
+     columns are wider than the available space, instead of overflowing the
+     page. The pagination sits outside this wrapper so it stays put. */
+  .consul-data-table__scroll {
+    overflow-x: auto;
+  }
+
+  /* Edge fade overlays: a soft shadow sits over the left/right edge of the
+     scroll area to signal there is more content to scroll towards. They are
+     hidden by default and revealed by the data attributes the component toggles
+     from the real scroll position, so the indicator is always accurate (never a
+     hit-or-miss). They never intercept pointer events. A translucent-black tint
+     is used (rather than the surface colour) so the cue is visible over the
+     table's white background. */
+  .consul-data-table__fade {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 40px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    z-index: 1;
+  }
+
+  .consul-data-table__fade--left {
+    left: 0;
+    background: linear-gradient(
+      to right,
+      rgb(0 0 0 / 13%),
+      rgb(0 0 0 / 0%)
+    );
+  }
+
+  .consul-data-table__fade--right {
+    right: 0;
+    background: linear-gradient(
+      to left,
+      rgb(0 0 0 / 13%),
+      rgb(0 0 0 / 0%)
+    );
+  }
+
+  .consul-data-table__viewport[data-can-scroll-left='true'] .consul-data-table__fade--left,
+  .consul-data-table__viewport[data-can-scroll-right='true'] .consul-data-table__fade--right {
+    opacity: 1;
+  }
+
+  /* make the column headers bold and black */
+  .hds-table__thead {
+    .hds-table__th,
+    .hds-table__th-button {
+      color: var(--token-color-foreground-strong);
+      font-weight: var(--token-typography-font-weight-bold);
+    }
+
+    /* always show the sort arrow on sortable headers so the sorter buttons are
+       clearly visible, not just on hover */
+    .hds-table__th-button .hds-icon {
+      opacity: 1;
+    }
+
+    /* render the sort arrows and the header info-tooltip icon in a softer grey
+       so they don't compete with the bold header text */
+    .hds-table__th-button .hds-icon,
+    .hds-table__th span .hds-icon {
+      color: var(--token-color-foreground-faint);
+    }
+
+    /* space the info-tooltip icon away from the header label and center it
+       against the label text */
+    .hds-table__th span .hds-icon {
+      margin-left: 4px;
+      vertical-align: middle;
+      position: relative;
+      top: -1px;
+    }
+
+    /* soften the sort button on hover: HDS draws a hard white box with a border
+       and shadow via ::before. Replace it with a subtle, flush highlight that
+       sits snugly around the arrow icon. */
+    .hds-table__th-button {
+      border-radius: 5px;
+
+      &::before {
+        border: none;
+        box-shadow: none;
+        background-color: transparent;
+        transition: background-color 0.15s ease;
+      }
+
+      &:hover::before {
+        background-color: var(--token-color-surface-interactive-hover);
+      }
+
+      &:active::before {
+        background-color: var(--token-color-surface-interactive-active);
+      }
+    }
+
+    /* the legacy `%table th span::after` rule (app/components/table/index.scss)
+       injects an info-circle icon after every <span> inside a <th>. The HDS
+       table reuses native table markup, so that rule incorrectly adds an info
+       icon to each header label. Suppress it here. */
+    .hds-table__th span::after {
+      content: none;
+      display: none;
+      margin: 0;
+    }
+  }
+
+  /* highlight the whole row on hover so it's clear which record the pointer is
+     over, even though only the link column is clickable */
+  .hds-table__tbody .hds-table__tr:hover {
+    background-color: var(--token-color-surface-faint);
+    /* the legacy `.app-shell__main table tbody tr:hover` rule (app/styles)
+       drops an elevation box-shadow on every hovered table row; the HDS table
+       provides its own flat hover treatment, so suppress that stray shadow. */
+    box-shadow: none;
+  }
+
+  /* Only the link column (@linkColumn, 1-based; defaults to the first column)
+     holds the clickable link, so limit the pointer cursor and link styling to
+     that cell rather than the entire row. The clickable column is published as
+     `data-link-column` on the wrapper; generate a matching nth-child rule for a
+     reasonable range of column positions. */
+  @for $i from 1 through 12 {
+    &[data-link-column='#{$i}'] .hds-table__tbody .hds-table__td:nth-child(#{$i}) {
+      cursor: pointer;
+
+      /* keep the link in the default text color, but add an underline on hover
+         so it reads as clickable */
+      a {
+        color: var(--token-color-foreground-strong);
+        text-decoration: none;
+
+        &:hover,
+        &:active {
+          color: var(--token-color-foreground-strong);
+          text-decoration: underline;
+        }
+      }
+    }
+  }
+
+  /* Actions-column "…" dropdown toggle. HDS draws a blue focus ring on the
+     toggle via the button's own border-color plus a ::before overlay border.
+     After a mouse click the button keeps focus while its menu is open, so the
+     ring lingers. Suppress it for pointer interaction while preserving it for
+     keyboard navigation (:focus-visible) for accessibility. */
+  .hds-table__td .hds-dropdown-toggle-icon:focus:not(:focus-visible) {
+    border-color: var(--token-color-border-strong);
+    box-shadow: none;
+
+    &::before {
+      border-color: transparent;
+    }
+  }
+
+  .consul-data-table__pagination {
+    margin-top: 16px;
+  }
+}
