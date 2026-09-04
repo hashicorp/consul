@@ -73,6 +73,7 @@ RUN set -eux && \
         armhf) consulArch='arm' ;; \
         x86) consulArch='386' ;; \
         x86_64) consulArch='amd64' ;; \
+        s390x) consulArch='s390x' ;; \
         *) echo >&2 "error: unsupported architecture: ${apkArch} (see ${HASHICORP_RELEASES}/consul/${VERSION}/)" && exit 1 ;; \
     esac && \
     wget ${HASHICORP_RELEASES}/consul/${VERSION}/consul_${VERSION}_linux_${consulArch}.zip && \
