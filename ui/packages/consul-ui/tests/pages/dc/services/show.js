@@ -70,7 +70,7 @@ export default function (
     }),
   };
   page.tabs.linkedServicesTab = {
-    services: collection('.consul-service-list > ul > li:not(:first-child)', {
+    services: collection('.consul-service-table tbody tr', {
       name: text('[data-test-service-name]'),
     }),
   };

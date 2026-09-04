@@ -343,10 +343,12 @@ dc:
             }.
           </p>
       services:
-        intro: |
-          <p>
-            The following services may receive traffic from external services through this gateway. Learn more about configuring gateways in our <a href="{CONSUL_DOCS_URL}/connect/terminating-gateway" target="_blank" rel="noopener noreferrer">step-by-step guide</a>.
-          </p>
+        intro:
+          header: Linked services
+          body: The following services may receive traffic from external services through this gateway.
+          footer:
+            text: Learn more about configuring gateways
+            link: /connect/terminating-gateway
         empty: |
           <p>
             There are no Services{items, select,
