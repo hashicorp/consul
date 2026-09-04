@@ -44,7 +44,8 @@ import morePopoverMenuFactory from 'consul-ui/components/more-popover-menu/pageo
 
 import tokenListFactory from 'consul-ui/components/token-list/pageobject';
 import consulHealthCheckListFactory from 'consul-ui/components/consul/health-check/list/pageobject';
-import consulUpstreamInstanceListFactory from 'consul-ui/components/consul/upstream-instance/list/pageobject';
+import consulUpstreamInstanceTableFactory from 'consul-ui/components/consul/upstream-instance/table/pageobject';
+import consulExposedPathTableFactory from 'consul-ui/components/consul/exposed-path/table/pageobject';
 import consulTokenListFactory from 'consul-ui/components/consul/token/list/pageobject';
 import consulRoleListFactory from 'consul-ui/components/consul/role/list/pageobject';
 import consulPolicyListFactory from 'consul-ui/components/consul/policy/list/pageobject';
@@ -102,7 +103,8 @@ const popoverSelect = popoverSelectFactory(clickable, collection);
 const emptyState = emptyStateFactory(isPresent);
 
 const consulHealthCheckList = consulHealthCheckListFactory(collection, text);
-const consulUpstreamInstanceList = consulUpstreamInstanceListFactory(collection, text);
+const consulUpstreamInstanceList = consulUpstreamInstanceTableFactory(collection, text);
+const consulExposedPathList = consulExposedPathTableFactory(collection, text);
 const consulAuthMethodList = consulAuthMethodListFactory(collection, clickable, text);
 const consulIntentionList = consulIntentionListFactory(
   collection,
@@ -183,7 +185,8 @@ export default {
       text,
       tabgroup,
       consulUpstreamInstanceList,
-      consulHealthCheckList
+      consulHealthCheckList,
+      consulExposedPathList
     )
   ),
   nodes: create(nodes(visitable, text, clickable, attribute, collection, popoverSelect)),

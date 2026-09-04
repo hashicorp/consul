@@ -1,0 +1,18 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+/* When the toolbar lives above the table card (as a sibling, not inside it),
+   square off the card's top corners so the two elements form one visual unit. */
+.consul-exposed-path-toolbar + .consul-exposed-path-table .consul-data-table__card {
+  border-radius: 0 0 6px 6px;
+}
+
+.consul-exposed-path-table {
+  .consul-exposed-path-table__address {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}

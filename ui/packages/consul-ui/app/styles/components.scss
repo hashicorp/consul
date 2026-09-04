@@ -87,11 +87,13 @@
 @import 'consul-ui/components/consul/discovery-chain';
 @import 'consul-ui/components/consul/bucket/list';
 @import 'consul-ui/components/consul/upstream/list';
-@import 'consul-ui/components/consul/upstream-instance/list';
+@import 'consul-ui/components/consul/upstream-instance/table';
+@import 'consul-ui/components/consul/upstream-instance/toolbar';
 @import 'consul-ui/components/consul/health-check/list';
 @import 'consul-ui/components/consul/health-check/toolbar';
 @import 'consul-ui/components/consul/instance-checks';
-@import 'consul-ui/components/consul/exposed-path/list';
+@import 'consul-ui/components/consul/exposed-path/table';
+@import 'consul-ui/components/consul/exposed-path/toolbar';
 @import 'consul-ui/components/consul/external-source';
 @import 'consul-ui/components/consul/kind';
 @import 'consul-ui/components/consul/source';

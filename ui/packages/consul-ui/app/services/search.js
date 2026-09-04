@@ -9,6 +9,7 @@ import ExactSearch from 'consul-ui/utils/search/exact';
 
 import intention from 'consul-ui/search/predicates/intention';
 import upstreamInstance from 'consul-ui/search/predicates/upstream-instance';
+import exposedPath from 'consul-ui/search/predicates/exposed-path';
 import serviceInstance from 'consul-ui/search/predicates/service-instance';
 import healthCheck from 'consul-ui/search/predicates/health-check';
 import acl from 'consul-ui/search/predicates/acl';
@@ -29,6 +30,7 @@ const predicates = {
   service: service,
   ['service-instance']: serviceInstance,
   ['upstream-instance']: upstreamInstance,
+  ['exposed-path']: exposedPath,
   ['health-check']: healthCheck,
   ['auth-method']: authMethod,
   node: node,
