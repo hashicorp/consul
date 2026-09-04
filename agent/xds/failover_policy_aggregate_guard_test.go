@@ -136,6 +136,8 @@ func TestMapDiscoChainTargets_APIGatewayAggregateGuard(t *testing.T) {
 			require.Equal(t, tc.expectFailover, mapped.failover)
 			require.Equal(t, tc.expectFailover, mapped.isAggregateCluster(),
 				"RDS retry-policy selection must follow the same decision as CDS")
+			require.Equal(t, !tc.expectFailover, mapped.degraded,
+				"degraded is set exactly when the guard rewrote a failover chain; it drives the apiGatewayFailoverDegraded metric")
 
 			var gotTargetIDs []string
 			for _, ti := range mapped.targets {

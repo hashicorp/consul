@@ -19,6 +19,13 @@ type discoChainTargets struct {
 	targets         []targetInfo
 	failover        bool
 	failoverPolicy  structs.ServiceResolverFailoverPolicy
+
+	// degraded is set when the api-gateway aggregate guard rewrote a failover
+	// chain into a single plain EDS cluster because a member's endpoints were
+	// not assembled yet (see degradeToSingleTarget). CDS generation reads it to
+	// emit the apiGatewayFailoverDegraded metric exactly once per render; it is
+	// never set for a chain that was not a failover to begin with.
+	degraded bool
 }
 
 type targetInfo struct {
@@ -190,7 +197,7 @@ func (s *ResourceGenerator) mapDiscoChainTargets(
 				// targets and therefore no cluster at all -- a 503 NC that
 				// self-heals, rather than an aggregate over an empty member
 				// list, which is the same fatal shape as an unpopulated member.
-				s.Logger.Warn("api-gateway: emitting no cluster for upstream because it has no usable targets",
+				s.Logger.Debug("api-gateway: emitting no cluster for upstream because it has no usable targets",
 					"upstream", uid,
 					"cluster", failoverTargets.baseClusterName,
 					"unready_targets", unready)
@@ -201,7 +208,7 @@ func (s *ResourceGenerator) mapDiscoChainTargets(
 				// safe -- a plain EDS cluster is benign no matter how ready it
 				// is -- and the correct reading of failover intent: the primary
 				// is unusable, so the next target in order takes over.
-				s.Logger.Warn("api-gateway: rendering upstream without failover over a non-primary target because the primary is unavailable; "+
+				s.Logger.Debug("api-gateway: rendering upstream without failover over a non-primary target because the primary is unavailable; "+
 					"failover is restored automatically once the primary and member endpoints arrive",
 					"upstream", uid,
 					"cluster", failoverTargets.baseClusterName,
@@ -209,7 +216,7 @@ func (s *ResourceGenerator) mapDiscoChainTargets(
 					"degraded_to", degradedTo,
 					"unready_targets", unready)
 			default:
-				s.Logger.Warn("api-gateway: rendering upstream without failover because member endpoints are not assembled; "+
+				s.Logger.Debug("api-gateway: rendering upstream without failover because member endpoints are not assembled; "+
 					"failover is restored automatically once the endpoints arrive",
 					"upstream", uid,
 					"cluster", failoverTargets.baseClusterName,
@@ -304,6 +311,7 @@ func (ft discoChainTargets) unreadyFailoverMembers(
 func (ft *discoChainTargets) degradeToSingleTarget(primaryTargetID string) string {
 	ft.failover = false
 	ft.failoverPolicy = structs.ServiceResolverFailoverPolicy{}
+	ft.degraded = true
 
 	if len(ft.targets) == 0 {
 		return ""

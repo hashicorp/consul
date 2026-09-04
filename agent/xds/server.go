@@ -43,11 +43,23 @@ var (
 			Name: []string{"xds", "server", "streamDrained"},
 			Help: "Counts the number of xDS streams that are drained when rebalancing the load between servers.",
 		},
+		{
+			Name: []string{"xds", "server", "bootstrapGateTimeout"},
+			Help: "Counts the number of times the api-gateway bootstrap completeness gate released an xDS stream's first push on its deadline before all discovery-chain endpoints were assembled.",
+		},
+		{
+			Name: []string{"xds", "server", "apiGatewayFailoverDegraded"},
+			Help: "Counts the number of times an api-gateway failover upstream was rendered as a single plain EDS cluster instead of an aggregate because a member's endpoints were not yet assembled. This averts an Envoy worker-startup crash and self-heals once the endpoints arrive.",
+		},
 	}
 	StatsSummaries = []prometheus.SummaryDefinition{
 		{
 			Name: []string{"xds", "server", "streamStart"},
 			Help: "Measures the time in milliseconds after an xDS stream is opened until xDS resources are first generated for the stream.",
+		},
+		{
+			Name: []string{"xds", "server", "bootstrapGateHeld"},
+			Help: "Measures the time in milliseconds an api-gateway xDS stream's first push was held by the bootstrap completeness gate before the snapshot's discovery-chain endpoints were assembled.",
 		},
 	}
 )

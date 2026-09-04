@@ -27,6 +27,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-metrics"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/netutil"
@@ -1677,6 +1678,15 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 		mappedTargets, err := s.mapDiscoChainTargets(cfgSnap, uid, chain, node, upstreamConfig, forMeshGateway, destinationPort)
 		if err != nil {
 			return nil, err
+		}
+
+		// The api-gateway aggregate guard degraded a failover chain to a single
+		// plain EDS cluster because a member's endpoints were not assembled yet.
+		// This is the crash-averting event operators want to trend/alert on, so
+		// emit it from the CDS path only -- mapDiscoChainTargets also runs in EDS
+		// and RDS generation, and counting it there would inflate the metric.
+		if mappedTargets.degraded {
+			metrics.IncrCounter([]string{"xds", "server", "apiGatewayFailoverDegraded"}, 1)
 		}
 
 		targetGroups, err := mappedTargets.groupedTargets()
