@@ -1991,6 +1991,7 @@ func MeshDirectionalTLSConfigToStructs(s *MeshDirectionalTLSConfig, t *structs.M
 	t.TLSMinVersion = tlsVersionToStructs(s.TLSMinVersion)
 	t.TLSMaxVersion = tlsVersionToStructs(s.TLSMaxVersion)
 	t.CipherSuites = cipherSuitesToStructs(s.CipherSuites)
+	t.ECDHCurves = s.ECDHCurves
 }
 func MeshDirectionalTLSConfigFromStructs(t *structs.MeshDirectionalTLSConfig, s *MeshDirectionalTLSConfig) {
 	if s == nil {
@@ -1999,6 +2000,7 @@ func MeshDirectionalTLSConfigFromStructs(t *structs.MeshDirectionalTLSConfig, s 
 	s.TLSMinVersion = tlsVersionFromStructs(t.TLSMinVersion)
 	s.TLSMaxVersion = tlsVersionFromStructs(t.TLSMaxVersion)
 	s.CipherSuites = cipherSuitesFromStructs(t.CipherSuites)
+	s.ECDHCurves = t.ECDHCurves
 }
 func MeshGatewayConfigToStructs(s *MeshGatewayConfig, t *structs.MeshGatewayConfig) {
 	if s == nil {
