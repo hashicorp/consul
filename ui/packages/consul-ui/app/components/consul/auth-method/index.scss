@@ -12,6 +12,10 @@
 // View
 .consul-auth-method-view {
   margin-bottom: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+
   section {
     @extend %body-200-regular;
     width: 100%;
@@ -21,40 +25,62 @@
       @extend %display-400-semibold;
       padding-bottom: 12px;
     }
-    table {
-      table-layout: fixed;
-      thead td {
-        @extend %body-200-semibold;
-        color: var(--token-color-foreground-faint);
-      }
-      tbody {
-        td {
-          color: var(--token-color-hashicorp-brand);
-          word-break: break-word;
-        }
-        tr {
-          cursor: default;
-        }
-        tr:hover {
-          box-shadow: none;
-        }
-      }
-    }
   }
-  dl,
-  section dl {
-    @extend %tabular-dl;
+}
+
+.consul-auth-method-view__card {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// Key/value definition list inside the card (and type-specific config lists)
+.consul-auth-method-view__dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 32px;
+  row-gap: 16px;
+  margin: 0;
+
+  dt {
+    @extend %body-200-semibold;
+    color: var(--token-color-foreground-primary);
+    white-space: nowrap;
   }
-  section dt {
-    width: 30%;
+
+  dd {
+    @extend %body-200-regular;
+    color: var(--token-color-foreground-primary);
+    margin: 0;
+    word-break: break-word;
   }
-  section dd {
-    width: 70%;
+
+  dt.check + dd {
+    display: flex;
+    align-items: center;
+  }
+}
+
+// Standalone copyable/masked fields (Hds::Form::MaskedInput::Field) rendered
+// full-width between the dl groups above
+.consul-auth-method-view__field {
+  width: 100%;
+}
+
+// Unbulleted stacked values (e.g. bound audiences, OIDC scopes, ARNs)
+.consul-auth-method-view__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  li:not(:last-of-type) {
+    padding-bottom: 8px;
   }
 }
 
 // Binding List
 .consul-auth-method-binding-list {
+  margin-bottom: 24px;
   p {
     margin-bottom: 4px !important;
   }
@@ -62,32 +88,38 @@
     @extend %display-400-semibold;
     padding-bottom: 12px;
   }
-  dl {
-    @extend %tabular-dl;
-  }
   code {
     background-color: var(--token-color-surface-strong);
     padding: 0 12px;
   }
 }
 
+.consul-auth-method-binding-list__card {
+  padding: 16px;
+}
+
+.consul-auth-method-binding-list__dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 32px;
+  row-gap: 16px;
+  margin: 0;
+
+  dt {
+    @extend %body-200-semibold;
+    color: var(--token-color-foreground-primary);
+    white-space: nowrap;
+  }
+
+  dd {
+    @extend %body-200-regular;
+    color: var(--token-color-foreground-primary);
+    margin: 0;
+    word-break: break-word;
+  }
+}
+
 // Nspace List
 .consul-auth-method-nspace-list {
-  thead {
-    td {
-      @extend %body-200-semibold;
-      color: var(--token-color-foreground-faint) !important;
-    }
-  }
-  tbody {
-    td {
-      color: var(--token-color-hashicorp-brand);
-    }
-    tr {
-      cursor: default;
-    }
-    tr:hover {
-      box-shadow: none;
-    }
-  }
+  margin-top: 16px;
 }
