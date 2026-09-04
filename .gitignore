@@ -71,3 +71,4 @@ consul-k8s/
 .vercel
 vendor/
 .claude
+local-testing/

@@ -54,6 +54,36 @@ func (o *BoundAPIGatewayListener) DeepCopy() *BoundAPIGatewayListener {
 		cp.Certificates = make([]ResourceReference, len(o.Certificates))
 		copy(cp.Certificates, o.Certificates)
 	}
+	if o.TLS.Certificates != nil {
+		cp.TLS.Certificates = make([]ResourceReference, len(o.TLS.Certificates))
+		copy(cp.TLS.Certificates, o.TLS.Certificates)
+	}
+	if o.TLS.SDS != nil {
+		cp.TLS.SDS = new(GatewayTLSSDSConfig)
+		*cp.TLS.SDS = *o.TLS.SDS
+	}
+	if o.TLS.CipherSuites != nil {
+		cp.TLS.CipherSuites = make([]types.TLSCipherSuite, len(o.TLS.CipherSuites))
+		copy(cp.TLS.CipherSuites, o.TLS.CipherSuites)
+	}
+	if o.Override != nil {
+		cp.Override = new(APIGatewayPolicy)
+		*cp.Override = *o.Override
+		if o.Override.JWT != nil {
+			cp.Override.JWT = o.Override.JWT.DeepCopy()
+		}
+	}
+	if o.Default != nil {
+		cp.Default = new(APIGatewayPolicy)
+		*cp.Default = *o.Default
+		if o.Default.JWT != nil {
+			cp.Default.JWT = o.Default.JWT.DeepCopy()
+		}
+	}
+	if o.MaxRequestHeadersKB != nil {
+		cp.MaxRequestHeadersKB = new(uint32)
+		*cp.MaxRequestHeadersKB = *o.MaxRequestHeadersKB
+	}
 	return &cp
 }
 

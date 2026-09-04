@@ -693,6 +693,17 @@ func modifySummaryForGatewayService(
 		if domain == "" {
 			continue
 		}
+		// API gateways are reachable under the "<service>.api-gateway.<domain>"
+		// name, whereas ingress/terminating gateways use the "ingress" prefix.
+		if gwsvc.GatewayKind == structs.ServiceKindAPIGateway {
+			dnsAddresses = append(dnsAddresses, serviceAPIGatewayDNSName(
+				gwsvc.Service.Name,
+				datacenter,
+				domain,
+				&gwsvc.Service.EnterpriseMeta,
+			))
+			continue
+		}
 		dnsAddresses = append(dnsAddresses, serviceIngressDNSName(
 			gwsvc.Service.Name,
 			datacenter,
