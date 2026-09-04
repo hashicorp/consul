@@ -1,0 +1,3 @@
+```release-note:feature
+connect: add `ecdh_curves` to `mesh` config entries (`MeshDirectionalTLSConfig`) to support configuring allowed ECDH/KEM curves for sidecar mTLS, and automatically inject the hybrid Post-Quantum `X25519MLKEM768` curve default when `tls_min_version` is set to `TLSv1_3`.
+```
