@@ -4,9 +4,20 @@
  */
 
 import Component from '@glimmer/component';
-import { action } from '@ember/object';
+import { tracked } from '@glimmer/tracking';
+import { action, set } from '@ember/object';
 
 export default class NspaceForm extends Component {
+  @tracked isConfirmingDelete = false;
+
+  @action confirmDelete() {
+    this.isConfirmingDelete = true;
+  }
+
+  @action cancelDelete() {
+    this.isConfirmingDelete = false;
+  }
+
   @action onSubmit(item) {
     const onSubmit = this.args.onsubmit;
     if (onSubmit) return onSubmit(item);
@@ -22,6 +33,10 @@ export default class NspaceForm extends Component {
         return onsubmit(item);
       }
     }
+  }
+
+  @action updateDescription(item, event) {
+    set(item, 'Description', event.target.value);
   }
 
   @action onCancel(item) {
