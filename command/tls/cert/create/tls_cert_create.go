@@ -109,7 +109,12 @@ func (c *cmd) Run(args []string) int {
 
 	for _, i := range c.ipaddresses {
 		if len(i) > 0 {
-			IPAddresses = append(IPAddresses, net.ParseIP(strings.TrimSpace(i)))
+			ip := net.ParseIP(strings.TrimSpace(i))
+			if ip == nil {
+				c.UI.Error(fmt.Sprintf("Invalid -additional-ipaddress: %q is not a valid IP address", i))
+				return 1
+			}
+			IPAddresses = append(IPAddresses, ip)
 		}
 	}
 
