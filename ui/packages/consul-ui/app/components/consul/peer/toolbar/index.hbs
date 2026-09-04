@@ -3,8 +3,11 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-{{! Search/filter wiring lives in Consul::ListToolbar; sorting lives on the }}
-{{! table's column headers, so this only supplies the Status filter group. }}
+{{! Search/filter wiring lives in Consul::ListToolbar, which supplies the }}
+{{! Status filter group. Sort is also independently available per-column }}
+{{! via the table's clickable headers; the dropdown below just sets the }}
+{{! initial/default order (matching the Figma "A to Z" toolbar control) }}
+{{! via the data-layer sort passed down from templates/dc/peers/index.hbs. }}
 <Consul::ListToolbar
   class="consul-peer-toolbar"
   ...attributes
@@ -13,4 +16,32 @@
   @onsearch={{@onsearch}}
   @filterGroups={{this.filterGroups}}
   @searchPlaceholder="Search"
-/>
+>
+  <:quickFilters>
+    {{#if @sort}}
+      <Hds::Dropdown
+        class="consul-peer-toolbar__sort"
+        @listPosition="bottom-right"
+        @preserveContentInDom={{true}}
+        data-test-sort-control
+        as |dd|
+      >
+        <dd.ToggleButton
+          @text={{get
+            (from-entries (array
+              (array "Name:asc" (t "common.sort.alpha.asc"))
+              (array "Name:desc" (t "common.sort.alpha.desc"))
+              (array "State:asc" "Status")
+            ))
+            @sort.value
+          }}
+          @color="secondary"
+          data-test-sort-toggle
+        />
+        <dd.Interactive data-test-sort-option {{on "click" (fn @sort.change (hash target=(hash selected="Name:asc")))}}>{{t "common.sort.alpha.asc"}}</dd.Interactive>
+        <dd.Interactive data-test-sort-option {{on "click" (fn @sort.change (hash target=(hash selected="Name:desc")))}}>{{t "common.sort.alpha.desc"}}</dd.Interactive>
+        <dd.Interactive data-test-sort-option {{on "click" (fn @sort.change (hash target=(hash selected="State:asc")))}}>Status</dd.Interactive>
+      </Hds::Dropdown>
+    {{/if}}
+  </:quickFilters>
+</Consul::ListToolbar>

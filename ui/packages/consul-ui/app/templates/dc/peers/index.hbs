@@ -22,6 +22,10 @@
     <:loaded as |loader|>
       {{#let
         (hash
+          value=(or this.sortBy "Name:asc")
+          change=(action (mut this.sortBy) value="target.selected")
+        )
+        (hash
           state=(hash
             value=(if this.state (split this.state ",") undefined)
             change=(action (mut this.state) value="target.selectedItems")
@@ -37,7 +41,7 @@
           )
         )
         loader.data
-        as |filters items|
+        as |sort filters items|
       }}
         <AppView>
           <:header>
@@ -45,53 +49,13 @@
               <route.Title @title="Peers" />
             </h1>
           </:header>
-          <:toolbar>
-
-            {{#if (gt items.length 0)}}
-              <Consul::Peer::Toolbar
-                @search={{this.search}}
-                @onsearch={{action (mut this.search) value="target.value"}}
-                @filter={{filters}}
-              />
-            {{/if}}
-
-          </:toolbar>
           <:actions>
 
-            <ModalDialog
-              @aria={{hash label="Add peer connection"}}
-              class="peer-create-modal"
-            >
-              <:header as |api|>
-                {{did-insert-helper (set this "create" api)}}
-                <h2>
-                  Add peer connection
-                </h2>
-              </:header>
-              <:body as |api|>
-
-                {{#if api.opened}}
-                  <Consul::Peer::Form @params={{route.params}} as |form|>
-                    <form.Form
-                      @onchange={{loader.invalidate}}
-                      @onsubmit={{fn this.redirectToPeerShow api.close}}
-                      as |form|
-                    >
-                      {{did-insert-helper (set this "form" form)}}
-                      <form.Fieldsets />
-                    </form.Form>
-                  </Consul::Peer::Form>
-                {{/if}}
-
-              </:body>
-              <:actions>
-                <this.form.Actions @onclose={{this.create.close}} />
-              </:actions>
-            </ModalDialog>
             <Hds::Button
               @color='primary'
               @text='Add peer connection'
-              {{on "click" (optional this.create.open)}}
+              @icon='plus'
+              @route="dc.peers.create"
               data-test-create
               />
 
@@ -119,38 +83,32 @@
               </:removed>
               <:content as |writer|>
 
-                <ModalDialog
-                  @aria={{hash label="Regenerate token"}}
-                  @onclose={{set this "item" undefined}}
-                >
-                  <:header as |modal|>
-                    {{did-insert-helper (set this "regenerate" modal)}}
-                    <h2>
-                      Regenerate token
-                    </h2>
-                  </:header>
-                  <:body>
-                    {{#if this.item}}
+                {{#if this.item}}
+                  <Hds::Modal
+                    id="regenerate-token-modal"
+                    @onClose={{set this "item" undefined}}
+                    as |M|
+                  >
+                    <M.Header>Regenerate token</M.Header>
+                    <M.Body>
                       <Consul::Peer::Form::Generate
                         @item={{this.item}}
                         @onchange={{loader.invalidate}}
                         @regenerate={{true}}
+                        @onCancel={{set this "item" undefined}}
                         as |form|
                       >
-                        {{did-insert-helper (set this "regenerateForm" form)}}
-                        <form.Fieldsets />
+                        {{#if form.success}}
+                          <form.TokenFieldsets />
+                        {{/if}}
                       </Consul::Peer::Form::Generate>
-                    {{/if}}
-                  </:body>
-                  <:actions>
-                    <this.regenerateForm.Actions
-                      @onclose={{this.regenerate.close}}
-                    />
-                  </:actions>
-                </ModalDialog>
+                    </M.Body>
+                  </Hds::Modal>
+                {{/if}}
 
                 <DataCollection
                   @type="peer"
+                  @sort={{sort.value}}
                   @filters={{filters}}
                   @search={{this.search}}
                   @items={{items}}
@@ -160,9 +118,22 @@
 
                     <Consul::Peer::List
                       @items={{collection.items}}
-                      @onedit={{queue (set this "item") this.regenerate.open}}
+                      @onedit={{set this "item"}}
                       @ondelete={{writer.delete}}
-                    />
+                    >
+                      <:toolbar>
+                        {{! Now nested inside collection.Collection (rendered
+                            only while there's at least one matching row), same
+                            as Consul::Partition::List::Table's :toolbar block —
+                            no separate items.length guard needed here. }}
+                        <Consul::Peer::Toolbar
+                          @search={{this.search}}
+                          @onsearch={{action (mut this.search) value="target.value"}}
+                          @sort={{sort}}
+                          @filter={{filters}}
+                        />
+                      </:toolbar>
+                    </Consul::Peer::List>
 
                   </collection.Collection>
                   <collection.Empty>

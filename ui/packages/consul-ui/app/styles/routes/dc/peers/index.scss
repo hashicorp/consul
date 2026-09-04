@@ -1,0 +1,45 @@
+/**
+ * Copyright IBM Corp. 2024, 2026
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+/* The peer create page's fields (and the Regenerate token modal, which
+   reuses the same generate form) use Hds::Form::TextInput::Field, so the
+   global app-view rule that draws a border-bottom under every fieldset
+   (plus the padding/margin that went with it) shows up as a stray
+   underline here — spacing between fields instead follows Figma via the
+   gaps in consul/peer/form/index.scss. */
+html[data-route='dc.peers.create'],
+html[data-route='dc.peers.index'] {
+  .app-view form:not(.filter-bar) fieldset {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0;
+  }
+}
+
+/* Figma has no underline below the "Add peer connection" title (the Tabs'
+   own border reads as the divider instead), so drop the legacy app-view
+   rule that underlines every page's <h1>. */
+html[data-route='dc.peers.create'] {
+  .app-view .title {
+    border-bottom: none;
+  }
+
+  /* Every route ending in "create"/"edit" is narrowed app-wide to 1260px
+     (app/styles/layout.scss), but this page should fill the full content
+     column like the peers list does — same override dc.kv.create uses. */
+  .app-shell__main {
+    max-width: none;
+  }
+}
+
+/* Gap between the tab nav and the Imported Services toolbar/table — matches
+   Figma (24px), same as the Exported Services and Server Addresses tabs
+   (Consul::Peer::Exported::List / Consul::Peer::Address::List). This tab
+   reuses the shared Consul::Service::Table/Toolbar (also used outside the
+   peers show page), so the margin is scoped to this template's own wrapper
+   rather than added to those shared components. */
+.consul-peer-imported {
+  margin-top: 24px;
+}

@@ -20,7 +20,7 @@ Feature: dc / peers / regenerate: Regenerate Peer Token
     ---
     And I click actions on the peers
     And I click regenerate on the peers
-    Then I see the text "an-encoded-token" in ".consul-peer-form-generate code"
+    Then I see the text "an-encoded-token" in "#regenerate-token-modal [data-test-peering-token]"
   
   Scenario:
     Given 1 datacenter model with the value "datacenter"
