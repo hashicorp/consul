@@ -11,6 +11,7 @@ import (
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
+	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/hashicorp/go-hclog"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/assert"
@@ -19,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/configfetcher"
+	"github.com/hashicorp/consul/types"
 )
 
 type customListenerJSONOptions struct {
@@ -992,6 +994,104 @@ func Test_injectRequestNormalizationOnFilterChains(t *testing.T) {
 				require.NotNil(t, hcm.NormalizePath)
 				assert.Equal(t, *tc.wantNormalize, hcm.NormalizePath.GetValue())
 			}
+		})
+	}
+}
+
+func TestMakeTLSParametersFromProxyTLSConfig_ECDHCurves(t *testing.T) {
+	tests := map[string]struct {
+		input *structs.MeshDirectionalTLSConfig
+		want  *envoy_tls_v3.TlsParameters
+	}{
+		"nil config returns empty parameters": {
+			input: nil,
+			want:  &envoy_tls_v3.TlsParameters{},
+		},
+		"empty config returns empty parameters": {
+			input: &structs.MeshDirectionalTLSConfig{},
+			want:  &envoy_tls_v3.TlsParameters{},
+		},
+		"TLSv1_3 with nil curves injects PQC default curves": {
+			input: &structs.MeshDirectionalTLSConfig{
+				TLSMinVersion: types.TLSv1_3,
+				ECDHCurves:    nil,
+			},
+			want: &envoy_tls_v3.TlsParameters{
+				TlsMinimumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
+				TlsMaximumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
+				EcdhCurves:                []string{"X25519MLKEM768", "X25519"},
+			},
+		},
+		"TLSv1_3 with empty curves slice injects PQC default curves": {
+			input: &structs.MeshDirectionalTLSConfig{
+				TLSMinVersion: types.TLSv1_3,
+				ECDHCurves:    []string{},
+			},
+			want: &envoy_tls_v3.TlsParameters{
+				TlsMinimumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
+				TlsMaximumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
+				EcdhCurves:                []string{"X25519MLKEM768", "X25519"},
+			},
+		},
+		"TLSv1_3 with explicit curves overrides default": {
+			input: &structs.MeshDirectionalTLSConfig{
+				TLSMinVersion: types.TLSv1_3,
+				ECDHCurves:    []string{"P-384"},
+			},
+			want: &envoy_tls_v3.TlsParameters{
+				TlsMinimumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
+				TlsMaximumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
+				EcdhCurves:                []string{"P-384"},
+			},
+		},
+		"TLSv1_3 with explicit PQC and classical curves": {
+			input: &structs.MeshDirectionalTLSConfig{
+				TLSMinVersion: types.TLSv1_3,
+				ECDHCurves:    []string{"X25519MLKEM768", "X25519"},
+			},
+			want: &envoy_tls_v3.TlsParameters{
+				TlsMinimumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
+				TlsMaximumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
+				EcdhCurves:                []string{"X25519MLKEM768", "X25519"},
+			},
+		},
+		"TLSv1_2 with explicit TLSv1_3 max version": {
+			input: &structs.MeshDirectionalTLSConfig{
+				TLSMinVersion: types.TLSv1_2,
+				TLSMaxVersion: types.TLSv1_3,
+				ECDHCurves:    nil,
+			},
+			want: &envoy_tls_v3.TlsParameters{
+				TlsMinimumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_2,
+				TlsMaximumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
+				EcdhCurves:                nil,
+			},
+		},
+		"TLSv1_2 with nil curves does not inject curves": {
+			input: &structs.MeshDirectionalTLSConfig{
+				TLSMinVersion: types.TLSv1_2,
+				ECDHCurves:    nil,
+			},
+			want: &envoy_tls_v3.TlsParameters{
+				TlsMinimumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_2,
+				EcdhCurves:                nil,
+			},
+		},
+		"TLSv1_1 with nil curves does not inject curves": {
+			input: &structs.MeshDirectionalTLSConfig{
+				TLSMinVersion: types.TLSv1_1,
+				ECDHCurves:    nil,
+			},
+			want: &envoy_tls_v3.TlsParameters{
+				TlsMinimumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_1,
+				EcdhCurves:                nil,
+			},
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := makeTLSParametersFromProxyTLSConfig(tc.input)
+			assert.Equal(t, tc.want, got)
 		})
 	}
 }
