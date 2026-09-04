@@ -22,6 +22,10 @@
     @searchPlaceholder={{@searchPlaceholder}}
     id={{@id}}
   as |F|>
+    {{#if @label}}
+      <F.Label>{{@label}}</F.Label>
+    {{/if}}
+
     <F.Options>
       {{#if F.options.__isSuggestion__}}
         <div class="create-option">

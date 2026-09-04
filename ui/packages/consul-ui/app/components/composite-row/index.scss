@@ -67,9 +67,6 @@
 .consul-service-instance-list .mesh dt + dd {
   margin-left: 0;
 }
-.consul-intention-permission-list > ul {
-  border-top: 1px solid var(--token-color-surface-interactive-active);
-}
 .consul-service-instance-list .port dt,
 .consul-service-instance-list .port dt::before {
   display: none;

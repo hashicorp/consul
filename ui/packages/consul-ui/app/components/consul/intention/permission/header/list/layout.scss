@@ -4,6 +4,13 @@
  */
 
 .consul-intention-permission-header-list {
-  max-height: 200px;
-  overflow: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  > li {
+    padding-bottom: 12px;
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--token-color-border-primary);
+  }
 }
