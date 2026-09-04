@@ -443,7 +443,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 	}
 
 	seenUpstreamIDs := make(upstreamIDSet)
-	upstreams := make(map[APIGatewayListenerKey]structs.Upstreams)
+	upstreamsSet := make(map[APIGatewayListenerKey]structs.Upstreams)
 
 	var defaultLimits *structs.UpstreamLimits
 	if snap != nil && snap.APIGateway.GatewayConfig != nil {
@@ -522,7 +522,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 					}
 
 					listenerKey := APIGatewayListenerKeyFromBoundListener(listener)
-					upstreams[listenerKey] = append(upstreams[listenerKey], upstream)
+					upstreamsSet[listenerKey] = append(upstreamsSet[listenerKey], upstream)
 				}
 
 				upstreamID := NewUpstreamIDFromServiceName(service.ServiceName())
@@ -588,7 +588,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 				}
 
 				listenerKey := APIGatewayListenerKeyFromBoundListener(listener)
-				upstreams[listenerKey] = append(upstreams[listenerKey], upstream)
+				upstreamsSet[listenerKey] = append(upstreamsSet[listenerKey], upstream)
 			}
 
 			watchOpts := discoveryChainWatchOpts{
@@ -612,8 +612,8 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 		return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
 	}
 
-	for listener, set := range upstreams {
-		snap.APIGateway.Upstreams.set(ref, listener, set)
+	for listenerKey, set := range upstreamsSet {
+		snap.APIGateway.Upstreams.set(ref, listenerKey, set)
 	}
 	snap.APIGateway.UpstreamsSet.set(ref, seenUpstreamIDs)
 
@@ -638,8 +638,13 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 	// routes are loaded after the gateway config has settled (the leaf watch is
 	// first established from handleGatewayConfigUpdate before routes arrive).
 	// Re-evaluate the leaf cert watch here so newly-seen route hostnames are
-	// reflected in the issued certificate. watchIngressLeafCert is a no-op when
-	// the computed SAN set is unchanged.
+	// reflected in the issued certificate.
+	//
+	// NOTE: This calls watchIngressLeafCert (an ingress-named helper) intentionally.
+	// Ingress Gateway is deprecated and API Gateway is its strategic replacement;
+	// both require the same leaf-cert DNS SAN behaviour for DNS auto-registration
+	// parity. The helper is shared to avoid duplicating the watch-guard logic.
+	// watchIngressLeafCert is a no-op when the computed SAN set is unchanged.
 	if err := h.watchIngressLeafCert(ctx, snap); err != nil {
 		return err
 	}
@@ -812,7 +817,10 @@ func (h *handlerAPIGateway) generateAPIGatewayDNSSANs(snap *ConfigSnapshot) []st
 	// Ensure the default-tenancy wildcard SAN is always present, even before any
 	// routes have bound, so the common case works without re-issuing the cert.
 	if len(tenancies) == 0 {
-		tenancies[tenancy{namespace: structs.IntentionDefaultNamespace}] = struct{}{}
+		tenancies[tenancy{
+			namespace: structs.IntentionDefaultNamespace,
+			partition: acl.DefaultPartitionName,
+		}] = struct{}{}
 	}
 
 	// The configured DNS domain may be stored in FQDN form with a trailing dot
