@@ -41,8 +41,6 @@ on:
         required: true
       consul-license:
         required: true
-      datadog-api-key:
-        required: true
 env:
   TEST_RESULTS: /tmp/test-results
   GOTESTSUM_VERSION: "1.12.3"
@@ -50,7 +48,6 @@ env:
   CONSUL_LICENSE: ${{secrets.consul-license}}
   GOTAGS: ${{ inputs.go-tags}}
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
-  DATADOG_API_KEY: ${{secrets.datadog-api-key}}
   
 jobs:
   go-test:
@@ -111,36 +108,6 @@ jobs:
               -cover -coverprofile=coverage.txt \
               -timeout=30m
 
-      # NOTE: ENT specific step as we store secrets in Vault.
-      - name: Authenticate to Vault
-        if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
-        id: vault-auth
-        run: vault-auth
-
-      # NOTE: ENT specific step as we store secrets in Vault.
-      - name: Fetch Secrets
-        if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
-        id: secrets
-        uses: hashicorp/vault-action@v3
-        with:
-          url: ${{ steps.vault-auth.outputs.addr }}
-          caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
-          token: ${{ steps.vault-auth.outputs.token }}
-          secrets: |
-              kv/data/github/${{ github.repository }}/datadog apikey | DATADOG_API_KEY;
-
-      - name: prepare datadog-ci
-        if: ${{ !cancelled() && !endsWith(github.repository, '-enterprise') }}
-        run: |
-          curl -L --fail "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci"
-          chmod +x /usr/local/bin/datadog-ci
-
-      - name: upload coverage
-        # do not run on forks
-        if: ${{ !cancelled() && env.DATADOG_API_KEY}}
-        env:
-          DD_ENV: ci
-        run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" ${{env.TEST_RESULTS}}/gotestsum-report.xml
       # upload-artifact requires a unique ID per run. These steps will overlap with other users of the reusable workflow. 
       # We use a random string rather than trying to pass in some identifying information.
       - id: generate-run-id
