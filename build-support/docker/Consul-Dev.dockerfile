@@ -3,5 +3,5 @@
 
 ARG CONSUL_IMAGE_VERSION=latest
 FROM docker.mirror.hashicorp.services/hashicorp/consul:${CONSUL_IMAGE_VERSION}
-RUN apk update && apk add iptables
+RUN apk add --no-cache iptables bind-tools
 COPY consul /bin/consul

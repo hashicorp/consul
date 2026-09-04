@@ -367,6 +367,519 @@ func TestDNS_ServiceLookup(t *testing.T) {
 	}
 }
 
+// TestDNS_ServiceLookupLocalityAwareLookupFiltersServiceAndPreparedQuery checks
+// "always" mode narrows A records to same region/zone for service and prepared-query DNS.
+func TestDNS_ServiceLookupLocalityAwareLookupFiltersServiceAndPreparedQuery(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	a := NewTestAgent(t, `
+		locality {
+			region = "eu-west"
+			zone = "1"
+		}
+		dns_config {
+			locality_aware_lookup = "always"
+			a_record_limit = 1
+		}
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	register := func(nodeName, address, zone string) {
+		t.Helper()
+
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       nodeName,
+			Address:    address,
+			Service: &structs.NodeService{
+				ID:      nodeName + "-db",
+				Service: "db",
+				Port:    12345,
+				Locality: &structs.Locality{
+					Region: "eu-west",
+					Zone:   zone,
+				},
+			},
+		}
+
+		var out struct{}
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
+	}
+
+	register("local-node", "127.0.0.10", "1")
+	register("remote-node", "127.0.0.20", "2")
+
+	var queryID string
+	{
+		args := &structs.PreparedQueryRequest{
+			Datacenter: "dc1",
+			Op:         structs.PreparedQueryCreate,
+			Query: &structs.PreparedQuery{
+				Name: "locality-aware-lookup-db",
+				Service: structs.ServiceQuery{
+					Service: "db",
+				},
+			},
+		}
+		require.NoError(t, a.RPC(context.Background(), "PreparedQuery.Apply", args, &queryID))
+	}
+
+	tests := []struct {
+		name        string
+		question    string
+		qtype       uint16
+		assertReply func(t *testing.T, in *dns.Msg)
+	}{
+		{
+			name:     "service A returns only local match with a_record_limit",
+			question: "db.service.consul.",
+			qtype:    dns.TypeA,
+			assertReply: func(t *testing.T, in *dns.Msg) {
+				require.Len(t, in.Answer, 1)
+				aRec, ok := in.Answer[0].(*dns.A)
+				require.True(t, ok)
+				require.Equal(t, "127.0.0.10", aRec.A.String())
+			},
+		},
+		{
+			name:     "service SRV returns only local match",
+			question: "db.service.consul.",
+			qtype:    dns.TypeSRV,
+			assertReply: func(t *testing.T, in *dns.Msg) {
+				require.Len(t, in.Answer, 1)
+				srvRec, ok := in.Answer[0].(*dns.SRV)
+				require.True(t, ok)
+				require.Equal(t, "local-node.node.dc1.consul.", srvRec.Target)
+				require.Len(t, in.Extra, 1)
+				aRec, ok := in.Extra[0].(*dns.A)
+				require.True(t, ok)
+				require.Equal(t, "127.0.0.10", aRec.A.String())
+			},
+		},
+		{
+			name:     "prepared query A returns only local match with a_record_limit",
+			question: queryID + ".query.consul.",
+			qtype:    dns.TypeA,
+			assertReply: func(t *testing.T, in *dns.Msg) {
+				require.Len(t, in.Answer, 1)
+				aRec, ok := in.Answer[0].(*dns.A)
+				require.True(t, ok)
+				require.Equal(t, "127.0.0.10", aRec.A.String())
+			},
+		},
+		{
+			name:     "prepared query SRV returns only local match",
+			question: queryID + ".query.consul.",
+			qtype:    dns.TypeSRV,
+			assertReply: func(t *testing.T, in *dns.Msg) {
+				require.Len(t, in.Answer, 1)
+				srvRec, ok := in.Answer[0].(*dns.SRV)
+				require.True(t, ok)
+				require.Equal(t, "local-node.node.dc1.consul.", srvRec.Target)
+				require.Len(t, in.Extra, 1)
+				aRec, ok := in.Extra[0].(*dns.A)
+				require.True(t, ok)
+				require.Equal(t, "127.0.0.10", aRec.A.String())
+			},
+		},
+	}
+
+	c := new(dns.Client)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := new(dns.Msg)
+			m.SetQuestion(tc.question, tc.qtype)
+
+			in, _, err := c.Exchange(m, a.DNSAddr())
+			require.NoError(t, err)
+			tc.assertReply(t, in)
+		})
+	}
+}
+
+// TestDNS_ServiceLookupLocalityAwareLookupServiceAllowlistAndBlocklist checks
+// that locality filtering is scoped by mutually exclusive service allow/block lists.
+func TestDNS_ServiceLookupLocalityAwareLookupServiceAllowlistAndBlocklist(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	registerService := func(t *testing.T, a *TestAgent, service, nodeName, address, zone string) {
+		t.Helper()
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       nodeName,
+			Address:    address,
+			Service: &structs.NodeService{
+				ID:      nodeName + "-" + service,
+				Service: service,
+				Port:    12345,
+				Locality: &structs.Locality{
+					Region: "eu-west",
+					Zone:   zone,
+				},
+			},
+		}
+		var out struct{}
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
+	}
+
+	t.Run("allowlist only applies locality to listed services", func(t *testing.T) {
+		a := NewTestAgent(t, `
+			locality {
+				region = "eu-west"
+				zone = "1"
+			}
+			dns_config {
+				locality_aware_lookup = "always"
+				locality_aware_lookup_service_allowlist = ["DB"]
+			}
+		`)
+		defer a.Shutdown()
+		testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+		registerService(t, a, "db", "db-local", "127.0.0.10", "1")
+		registerService(t, a, "db", "db-remote", "127.0.0.20", "2")
+		registerService(t, a, "web", "web-local", "127.0.0.30", "1")
+		registerService(t, a, "web", "web-remote", "127.0.0.40", "2")
+
+		var queryID string
+		{
+			args := &structs.PreparedQueryRequest{
+				Datacenter: "dc1",
+				Op:         structs.PreparedQueryCreate,
+				Query: &structs.PreparedQuery{
+					Name: "locality-allowlist-db",
+					Service: structs.ServiceQuery{
+						Service: "db",
+					},
+				},
+			}
+			require.NoError(t, a.RPC(context.Background(), "PreparedQuery.Apply", args, &queryID))
+		}
+
+		c := new(dns.Client)
+
+		m := new(dns.Msg)
+		m.SetQuestion("db.service.consul.", dns.TypeA)
+		in, _, err := c.Exchange(m, a.DNSAddr())
+		require.NoError(t, err)
+		require.Len(t, in.Answer, 1)
+		require.Equal(t, "127.0.0.10", in.Answer[0].(*dns.A).A.String())
+
+		m = new(dns.Msg)
+		m.SetQuestion("web.service.consul.", dns.TypeA)
+		in, _, err = c.Exchange(m, a.DNSAddr())
+		require.NoError(t, err)
+		require.Len(t, in.Answer, 2)
+		addrs := []string{
+			in.Answer[0].(*dns.A).A.String(),
+			in.Answer[1].(*dns.A).A.String(),
+		}
+		require.ElementsMatch(t, []string{"127.0.0.30", "127.0.0.40"}, addrs)
+
+		m = new(dns.Msg)
+		m.SetQuestion(queryID+".query.consul.", dns.TypeA)
+		in, _, err = c.Exchange(m, a.DNSAddr())
+		require.NoError(t, err)
+		require.Len(t, in.Answer, 1)
+		require.Equal(t, "127.0.0.10", in.Answer[0].(*dns.A).A.String())
+	})
+
+	t.Run("blocklist skips locality for listed services", func(t *testing.T) {
+		a := NewTestAgent(t, `
+			locality {
+				region = "eu-west"
+				zone = "1"
+			}
+			dns_config {
+				locality_aware_lookup = "always"
+				locality_aware_lookup_service_blocklist = ["WEB"]
+			}
+		`)
+		defer a.Shutdown()
+		testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+		registerService(t, a, "db", "db-local", "127.0.0.10", "1")
+		registerService(t, a, "db", "db-remote", "127.0.0.20", "2")
+		registerService(t, a, "web", "web-local", "127.0.0.30", "1")
+		registerService(t, a, "web", "web-remote", "127.0.0.40", "2")
+
+		c := new(dns.Client)
+
+		m := new(dns.Msg)
+		m.SetQuestion("db.service.consul.", dns.TypeA)
+		in, _, err := c.Exchange(m, a.DNSAddr())
+		require.NoError(t, err)
+		require.Len(t, in.Answer, 1)
+		require.Equal(t, "127.0.0.10", in.Answer[0].(*dns.A).A.String())
+
+		m = new(dns.Msg)
+		m.SetQuestion("web.service.consul.", dns.TypeA)
+		in, _, err = c.Exchange(m, a.DNSAddr())
+		require.NoError(t, err)
+		require.Len(t, in.Answer, 2)
+		addrs := []string{
+			in.Answer[0].(*dns.A).A.String(),
+			in.Answer[1].(*dns.A).A.String(),
+		}
+		require.ElementsMatch(t, []string{"127.0.0.30", "127.0.0.40"}, addrs)
+	})
+}
+
+// TestDNS_ServiceLookupLocalityAwareLookupFallsBackWhenNoMatches checks that
+// with no same-zone instances, "always" mode still prefers same-region nodes
+// over other regions.
+func TestDNS_ServiceLookupLocalityAwareLookupFallsBackWhenNoMatches(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	a := NewTestAgent(t, `
+		locality {
+			region = "eu-west"
+			zone = "1"
+		}
+		dns_config {
+			locality_aware_lookup = "always"
+		}
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	register := func(nodeName, address, region, zone string) {
+		t.Helper()
+
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       nodeName,
+			Address:    address,
+			Service: &structs.NodeService{
+				ID:      nodeName + "-db",
+				Service: "db",
+				Port:    12345,
+				Locality: &structs.Locality{
+					Region: region,
+					Zone:   zone,
+				},
+			},
+		}
+
+		var out struct{}
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
+	}
+
+	register("remote-a", "127.0.0.31", "eu-west", "2")
+	register("remote-b", "127.0.0.32", "us-east", "1")
+
+	m := new(dns.Msg)
+	m.SetQuestion("db.service.consul.", dns.TypeA)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	require.NoError(t, err)
+	require.Len(t, in.Answer, 1)
+
+	aRec, ok := in.Answer[0].(*dns.A)
+	require.True(t, ok)
+	require.Equal(t, "127.0.0.31", aRec.A.String())
+}
+
+// TestDNS_ServiceLookupLocalityAwareLookupBalancedFallsBackWhenZonesDiffer checks
+// "balanced" mode returns region-wide nodes when zone instance counts are uneven.
+func TestDNS_ServiceLookupLocalityAwareLookupBalancedFallsBackWhenZonesDiffer(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	a := NewTestAgent(t, `
+		locality {
+			region = "eu-west"
+			zone = "1"
+		}
+		dns_config {
+			locality_aware_lookup = "balanced"
+		}
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	register := func(nodeName, address, zone string) {
+		t.Helper()
+
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       nodeName,
+			Address:    address,
+			Service: &structs.NodeService{
+				ID:      nodeName + "-db",
+				Service: "db",
+				Port:    12345,
+				Locality: &structs.Locality{
+					Region: "eu-west",
+					Zone:   zone,
+				},
+			},
+		}
+
+		var out struct{}
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
+	}
+
+	register("zone-1", "127.0.0.41", "1")
+	register("zone-2-a", "127.0.0.42", "2")
+	register("zone-2-b", "127.0.0.43", "2")
+
+	m := new(dns.Msg)
+	m.SetQuestion("db.service.consul.", dns.TypeA)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	require.NoError(t, err)
+	require.Len(t, in.Answer, 3)
+
+	ips := []string{
+		in.Answer[0].(*dns.A).A.String(),
+		in.Answer[1].(*dns.A).A.String(),
+		in.Answer[2].(*dns.A).A.String(),
+	}
+	sort.Strings(ips)
+	require.Equal(t, []string{"127.0.0.41", "127.0.0.42", "127.0.0.43"}, ips)
+}
+
+// TestDNS_ServiceLookupLocalityAwareLookupFallsBackToSameRegionWhenZoneIsUnset
+// checks "always" mode keeps same-region instances whose service locality omits a
+// zone, together with instances in the agent's zone.
+func TestDNS_ServiceLookupLocalityAwareLookupFallsBackToSameRegionWhenZoneIsUnset(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	a := NewTestAgent(t, `
+		locality {
+			region = "eu-west"
+			zone = "1"
+		}
+		dns_config {
+			locality_aware_lookup = "always"
+		}
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	register := func(nodeName, address, region string, zone *string) {
+		t.Helper()
+
+		locality := &structs.Locality{Region: region}
+		if zone != nil {
+			locality.Zone = *zone
+		}
+
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       nodeName,
+			Address:    address,
+			Service: &structs.NodeService{
+				ID:       nodeName + "-db",
+				Service:  "db",
+				Port:     12345,
+				Locality: locality,
+			},
+		}
+
+		var out struct{}
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
+	}
+
+	remoteZone := "2"
+	register("same-region-unset-zone", "127.0.0.51", "eu-west", nil)
+	register("same-region-other-zone", "127.0.0.52", "eu-west", &remoteZone)
+	register("other-region", "127.0.0.53", "us-east", nil)
+
+	m := new(dns.Msg)
+	m.SetQuestion("db.service.consul.", dns.TypeA)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	require.NoError(t, err)
+	require.Len(t, in.Answer, 2)
+
+	ips := []string{
+		in.Answer[0].(*dns.A).A.String(),
+		in.Answer[1].(*dns.A).A.String(),
+	}
+	sort.Strings(ips)
+	require.Equal(t, []string{"127.0.0.51", "127.0.0.52"}, ips)
+}
+
+// TestDNS_ServiceLookupLocalityAwareLookupBalancedFallsBackToSameRegionWhenZoneIsUnset
+// checks "balanced" mode for the same region / zone-unset service locality pattern
+// as TestDNS_ServiceLookupLocalityAwareLookupFallsBackToSameRegionWhenZoneIsUnset.
+func TestDNS_ServiceLookupLocalityAwareLookupBalancedFallsBackToSameRegionWhenZoneIsUnset(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	a := NewTestAgent(t, `
+		locality {
+			region = "eu-west"
+			zone = "1"
+		}
+		dns_config {
+			locality_aware_lookup = "balanced"
+		}
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	register := func(nodeName, address, region string, zone *string) {
+		t.Helper()
+
+		locality := &structs.Locality{Region: region}
+		if zone != nil {
+			locality.Zone = *zone
+		}
+
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       nodeName,
+			Address:    address,
+			Service: &structs.NodeService{
+				ID:       nodeName + "-db",
+				Service:  "db",
+				Port:     12345,
+				Locality: locality,
+			},
+		}
+
+		var out struct{}
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
+	}
+
+	remoteZone := "2"
+	register("same-region-unset-zone", "127.0.0.61", "eu-west", nil)
+	register("same-region-other-zone", "127.0.0.62", "eu-west", &remoteZone)
+	register("other-region", "127.0.0.63", "us-east", nil)
+
+	m := new(dns.Msg)
+	m.SetQuestion("db.service.consul.", dns.TypeA)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	require.NoError(t, err)
+	require.Len(t, in.Answer, 2)
+
+	ips := []string{
+		in.Answer[0].(*dns.A).A.String(),
+		in.Answer[1].(*dns.A).A.String(),
+	}
+	sort.Strings(ips)
+	require.Equal(t, []string{"127.0.0.61", "127.0.0.62"}, ips)
+}
+
 // TestDNS_ServiceAddressWithTagLookup tests some specific cases that Nomad would exercise,
 // Like registering a service w/o a Node. https://github.com/hashicorp/nomad/blob/1174019676ff3d65b39323eb0c7234fb1e09b80c/command/agent/consul/service_client.go#L1366-L1381
 // Errors with this were reported in https://github.com/hashicorp/consul/issues/21325#issuecomment-2166845574
@@ -568,6 +1081,80 @@ func TestDNS_ConnectServiceLookup(t *testing.T) {
 		require.Equal(t, "127.0.0.55", cnameRec.A.String())
 	}
 
+}
+
+func TestDNS_ConnectServiceLookupLocalityAwareLookupIgnored(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	a := NewTestAgent(t, `
+		locality {
+			region = "eu-west"
+			zone = "1"
+		}
+		dns_config {
+			locality_aware_lookup = "always"
+		}
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	registerProxy := func(nodeName, address, zone string) {
+		t.Helper()
+
+		args := structs.TestRegisterRequestProxy(t)
+		args.Node = nodeName
+		args.Address = address
+		args.Locality = &structs.Locality{
+			Region: "eu-west",
+			Zone:   zone,
+		}
+		args.Service.ID = nodeName + "-proxy"
+		args.Service.Proxy.DestinationServiceName = "db"
+		args.Service.Address = ""
+		args.Service.Port = 12345
+		args.Service.Locality = &structs.Locality{
+			Region: "eu-west",
+			Zone:   zone,
+		}
+
+		var out struct{}
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
+	}
+
+	registerProxy("connect-local", "127.0.0.55", "1")
+	registerProxy("connect-remote", "127.0.0.56", "2")
+
+	m := new(dns.Msg)
+	m.SetQuestion("db.connect.consul.", dns.TypeSRV)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	require.NoError(t, err)
+	require.Len(t, in.Answer, 2)
+	require.Len(t, in.Extra, 2)
+
+	targets := make([]string, 0, len(in.Answer))
+	for _, answer := range in.Answer {
+		srvRec, ok := answer.(*dns.SRV)
+		require.True(t, ok)
+		require.Equal(t, uint16(12345), srvRec.Port)
+		targets = append(targets, srvRec.Target)
+	}
+	require.ElementsMatch(t, []string{
+		"connect-local.node.dc1.consul.",
+		"connect-remote.node.dc1.consul.",
+	}, targets)
+
+	addrs := make([]string, 0, len(in.Extra))
+	for _, extra := range in.Extra {
+		aRec, ok := extra.(*dns.A)
+		require.True(t, ok)
+		addrs = append(addrs, aRec.A.String())
+	}
+	require.ElementsMatch(t, []string{"127.0.0.55", "127.0.0.56"}, addrs)
 }
 
 func TestDNS_IngressServiceLookup(t *testing.T) {
@@ -782,6 +1369,131 @@ func TestDNS_APIGatewayServiceLookup(t *testing.T) {
 			})
 		})
 	}
+}
+
+func TestDNS_IngressServiceLookupLocalityAwareLookupIgnored(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	a := NewTestAgent(t, `
+		locality {
+			region = "eu-west"
+			zone = "1"
+		}
+		dns_config {
+			locality_aware_lookup = "always"
+		}
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	registerIngressGateway := func(nodeName, address, zone string) {
+		t.Helper()
+
+		args := structs.TestRegisterIngressGateway(t)
+		args.Node = nodeName
+		args.Address = address
+		args.Locality = &structs.Locality{
+			Region: "eu-west",
+			Zone:   zone,
+		}
+		args.Service.ID = nodeName + "-ingress-gateway"
+		args.Service.Address = ""
+		args.Service.Locality = &structs.Locality{
+			Region: "eu-west",
+			Zone:   zone,
+		}
+
+		var out struct{}
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
+	}
+
+	registerIngressGateway("ingress-local", "127.0.0.71", "1")
+	registerIngressGateway("ingress-remote", "127.0.0.72", "2")
+
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "service-node",
+			Address:    "127.0.0.80",
+			Locality: &structs.Locality{
+				Region: "eu-west",
+				Zone:   "1",
+			},
+			Service: &structs.NodeService{
+				Service: "db",
+				Address: "",
+				Port:    80,
+				Locality: &structs.Locality{
+					Region: "eu-west",
+					Zone:   "1",
+				},
+			},
+		}
+
+		var out struct{}
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
+	}
+
+	{
+		req := structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry: &structs.ProxyConfigEntry{
+				Kind: structs.ProxyDefaults,
+				Name: structs.ProxyConfigGlobal,
+				Config: map[string]interface{}{
+					"protocol": "http",
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		var out bool
+		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", req, &out))
+		require.True(t, out)
+	}
+
+	{
+		args := &structs.IngressGatewayConfigEntry{
+			Name: "ingress-gateway",
+			Kind: structs.IngressGateway,
+			Listeners: []structs.IngressListener{
+				{
+					Port:     8888,
+					Protocol: "http",
+					Services: []structs.IngressService{
+						{Name: "db"},
+					},
+				},
+			},
+		}
+
+		req := structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry:      args,
+		}
+		var out bool
+		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", req, &out))
+		require.True(t, out)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("db.ingress.consul.", dns.TypeA)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	require.NoError(t, err)
+	require.Len(t, in.Answer, 2)
+
+	addrs := make([]string, 0, len(in.Answer))
+	for _, answer := range in.Answer {
+		aRec, ok := answer.(*dns.A)
+		require.True(t, ok)
+		addrs = append(addrs, aRec.A.String())
+	}
+	require.ElementsMatch(t, []string{"127.0.0.71", "127.0.0.72"}, addrs)
 }
 
 func TestDNS_ExternalServiceLookup(t *testing.T) {
