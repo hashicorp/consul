@@ -1,0 +1,3 @@
+```release-note:improvement
+ci: Increased the stale PR automation windows to 90 days before marking a pull request stale and 60 days before closing it.
+```

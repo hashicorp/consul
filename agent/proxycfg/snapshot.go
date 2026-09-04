@@ -777,6 +777,10 @@ type configSnapshotAPIGateway struct {
 	Listeners map[string]structs.APIGatewayListener
 
 	BoundListeners map[string]structs.BoundAPIGatewayListener
+
+	// ComposeUpstreamRouting is the final committed feature decision captured
+	// for this snapshot. It is true only for the server-catalog path.
+	ComposeUpstreamRouting bool
 }
 
 func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, listener structs.APIGatewayListener, boundListener structs.BoundAPIGatewayListener) ([]structs.IngressService, structs.Upstreams, []*structs.CompiledDiscoveryChain, error) {
@@ -805,12 +809,15 @@ DOMAIN_LOOP:
 	}
 
 	synthesizer := discoverychain.NewGatewayChainSynthesizer(datacenter, trustDomain, listener.Name, c.GatewayConfig)
+	if c.ComposeUpstreamRouting {
+		synthesizer.EnableUpstreamRoutingComposition()
+	}
 	synthesizer.SetHostname(listener.GetHostname())
 	for _, routeRef := range boundListener.Routes {
 		switch routeRef.Kind {
 		case structs.HTTPRoute:
 			route, ok := c.HTTPRoutes.Get(routeRef)
-			if !ok || listener.Protocol != structs.ListenerProtocolHTTP {
+			if !ok || !structs.IsProtocolHTTPLike(string(listener.Protocol)) {
 				continue
 			}
 			synthesizer.AddHTTPRoute(*route)

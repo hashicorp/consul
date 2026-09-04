@@ -20,11 +20,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-metrics/prometheus"
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-metrics/prometheus"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-sockaddr/template"
 	"github.com/hashicorp/memberlist"
@@ -36,6 +36,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	consulrate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/featuregate"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
@@ -880,6 +881,8 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	// build runtime config
 	//
 	dataDir := stringVal(c.DataDir)
+	tokenDirs := stringVal(c.TokenDirs)
+
 	rt = RuntimeConfig{
 		// non-user configurable values
 		AEInterval:                 b.durationVal("ae_interval", c.AEInterval),
@@ -893,6 +896,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		VersionPrerelease:          stringVal(c.VersionPrerelease),
 		VersionMetadata:            stringVal(c.VersionMetadata),
 		Experiments:                c.Experiments,
+		FeatureGatesBootstrap:      c.FeatureGates.Bootstrap,
 		// What is a sensible default for BuildDate?
 		BuildDate: timeValWithDefault(c.BuildDate, time.Date(1970, 1, 00, 00, 00, 01, 0, time.UTC)),
 
@@ -1073,6 +1077,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		ExposeMinPort:                          exposeMinPort,
 		ExposeMaxPort:                          exposeMaxPort,
 		DataDir:                                dataDir,
+		TokenDirs:                              tokenDirs,
 		Datacenter:                             datacenter,
 		DefaultQueryTime:                       b.durationVal("default_query_time", c.DefaultQueryTime),
 		DefaultIntentionPolicy:                 stringVal(c.DefaultIntentionPolicy),
@@ -1102,6 +1107,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		GRPCKeepaliveTimeout:       b.durationValWithDefaultMin("performance.grpc_keepalive_timeout", c.Performance.GRPCKeepaliveTimeout, 20*time.Second, time.Second),
 		HTTPMaxConnsPerClient:      intVal(c.Limits.HTTPMaxConnsPerClient),
 		HTTPSHandshakeTimeout:      b.durationVal("limits.https_handshake_timeout", c.Limits.HTTPSHandshakeTimeout),
+		GRPCMaxConnsPerClient:      intVal(c.Limits.GRPCMaxConnsPerClient),
 		KVMaxValueSize:             uint64Val(c.Limits.KVMaxValueSize),
 		LeaveDrainTime:             b.durationVal("performance.leave_drain_time", c.Performance.LeaveDrainTime),
 		LeaveOnTerm:                leaveOnTerm,
@@ -1361,6 +1367,27 @@ func (b *builder) validate(rt RuntimeConfig) error {
 		}
 	}
 
+	if !rt.DevMode {
+		if rt.TokenDirs != "" {
+			// TokenDirs supports a comma-separated list of directories (matching
+			// the runtime split performed by the Vault auth modules). Validate
+			// each entry individually.
+			for _, dir := range strings.Split(rt.TokenDirs, ",") {
+				dir = strings.TrimSpace(dir)
+				if dir == "" {
+					continue
+				}
+				fi, err := os.Stat(dir)
+				switch {
+				case err != nil && !os.IsNotExist(err):
+					return fmt.Errorf("Error getting info on token_dirs: %s", err)
+				case err == nil && !fi.IsDir():
+					return fmt.Errorf("token_dirs %q is not a directory", dir)
+				}
+			}
+		}
+	}
+
 	switch {
 	case rt.NodeName == "":
 		return fmt.Errorf("node_name cannot be empty")
@@ -1427,6 +1454,14 @@ func (b *builder) validate(rt RuntimeConfig) error {
 	}
 	if rt.AutopilotMaxTrailingLogs < 0 {
 		return fmt.Errorf("autopilot.max_trailing_logs cannot be %d. Must be greater than or equal to zero", rt.AutopilotMaxTrailingLogs)
+	}
+	if len(rt.FeatureGatesBootstrap) > 0 && !rt.ServerMode {
+		return fmt.Errorf("feature_gates.bootstrap requires server = true")
+	}
+	for name := range rt.FeatureGatesBootstrap {
+		if _, ok := featuregate.DefaultRegistry().DefinitionForName(name); !ok {
+			return fmt.Errorf("feature_gates.bootstrap contains unknown feature %q", name)
+		}
 	}
 	if err := validateBasicName("primary_datacenter", rt.PrimaryDatacenter, true); err != nil {
 		return err
@@ -1624,6 +1659,10 @@ func (b *builder) validate(rt RuntimeConfig) error {
 		return err
 	}
 
+	if err := checkLimitsFromMaxConnsPerClient(rt.GRPCMaxConnsPerClient); err != nil {
+		return err
+	}
+
 	if rt.AutoConfig.Enabled && rt.AutoEncryptTLS {
 		return fmt.Errorf("both auto_encrypt.tls and auto_config.enabled cannot be set to true.")
 	}
@@ -1816,8 +1855,73 @@ func (b *builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		Proxy:             b.serviceProxyVal(v.Proxy),
 		Connect:           b.serviceConnectVal(v.Connect),
 		Locality:          b.serviceLocalityVal(v.Locality),
+		AI:                b.serviceAIVal(v.AI),
 		EnterpriseMeta:    v.ToStructs(),
 	}
+}
+
+func (b *builder) serviceAIVal(v *ServiceAI) *structs.ServiceAI {
+	if v == nil {
+		return nil
+	}
+	ai := &structs.ServiceAI{
+		Role: structs.ServiceAIRole(stringVal(v.Role)),
+	}
+	if v.InferenceModel != nil {
+		im := &structs.AIInferenceModel{
+			Protocol: stringVal(v.InferenceModel.Protocol),
+			Path:     stringVal(v.InferenceModel.Path),
+		}
+		if v.InferenceModel.Defaults != nil {
+			im.Defaults = &structs.AIModelDefaults{
+				MaxTokens:   intVal(v.InferenceModel.Defaults.MaxTokens),
+				Temperature: float64Val(v.InferenceModel.Defaults.Temperature),
+			}
+		}
+		ai.InferenceModel = im
+	}
+	if v.MCPServer != nil {
+		ms := &structs.AIMCPServer{
+			Transport:       stringVal(v.MCPServer.Transport),
+			Path:            stringVal(v.MCPServer.Path),
+			ProtocolVersion: stringVal(v.MCPServer.ProtocolVersion),
+		}
+		ai.MCPServer = ms
+	}
+	if v.Agent != nil {
+		ag := &structs.AIAgent{}
+		if v.Agent.Inference != nil {
+			ag.Inference = &structs.AIAgentInference{
+				Specialization: v.Agent.Inference.Specialization,
+				Vendor:         stringVal(v.Agent.Inference.Vendor),
+			}
+		}
+		if v.Agent.MCP != nil {
+			mcp := &structs.AIAgentMCP{
+				Port: intVal(v.Agent.MCP.Port),
+			}
+			if v.Agent.MCP.HITL != nil {
+				mcp.HITL = &structs.AIAgentMCPHITL{
+					Port:            intVal(v.Agent.MCP.HITL.Port),
+					ApprovalTimeout: stringVal(v.Agent.MCP.HITL.ApprovalTimeout),
+				}
+			}
+			ag.MCP = mcp
+		}
+		if v.Agent.RateLimits != nil {
+			ag.RateLimits = &structs.AIAgentRateLimits{
+				ToolCallsPerMinute: intVal(v.Agent.RateLimits.ToolCallsPerMinute),
+				ToolCallsPerHour:   intVal(v.Agent.RateLimits.ToolCallsPerHour),
+			}
+		}
+		if v.Agent.Interceptor != nil {
+			ag.Interceptor = &structs.AIAgentInterceptor{
+				Port: intVal(v.Agent.Interceptor.Port),
+			}
+		}
+		ai.Agent = ag
+	}
+	return ai
 }
 
 func (b *builder) serviceLocalityVal(l *Locality) *structs.Locality {

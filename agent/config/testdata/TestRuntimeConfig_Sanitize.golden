@@ -201,9 +201,11 @@
     "Experiments": [],
     "ExposeMaxPort": 0,
     "ExposeMinPort": 0,
+    "FeatureGatesBootstrap": {},
     "GRPCAddrs": [],
     "GRPCKeepaliveInterval": "0s",
     "GRPCKeepaliveTimeout": "0s",
+    "GRPCMaxConnsPerClient": 0,
     "GRPCPort": 0,
     "GRPCTLSAddrs": [],
     "GRPCTLSPort": 0,
@@ -343,6 +345,7 @@
     "ServerRejoinAgeMax": "168h0m0s",
     "Services": [
         {
+            "AI": null,
             "Address": "",
             "Check": {
                 "AliasNode": "",
@@ -497,6 +500,7 @@
         "StatsdAddr": "",
         "StatsiteAddr": ""
     },
+    "TokenDirs": "hidden",
     "TranslateWANAddrs": false,
     "TxnMaxReqLen": 5678000000000000,
     "UIConfig": {

@@ -5,6 +5,7 @@ package consul
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
@@ -79,7 +80,7 @@ func (t *Txn) preCheck(authorizer resolver.Result, ops structs.TxnOps) structs.T
 			}
 
 			// Check that the token has permissions for the given operation.
-			if err := vetNodeTxnOp(op.Node, authorizer); err != nil {
+			if err := t.vetNodeTxnOp(op.Node, authorizer); err != nil {
 				errors = append(errors, &structs.TxnError{
 					OpIndex: i,
 					What:    err.Error(),
@@ -148,6 +149,18 @@ func (t *Txn) preCheck(authorizer resolver.Result, ops structs.TxnOps) structs.T
 					OpIndex: i,
 					What:    err.Error(),
 				})
+				break
+			}
+
+			// Check that the token has permissions for the given operation.
+			// Without this check a caller could destroy arbitrary sessions via
+			// Txn.Apply without holding session:write, bypassing the ACL
+			// enforcement performed by the Session.Apply endpoint.
+			if err := t.vetSessionTxnOp(op.Session, authorizer); err != nil {
+				errors = append(errors, &structs.TxnError{
+					OpIndex: i,
+					What:    err.Error(),
+				})
 			}
 		default:
 			errors = append(errors, &structs.TxnError{
@@ -161,13 +174,109 @@ func (t *Txn) preCheck(authorizer resolver.Result, ops structs.TxnOps) structs.T
 }
 
 // vetNodeTxnOp applies the given ACL policy to a node transaction operation.
-func vetNodeTxnOp(op *structs.TxnNodeOp, authz resolver.Result) error {
-	var authzContext acl.AuthorizerContext
-	op.FillAuthzContext(&authzContext)
+//
+// If a request includes a Node.ID that resolves to an existing node, ACLs must be
+// checked against that stored node name because NodeSet/NodeCAS ultimately mutate
+// the object selected by the ID. If the request is renaming an existing node by
+// ID, require write permission on both the stored name and requested name.
+func (t *Txn) vetNodeTxnOp(op *structs.TxnNodeOp, authz resolver.Result) error {
+	var requestCtx acl.AuthorizerContext
+	op.FillAuthzContext(&requestCtx)
 
-	if err := authz.ToAllowAuthorizer().NodeWriteAllowed(op.Node.Node, &authzContext); err != nil {
+	if op.Node.ID != "" {
+		_, existing, err := t.srv.fsm.State().GetNodeID(op.Node.ID, op.Node.GetEnterpriseMeta(), op.Node.PeerName)
+		if err != nil {
+			return fmt.Errorf("node lookup by ID failed: %w", err)
+		}
+
+		if existing != nil {
+			var existingCtx acl.AuthorizerContext
+			existing.FillAuthzContext(&existingCtx)
+
+			if err := authz.ToAllowAuthorizer().NodeWriteAllowed(existing.Node, &existingCtx); err != nil {
+				return err
+			}
+
+			// Preserve legitimate rename-by-ID behavior, but require access to
+			// both the existing node and the requested replacement name.
+			if !strings.EqualFold(existing.Node, op.Node.Node) {
+				if err := authz.ToAllowAuthorizer().NodeWriteAllowed(op.Node.Node, &requestCtx); err != nil {
+					return err
+				}
+			}
+
+			return nil
+		}
+	}
+
+	if err := authz.ToAllowAuthorizer().NodeWriteAllowed(op.Node.Node, &requestCtx); err != nil {
 		return err
 	}
+	return nil
+}
+
+// vetSessionTxnOp applies ACL policy to a session transaction operation.
+//
+// Session txn mutations are applied by session ID, so (mirroring the
+// Session.Apply SessionDestroy path) we authorize against the node the existing
+// session is bound to. If no matching session exists the operation is a no-op
+// and is allowed. Only the delete verb is currently supported.
+func (t *Txn) vetSessionTxnOp(op *structs.TxnSessionOp, authz resolver.Result) error {
+	var authzContext acl.AuthorizerContext
+	op.Session.FillAuthzContext(&authzContext)
+
+	_, existing, err := t.srv.fsm.State().SessionGet(nil, op.Session.ID, &op.Session.EnterpriseMeta)
+	if err != nil {
+		return fmt.Errorf("session lookup failed: %v", err)
+	}
+	if existing == nil {
+		// Nothing to delete; treat as a no-op like Session.Apply does.
+		return nil
+	}
+
+	return authz.ToAllowAuthorizer().SessionWriteAllowed(existing.Node, &authzContext)
+}
+
+// vetServiceTxnTarget applies target-aware ACL checks for service txn writes.
+//
+// servicePreApply validates the submitted service object and checks write access
+// to the submitted service name. This helper additionally checks the stored
+// service selected by Node + Service.ID + EnterpriseMeta + PeerName, because the
+// state store mutates by service ID.
+func (t *Txn) vetServiceTxnTarget(op *structs.TxnServiceOp, authz resolver.Result) error {
+	_, existing, err := t.srv.fsm.State().NodeService(
+		nil,
+		op.Node,
+		op.Service.ID,
+		&op.Service.EnterpriseMeta,
+		op.Service.PeerName,
+	)
+	if err != nil {
+		return fmt.Errorf("service lookup failed: %w", err)
+	}
+	if existing == nil {
+		// True create or no-op delete of a non-existent service. servicePreApply
+		// already authorized the submitted canonical service name.
+		return nil
+	}
+
+	var existingCtx acl.AuthorizerContext
+	existing.FillAuthzContext(&existingCtx)
+
+	if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(existing.Service, &existingCtx); err != nil {
+		return err
+	}
+
+	if !strings.EqualFold(existing.Service, op.Service.Service) {
+		return fmt.Errorf(
+			"service ID %q on node %q is already registered as service %q; request service name %q does not match",
+			op.Service.ID,
+			op.Node,
+			existing.Service,
+			op.Service.Service,
+		)
+	}
+
 	return nil
 }
 

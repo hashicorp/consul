@@ -5,6 +5,7 @@ package structs
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -1237,6 +1238,112 @@ func TestAPIGateway_Listeners(t *testing.T) {
 			},
 			validateErr: "unsupported listener protocol",
 		},
+		"valid http2 protocol": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-http2",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     9081,
+						Hostname: "host.one",
+						Protocol: ListenerProtocolHTTP2,
+					},
+				},
+			},
+			expectUnchanged: true,
+		},
+		"valid grpc protocol": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-grpc",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     9080,
+						Hostname: "host.one",
+						Protocol: ListenerProtocolGRPC,
+					},
+				},
+			},
+			expectUnchanged: true,
+		},
+		"http and http2 listeners merge on the same port": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-http-http2-merge",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener-http",
+						Port:     80,
+						Protocol: ListenerProtocolHTTP,
+					},
+					{
+						Name:     "listener-http2",
+						Port:     80,
+						Protocol: ListenerProtocolHTTP2,
+					},
+				},
+			},
+			validateErr: "cannot be merged",
+		},
+		"http and grpc listeners merge on the same port": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-http-grpc-merge",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener-http",
+						Port:     80,
+						Protocol: ListenerProtocolHTTP,
+					},
+					{
+						Name:     "listener-grpc",
+						Port:     80,
+						Protocol: ListenerProtocolGRPC,
+					},
+				},
+			},
+			validateErr: "cannot be merged",
+		},
+		"http2 and grpc listeners merge on the same port": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-http2-grpc-merge",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener-http2",
+						Port:     80,
+						Protocol: ListenerProtocolHTTP2,
+					},
+					{
+						Name:     "listener-grpc",
+						Port:     80,
+						Protocol: ListenerProtocolGRPC,
+					},
+				},
+			},
+			validateErr: "cannot be merged",
+		},
+		"tcp and http listeners merge on the same port": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-tcp-http-merge",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener-tcp",
+						Port:     80,
+						Protocol: ListenerProtocolTCP,
+					},
+					{
+						Name:     "listener-http",
+						Port:     80,
+						Protocol: ListenerProtocolHTTP,
+					},
+				},
+			},
+			validateErr: "cannot be merged",
+		},
 		"hostname in unsupported protocol": {
 			entry: &APIGatewayConfigEntry{
 				Kind: "api-gateway",
@@ -1649,6 +1756,126 @@ func TestAPIGateway_Listeners(t *testing.T) {
 				},
 				EnterpriseMeta: *defaultMeta,
 			},
+		},
+		"valid defaults passive health check": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-defaults-phc",
+				Defaults: &UpstreamLimits{
+					PassiveHealthCheck: &PassiveHealthCheck{
+						Interval:    5 * time.Second,
+						MaxFailures: 3,
+					},
+				},
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     80,
+						Protocol: APIGatewayListenerProtocol("http"),
+					},
+				},
+			},
+			expected: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-defaults-phc",
+				Defaults: &UpstreamLimits{
+					PassiveHealthCheck: &PassiveHealthCheck{
+						Interval:    5 * time.Second,
+						MaxFailures: 3,
+					},
+				},
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     80,
+						Protocol: APIGatewayListenerProtocol("http"),
+					},
+				},
+				EnterpriseMeta: *defaultMeta,
+			},
+		},
+		"valid defaults all limits and passive health check": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-defaults-full",
+				Defaults: &UpstreamLimits{
+					MaxConnections:        intPointer(50),
+					MaxPendingRequests:    intPointer(100),
+					MaxConcurrentRequests: intPointer(200),
+					PassiveHealthCheck: &PassiveHealthCheck{
+						Interval:           10 * time.Second,
+						MaxFailures:        5,
+						MaxEjectionPercent: uintPointer(50),
+					},
+				},
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     9194,
+						Protocol: APIGatewayListenerProtocol("http"),
+					},
+				},
+			},
+			expected: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-defaults-full",
+				Defaults: &UpstreamLimits{
+					MaxConnections:        intPointer(50),
+					MaxPendingRequests:    intPointer(100),
+					MaxConcurrentRequests: intPointer(200),
+					PassiveHealthCheck: &PassiveHealthCheck{
+						Interval:           10 * time.Second,
+						MaxFailures:        5,
+						MaxEjectionPercent: uintPointer(50),
+					},
+				},
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     9194,
+						Protocol: APIGatewayListenerProtocol("http"),
+					},
+				},
+				EnterpriseMeta: *defaultMeta,
+			},
+		},
+		"invalid defaults passive health check negative interval": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-defaults-phc-invalid",
+				Defaults: &UpstreamLimits{
+					PassiveHealthCheck: &PassiveHealthCheck{
+						Interval: -1 * time.Second,
+					},
+				},
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     80,
+						Protocol: APIGatewayListenerProtocol("http"),
+					},
+				},
+			},
+			validateErr: "cannot be negative",
+		},
+		"invalid defaults passive health check max ejection percent": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-defaults-phc-pct-invalid",
+				Defaults: &UpstreamLimits{
+					PassiveHealthCheck: &PassiveHealthCheck{
+						MaxEjectionPercent: uintPointer(101),
+					},
+				},
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     80,
+						Protocol: APIGatewayListenerProtocol("http"),
+					},
+				},
+			},
+			validateErr: "must be a percentage",
 		},
 	}
 	testConfigEntryNormalizeAndValidate(t, cases)
@@ -2116,6 +2343,35 @@ func Test_ServiceRouteReferences_RemoveRouteRef(t *testing.T) {
 			tc.subject.RemoveRouteRef(tc.routeRef)
 
 			require.Equal(t, tc.subject, tc.expectedRefs)
+		})
+	}
+}
+
+func TestAPIGatewayListenerProtocolsCompatible(t *testing.T) {
+	cases := map[string]struct {
+		a        APIGatewayListenerProtocol
+		b        APIGatewayListenerProtocol
+		expected bool
+	}{
+		"http with http":   {ListenerProtocolHTTP, ListenerProtocolHTTP, true},
+		"http with http2":  {ListenerProtocolHTTP, ListenerProtocolHTTP2, true},
+		"http with grpc":   {ListenerProtocolHTTP, ListenerProtocolGRPC, true},
+		"http2 with http":  {ListenerProtocolHTTP2, ListenerProtocolHTTP, true},
+		"http2 with http2": {ListenerProtocolHTTP2, ListenerProtocolHTTP2, true},
+		"http2 with grpc":  {ListenerProtocolHTTP2, ListenerProtocolGRPC, true},
+		"grpc with http":   {ListenerProtocolGRPC, ListenerProtocolHTTP, true},
+		"grpc with http2":  {ListenerProtocolGRPC, ListenerProtocolHTTP2, true},
+		"grpc with grpc":   {ListenerProtocolGRPC, ListenerProtocolGRPC, true},
+		"tcp with tcp":     {ListenerProtocolTCP, ListenerProtocolTCP, true},
+		"tcp with http":    {ListenerProtocolTCP, ListenerProtocolHTTP, false},
+		"http with tcp":    {ListenerProtocolHTTP, ListenerProtocolTCP, false},
+		"grpc with tcp":    {ListenerProtocolGRPC, ListenerProtocolTCP, false},
+		"tcp with grpc":    {ListenerProtocolTCP, ListenerProtocolGRPC, false},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			require.Equal(t, tc.expected, APIGatewayListenerProtocolsCompatible(tc.a, tc.b))
 		})
 	}
 }

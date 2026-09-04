@@ -1,0 +1,7 @@
+```release-note:security
+security: upgrade to Go 1.26.6 and migrate Docker SDK to Moby
+        - refresh Go, gRPC, and golang.org/x dependencies across modules
+        - replace the deprecated docker/docker module with Moby API and client
+        - upgrade testcontainers-go to v0.42.0
+        - adapt integration tests to the typed Moby port and container-state APIs
+```

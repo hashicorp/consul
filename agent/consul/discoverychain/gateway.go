@@ -18,14 +18,21 @@ import (
 // GatewayChainSynthesizer is used to synthesize a discovery chain for a
 // gateway from its configuration and multiple other discovery chains.
 type GatewayChainSynthesizer struct {
-	datacenter        string
-	trustDomain       string
-	suffix            string
-	gateway           *structs.APIGatewayConfigEntry
-	hostname          string
-	matchesByHostname map[string][]hostnameMatch
-	tcpRoutes         []structs.TCPRouteConfigEntry
-	serviceRouters    map[structs.ServiceName][]*structs.ServiceRoute
+	datacenter             string
+	trustDomain            string
+	suffix                 string
+	gateway                *structs.APIGatewayConfigEntry
+	hostname               string
+	matchesByHostname      map[string][]hostnameMatch
+	tcpRoutes              []structs.TCPRouteConfigEntry
+	serviceRouters         map[structs.ServiceName][]*structs.ServiceRoute
+	composeUpstreamRouting bool
+}
+
+// EnableUpstreamRoutingComposition enables composition of API Gateway routes
+// with upstream service-router and service-resolver policy.
+func (l *GatewayChainSynthesizer) EnableUpstreamRoutingComposition() {
+	l.composeUpstreamRouting = true
 }
 
 type hostnameMatch struct {
@@ -115,9 +122,14 @@ func (l *GatewayChainSynthesizer) Synthesize(chains ...*structs.CompiledDiscover
 		return nil, nil, fmt.Errorf("must provide at least one compiled discovery chain")
 	}
 
-	l.serviceRouters = serviceRouterRulesFromChains(chains)
+	if l.composeUpstreamRouting {
+		l.serviceRouters = serviceRouterRulesFromChains(chains)
+	}
 	services, set := l.synthesizeEntries()
-	resolverEntries := resolverEntriesFromChains(chains)
+	var resolverEntries []*structs.ServiceResolverConfigEntry
+	if l.composeUpstreamRouting {
+		resolverEntries = resolverEntriesFromChains(chains)
+	}
 
 	if len(set) == 0 {
 		// we can't actually compile a discovery chain, i.e. we're using a TCPRoute-based listener, instead, just return the ingresses
@@ -350,7 +362,7 @@ func (l *GatewayChainSynthesizer) synthesizeEntries() ([]structs.IngressService,
 	entries := []*configentry.DiscoveryChainSet{}
 
 	for _, route := range l.consolidateHTTPRoutes() {
-		ingress, router, splitters, defaults := synthesizeHTTPRouteDiscoveryChain(route, l.serviceRouters)
+		ingress, router, splitters, defaults := synthesizeHTTPRouteDiscoveryChain(route, l.serviceRouters, l.composeUpstreamRouting)
 
 		services = append(services, ingress)
 

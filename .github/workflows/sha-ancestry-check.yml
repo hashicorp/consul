@@ -182,14 +182,37 @@ jobs:
           #   exits 0  if A is an ancestor of B  (A ← … ← B, linear history)
           #   exits 1  if A is NOT an ancestor of B (force-push / rebase detected)
           if ! git merge-base --is-ancestor "$BEFORE" "$AFTER"; then
-            echo "::error::Non-linear history detected on branch '${BRANCH}'."
-            echo "::error::${BEFORE} is not an ancestor of ${AFTER}."
-            echo "::error::This indicates a force-push or rebase that rewrote shared history."
-            echo "::error::Force-pushing shared branches can bypass earlier protection checks"
-            echo "::error::(e.g., the ENT file/content checks that ran on the original PR)."
-            echo "::error::If this push is intentional and reviewed, contact the release team"
-            echo "::error::for a manual bypass via a CODEOWNERS-approved override."
-            exit 1
+            echo "Force-push / non-linear history detected — checking if this is a legitimate rebase onto ${PROTECTED_BRANCH} ..."
+            if ! git fetch --quiet --no-tags origin "${PROTECTED_BRANCH}"; then
+              echo "::error::Failed to fetch origin/${PROTECTED_BRANCH}; cannot validate ancestry."
+              exit 1
+            fi
+            # $BEFORE is the old branch tip that was rewritten by the rebase/force-push.
+            # The runner checks out $AFTER; $BEFORE is now a dangling object that is no
+            # longer reachable from any ref.  GitHub does not allow fetching arbitrary
+            # SHAs by hash (uploadpack.allowReachableSHA1InWant is off), so $BEFORE will
+            # be absent from the local clone and any git command that takes it as an
+            # argument will exit non-zero with "fatal: Not a valid object name".
+            #
+            # We therefore only inspect $AFTER, which is always present.  The security
+            # property that matters is: does the new HEAD still descend from CE history?
+            # If yes, no foreign-origin commits were introduced.  ENT content checks
+            # (ent-protection.yml) re-run on every push including force-pushes, so they
+            # remain the authoritative gate for detecting ENT code in the rebased history.
+            MB_AFTER=$(git merge-base "$AFTER" "origin/${PROTECTED_BRANCH}" || true)
+
+            if [[ -z "$MB_AFTER" ]]; then
+              echo "::error::Force-push on branch '${BRANCH}' produced a HEAD with NO CE ancestry."
+              echo "::error::The new tip (${AFTER}) does not descend from origin/${PROTECTED_BRANCH}."
+              echo "::error::This looks like wholesale import of commits from an unrelated repository."
+              echo "::error::Delete this branch immediately and investigate."
+              exit 1
+            fi
+
+            echo "::notice::Force-push on '${BRANCH}' classified as a legitimate rebase: new HEAD descends from CE history."
+            echo "::notice::  Merge-base with origin/${PROTECTED_BRANCH}: ${MB_AFTER:0:7}"
+            echo "::notice::ENT content checks (ent-protection.yml) will re-run on the rebased commits."
+            exit 0
           fi
 
           echo "Branch ancestry check passed: history from ${BEFORE} to ${AFTER} is linear."

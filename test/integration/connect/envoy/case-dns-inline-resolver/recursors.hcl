@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BUSL-1.1
 
 # Configuring recursors makes the xDS server emit the egress recursor DNS
-# listener (dns_external_egress, 127.0.0.1:8654) that forwards non-Consul
+# listener (egress_dns, 127.0.0.1:8654) that forwards non-Consul
 # queries to these upstream resolvers via Envoy's c-ares resolver.
 #
 # These addresses are never dialled by this test (only their presence in the

@@ -715,6 +715,7 @@ func HTTPHeaderMatchToStructs(s *HTTPHeaderMatch, t *structs.HTTPHeaderMatch) {
 	t.Match = httpHeaderMatchToStructs(s.Match)
 	t.Name = s.Name
 	t.Value = s.Value
+	t.Invert = s.Invert
 }
 func HTTPHeaderMatchFromStructs(t *structs.HTTPHeaderMatch, s *HTTPHeaderMatch) {
 	if s == nil {
@@ -723,6 +724,7 @@ func HTTPHeaderMatchFromStructs(t *structs.HTTPHeaderMatch, s *HTTPHeaderMatch) 
 	s.Match = httpHeaderMatchFromStructs(t.Match)
 	s.Name = t.Name
 	s.Value = t.Value
+	s.Invert = t.Invert
 }
 func HTTPHeaderModifiersToStructs(s *HTTPHeaderModifiers, t *structs.HTTPHeaderModifiers) {
 	if s == nil {
@@ -2945,6 +2947,11 @@ func UpstreamLimitsToStructs(s *UpstreamLimits, t *structs.UpstreamLimits) {
 	t.MaxConnections = pointerToIntFromInt32(s.MaxConnections)
 	t.MaxPendingRequests = pointerToIntFromInt32(s.MaxPendingRequests)
 	t.MaxConcurrentRequests = pointerToIntFromInt32(s.MaxConcurrentRequests)
+	if s.PassiveHealthCheck != nil {
+		var x structs.PassiveHealthCheck
+		PassiveHealthCheckToStructs(s.PassiveHealthCheck, &x)
+		t.PassiveHealthCheck = &x
+	}
 }
 func UpstreamLimitsFromStructs(t *structs.UpstreamLimits, s *UpstreamLimits) {
 	if s == nil {
@@ -2953,4 +2960,9 @@ func UpstreamLimitsFromStructs(t *structs.UpstreamLimits, s *UpstreamLimits) {
 	s.MaxConnections = int32FromPointerToInt(t.MaxConnections)
 	s.MaxPendingRequests = int32FromPointerToInt(t.MaxPendingRequests)
 	s.MaxConcurrentRequests = int32FromPointerToInt(t.MaxConcurrentRequests)
+	if t.PassiveHealthCheck != nil {
+		var x PassiveHealthCheck
+		PassiveHealthCheckFromStructs(t.PassiveHealthCheck, &x)
+		s.PassiveHealthCheck = &x
+	}
 }

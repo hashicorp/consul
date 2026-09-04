@@ -44,6 +44,7 @@ container {
         // according to NVD - CVE-2025-30258, but our scanner is still flagging it. Hence suppressing it for now.
         // Impact: gpg is only used in official docker build target but is uninstalled 
         // just after verifying the signature of the Consul binary. This CVE is not exploitable in this context.
+        "GO-2026-5932", // x/crypto/openpgp: no fixed version exists upstream; Consul imports no openpgp package.
       ]
 
       paths = [
@@ -94,6 +95,7 @@ binary {
   triage {
     suppress {
       vulnerabilities = [
+        "GO-2026-5932", // x/crypto/openpgp: no fixed version exists upstream; Consul imports no openpgp package.
         ]
       
       paths = [
