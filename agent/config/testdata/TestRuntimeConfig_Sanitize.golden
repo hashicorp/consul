@@ -279,6 +279,7 @@
     "RPCHoldTimeout": "0s",
     "RPCMaxBurst": 0,
     "RPCMaxConnsPerClient": 0,
+    "RPCMaxHeaderBytes": 0,
     "RPCProtocol": 0,
     "RPCRateLimit": 0,
     "RaftLogStoreConfig": {

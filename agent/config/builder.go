@@ -1145,6 +1145,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		RPCClientTimeout:                  b.durationVal("limits.rpc_client_timeout", c.Limits.RPCClientTimeout),
 		RPCMaxBurst:                       intVal(c.Limits.RPCMaxBurst),
 		RPCMaxConnsPerClient:              intVal(c.Limits.RPCMaxConnsPerClient),
+		RPCMaxHeaderBytes:                 intVal(c.Limits.RPCMaxHeaderBytes),
 		RPCProtocol:                       intVal(c.RPCProtocol),
 		RPCRateLimit:                      limitVal(c.Limits.RPCRate),
 		RPCConfig:                         consul.RPCConfig{EnableStreaming: boolValWithDefault(c.RPC.EnableStreaming, serverMode)},
