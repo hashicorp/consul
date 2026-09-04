@@ -1,0 +1,3 @@
+```release-note:bug
+config: `consul validate` now rejects TLS cert, key, and CA file paths that don't exist, instead of silently passing and only failing once the agent tries to start.
+```
