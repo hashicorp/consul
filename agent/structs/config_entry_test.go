@@ -2298,6 +2298,62 @@ func TestDecodeConfigEntry(t *testing.T) {
 			},
 		},
 		{
+			name: "mesh-with-ecdh-curves",
+			snake: `
+				kind = "mesh"
+				tls {
+					incoming {
+						tls_min_version = "TLSv1_3"
+						ecdh_curves = [
+							"X25519MLKEM768",
+							"X25519"
+						]
+					}
+					outgoing {
+						tls_min_version = "TLSv1_3"
+						ecdh_curves = [
+							"P-384"
+						]
+					}
+				}
+			`,
+			camel: `
+				Kind = "mesh"
+				TLS {
+					Incoming {
+						TLSMinVersion = "TLSv1_3"
+						ECDHCurves = [
+							"X25519MLKEM768",
+							"X25519"
+						]
+					}
+					Outgoing {
+						TLSMinVersion = "TLSv1_3"
+						ECDHCurves = [
+							"P-384"
+						]
+					}
+				}
+			`,
+			expect: &MeshConfigEntry{
+				TLS: &MeshTLSConfig{
+					Incoming: &MeshDirectionalTLSConfig{
+						TLSMinVersion: types.TLSv1_3,
+						ECDHCurves: []string{
+							"X25519MLKEM768",
+							"X25519",
+						},
+					},
+					Outgoing: &MeshDirectionalTLSConfig{
+						TLSMinVersion: types.TLSv1_3,
+						ECDHCurves: []string{
+							"P-384",
+						},
+					},
+				},
+			},
+		},
+		{
 			name: "api-gateway",
 			snake: `
 				kind = "api-gateway"

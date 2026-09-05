@@ -997,6 +997,10 @@ func (o *MeshDirectionalTLSConfig) DeepCopy() *MeshDirectionalTLSConfig {
 		cp.CipherSuites = make([]types.TLSCipherSuite, len(o.CipherSuites))
 		copy(cp.CipherSuites, o.CipherSuites)
 	}
+	if o.ECDHCurves != nil {
+		cp.ECDHCurves = make([]string, len(o.ECDHCurves))
+		copy(cp.ECDHCurves, o.ECDHCurves)
+	}
 	return &cp
 }
 

@@ -1403,6 +1403,47 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "mesh with directional tls ecdh curves",
+			body: `
+			{
+				"Kind": "mesh",
+				"Name": "mesh",
+				"TLS": {
+					"Incoming": {
+						"TLSMinVersion": "TLSv1_3",
+						"ECDHCurves": [
+							"X25519MLKEM768",
+							"X25519"
+						]
+					},
+					"Outgoing": {
+						"TLSMinVersion": "TLSv1_3",
+						"ECDHCurves": [
+							"P-384"
+						]
+					}
+				}
+			}
+			`,
+			expect: &MeshConfigEntry{
+				TLS: &MeshTLSConfig{
+					Incoming: &MeshDirectionalTLSConfig{
+						TLSMinVersion: "TLSv1_3",
+						ECDHCurves: []string{
+							"X25519MLKEM768",
+							"X25519",
+						},
+					},
+					Outgoing: &MeshDirectionalTLSConfig{
+						TLSMinVersion: "TLSv1_3",
+						ECDHCurves: []string{
+							"P-384",
+						},
+					},
+				},
+			},
+		},
 	} {
 		tc := tc
 
