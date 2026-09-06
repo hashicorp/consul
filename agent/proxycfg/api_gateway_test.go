@@ -495,28 +495,29 @@ func TestDiscoveryChainsMissingEndpoints_OrphanChainSkipped(t *testing.T) {
 	})
 
 	t.Run("mesh_gateway_endpoints_missing_returns_false", func(t *testing.T) {
-		// Regression guard for the rolling-restart segfault: a service with a
-		// ServiceSplitter that includes a remote-partition target (e.g.
-		// example-https.pcf.vms) routes through a remote mesh gateway.
-		// makeLoadAssignmentEndpointGroup checks WatchedGatewayEndpoints for
-		// those targets. If that watch hasn't fired yet, it returns valid=false,
-		// EDS is skipped, but CDS already emitted the cluster → segfault.
-		// This subtest ensures the gate also blocks on WatchedGatewayEndpoints.
+		// Regression guard for the rolling-restart segfault: a service whose
+		// discovery-chain target lives in a remote datacenter (dc2) routes
+		// through a remote mesh gateway. makeLoadAssignmentEndpointGroup checks
+		// WatchedGatewayEndpoints for those targets. If that watch hasn't fired
+		// yet, it returns valid=false, EDS is skipped, but CDS already emitted
+		// the cluster → segfault. This subtest ensures the gate also blocks on
+		// WatchedGatewayEndpoints.
 		//
-		// We build a chain whose single target has MeshGatewayModeRemote and
-		// belongs to a remote partition ("vms") so that localKey.Matches()
-		// returns false and the gateway-endpoint check is triggered.
+		// The single target has MeshGatewayModeRemote and lives in a remote
+		// datacenter (dc2 != localKey's dc1) so that localKey.Matches() returns
+		// false and the gateway-endpoint check is triggered. Using a remote
+		// datacenter (not a remote partition) keeps this identical under CE and ent.
 		remoteUID := NewUpstreamIDFromServiceName(structs.NewServiceName("remote-svc", nil))
-		remoteTargetID := "remote-svc.default.vms.dc2"
+		remoteTargetID := "remote-svc.default.default.dc2"
 
 		remoteChain := &structs.CompiledDiscoveryChain{
 			ServiceName: "remote-svc",
 			Namespace:   "default",
-			Partition:   "vms",
+			Partition:   "default",
 			Datacenter:  "dc2",
-			StartNode:   "resolver:remote-svc.default.vms.dc2",
+			StartNode:   "resolver:remote-svc.default.default.dc2",
 			Nodes: map[string]*structs.DiscoveryGraphNode{
-				"resolver:remote-svc.default.vms.dc2": {
+				"resolver:remote-svc.default.default.dc2": {
 					Type: structs.DiscoveryGraphNodeTypeResolver,
 					Name: "remote-svc",
 					Resolver: &structs.DiscoveryResolver{
@@ -530,7 +531,7 @@ func TestDiscoveryChainsMissingEndpoints_OrphanChainSkipped(t *testing.T) {
 					ID:          remoteTargetID,
 					Service:     "remote-svc",
 					Namespace:   "default",
-					Partition:   "vms",
+					Partition:   "default",
 					Datacenter:  "dc2",
 					MeshGateway: structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
 				},
@@ -538,7 +539,7 @@ func TestDiscoveryChainsMissingEndpoints_OrphanChainSkipped(t *testing.T) {
 		}
 
 		remoteRouteRef := structs.ResourceReference{Kind: structs.HTTPRoute, Name: "remote-route"}
-		remoteUpstream := structs.Upstream{DestinationName: "remote-svc", DestinationNamespace: "default", DestinationPartition: "vms"}
+		remoteUpstream := structs.Upstream{DestinationName: "remote-svc", DestinationNamespace: "default", DestinationPartition: "default"}
 		remoteUpstreams := listenerRouteUpstreams{}
 		remoteUpstreams.set(remoteRouteRef, listenerKey, structs.Upstreams{remoteUpstream})
 
@@ -565,16 +566,16 @@ func TestDiscoveryChainsMissingEndpoints_OrphanChainSkipped(t *testing.T) {
 	t.Run("mesh_gateway_endpoints_present_returns_true", func(t *testing.T) {
 		// Same setup as above but with WatchedGatewayEndpoints populated — gate must pass.
 		remoteUID := NewUpstreamIDFromServiceName(structs.NewServiceName("remote-svc", nil))
-		remoteTargetID := "remote-svc.default.vms.dc2"
+		remoteTargetID := "remote-svc.default.default.dc2"
 
 		remoteChain := &structs.CompiledDiscoveryChain{
 			ServiceName: "remote-svc",
 			Namespace:   "default",
-			Partition:   "vms",
+			Partition:   "default",
 			Datacenter:  "dc2",
-			StartNode:   "resolver:remote-svc.default.vms.dc2",
+			StartNode:   "resolver:remote-svc.default.default.dc2",
 			Nodes: map[string]*structs.DiscoveryGraphNode{
-				"resolver:remote-svc.default.vms.dc2": {
+				"resolver:remote-svc.default.default.dc2": {
 					Type: structs.DiscoveryGraphNodeTypeResolver,
 					Name: "remote-svc",
 					Resolver: &structs.DiscoveryResolver{
@@ -588,7 +589,7 @@ func TestDiscoveryChainsMissingEndpoints_OrphanChainSkipped(t *testing.T) {
 					ID:          remoteTargetID,
 					Service:     "remote-svc",
 					Namespace:   "default",
-					Partition:   "vms",
+					Partition:   "default",
 					Datacenter:  "dc2",
 					MeshGateway: structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
 				},
@@ -596,11 +597,11 @@ func TestDiscoveryChainsMissingEndpoints_OrphanChainSkipped(t *testing.T) {
 		}
 
 		remoteRouteRef := structs.ResourceReference{Kind: structs.HTTPRoute, Name: "remote-route"}
-		remoteUpstream := structs.Upstream{DestinationName: "remote-svc", DestinationNamespace: "default", DestinationPartition: "vms"}
+		remoteUpstream := structs.Upstream{DestinationName: "remote-svc", DestinationNamespace: "default", DestinationPartition: "default"}
 		remoteUpstreams := listenerRouteUpstreams{}
 		remoteUpstreams.set(remoteRouteRef, listenerKey, structs.Upstreams{remoteUpstream})
 
-		gwKey := GatewayKey{Datacenter: "dc2", Partition: "vms"}
+		gwKey := GatewayKey{Datacenter: "dc2", Partition: "default"}
 		snap := &configSnapshotAPIGateway{
 			ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
 				DiscoveryChain: map[UpstreamID]*structs.CompiledDiscoveryChain{
