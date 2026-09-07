@@ -1095,3 +1095,36 @@ func TestMakeTLSParametersFromProxyTLSConfig_ECDHCurves(t *testing.T) {
 		})
 	}
 }
+
+func TestMakeTLSParametersFromGatewayTLSConfig(t *testing.T) {
+	tests := map[string]struct {
+		input structs.GatewayTLSConfig
+		want  *envoy_tls_v3.TlsParameters
+	}{
+		"TLSv1_3 gateway listener does not inject curves": {
+			input: structs.GatewayTLSConfig{
+				TLSMinVersion: types.TLSv1_3,
+			},
+			want: &envoy_tls_v3.TlsParameters{
+				TlsMinimumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
+				TlsMaximumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
+				EcdhCurves:                nil,
+			},
+		},
+		"TLSv1_2 gateway listener does not inject curves": {
+			input: structs.GatewayTLSConfig{
+				TLSMinVersion: types.TLSv1_2,
+			},
+			want: &envoy_tls_v3.TlsParameters{
+				TlsMinimumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_2,
+				EcdhCurves:                nil,
+			},
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := makeTLSParametersFromGatewayTLSConfig(tc.input)
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}
