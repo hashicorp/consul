@@ -789,7 +789,7 @@ type configSnapshotAPIGateway struct {
 	ComposeUpstreamRouting bool
 }
 
-func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, boundListener structs.BoundAPIGatewayListener) ([]structs.IngressService, structs.Upstreams, []*structs.CompiledDiscoveryChain, error) {
+func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, boundListener structs.BoundAPIGatewayListener) ([]structs.IngressService, structs.Upstreams, []*structs.CompiledDiscoveryChain, []error, error) {
 	chains := []*structs.CompiledDiscoveryChain{}
 
 	// We leverage the test trust domain knowing
@@ -819,6 +819,7 @@ DOMAIN_LOOP:
 		synthesizer.EnableUpstreamRoutingComposition()
 	}
 	synthesizer.SetHostname(boundListener.GetHostname())
+	var preSkipped []error
 	for _, routeRef := range boundListener.Routes {
 		switch routeRef.Kind {
 		case structs.HTTPRoute:
@@ -846,18 +847,25 @@ DOMAIN_LOOP:
 				}
 			}
 		default:
-			return nil, nil, nil, fmt.Errorf("unknown route kind %q", routeRef.Kind)
+			// An unrecognized route kind for a single routeRef must not abort
+			// synthesis for the rest of this listener (or discard chains already
+			// synthesized for other listeners in this same recompile pass). Skip
+			// it and record the error for the caller to log as a warning, same as
+			// the per-route Compile failures handled in Synthesize().
+			preSkipped = append(preSkipped, fmt.Errorf("skipping route %q: unknown route kind %q", routeRef.Name, routeRef.Kind))
+			continue
 		}
 	}
 
 	if len(chains) == 0 {
-		return nil, nil, nil, nil
+		return nil, nil, nil, preSkipped, nil
 	}
 
-	services, compiled, err := synthesizer.Synthesize(chains...)
+	services, compiled, skipped, err := synthesizer.Synthesize(chains...)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, preSkipped, err
 	}
+	skipped = append(skipped, preSkipped...)
 
 	// reconstruct the upstreams
 	upstreams := make([]structs.Upstream, 0, len(services))
@@ -874,7 +882,7 @@ DOMAIN_LOOP:
 		})
 	}
 
-	return services, upstreams, compiled, err
+	return services, upstreams, compiled, skipped, nil
 }
 
 // valid tests for two valid api gateway snapshot states:
