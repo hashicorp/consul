@@ -3,7 +3,7 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<form class="consul-policy-form">
+<form class="consul-policy-form" {{fix-code-block-aria}} {{fix-super-select-aria}}>
   {{! Core fields: Policy ID, Name, Description, Rules, Valid Datacenters }}
   <Consul::Policy::Fieldsets
     @item={{@item}}

@@ -85,7 +85,6 @@
   {{#if (eq @item.template 'service-identity')}}
     <Hds::CodeBlock
       @language='hcl'
-      @ariaLabel={{concat (or @name 'policy') '[Rules]'}}
       @value={{service-identity-template
         @item.Name
         nspace=@nspace
@@ -108,7 +107,6 @@
   {{else if (eq @item.template 'node-identity')}}
     <Hds::CodeBlock
       @language='hcl'
-      @ariaLabel={{concat (or @name 'policy') '[Rules]'}}
       @value={{node-identity-template
         @item.Name
         partition=@partition

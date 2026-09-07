@@ -4,7 +4,12 @@
 }}
 
 {{yield}}
-<div class='consul-policy-form' ...attributes>
+<div
+  class='consul-policy-form'
+  {{fix-code-block-aria}}
+  {{fix-super-select-aria}}
+  ...attributes
+>
   <Consul::Policy::Fieldsets
     @item={{this.item}}
     @create={{true}}

@@ -19,7 +19,7 @@
           @color='tertiary'
           @icon='plus'
           type='button'
-          aria-controls='new-role'
+          aria-controls={{if this.isCreatingRole 'new-role'}}
           aria-expanded={{if this.isCreatingRole 'true' 'false'}}
           disabled={{this.isCreatingRole}}
           data-test-role-create
