@@ -102,13 +102,9 @@ func TestRecompileDiscoveryChains_UnknownRouteKindIsolation(t *testing.T) {
 			},
 			HTTPRoutes: httpRoutes,
 			TCPRoutes:  watch.NewMap[structs.ResourceReference, *structs.TCPRouteConfigEntry](),
-			Listeners: map[string]structs.APIGatewayListener{
-				"listener-1": {Name: "listener-1", Protocol: structs.ListenerProtocolHTTP},
-				"listener-2": {Name: "listener-2", Protocol: structs.ListenerProtocolHTTP},
-			},
 			BoundListeners: map[string]structs.BoundAPIGatewayListener{
-				"listener-1": {Name: "listener-1", Routes: []structs.ResourceReference{goodRouteRef, unknownRouteRef}},
-				"listener-2": {Name: "listener-2", Routes: []structs.ResourceReference{otherGoodRouteRef}},
+				"listener-1": {Name: "listener-1", Port: 8080, Protocol: structs.ListenerProtocolHTTP, Routes: []structs.ResourceReference{goodRouteRef, unknownRouteRef}},
+				"listener-2": {Name: "listener-2", Port: 8081, Protocol: structs.ListenerProtocolHTTP, Routes: []structs.ResourceReference{otherGoodRouteRef}},
 			},
 		},
 	}
@@ -174,13 +170,9 @@ func TestRecompileDiscoveryChains_ListenerAllRoutesUnknownKindOnly(t *testing.T)
 			},
 			HTTPRoutes: httpRoutes,
 			TCPRoutes:  watch.NewMap[structs.ResourceReference, *structs.TCPRouteConfigEntry](),
-			Listeners: map[string]structs.APIGatewayListener{
-				"listener-1": {Name: "listener-1", Protocol: structs.ListenerProtocolHTTP},
-				"listener-2": {Name: "listener-2", Protocol: structs.ListenerProtocolHTTP},
-			},
 			BoundListeners: map[string]structs.BoundAPIGatewayListener{
-				"listener-1": {Name: "listener-1", Routes: []structs.ResourceReference{unknownRouteRef}},
-				"listener-2": {Name: "listener-2", Routes: []structs.ResourceReference{goodRouteRef}},
+				"listener-1": {Name: "listener-1", Port: 8080, Protocol: structs.ListenerProtocolHTTP, Routes: []structs.ResourceReference{unknownRouteRef}},
+				"listener-2": {Name: "listener-2", Port: 8081, Protocol: structs.ListenerProtocolHTTP, Routes: []structs.ResourceReference{goodRouteRef}},
 			},
 		},
 	}
