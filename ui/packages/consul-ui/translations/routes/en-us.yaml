@@ -364,10 +364,12 @@ dc:
               There are no tags for this Service.
             </p>
       upstreams:
-        intro: |
-          <p>
-            Upstreams are services that may receive traffic from this gateway. If you are not using Consul DNS, please make sure your <code>Host:</code> header uses the correct domain name for the gateway to correctly proxy to its upstreams. Learn more about configuring gateways in our <a href="{CONSUL_DOCS_URL}/connect/ingress-gateways" target="_blank" rel="noopener noreferrer">documentation</a>.
-          </p>
+        intro:
+          header: Upstreams
+          body: 'Upstreams are services that may receive traffic from this gateway. If you are not using Consul DNS, please make sure your Host: header uses the correct domain name for the gateway to correctly proxy to its upstreams.'
+          footer:
+            text: Learn more about configuring gateways
+            link: /connect/ingress-gateways
         empty: |
           <p>
             This Service has no Upstreams{items, select,

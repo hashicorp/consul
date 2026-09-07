@@ -72,8 +72,10 @@ const SORT_LABEL_KEYS = {
  *   gateway "linked services" tab (a single Instance/Registered filter, no
  *   health quick-filters) instead of the full services-index filter set, and
  *   a grouped sort dropdown (Health status / Service name) in its place.
+ * @argument {boolean} [upstream] - same as `linked`, used for the gateway
+ *   "upstreams" tab.
  * @argument {object} [sort] - `{ value, change }` sort state, as built by the
- *   route template. Only used (and only rendered) in `@linked` mode.
+ *   route template. Only used (and only rendered) in `@linked` or `@upstream` mode.
  */
 export default class ConsulServiceToolbar extends Component {
   @service intl;
@@ -110,7 +112,7 @@ export default class ConsulServiceToolbar extends Component {
   // source is only included when there are real external sources to choose
   // from (the synthetic "consul" option alone doesn't warrant the group).
   get filterGroups() {
-    if (this.args.linked) {
+    if (this.args.linked || this.args.upstream) {
       return [{ key: 'instance', text: 'Instance', options: INSTANCE_OPTIONS }];
     }
 

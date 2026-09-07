@@ -65,7 +65,7 @@ export default function (
     },
   };
   page.tabs.upstreamsTab = {
-    services: collection('.consul-upstream-list > ul > li:not(:first-child)', {
+    services: collection('.consul-upstream-table tbody tr', {
       name: text('[data-test-service-name]'),
     }),
   };

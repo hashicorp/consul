@@ -30,7 +30,7 @@
       the global translation helper (t) — a param named `t` would shadow it
       and silently break every translation call inside this block.
     }}
-    {{#if @linked}}
+    {{#if (or @linked @upstream)}}
       {{#if @sort}}
         <Hds::Dropdown
           class="consul-service-toolbar__sort"
