@@ -4,6 +4,7 @@
 package discoverychain
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -825,9 +826,10 @@ func TestGatewayChainSynthesizer_Synthesize(t *testing.T) {
 			}
 
 			chains := append([]*structs.CompiledDiscoveryChain{tc.chain}, tc.extra...)
-			ingressServices, discoveryChains, err := tc.synthesizer.Synthesize(chains...)
+			ingressServices, discoveryChains, skipped, err := tc.synthesizer.Synthesize(chains...)
 
 			require.NoError(t, err)
+			require.Empty(t, skipped)
 			require.Equal(t, tc.expectedIngressServices, ingressServices)
 			require.Equal(t, tc.expectedDiscoveryChains, discoveryChains)
 		})
@@ -1060,9 +1062,10 @@ func TestGatewayChainSynthesizer_ComplexChain(t *testing.T) {
 			tc.synthesizer.AddHTTPRoute(*tc.route)
 
 			chains := []*structs.CompiledDiscoveryChain{compiled}
-			_, discoveryChains, err := tc.synthesizer.Synthesize(chains...)
+			_, discoveryChains, skipped, err := tc.synthesizer.Synthesize(chains...)
 
 			require.NoError(t, err)
+			require.Empty(t, skipped)
 			require.Len(t, discoveryChains, 1)
 			require.Equal(t, tc.expectedDiscoveryChain, discoveryChains[0])
 		})
@@ -1070,19 +1073,14 @@ func TestGatewayChainSynthesizer_ComplexChain(t *testing.T) {
 }
 
 // TestSynthesizeHTTPRouteDiscoveryChain_ComposedDestinationProtocol is a
-// regression test for the protocol-resolution defect introduced by #12479.
+// regression test for the protocol-resolution defect where a backend
+// service-router's redirect target (e.g. "service-b") has no service-defaults
+// entry and would normally be resolved as tcp in the synthetic gateway chain.
 //
-// When an HTTPRoute's backend service has its own ServiceRouter, gateway
-// synthesis composes that router's routes into the synthetic gateway chain. A
-// composed route may point at a *different* downstream service than the one the
-// HTTPRoute named directly. That downstream service can be entry-less (no
-// service-defaults), relying on the global proxy-defaults protocol fallback.
-//
-// The synthetic entry set intentionally carries no proxy-defaults, so the
-// fallback the real compiler applies is unavailable during synthesis. Without a
-// synthetic http default for the composed destination, the synthesized chain
-// resolves it as tcp and fails with "uses inconsistent protocols" against the
-// http gateway chain — dropping the gateway's entire xDS config batch.
+// The synthetic entry set intentionally omits proxy-defaults, so an entry-less
+// destination falls through to the tcp default. The fix injects a synthetic
+// http service-defaults for each composed destination so the gateway chain
+// compiles cleanly, matching the treatment of directly-referenced destinations.
 func TestSynthesizeHTTPRouteDiscoveryChain_ComposedDestinationProtocol(t *testing.T) {
 	t.Parallel()
 
@@ -1132,8 +1130,8 @@ func TestSynthesizeHTTPRouteDiscoveryChain_ComposedDestinationProtocol(t *testin
 
 	require.Equal(t, "http", protocols["service-a"], "direct destination should have an http default")
 	require.Equal(t, "http", protocols["service-b"],
-		"composed sub-destination must have a synthetic http default so the "+
-			"synthesized chain does not resolve it as tcp (regression #12479)")
+		"composed sub-destination must receive a synthetic http default so the "+
+			"synthesized chain does not resolve it as tcp (noisy-neighbour regression)")
 }
 
 // TestGatewaySynthesis_ProxyDefaultsFallback_StateFaithful reproduces the
@@ -1148,10 +1146,15 @@ func TestSynthesizeHTTPRouteDiscoveryChain_ComposedDestinationProtocol(t *testin
 //	API gateway (HTTP) --route--> service "x" (has a service-router w/ header
 //	routing) --router--> service "y" (entry-less, relies on proxy-defaults=http)
 //
-// It also answers the two questions raised by the field team's mitigation
-// evidence — does proxy-defaults clear the synthesis error? does service-defaults
-// on the router destination clear it? — by toggling those entries on the *real*
-// (backend) compile side and observing the synthesis outcome.
+// It verifies two things:
+//
+//  1. The original regression is fixed: synthesis must NOT fail with
+//     "inconsistent protocols" for a correctly-configured route, even when the
+//     backend chain was compiled via proxy-defaults (not explicit service-defaults).
+//
+//  2. Noisy-neighbour isolation: a route that generates a compile error during
+//     synthesis is skipped and its error returned; it does NOT abort the listener
+//     or prevent other correctly-configured routes from being served.
 func TestGatewaySynthesis_ProxyDefaultsFallback_StateFaithful(t *testing.T) {
 	t.Parallel()
 
@@ -1202,7 +1205,7 @@ func TestGatewaySynthesis_ProxyDefaultsFallback_StateFaithful(t *testing.T) {
 		})
 	}
 
-	synthesize := func(t *testing.T, backend *structs.CompiledDiscoveryChain) ([]*structs.CompiledDiscoveryChain, error) {
+	synthesize := func(t *testing.T, backend *structs.CompiledDiscoveryChain) ([]*structs.CompiledDiscoveryChain, []error, error) {
 		t.Helper()
 		synth := NewGatewayChainSynthesizer("dc1", "domain", "listener", &structs.APIGatewayConfigEntry{
 			Kind: structs.APIGateway,
@@ -1219,8 +1222,8 @@ func TestGatewaySynthesis_ProxyDefaultsFallback_StateFaithful(t *testing.T) {
 				Services: []structs.HTTPService{{Name: "x"}},
 			}},
 		})
-		_, chains, err := synth.Synthesize(backend)
-		return chains, err
+		_, chains, skipped, err := synth.Synthesize(backend)
+		return chains, skipped, err
 	}
 
 	// Sanity: with proxy-defaults=http, the REAL chain for x resolves http and
@@ -1234,34 +1237,271 @@ func TestGatewaySynthesis_ProxyDefaultsFallback_StateFaithful(t *testing.T) {
 			"real compiler applies the proxy-defaults fallback for entry-less y")
 	})
 
-	// The regression itself: real chain is http, but gateway synthesis must not
-	// fail with "inconsistent protocols". With the fix in place this passes;
-	// before the fix this returned that error (the composed destination y had no
-	// synthetic http default). proxy-defaults alone does NOT prevent it — it is
-	// never part of the synthetic entry set — which is why the field team saw
-	// "proxy-defaults was set all along and it still failed".
-	t.Run("gateway synthesis succeeds (regression fixed)", func(t *testing.T) {
+	// The original regression: synthesis must succeed even though y has no
+	// service-defaults and the synthetic entry set carries no proxy-defaults.
+	// appendComposedHTTPDefault injects a synthetic http default for y so the
+	// chain compiles cleanly without needing explicit service-defaults for y.
+	t.Run("gateway synthesis succeeds without explicit service-defaults for composed destination", func(t *testing.T) {
 		chain, err := compileBackendChain(t, proxyDefaultsHTTP, xRouter)
 		require.NoError(t, err)
 
-		chains, err := synthesize(t, chain)
-		require.NoError(t, err,
-			"gateway synthesis must not spuriously resolve y as tcp when the real chain is http")
+		chains, skipped, fatalErr := synthesize(t, chain)
+		require.NoError(t, fatalErr,
+			"synthesis must not fail: the composed destination y must get a synthetic http default")
+		require.Empty(t, skipped,
+			"no routes should be skipped: the route is correctly configured (y is an http service via proxy-defaults)")
 		require.NotEmpty(t, chains)
 	})
 
-	// Field-team mitigation check: adding service-defaults=http for y on the
-	// real/backend side. It keeps x's real chain http (already was) but note it
-	// does NOT feed the synthesizer's synthetic entry set — the synthesizer only
-	// receives x's compiled chain, not y's config. The fix (not the mitigation)
-	// is what makes synthesis pass here.
-	t.Run("service-defaults on y keeps real chain http", func(t *testing.T) {
+	// With service-defaults=http for y explicitly set, the synthetic chain
+	// resolves y as http and the route compiles cleanly — same outcome as above
+	// but via an explicit config rather than the synthetic default injection.
+	t.Run("route succeeds when composed destination has explicit service-defaults=http", func(t *testing.T) {
 		chain, err := compileBackendChain(t, proxyDefaultsHTTP, xRouter, yServiceDefaultsHTTP)
 		require.NoError(t, err)
 		require.Equal(t, "http", chain.Protocol)
 
-		chains, err := synthesize(t, chain)
-		require.NoError(t, err)
+		chains, skipped, fatalErr := synthesize(t, chain)
+		require.NoError(t, fatalErr)
+		require.Empty(t, skipped, "no routes should be skipped when config is correct")
 		require.NotEmpty(t, chains)
 	})
+}
+
+// --- shared helpers for the noisy-neighbour partial-failure tests below ---
+//
+// These build the two recurring fixtures every test in this section needs:
+// a "good" HTTPRoute/chain pair that always compiles cleanly, and a "bad"
+// HTTPRoute/chain pair that always fails to compile for a real reason (not
+// the protocol-fallback trigger appendComposedHTTPDefault already handles
+// elsewhere in this file).
+
+// newHTTPRouteToService builds a single-service, path-prefix HTTPRoute - the
+// minimal shape needed to exercise Synthesize's per-route compile loop.
+func newHTTPRouteToService(name, hostname, serviceName string) structs.HTTPRouteConfigEntry {
+	return structs.HTTPRouteConfigEntry{
+		Kind:      structs.HTTPRoute,
+		Name:      name,
+		Hostnames: []string{hostname},
+		Rules: []structs.HTTPRouteRule{{
+			Matches: []structs.HTTPMatch{{
+				Path: structs.HTTPPathMatch{Match: structs.HTTPPathMatchPrefix, Value: "/"},
+			}},
+			Services: []structs.HTTPService{{Name: serviceName}},
+		}},
+	}
+}
+
+// mustCompileHTTPChain compiles a real, always-succeeding discovery chain for
+// a plain http service with no router - the "good" half of these tests.
+func mustCompileHTTPChain(t *testing.T, serviceName string) *structs.CompiledDiscoveryChain {
+	t.Helper()
+
+	set := configentry.NewDiscoveryChainSet()
+	set.AddServices(&structs.ServiceConfigEntry{
+		Kind:     structs.ServiceDefaults,
+		Name:     serviceName,
+		Protocol: "http",
+	})
+	chain, err := Compile(CompileRequest{
+		ServiceName:           serviceName,
+		EvaluateInNamespace:   "default",
+		EvaluateInPartition:   "default",
+		EvaluateInDatacenter:  "dc1",
+		EvaluateInTrustDomain: "domain",
+		Entries:               set,
+	})
+	require.NoError(t, err)
+	return chain
+}
+
+// newBrokenSubsetChain hand-builds a chain rather than running it through
+// Compile(): it only needs to give serviceRouterRulesFromChains a router
+// whose route composes a destination pinned to a subset that is never
+// defined. mergeServiceRouteDestination preserves that subset as-is when
+// composing it into the route's synthetic router, and resolverEntriesFromChains
+// has no matching subset in this chain's (empty) Targets to inject a resolver
+// for it, so Compile() falls back to the default (subset-less) resolver and
+// fails with "does not have a subset named" - a genuine failure
+// appendComposedHTTPDefault has no way to paper over, since it's unrelated to
+// protocol resolution. This mirrors a real scenario where a backend router's
+// target subset was removed or never matched by the time synthesis runs.
+func newBrokenSubsetChain(serviceName, downstreamServiceName, missingSubset string) *structs.CompiledDiscoveryChain {
+	routerNode := "router:" + serviceName
+	return &structs.CompiledDiscoveryChain{
+		ServiceName: serviceName,
+		Namespace:   "default",
+		Partition:   "default",
+		Datacenter:  "dc1",
+		StartNode:   routerNode,
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			routerNode: {
+				Type: structs.DiscoveryGraphNodeTypeRouter,
+				Name: serviceName + "-router",
+				Routes: []*structs.DiscoveryRoute{{
+					Definition: &structs.ServiceRoute{
+						Destination: &structs.ServiceRouteDestination{
+							Service:       downstreamServiceName,
+							Namespace:     "default",
+							Partition:     "default",
+							ServiceSubset: missingSubset,
+						},
+					},
+				}},
+			},
+		},
+	}
+}
+
+// TestGatewaySynthesis_NoisyNeighbourIsolation verifies that a route that
+// produces a compile error during synthesis is skipped and its error returned
+// without aborting the rest of the listener.
+//
+// This verifies, with a real skip in hand:
+//
+//  1. Synthesize does not return a fatal error.
+//  2. The failing (bad-svc) route appears in the returned skipped slice, with
+//     the real underlying compile error preserved.
+//  3. The other (good-svc) route on the same listener is still compiled and
+//     returned — not the bad one.
+func TestGatewaySynthesis_NoisyNeighbourIsolation(t *testing.T) {
+	t.Parallel()
+
+	gateway := &structs.APIGatewayConfigEntry{
+		Kind: structs.APIGateway,
+		Name: "gateway",
+	}
+
+	goodRoute := newHTTPRouteToService("good-route", "good.example.com", "good-svc")
+	goodChain := mustCompileHTTPChain(t, "good-svc")
+
+	badRoute := newHTTPRouteToService("bad-route", "bad.example.com", "bad-svc")
+	badChain := newBrokenSubsetChain("bad-svc", "downstream-tcp-svc", "ghost-subset")
+
+	synth := NewGatewayChainSynthesizer("dc1", "domain", "listener", gateway)
+	synth.SetHostname("*")
+	synth.AddHTTPRoute(goodRoute)
+	synth.AddHTTPRoute(badRoute)
+
+	services, compiledChains, skipped, fatalErr := synth.Synthesize(goodChain, badChain)
+	require.NoError(t, fatalErr, "a compile error for one route must never abort the entire listener")
+
+	require.Len(t, skipped, 1, "exactly the bad-svc route should be skipped")
+	require.ErrorContains(t, skipped[0], "does not have a subset named",
+		"the skipped error should surface the real compile failure for downstream-tcp-svc")
+
+	require.Len(t, services, 1, "only the good-svc ingress service should survive")
+	require.Equal(t, []string{"good.example.com"}, services[0].Hosts,
+		"the surviving service must be the good-svc route, not bad-svc")
+	require.Len(t, compiledChains, 1, "only the good-svc compiled chain should survive")
+}
+
+// TestGatewaySynthesis_AllRoutesFail verifies the boundary the "one bad route
+// among several" cases don't exercise: what happens when every route on a
+// listener fails to compile. Synthesize must still not return a fatal error,
+// and must return empty (not nil-panicking, not partially-populated) service
+// and chain lists, with one skipped entry per broken route.
+func TestGatewaySynthesis_AllRoutesFail(t *testing.T) {
+	t.Parallel()
+
+	gateway := &structs.APIGatewayConfigEntry{
+		Kind: structs.APIGateway,
+		Name: "gateway",
+	}
+
+	cases := map[string]struct {
+		routeCount int
+	}{
+		"single broken route":    {routeCount: 1},
+		"multiple broken routes": {routeCount: 3},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			synth := NewGatewayChainSynthesizer("dc1", "domain", "listener", gateway)
+			synth.SetHostname("*")
+
+			chains := make([]*structs.CompiledDiscoveryChain, 0, tc.routeCount)
+			for i := 0; i < tc.routeCount; i++ {
+				svcName := fmt.Sprintf("bad-svc-%d", i)
+				synth.AddHTTPRoute(newHTTPRouteToService(
+					fmt.Sprintf("bad-route-%d", i),
+					fmt.Sprintf("bad-%d.example.com", i),
+					svcName,
+				))
+				chains = append(chains, newBrokenSubsetChain(svcName, "downstream-tcp-svc", "ghost-subset"))
+			}
+
+			services, compiledChains, skipped, fatalErr := synth.Synthesize(chains...)
+			require.NoError(t, fatalErr, "even a listener with zero working routes must not fail synthesis fatally")
+			require.Empty(t, services, "no ingress services should survive when every route is broken")
+			require.Empty(t, compiledChains, "no compiled chains should survive when every route is broken")
+			require.Len(t, skipped, tc.routeCount, "every broken route should be recorded in skipped")
+		})
+	}
+}
+
+// TestGatewaySynthesis_PartialFailure_PreservesAlignment verifies the
+// invariant recompileDiscoveryChains depends on (agent/proxycfg/api_gateway.go,
+// the "compiled[i].ServiceName != service.Name" check): the returned services
+// and compiledChains slices must stay pairwise aligned even when failures are
+// interleaved with successes, not just when a single failure sits at the end.
+func TestGatewaySynthesis_PartialFailure_PreservesAlignment(t *testing.T) {
+	t.Parallel()
+
+	gateway := &structs.APIGatewayConfigEntry{
+		Kind: structs.APIGateway,
+		Name: "gateway",
+	}
+
+	synth := NewGatewayChainSynthesizer("dc1", "domain", "listener", gateway)
+	synth.SetHostname("*")
+
+	// good1, bad1, good2, bad2, good3 - failures interleaved on both sides of
+	// surviving routes, not just trailing them.
+	order := []struct {
+		hostname string
+		service  string
+		good     bool
+	}{
+		{"good1.example.com", "good-svc-1", true},
+		{"bad1.example.com", "bad-svc-1", false},
+		{"good2.example.com", "good-svc-2", true},
+		{"bad2.example.com", "bad-svc-2", false},
+		{"good3.example.com", "good-svc-3", true},
+	}
+
+	chains := make([]*structs.CompiledDiscoveryChain, 0, len(order))
+	for i, route := range order {
+		synth.AddHTTPRoute(newHTTPRouteToService(fmt.Sprintf("route-%d", i), route.hostname, route.service))
+		if route.good {
+			chains = append(chains, mustCompileHTTPChain(t, route.service))
+		} else {
+			chains = append(chains, newBrokenSubsetChain(route.service, "downstream-tcp-svc", "ghost-subset"))
+		}
+	}
+
+	services, compiledChains, skipped, fatalErr := synth.Synthesize(chains...)
+	require.NoError(t, fatalErr, "interleaved failures must never abort the entire listener")
+	require.Len(t, skipped, 2, "exactly the two bad routes should be skipped")
+
+	require.Len(t, services, 3, "exactly the three good routes should survive")
+	require.Len(t, compiledChains, 3, "compiledChains must stay the same length as services")
+
+	// consolidateHTTPRoutes iterates a map keyed by hostname, so the relative
+	// order of survivors is not guaranteed - assert the set, not the order.
+	gotHosts := make([]string, len(services))
+	for i, svc := range services {
+		gotHosts[i] = svc.Hosts[0]
+		// This is the actual invariant recompileDiscoveryChains depends on
+		// (agent/proxycfg/api_gateway.go's "compiled[i].ServiceName !=
+		// service.Name" check): whatever order the survivors end up in,
+		// services[i] and compiledChains[i] must describe the same route.
+		require.Equal(t, svc.Name, compiledChains[i].ServiceName,
+			"services[%d] and compiledChains[%d] must describe the same synthesized route", i, i)
+	}
+	require.ElementsMatch(t, []string{"good1.example.com", "good2.example.com", "good3.example.com"}, gotHosts,
+		"surviving services must be exactly the three good routes")
 }
