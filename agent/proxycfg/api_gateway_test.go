@@ -31,6 +31,39 @@ func mustCompileTestHTTPChain(t *testing.T, serviceName string) *structs.Compile
 	return discoverychain.TestCompileConfigEntries(t, serviceName, "default", "default", "dc1", "test-trust-domain.consul", nil, set)
 }
 
+// newBrokenSubsetTestChain hand-builds a chain whose router composes a route
+// to a destination pinned to a service-resolver subset that is never
+// defined. This is the same technique used in
+// agent/consul/discoverychain/gateway_test.go's newBrokenSubsetChain: it
+// makes discovery-chain *synthesis* fail with a real "does not have a subset
+// named" error, without touching protocol resolution.
+func newBrokenSubsetTestChain(serviceName string) *structs.CompiledDiscoveryChain {
+	routerNode := "router:" + serviceName
+	return &structs.CompiledDiscoveryChain{
+		ServiceName: serviceName,
+		Namespace:   "default",
+		Partition:   "default",
+		Datacenter:  "dc1",
+		StartNode:   routerNode,
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			routerNode: {
+				Type: structs.DiscoveryGraphNodeTypeRouter,
+				Name: serviceName + "-router",
+				Routes: []*structs.DiscoveryRoute{{
+					Definition: &structs.ServiceRoute{
+						Destination: &structs.ServiceRouteDestination{
+							Service:       "downstream-tcp-svc",
+							Namespace:     "default",
+							Partition:     "default",
+							ServiceSubset: "ghost-subset",
+						},
+					},
+				}},
+			},
+		},
+	}
+}
+
 // newTestHTTPRoute builds a single-service, path-prefix HTTPRoute pointed at
 // serviceName - the minimal shape recompileDiscoveryChains needs to reach
 // Synthesize. hostname must be distinct per route sharing a listener, or
@@ -50,6 +83,82 @@ func newTestHTTPRoute(name, hostname, serviceName string) *structs.HTTPRouteConf
 			Services: []structs.HTTPService{{Name: serviceName}},
 		}},
 	}
+}
+
+// TestRecompileDiscoveryChains_PartialFailureIsolation is a direct,
+// event-harness-free test of handlerAPIGateway.recompileDiscoveryChains -
+// nothing else in this package tests it with a real Synthesize-level skip in
+// hand, the only place the Synthesize -> synthesizeChains skip-list actually
+// reaches an operator (as a warning log) and where the services[i]/compiled[i]
+// positional-pairing assumption gets exercised end to end.
+//
+// Two listeners are used specifically to prove a broken route on one
+// listener doesn't affect a second, unrelated listener on the same gateway.
+func TestRecompileDiscoveryChains_PartialFailureIsolation(t *testing.T) {
+	var logBuf bytes.Buffer
+	logger := hclog.New(&hclog.LoggerOptions{Output: &logBuf, Level: hclog.Debug})
+
+	h := &handlerAPIGateway{
+		handlerState: handlerState{
+			stateConfig: stateConfig{
+				logger: logger,
+				source: &structs.QuerySource{Datacenter: "dc1"},
+			},
+		},
+	}
+
+	goodRoute1Ref := structs.ResourceReference{Kind: structs.HTTPRoute, Name: "good-route-1"}
+	badRouteRef := structs.ResourceReference{Kind: structs.HTTPRoute, Name: "bad-route"}
+	goodRoute2Ref := structs.ResourceReference{Kind: structs.HTTPRoute, Name: "good-route-2"}
+
+	httpRoutes := watch.NewMap[structs.ResourceReference, *structs.HTTPRouteConfigEntry]()
+	for ref, route := range map[structs.ResourceReference]*structs.HTTPRouteConfigEntry{
+		goodRoute1Ref: newTestHTTPRoute("good-route-1", "good1.example.com", "good-svc-1"),
+		badRouteRef:   newTestHTTPRoute("bad-route", "bad.example.com", "bad-svc"),
+		goodRoute2Ref: newTestHTTPRoute("good-route-2", "good2.example.com", "good-svc-2"),
+	} {
+		httpRoutes.InitWatch(ref, nil)
+		httpRoutes.Set(ref, route)
+	}
+
+	discoveryChain := map[UpstreamID]*structs.CompiledDiscoveryChain{
+		NewUpstreamIDFromServiceName(structs.NewServiceName("good-svc-1", nil)): mustCompileTestHTTPChain(t, "good-svc-1"),
+		NewUpstreamIDFromServiceName(structs.NewServiceName("bad-svc", nil)):    newBrokenSubsetTestChain("bad-svc"),
+		NewUpstreamIDFromServiceName(structs.NewServiceName("good-svc-2", nil)): mustCompileTestHTTPChain(t, "good-svc-2"),
+	}
+	initialChainCount := len(discoveryChain)
+
+	snap := &ConfigSnapshot{
+		APIGateway: configSnapshotAPIGateway{
+			ComposeUpstreamRouting: true,
+			ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
+				DiscoveryChain: discoveryChain,
+			},
+			GatewayConfig: &structs.APIGatewayConfigEntry{
+				Kind: structs.APIGateway,
+				Name: "gateway",
+			},
+			HTTPRoutes: httpRoutes,
+			TCPRoutes:  watch.NewMap[structs.ResourceReference, *structs.TCPRouteConfigEntry](),
+			BoundListeners: map[string]structs.BoundAPIGatewayListener{
+				"listener-1": {Name: "listener-1", Port: 8080, Protocol: structs.ListenerProtocolHTTP, Routes: []structs.ResourceReference{goodRoute1Ref, badRouteRef}},
+				"listener-2": {Name: "listener-2", Port: 8081, Protocol: structs.ListenerProtocolHTTP, Routes: []structs.ResourceReference{goodRoute2Ref}},
+			},
+		},
+	}
+
+	err := h.recompileDiscoveryChains(snap)
+	require.NoError(t, err, "a broken route on one listener must not fail the whole gateway recompile "+
+		"(no crash, no false-positive on the compiled[i].ServiceName != service.Name check)")
+
+	require.Len(t, snap.APIGateway.DiscoveryChain, initialChainCount+2,
+		"exactly two new synthesized chains should be added: one for good-route-1 (listener-1) "+
+			"and one for good-route-2 (listener-2); bad-route contributes nothing")
+
+	require.Contains(t, logBuf.String(), "skipping misconfigured HTTPRoute",
+		"the skipped bad-route error must actually reach the logs, not just be computed and discarded")
+	require.Contains(t, logBuf.String(), "listener-1",
+		"the warning should identify which listener the skipped route was on")
 }
 
 // TestRecompileDiscoveryChains_UnknownRouteKindIsolation asserts that a
@@ -121,6 +230,76 @@ func TestRecompileDiscoveryChains_UnknownRouteKindIsolation(t *testing.T) {
 		"the skipped unknown-kind route error must actually reach the logs, not just be computed and discarded")
 	require.Contains(t, logBuf.String(), "listener-1",
 		"the warning should identify which listener the skipped route was on")
+}
+
+// TestRecompileDiscoveryChains_WholeListenerFailureIsolation asserts that a
+// listener where EVERY route fails to compile (not just one bad route among
+// several good ones) is cleanly skipped - contributing no chains and no
+// error - while a second, independent listener on the same gateway still
+// succeeds. This exercises the `len(upstreams) == 0 { continue }` skip in
+// recompileDiscoveryChains (agent/proxycfg/api_gateway.go) for the case where
+// that length is zero because nothing on the listener survived synthesis.
+func TestRecompileDiscoveryChains_WholeListenerFailureIsolation(t *testing.T) {
+	var logBuf bytes.Buffer
+	logger := hclog.New(&hclog.LoggerOptions{Output: &logBuf, Level: hclog.Debug})
+
+	h := &handlerAPIGateway{
+		handlerState: handlerState{
+			stateConfig: stateConfig{
+				logger: logger,
+				source: &structs.QuerySource{Datacenter: "dc1"},
+			},
+		},
+	}
+
+	badRouteRef := structs.ResourceReference{Kind: structs.HTTPRoute, Name: "bad-route"}
+	goodRouteRef := structs.ResourceReference{Kind: structs.HTTPRoute, Name: "good-route"}
+
+	httpRoutes := watch.NewMap[structs.ResourceReference, *structs.HTTPRouteConfigEntry]()
+	for ref, route := range map[structs.ResourceReference]*structs.HTTPRouteConfigEntry{
+		badRouteRef:  newTestHTTPRoute("bad-route", "bad.example.com", "bad-svc"),
+		goodRouteRef: newTestHTTPRoute("good-route", "good.example.com", "good-svc"),
+	} {
+		httpRoutes.InitWatch(ref, nil)
+		httpRoutes.Set(ref, route)
+	}
+
+	discoveryChain := map[UpstreamID]*structs.CompiledDiscoveryChain{
+		NewUpstreamIDFromServiceName(structs.NewServiceName("bad-svc", nil)):  newBrokenSubsetTestChain("bad-svc"),
+		NewUpstreamIDFromServiceName(structs.NewServiceName("good-svc", nil)): mustCompileTestHTTPChain(t, "good-svc"),
+	}
+	initialChainCount := len(discoveryChain)
+
+	snap := &ConfigSnapshot{
+		APIGateway: configSnapshotAPIGateway{
+			ComposeUpstreamRouting: true,
+			ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
+				DiscoveryChain: discoveryChain,
+			},
+			GatewayConfig: &structs.APIGatewayConfigEntry{
+				Kind: structs.APIGateway,
+				Name: "gateway",
+			},
+			HTTPRoutes: httpRoutes,
+			TCPRoutes:  watch.NewMap[structs.ResourceReference, *structs.TCPRouteConfigEntry](),
+			BoundListeners: map[string]structs.BoundAPIGatewayListener{
+				"listener-1": {Name: "listener-1", Port: 8080, Protocol: structs.ListenerProtocolHTTP, Routes: []structs.ResourceReference{badRouteRef}},
+				"listener-2": {Name: "listener-2", Port: 8081, Protocol: structs.ListenerProtocolHTTP, Routes: []structs.ResourceReference{goodRouteRef}},
+			},
+		},
+	}
+
+	err := h.recompileDiscoveryChains(snap)
+	require.NoError(t, err, "a listener with zero surviving routes must not fail the whole gateway recompile")
+
+	require.Len(t, snap.APIGateway.DiscoveryChain, initialChainCount+1,
+		"only good-route (listener-2) should contribute a synthesized chain; listener-1 contributes nothing "+
+			"because every route on it failed to compile")
+
+	require.Contains(t, logBuf.String(), "skipping misconfigured HTTPRoute",
+		"the skipped bad-route error must still reach the logs even though it was the only route on its listener")
+	require.Contains(t, logBuf.String(), "listener-1",
+		"the warning should identify which listener the fully-failed route was on")
 }
 
 // TestRecompileDiscoveryChains_ListenerAllRoutesUnknownKindOnly asserts that
