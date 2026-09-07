@@ -1,0 +1,3 @@
+```release-note:improvement
+proxycfg: Skip tearing down and re-establishing an upstream's discovery chain target watches when a chain update delivers an unchanged chain. The discovery chain watch wakes on any config entry write in the cluster, so this previously cleared and re-fetched watched upstream endpoints far more often than necessary, briefly leaving clusters without their endpoint assignments.
+```
