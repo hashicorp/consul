@@ -13,16 +13,15 @@
     @label="Namespace"
     @ondelete={{fn this.onDelete @item}}
     @onchange={{fn this.onSubmit @item}}
-    as |writer|
   >
-    <BlockSlot @name="removed" as |after|>
+    <:removed as |after|>
       <Consul::Nspace::Notifications
         {{notification after=(action after)}}
         @type="remove"
       />
-    </BlockSlot>
+    </:removed>
 
-    <BlockSlot @name="content">
+    <:content as |writer|>
 
       {{#let
         (not (can "write nspaces"))
@@ -140,21 +139,21 @@
                 <ConfirmationDialog
                   @message="Are you sure you want to delete this Namespace?"
                 >
-                  <BlockSlot @name="action" as |confirm|>
+                  <:action as |confirm|>
                     <Hds::Button
                       data-test-delete
                       @color='critical'
                       @text='Delete'
                       {{on "click" confirm }}
                     />
-                  </BlockSlot>
-                  <BlockSlot @name="dialog" as |execute cancel message|>
+                  </:action>
+                  <:dialog as |execute cancel message|>
                     <DeleteConfirmation
                       @message={{message}}
                       @execute={{queue execute (fn writer.delete item)}}
                       @cancel={{cancel}}
                     />
-                  </BlockSlot>
+                  </:dialog>
                 </ConfirmationDialog>
               {{/if}}
               </Hds::ButtonSet>
@@ -162,6 +161,6 @@
           </StateChart>
         </form>
       {{/let}}
-    </BlockSlot>
+    </:content>
   </DataWriter>
 </div>

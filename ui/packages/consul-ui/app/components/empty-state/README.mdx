@@ -28,22 +28,22 @@ function.
   class="status-404"
   @login={{noop}}
 >
-  <BlockSlot @name="header">
+  <:header>
     <h2>
       Header
     </h2>
-  </BlockSlot>
-  <BlockSlot @name="subheader">
+  </:header>
+  <:subheader>
     <h3>
       Subheader
     </h3>
-  </BlockSlot>
-  <BlockSlot @name="body">
+  </:subheader>
+  <:body>
     <p>
       Body text
     </p>
-  </BlockSlot>
-  <BlockSlot @name="actions">
+  </:body>
+  <:actions>
     <li>
       <Hds::Link::Standalone
         @text='Documentation on namespaces'
@@ -62,7 +62,7 @@ function.
         @size='small'
       />
     </li>
-  </BlockSlot>
+  </:actions>
 </EmptyState>
 ```
 
@@ -72,10 +72,10 @@ body slot is specified:
 
 ```hbs
 <EmptyState>
-  <BlockSlot @name="body">
+  <:body>
     <p>
       Minimal text
     </p>
-  </BlockSlot>
+  </:body>
 </EmptyState>
 ```

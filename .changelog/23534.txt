@@ -1,0 +1,3 @@
+```release-note:security
+api-gateway, terminating-gateway: Apply HTTP request path normalization on api-gateway and terminating-gateway HTTP listeners to prevent L7 intention RBAC bypass via non-normalized paths (CVE-2024-10005).
+```

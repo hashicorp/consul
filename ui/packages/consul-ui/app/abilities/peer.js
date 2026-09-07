@@ -1,5 +1,5 @@
 /**
- * Copyright (c) HashiCorp, Inc.
+ * Copyright IBM Corp. 2024, 2026
  * SPDX-License-Identifier: BUSL-1.1
  */
 
@@ -13,7 +13,7 @@ export default class PeerAbility extends BaseAbility {
   segmented = false;
 
   get isLinkable() {
-    return this.canDelete;
+    return !['DELETING'].includes(this.item.State);
   }
   get canDelete() {
     return !['DELETING'].includes(this.item.State) && super.canDelete;

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) HashiCorp, Inc.
+ * Copyright IBM Corp. 2024, 2026
  * SPDX-License-Identifier: BUSL-1.1
  */
 
@@ -7,11 +7,10 @@ import { inject as service } from '@ember/service';
 import { computed, set } from '@ember/object';
 import Component from 'ember-collection/components/ember-collection';
 import PercentageColumns from 'ember-collection/layouts/percentage-columns';
-import Slotted from 'block-slots';
 
 const formatItemStyle = PercentageColumns.prototype.formatItemStyle;
 
-export default Component.extend(Slotted, {
+export default Component.extend({
   dom: service('dom'),
   tagName: '',
   height: 500,

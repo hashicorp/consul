@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package logging
@@ -41,6 +41,7 @@ const (
 	License               string = "license"
 	Manager               string = "manager"
 	Memberlist            string = "memberlist"
+	APIGateway            string = "api_gateway"
 	MeshGateway           string = "mesh_gateway"
 	Namespace             string = "namespace"
 	NetworkAreas          string = "network_areas"

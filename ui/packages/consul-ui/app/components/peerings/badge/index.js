@@ -1,5 +1,5 @@
 /**
- * Copyright (c) HashiCorp, Inc.
+ * Copyright IBM Corp. 2024, 2026
  * SPDX-License-Identifier: BUSL-1.1
  */
 
@@ -26,7 +26,7 @@ const BADGE_LOOKUP = {
     tooltip: 'Someone in the other peer may have deleted this peering connection.',
   },
   UNDEFINED: {
-    tooltip: '',
+    tooltip: 'The state of this peering connection is undefined.',
   },
 };
 export default class PeeringsBadge extends Component {

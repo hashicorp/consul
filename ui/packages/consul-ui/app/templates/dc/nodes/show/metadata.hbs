@@ -11,11 +11,11 @@ as |route|>
     <Consul::Metadata::List @items={{entries route.model.item.Meta}} />
   {{else}}
     <EmptyState>
-      <BlockSlot @name="body">
+      <:body>
         <p>
           This node has no metadata.
         </p>
-      </BlockSlot>
+      </:body>
     </EmptyState>
   {{/if}}
   </div>

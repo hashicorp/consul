@@ -7,14 +7,14 @@
   @name={{this.routeName}}
 as |route|>
   <AppView>
-    <BlockSlot @name="header">
+    <:header>
       <h1>
         <route.Title @title={{compute (fn route.t 'title')}} />
       </h1>
-    </BlockSlot>
-    <BlockSlot @name="toolbar">
-    </BlockSlot>
-    <BlockSlot @name="nav">
+    </:header>
+    <:toolbar>
+    </:toolbar>
+    <:nav>
 
 {{#let
     (from-entries (array
@@ -59,15 +59,15 @@ as |tabs|}}
 
   {{/let}}
 {{/let}}
-    </BlockSlot>
-    <BlockSlot @name="content">
+    </:nav>
+    <:content>
       <Outlet
         @name={{this.routeName}}
         @model={{route.model}}
       as |o|>
         {{outlet}}
       </Outlet>
-    </BlockSlot>
+    </:content>
 
   </AppView>
 </Route>

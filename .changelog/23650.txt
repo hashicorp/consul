@@ -1,0 +1,3 @@
+```release-note:improvement
+dockerfile: layer reduction by merging RUN commands and minor changes following best practices.
+```

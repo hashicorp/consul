@@ -1,15 +1,14 @@
 /**
- * Copyright (c) HashiCorp, Inc.
+ * Copyright IBM Corp. 2024, 2026
  * SPDX-License-Identifier: BUSL-1.1
  */
 
 /*eslint ember/closure-actions: "warn"*/
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
-import Slotted from 'block-slots';
 import { set } from '@ember/object';
 
-export default Component.extend(Slotted, {
+export default Component.extend({
   tagName: '',
   dom: service('dom'),
   expanded: false,
@@ -22,10 +21,6 @@ export default Component.extend(Slotted, {
     this._super(...arguments);
     this.guid = this.dom.guid(this);
     this.submenus = [];
-  },
-  willRender: function () {
-    this._super(...arguments);
-    set(this, 'hasHeader', this._isRegistered('header'));
   },
   actions: {
     addSubmenu: function (name) {

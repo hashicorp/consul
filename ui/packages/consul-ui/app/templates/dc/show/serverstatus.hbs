@@ -14,20 +14,16 @@ as |route|>
         nspace=route.params.nspace
         dc=route.params.dc
       )
-    }}
-  as |loader|>
+    }}>
 
-{{#let
-  loader.data
-as |item|}}
-    <BlockSlot @name="error">
+    <:error as |loader|>
       <ErrorState
         @error={{loader.error}}
         @login={{route.model.app.login.open}}
       />
-    </BlockSlot>
+    </:error>
 
-    <BlockSlot @name="disconnected" as |after|>
+    <:disconnected as |after loader|>
       {{#if (eq loader.error.status "404")}}
         <Hds::Toast
           @color='warning'
@@ -56,9 +52,12 @@ as |item|}}
           <T.Description>An error was returned whilst loading this data, refresh to try again.</T.Description>
         </Hds::Toast>
       {{/if}}
-    </BlockSlot>
+    </:disconnected>
 
-    <BlockSlot @name="loaded">
+    <:loaded as |loader|>
+{{#let
+  loader.data
+as |item|}}
       <div class="tab-section">
 
           <Hds::Card::Container
@@ -67,6 +66,7 @@ as |item|}}
             class="server-failure-tolerance"
             aria-labelledby="server-fault-tolerance-title"
             role="region"
+            data-test-server-info
           >
             <header class="server-failure-tolerance__header" aria-label="Tolerance">
               <h2 id="server-fault-tolerance-title" class="hds-typography-display-300 hds-font-weight-semibold">
@@ -89,8 +89,8 @@ as |item|}}
                 {{compute (fn route.t 'tolerance.immediate.body')}}
               </p>
               <div class="server-failure-tolerance__value" aria-live="polite">
-                <span class="hds-typography-display-300 hds-font-weight-semibold">
-                  {{item.FailureTolerance}}
+                <span class="server-failure-tolerance__badge-count">
+                  <Hds::BadgeCount @text={{item.FailureTolerance}} @size="large" @type="filled" @color="neutral" />
                 </span>
               </div>
             </section>
@@ -110,18 +110,18 @@ as |item|}}
                   </span>
                 </h3>
               </header>
-              <dl
-                class={{class-map
-                  (array 'warning' (eq item.OptimisticFailureTolerance 0))
-                }}
-              >
-                <dt>
-                  {{compute (fn route.t 'tolerance.optimistic.body')}}
-                </dt>
-                <dd>
-                  {{item.OptimisticFailureTolerance}}
-                </dd>
-              </dl>
+              <p>
+                {{compute (fn route.t 'tolerance.optimistic.body')}}
+              </p>
+              <div class="server-failure-tolerance__status-badge">
+                <Hds::Badge
+                  @text={{item.OptimisticFailureTolerance}}
+                  @icon={{if (eq item.OptimisticFailureTolerance 0) "alert-circle" "check"}}
+                  @color={{if (eq item.OptimisticFailureTolerance 0) "warning" "success"}}
+                  @type="filled"
+                  @size="small"
+                />
+              </div>
 
             </section>
               {{/if}}
@@ -205,8 +205,8 @@ as |item|}}
     {{/if}}
 
       </div>
-    </BlockSlot>
 {{/let}}
+    </:loaded>
   </DataLoader>
 </Route>
 

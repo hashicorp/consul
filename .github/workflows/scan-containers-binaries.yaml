@@ -1,0 +1,427 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+# Manually-triggered workflow that builds every release artifact (binaries,
+# packages, and container images) for the latest commit on the selected branch,
+# then runs the HashiCorp security scanner against the repository source, the
+# built binaries, and the built container images.
+#
+# The scanning mirrors the CRT security-scan reusables
+# (.github/workflows/reusable-crt-security-scan-binaries.yml and
+# reusable-crt-security-scan-containers.yml): discover the built artifacts, then
+# fan out a matrix that scans each binary and each container image, gated on the
+# artifacts actually existing (scan-binaries ~ security-scan-binaries,
+# scan-containers ~ security-scan-containers).
+#
+# Key differences, because those reusables target HashiCorp's CRT pipeline:
+#   * They pull pre-built artifacts from Artifactory (via bob) for a prior build;
+#     we TRIGGER build.yml and scan the artifacts it uploads to this run.
+#   * They run the scanner binary on self-hosted runners (Vault + bob); we run
+#     the scanner as a local action after cloning the private
+#     hashicorp/security-scanner repo with PRODSEC_SCANNER_READ_ONLY, on GitHub-hosted runners.
+#   * Config comes from .release/security-scan.hcl (the CRT release-scan config);
+#     the binary/container blocks below are kept in sync with it.
+#   * CRT-only jobs (IBM Twistlock, UST publishing, Datadog metrics) are omitted
+#     as they require internal infrastructure that does not apply here.
+#
+# Trigger it from the Actions tab via "Run workflow" and pick any branch. The
+# build runs against that branch's latest commit and the scan jobs consume its
+# artifacts in the same run.
+name: Scan Binaries and Containers
+
+on:
+  workflow_dispatch:
+
+# Only allow one run of this workflow per ref at a time.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  # Required for the discover-artifacts job to list this run's artifacts, and
+  # for the scan jobs to download them, via the GitHub Actions API.
+  actions: read
+  # Required by github/codeql-action/upload-sarif to upload SARIF results
+  security-events: write
+
+jobs:
+  # 1. Build every artifact for the triggering branch's latest commit. build.yml
+  #    is invoked as a reusable workflow (it exposes a `workflow_call` trigger),
+  #    so all of its jobs run under THIS run's id and their uploaded artifacts
+  #    (binary zips, rpm/deb packages, and container image tarballs) are attached
+  #    to this run -- which is what lets discover-artifacts below enumerate them
+  #    and the scan jobs download them.
+  build:
+    uses: ./.github/workflows/build.yml
+
+  # 2. Resolve the Go toolchain version the scanner uses for go_modules analysis.
+  get-go-version:
+    uses: ./.github/workflows/reusable-get-go-version.yml
+
+  # 3. Scan the repository source tree. This does not need the build artifacts,
+  #    so it runs in parallel with the build.
+  scan-repository:
+    name: Scan repository
+    needs: [get-go-version]
+    runs-on: ubuntu-latest
+    # Skip on forks, which lack the PRODSEC_SCANNER_READ_ONLY secret.
+    if: github.repository == 'hashicorp/consul'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+
+      - name: Set up Go
+        uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
+        with:
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
+
+      # hashicorp/security-scanner is a private repo, so we check it out with a 
+      # read-only token and run it as a local action.
+      - name: Clone Security Scanner repo
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        with:
+          repository: hashicorp/security-scanner
+          token: ${{ secrets.PRODSEC_SCANNER_READ_ONLY }}
+          path: security-scanner
+          ref: main
+
+      - name: Scan repository
+        id: scan
+        uses: ./security-scanner
+        with:
+          sarif-profile: github
+          repository: "$PWD"
+          # Repository config is auto-loaded from scan.hcl at the repo root
+
+      - name: Read SARIF output
+        if: always()
+        shell: bash
+        run: cat results.sarif | jq
+
+      - name: Upload SARIF file
+        if: always()
+        uses: github/codeql-action/upload-sarif@9e3211c9a3b9311dfe05da2ed48eea3386f042dd # v4.37.6
+        with:
+          sarif_file: results.sarif
+
+      - name: Upload SARIF artifact
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        with:
+          name: sarif-repository
+          path: results.sarif
+          if-no-files-found: warn
+
+  # 4. Enumerate the build artifacts so the scan jobs below can fan out over
+  #    them with a matrix. The reusable build workflow shares this run's id, so
+  #    its uploaded artifacts are listable via the Actions API.
+  discover-artifacts:
+    name: Discover scan targets
+    needs: [build]
+    runs-on: ubuntu-latest
+    if: github.repository == 'hashicorp/consul'
+    outputs:
+      binaries: ${{ steps.discover.outputs.binaries }}
+      images: ${{ steps.discover.outputs.images }}
+    steps:
+      - name: List build artifacts
+        id: discover
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          # Every artifact attached to this workflow run (binary zips, rpm/deb
+          # packages, container image tarballs, and metadata).
+          names=$(gh api --paginate \
+            "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts?per_page=100" \
+            --jq '.artifacts[].name')
+          echo "Run artifacts:"
+          echo "${names}"
+
+          # Binaries are the built zips (prefixed with consul_ to exclude metadata zips).
+          zips=$(echo "${names}" | grep -E '^consul_.*\.zip$' || true)
+          # Container images are the per-arch dev tarballs produced by
+          # hashicorp/actions-docker-build.  The ".dockerbuild" metadata
+          # artifacts are CRT-only; the ".docker.dev.tar" files are the actual
+          # docker-save archives that can be loaded with `docker load`.
+          tars=$(echo "${names}" | grep -E '\.docker\.dev\.tar$' || true)
+
+          binaries=$(echo "${zips}" | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          images=$(echo "${tars}"  | jq -R -s -c 'split("\n") | map(select(length > 0))')
+
+          echo "binaries=${binaries}" >> "$GITHUB_OUTPUT"
+          echo "images=${images}"     >> "$GITHUB_OUTPUT"
+
+          echo "Discovered $(echo "${binaries}" | jq 'length') binaries and $(echo "${images}" | jq 'length') container images to scan."
+
+  # 5. Scan each compiled binary -- one matrix job per binary artifact.
+  scan-binaries:
+    name: Scan ${{ matrix.artifact }}
+    needs: [discover-artifacts, get-go-version]
+    runs-on: ubuntu-latest
+    # Needs the PRODSEC_SCANNER_READ_ONLY secret, so skip on forks.
+    if: github.repository == 'hashicorp/consul' && needs.discover-artifacts.outputs.binaries != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        artifact: ${{ fromJSON(needs.discover-artifacts.outputs.binaries) }}
+    steps:
+      # Checkout gives the workspace a .git directory, which may be needed by
+      # setup-go or the scanner when evaluating modules.
+      - name: Checkout
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+
+      - name: Set up Go
+        uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
+        with:
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
+
+      # Download just this matrix entry's binary zip and unpack the binary into
+      # a directory the scanner points at.
+      - name: Download binary artifact
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+        with:
+          name: ${{ matrix.artifact }}
+          path: scan-target
+
+      - name: Extract binary
+        id: extract
+        run: |
+          set -euo pipefail
+          cd scan-target
+          unzip -o -j ./*.zip
+          rm -f ./*.zip
+          # Drop license/readme files so the scanner only sees the binary,
+          # mirroring the skip list in the CRT scan-binary script.
+          find . -maxdepth 1 -type f \( -iname 'LICENSE*' -o -iname '*.txt' -o -iname '*.md' -o -name 'LA_*' \) -delete
+          echo "Binary staged for scanning:"
+          ls -al
+          binary_file=$(find . -maxdepth 1 -type f \( -name 'consul' -o -name 'consul.exe' \) | head -n 1)
+          if [[ -z "${binary_file}" ]]; then
+            echo "ERROR: No binary found after extraction"
+            exit 1
+          fi
+          # Remove leading ./ from find output
+          binary_file=${binary_file#./}
+          echo "binary_path=scan-target/${binary_file}" >> "$GITHUB_OUTPUT"
+
+      # hashicorp/security-scanner is private; check it out with a read-only
+      # token and run it as a local action.
+      - name: Clone Security Scanner repo
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        with:
+          repository: hashicorp/security-scanner
+          token: ${{ secrets.PRODSEC_SCANNER_READ_ONLY }}
+          path: security-scanner
+          ref: main
+
+      - name: Scan binary
+        id: scan
+        uses: ./security-scanner
+        with:
+          sarif-profile: github
+          # Use `binary` input to analyze the binary unpacked in scan-target/
+          binary: "${{ steps.extract.outputs.binary_path }}"
+          # Keep in sync with the `binary` block in .release/security-scan.hcl,
+          # the config CRT uses to scan release binaries.
+          config: |
+            binary {
+              go_modules = true
+              osv        = true
+              go_stdlib  = true
+
+              secrets {
+                matchers {
+                  // Use most of default list, minus Vault (`hashicorp`), which has experienced false positives.
+                  // See https://github.com/hashicorp/security-scanner/blob/v0.0.2/pkg/scanner/secrets.go#L130C2-L130C2
+                  known = [
+                    // "hashicorp",
+                    "aws",
+
+                    "google",
+                    "slack",
+                    "github",
+                    "azure",
+                    "npm",
+                  ]
+                }
+              }
+
+              triage {
+                suppress {
+                  vulnerabilities = []
+
+                  paths = [
+                      "internal/tools/proto-gen-rpc-glue/e2e/consul/*",
+                      "test/integration/connect/envoy/test-sds-server/*",
+                      "test/integration/consul-container/*",
+                      "testing/deployer/*",
+                      "test-integ/*",
+                  ]
+                }
+              }
+            }
+
+      - name: Read SARIF output
+        if: always()
+        shell: bash
+        run: cat results.sarif | jq
+
+      - name: Upload SARIF file
+        if: always()
+        uses: github/codeql-action/upload-sarif@9e3211c9a3b9311dfe05da2ed48eea3386f042dd # v4.37.6
+        with:
+          sarif_file: results.sarif
+
+      - name: Upload SARIF artifact
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        with:
+          name: sarif-binary-${{ matrix.artifact }}
+          path: results.sarif
+          if-no-files-found: warn
+
+  # 6. Scan each container image -- one matrix job per image tarball. Each job
+  #    loads exactly one image into the local daemon and scans it.
+  scan-containers:
+    name: Scan ${{ matrix.artifact }}
+    needs: [discover-artifacts, get-go-version]
+    runs-on: ubuntu-latest
+    # Needs the PRODSEC_SCANNER_READ_ONLY secret, so skip on forks.
+    if: github.repository == 'hashicorp/consul' && needs.discover-artifacts.outputs.images != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        artifact: ${{ fromJSON(needs.discover-artifacts.outputs.images) }}
+    steps:
+      # Checkout gives the workspace a .git directory.
+      - name: Checkout
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+
+      - name: Set up Go
+        uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
+        with:
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
+
+      # Download just this matrix entry's image tarball.
+      - name: Download image artifact
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+        with:
+          name: ${{ matrix.artifact }}
+          path: scan-target
+
+      # hashicorp/actions-docker-build stores each image as a `docker save`
+      # tarball. Load this one into the local daemon so the scanner can inspect
+      # it via local_daemon = true.
+      - name: Load container image
+        id: load
+        run: |
+          set -euo pipefail
+          # actions/download-artifact extracts the artifact's contents into the
+          # destination directory, so the tarball file is at scan-target/<name>
+          # when the artifact was uploaded as a single file.  Use `find` as a
+          # safety net in case the action nests it one level deeper.
+          tarball=$(find scan-target -name '*.docker.dev.tar' -type f | head -n1)
+          if [[ -z "${tarball}" ]]; then
+            echo "ERROR: no .docker.dev.tar found under scan-target/"
+            find scan-target -type f | sort
+            exit 1
+          fi
+          echo "Loading ${tarball}"
+          output=$(docker load -i "${tarball}")
+          image_tag=$(echo "$output" | sed -n 's/^Loaded image: //p' | head -n 1)
+          if [[ -z "${image_tag}" ]]; then
+            echo "ERROR: Could not parse loaded image tag from docker load output."
+            echo "Output was: ${output}"
+            exit 1
+          fi
+          echo "image_tag=${image_tag}" >> "$GITHUB_OUTPUT"
+          echo "Loaded image tag: ${image_tag}"
+          echo "Local images:"
+          docker image ls
+
+      # hashicorp/security-scanner is private; check it out with a read-only
+      # token and run it as a local action.
+      - name: Clone Security Scanner repo
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        with:
+          repository: hashicorp/security-scanner
+          token: ${{ secrets.PRODSEC_SCANNER_READ_ONLY }}
+          path: security-scanner
+          ref: main
+
+      - name: Scan container
+        id: scan
+        uses: ./security-scanner
+        with:
+          sarif-profile: github
+          container: "${{ steps.load.outputs.image_tag }}"
+          # Keep in sync with the `container` block in .release/security-scan.hcl
+          # (CRT's release container config) plus local_daemon, which points the
+          # scanner at the image we just `docker load`ed.
+          config: |
+            container {
+              dependencies    = true
+              alpine_security = true
+              osv             = true
+              go_modules      = true
+              local_daemon    = true
+
+              secrets {
+                matchers {
+                  // Use most of default list, minus Vault (`hashicorp`), which has experienced false positives.
+                  // See https://github.com/hashicorp/security-scanner/blob/v0.0.2/pkg/scanner/secrets.go#L130C2-L130C2
+                  known = [
+                    // "hashicorp",
+                    "aws",
+                    "google",
+                    "slack",
+                    "github",
+                    "azure",
+                    "npm",
+                  ]
+                }
+              }
+
+              triage {
+                suppress {
+                  vulnerabilities = [
+                    "CVE-2025-30258", // Alpine Linux gnupg@2.4.9-r0
+                  ]
+
+                  paths = [
+                    "internal/tools/proto-gen-rpc-glue/e2e/consul/*",
+                    "test/integration/connect/envoy/test-sds-server/*",
+                    "test/integration/consul-container/*",
+                    "testing/deployer/*",
+                    "test-integ/*",
+                    // RHEL reuses the same base package version for the life of
+                    // the distro even after backported security patches, so the
+                    // OSV scanner trips on UBI base packages. Ignore them.
+                    "usr/lib/sysimage/rpm/*",
+                    "var/lib/rpm/*",
+                  ]
+                }
+              }
+            }
+
+      - name: Read SARIF output
+        if: always()
+        shell: bash
+        run: cat results.sarif | jq
+
+      - name: Upload SARIF file
+        if: always()
+        uses: github/codeql-action/upload-sarif@9e3211c9a3b9311dfe05da2ed48eea3386f042dd # v4.37.6
+        with:
+          sarif_file: results.sarif
+
+      - name: Upload SARIF artifact
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        with:
+          name: sarif-container-${{ matrix.artifact }}
+          path: results.sarif
+          if-no-files-found: warn

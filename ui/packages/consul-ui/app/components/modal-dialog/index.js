@@ -1,15 +1,14 @@
 /**
- * Copyright (c) HashiCorp, Inc.
+ * Copyright IBM Corp. 2024, 2026
  * SPDX-License-Identifier: BUSL-1.1
  */
 
 import Component from '@ember/component';
 import { set } from '@ember/object';
-import Slotted from 'block-slots';
 import A11yDialog from 'a11y-dialog';
 import { schedule } from '@ember/runloop';
 
-export default Component.extend(Slotted, {
+export default Component.extend({
   tagName: '',
   onclose: function () {},
   onopen: function () {},

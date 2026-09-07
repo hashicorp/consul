@@ -28,6 +28,7 @@
                     "name": "envoy.filters.http.router"
                   }
                 ],
+                "normalizePath": true,
                 "routeConfig": {
                   "name": "public_listener",
                   "virtualHosts": [

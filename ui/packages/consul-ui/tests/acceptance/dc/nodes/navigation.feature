@@ -31,6 +31,6 @@ Feature: dc / nodes / navigation
     And the title should be "Nodes - Consul"
     Then I see 3 node models
     When I click node on the nodes
-    And I click "[data-test-back]"
+    And I click "[data-test-back] a"
     Then the url should be /dc-1/nodes
 

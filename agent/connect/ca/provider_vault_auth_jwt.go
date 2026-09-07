@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package ca
@@ -49,6 +49,19 @@ func JwtLoginDataGen(authMethod *structs.VaultAuthMethod) (map[string]any, error
 		"/run/secrets/vault",
 		"/var/run/secrets",
 		"/run/secrets",
+	}
+
+	if tokenDirs, ok := params["TokenDirs"].(string); ok {
+
+		var dirs []string
+		for _, d := range strings.Split(tokenDirs, ",") {
+			if d = strings.TrimSpace(d); d != "" {
+				dirs = append(dirs, d)
+			}
+		}
+		if len(dirs) > 0 {
+			allowedDirs = dirs
+		}
 	}
 
 	// Securely read the JWT file using os.OpenRoot to prevent path traversal attacks

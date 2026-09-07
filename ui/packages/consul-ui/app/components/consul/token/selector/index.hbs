@@ -16,15 +16,16 @@
         @onclose={{this.close}}
         @onopen={{this.open}}
         @aria={{hash label="Log in to Consul"}}
-        as |modal|
       >
-        <Ref @target={{this}} @name="modal" @value={{modal}} />
-        <BlockSlot @name="header">
+        <:default as |modal|>
+          <Ref @target={{this}} @name="modal" @value={{modal}} />
+        </:default>
+        <:header>
           <h2>
             Log in to Consul
           </h2>
-        </BlockSlot>
-        <BlockSlot @name="body">
+        </:header>
+        <:body>
           <AuthForm
             @dc={{@dc.Name}}
             @partition={{@partition}}
@@ -46,14 +47,14 @@
               </authForm.Method>
             {{/if}}
           </AuthForm>
-        </BlockSlot>
-        <BlockSlot @name="actions">
+        </:body>
+        <:actions as |close|>
           <Hds::Button
             @color="secondary"
             @text="Continue without logging in"
-            {{on "click" modal.close}}
+            {{on "click" close}}
           />
-        </BlockSlot>
+        </:actions>
       </ModalDialog>
 
       <Hds::Dropdown
@@ -68,14 +69,16 @@
             "settings"
             params=(hash nspace=undefined partition=undefined)
           }}
-          @text={{t "components.hashicorp-consul.side-nav.user-menu.settings"}}
           @isHrefExternal={{false}}
-        />
+        >
+          {{t "components.hashicorp-consul.side-nav.user-menu.settings"}}
+        </dd.Interactive>
         <dd.Interactive
-          @text={{t "components.hashicorp-consul.side-nav.user-menu.log-in"}}
           data-test-auth-menu-login
           {{on "click" (optional this.modal.open)}}
-        />
+        >
+          {{t "components.hashicorp-consul.side-nav.user-menu.log-in"}}
+        </dd.Interactive>
       </Hds::Dropdown>
     </:unauthorized>
     <:authorized as |authDialog|>
@@ -85,15 +88,16 @@
         @onclose={{this.close}}
         @onopen={{this.open}}
         @aria={{hash label="Log in with a different token"}}
-        as |modal|
       >
-        <Ref @target={{this}} @name="modal" @value={{modal}} />
-        <BlockSlot @name="header">
+        <:default as |modal|>
+          <Ref @target={{this}} @name="modal" @value={{modal}} />
+        </:default>
+        <:header>
           <h2>
             Log in with a different token
           </h2>
-        </BlockSlot>
-        <BlockSlot @name="body">
+        </:header>
+        <:body>
           <AuthForm
             @dc={{@dc.Name}}
             @nspace={{@nspace}}
@@ -103,14 +107,14 @@
           >
             <Ref @target={{this}} @name="authForm" @value={{authForm}} />
           </AuthForm>
-        </BlockSlot>
-        <BlockSlot @name="actions">
+        </:body>
+        <:actions as |close|>
           <Hds::Button
             @color="secondary"
             @text="Continue without logging in"
-            {{on "click" modal.close}}
+            {{on "click" close}}
           />
-        </BlockSlot>
+        </:actions>
       </ModalDialog>
 
       <Hds::Dropdown
@@ -137,14 +141,16 @@
             "settings"
             params=(hash nspace=undefined partition=undefined)
           }}
-          @text={{t "components.hashicorp-consul.side-nav.user-menu.settings"}}
           @isHrefExternal={{false}}
-        />
+        >
+          {{t "components.hashicorp-consul.side-nav.user-menu.settings"}}
+        </dd.Interactive>
         <dd.Interactive
-          @text={{t "components.hashicorp-consul.side-nav.user-menu.log-out"}}
           data-test-auth-menu-logout
           {{on "click" (optional authDialog.logout)}}
-        />
+        >
+          {{t "components.hashicorp-consul.side-nav.user-menu.log-out"}}
+        </dd.Interactive>
       </Hds::Dropdown>
     </:authorized>
   </AuthDialog>
@@ -157,8 +163,9 @@
         "settings"
         params=(hash nspace=undefined partition=undefined)
       }}
-      @text={{t "components.hashicorp-consul.side-nav.user-menu.settings"}}
       @isHrefExternal={{false}}
-    />
+    >
+      {{t "components.hashicorp-consul.side-nav.user-menu.settings"}}
+    </dd.Interactive>
   </Hds::Dropdown>
 {{/if}}

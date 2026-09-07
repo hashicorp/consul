@@ -11,6 +11,6 @@ Feature: dc / roles / navigation
     And the title should be "Roles - Consul"
     Then I see 3 role models
     When I click role on the roles
-    And I click "[data-test-back]"
+    And I click "[data-test-back] a"
     Then the url should be /dc-1/acls/roles
 

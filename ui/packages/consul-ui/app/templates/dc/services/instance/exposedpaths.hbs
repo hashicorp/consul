@@ -19,9 +19,9 @@ as |item proxy|}}
     />
   {{else}}
     <EmptyState>
-      <BlockSlot @name="body">
+      <:body>
         {{t 'routes.dc.services.instance.exposedpaths.empty.body' htmlSafe=true}}
-      </BlockSlot>
+      </:body>
     </EmptyState>
   {{/if}}
   </div>

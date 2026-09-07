@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package internal
@@ -8,7 +8,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/armon/go-metrics"
+	"github.com/hashicorp/go-metrics"
 
 	agentmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 

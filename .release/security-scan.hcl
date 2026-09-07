@@ -1,4 +1,4 @@
-# Copyright (c) HashiCorp, Inc.
+# Copyright IBM Corp. 2024, 2026
 # SPDX-License-Identifier: BUSL-1.1
 
 # These scan results are run as part of CRT workflows.
@@ -39,6 +39,12 @@ container {
   triage {
     suppress {
       vulnerabilities = [
+        "CVE-2025-30258", //Alpine Linux's Security Issue Tracker in gnupg@2.4.9-r0:
+        // 2.4.x is the stable version of gnupg and the latest is 2.4.9 which is not affected by the vulnerability 
+        // according to NVD - CVE-2025-30258, but our scanner is still flagging it. Hence suppressing it for now.
+        // Impact: gpg is only used in official docker build target but is uninstalled 
+        // just after verifying the signature of the Consul binary. This CVE is not exploitable in this context.
+        "GO-2026-5932", // x/crypto/openpgp: no fixed version exists upstream; Consul imports no openpgp package.
       ]
 
       paths = [
@@ -89,6 +95,7 @@ binary {
   triage {
     suppress {
       vulnerabilities = [
+        "GO-2026-5932", // x/crypto/openpgp: no fixed version exists upstream; Consul imports no openpgp package.
         ]
       
       paths = [

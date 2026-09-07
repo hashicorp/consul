@@ -5,9 +5,9 @@
 
 {{#let @components.MenuSeparator as |MenuSeparator|}}
 <MenuSeparator>
-  <BlockSlot @name="label">
+  <:label>
     {{@label}}
-  </BlockSlot>
+  </:label>
 </MenuSeparator>
 {{yield}}
 {{/let}}

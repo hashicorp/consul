@@ -1,0 +1,3 @@
+```release-note:other
+ci: upgrade `pnpm/action-setup` from v4.1.0 to v6.0.9 in the frontend workflow to resolve a syntax error on older system Node versions
+```

@@ -10,10 +10,9 @@
 as |proxies|}}
 <ListCollection
   class="consul-service-instance-list"
-  ...attributes
   @items={{@items}}
-as |item index|>
-  <BlockSlot @name="header">
+  ...attributes>
+  <:header as |item index|>
     {{#if (eq @routeName "dc.services.show")}}
       <a data-test-service-name href={{href-to @routeName item.Service.Service}}>
         {{item.Service.ID}}
@@ -23,8 +22,8 @@ as |item index|>
         {{item.Service.ID}}
       </a>
     {{/if}}
-  </BlockSlot>
-  <BlockSlot @name="details">
+  </:header>
+  <:details as |item index|>
 
 {{#let
   (get proxies item.Service.ID)
@@ -111,6 +110,6 @@ as |proxy|}}
   {{/let}}
 {{/let}}
 
-  </BlockSlot>
+  </:details>
 </ListCollection>
 {{/let}}

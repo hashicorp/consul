@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package agent
@@ -22,8 +22,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/armon/go-metrics"
-	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-metrics"
+	"github.com/hashicorp/go-metrics/prometheus"
 	"github.com/rboyer/safeio"
 	"golang.org/x/net/http2"
 	"google.golang.org/grpc"
@@ -403,6 +403,10 @@ type Agent struct {
 	// httpConnLimiter is used to limit connections to the HTTP server by client
 	// IP.
 	httpConnLimiter connlimit.Limiter
+
+	// grpcConnLimiter is used to limit connections to the external gRPC server
+	// (the "grpc" and "grpc_tls" ports) by client IP.
+	grpcConnLimiter connlimit.Limiter
 
 	// configReloaders are subcomponents that need to be notified on a reload so
 	// they can update their internal state.
@@ -857,6 +861,11 @@ func (a *Agent) Start(ctx context.Context) error {
 		MaxConnsPerClientIP: a.config.HTTPMaxConnsPerClient,
 	})
 
+	// Configure the external gRPC connection limiter.
+	a.grpcConnLimiter.SetConfig(connlimit.Config{
+		MaxConnsPerClientIP: a.config.GRPCMaxConnsPerClient,
+	})
+
 	// Create listeners and unstarted servers; see comment on listenHTTP why
 	// we are doing this.
 	servers, err := a.listenHTTP()
@@ -890,12 +899,18 @@ func (a *Agent) Start(ctx context.Context) error {
 		go a.retryJoinWAN()
 	}
 
-	if a.config.Telemetry.CertificateEnabled && a.tlsConfigurator.Cert() != nil {
+	shouldMonitorAgentTLS := a.config.Telemetry.CertificateEnabled &&
+		(a.tlsConfigurator.Cert() != nil ||
+			a.config.AutoEncryptTLS ||
+			a.config.TLS.InternalRPC.CertFile != "" ||
+			a.config.TLS.InternalRPC.KeyFile != "")
+	if shouldMonitorAgentTLS {
 		m := tlsCertExpirationMonitor(
 			a.tlsConfigurator,
 			a.config.Datacenter,
 			a.config.PartitionOrDefault(),
 			a.config.NodeName,
+			tlsCertRole(a.config.ServerMode),
 			a.config.Telemetry.CertificateCriticalThresholdDays,
 			a.config.Telemetry.CertificateWarningThresholdDays,
 			a.logger,
@@ -988,7 +1003,13 @@ func (a *Agent) listenAndServeGRPC(server *consul.Server) error {
 			return err
 		}
 		for i := range ln {
-			ln[i] = middleware.LabelledListener{Listener: ln[i], Protocol: protocol}
+			// Enforce a per-client-IP connection limit before the connection is
+			// handed to the gRPC server. The limiter wraps the raw listener so
+			// that LabelledListener remains the outermost wrapper (its
+			// LabelledConn is required by the gRPC transport credentials for
+			// protocol detection).
+			limited := middleware.NewConnLimitListener(ln[i], &a.grpcConnLimiter, a.logger)
+			ln[i] = middleware.LabelledListener{Listener: limited, Protocol: protocol}
 			listeners = append(listeners, ln[i])
 		}
 
@@ -1562,6 +1583,13 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 
 		cfg.CAConfig = ca
 	}
+
+	// TokenDirs must be carried in the consul.Config field, not inside the
+	// mutable CAConfig.Config map. Storing it in the map means an
+	// operator:write API caller can overwrite it via ConnectCA.ConfigurationSet
+	// and bypass the file-read allowlist restriction.
+	cfg.TokenDirs = runtimeCfg.TokenDirs
+
 	cfg.ConnectVirtualIPCIDRv4 = runtimeCfg.ConnectVirtualIPCIDRv4
 	cfg.ConnectVirtualIPCIDRv6 = runtimeCfg.ConnectVirtualIPCIDRv6
 
@@ -4317,6 +4345,10 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 
 	a.httpConnLimiter.SetConfig(connlimit.Config{
 		MaxConnsPerClientIP: newCfg.HTTPMaxConnsPerClient,
+	})
+
+	a.grpcConnLimiter.SetConfig(connlimit.Config{
+		MaxConnsPerClientIP: newCfg.GRPCMaxConnsPerClient,
 	})
 
 	for _, s := range a.dnsServers {

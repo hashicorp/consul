@@ -52,14 +52,13 @@ as |key value|}}
           @position="right"
           @onchange={{action @filter.searchproperty.change}}
           @multiple={{true}}
-          @required={{true}}
-        as |components|>
-          <BlockSlot @name="selected">
+          @required={{true}}>
+          <:selected>
             <span>
               {{t "common.search.searchproperty"}}
             </span>
-          </BlockSlot>
-          <BlockSlot @name="options">
+          </:selected>
+        <:options as |components|>
     {{#let components.Optgroup components.Option as |Optgroup Option|}}
             {{#each @filter.searchproperty.default as |prop|}}
               <Option @value={{prop}} @selected={{includes prop @filter.searchproperty.value}}>
@@ -67,8 +66,8 @@ as |key value|}}
               </Option>
             {{/each}}
     {{/let}}
-          </BlockSlot>
-        </search.Select>
+          </:options>
+      </search.Select>
       </search.Search>
     </:search>
     <:filter as |search|>
@@ -76,14 +75,13 @@ as |key value|}}
         class="type-status"
         @position="left"
         @onchange={{action @filter.status.change}}
-        @multiple={{true}}
-      as |components|>
-        <BlockSlot @name="selected">
+        @multiple={{true}}>
+        <:selected>
           <span>
             {{t "common.consul.status"}}
           </span>
-        </BlockSlot>
-        <BlockSlot @name="options">
+        </:selected>
+        <:options as |components|>
   {{#let components.Optgroup components.Option as |Optgroup Option|}}
     {{#each (array "passing" "warning" "critical") as |state|}}
           <Option class="value-{{state}}" @value={{state}} @selected={{includes state @filter.status.value}}>
@@ -95,20 +93,19 @@ as |key value|}}
           </Option>
     {{/each}}
   {{/let}}
-        </BlockSlot>
+        </:options>
       </search.Select>
       <search.Select
         class="type-version"
         @position="left"
         @onchange={{action @filter.version.change}}
-        @multiple={{true}}
-      as |components|>
-        <BlockSlot @name="selected">
+        @multiple={{true}}>
+        <:selected>
           <span>
             {{t "common.consul.version"}}
           </span>
-        </BlockSlot>
-        <BlockSlot @name="options">
+        </:selected>
+        <:options as |components|>
         {{#let components.Optgroup components.Option as |Optgroup Option|}}
         {{#each @versions as |version|}}
           <Option @value={{version}} @selected={{includes version @filter.version.value}}>
@@ -116,7 +113,7 @@ as |key value|}}
           </Option>
         {{/each}}
         {{/let}}
-        </BlockSlot>
+        </:options>
       </search.Select>
     </:filter>
     <:sort as |search|>
@@ -126,9 +123,8 @@ as |key value|}}
         @position="right"
         @onchange={{action @sort.change}}
         @multiple={{false}}
-        @required={{true}}
-      as |components|>
-        <BlockSlot @name="selected">
+        @required={{true}}>
+        <:selected>
           <span>
             {{#let (from-entries (array
                   (array "Node:asc" (t "common.sort.alpha.asc"))
@@ -143,8 +139,8 @@ as |key value|}}
               {{get selectable @sort.value}}
             {{/let}}
           </span>
-        </BlockSlot>
-        <BlockSlot @name="options">
+        </:selected>
+        <:options as |components|>
   {{#let components.Optgroup components.Option as |Optgroup Option|}}
           <Optgroup @label={{t "common.consul.status"}}>
             <Option @value="Status:asc" @selected={{eq "Status:asc" @sort.value}}>{{t "common.sort.status.asc"}}</Option>
@@ -159,7 +155,7 @@ as |key value|}}
             <Option @value="Version:desc" @selected={{eq "Version:desc" @sort.value}}>{{t "common.sort.version.desc"}}</Option>
           </Optgroup>
   {{/let}}
-        </BlockSlot>
+        </:options>
       </search.Select>
     </:sort>
 </SearchBar>

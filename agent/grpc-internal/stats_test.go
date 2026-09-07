@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package internal
@@ -9,8 +9,8 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/armon/go-metrics"
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/go-metrics"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"

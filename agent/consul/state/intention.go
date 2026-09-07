@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package state
@@ -1111,7 +1111,10 @@ func (s *Store) intentionTopologyTxn(
 				return index, nil, fmt.Errorf("failed to list service virtual IPs: %v", err)
 			}
 			for _, svc := range vipServices {
-				services[svc.Service.ServiceName] = struct{}{}
+				services[structs.ServiceName{
+					Name:           baseServiceNameFromVirtualIPEntry(svc.Service.ServiceName.Name),
+					EnterpriseMeta: svc.Service.ServiceName.EnterpriseMeta,
+				}] = struct{}{}
 			}
 			if vipIndex > index {
 				index = vipIndex

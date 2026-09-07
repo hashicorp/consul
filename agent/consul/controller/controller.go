@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package controller
@@ -325,16 +325,19 @@ func (c *controller) AddTrigger(request Request, trigger func(ctx context.Contex
 	c.triggerMutex.Unlock()
 
 	c.group.Go(func() error {
-		if err := trigger(ctx); err != nil {
-			c.logger.Error("error while running trigger, adding re-reconcilation anyway", "error", err)
-		}
+		err := trigger(ctx)
 		select {
 		case <-ctx.Done():
+			// Context was cancelled by a newer AddTrigger call for this request.
+			// The newer goroutine handles re-enqueuing if needed.
 			return nil
 		default:
-			c.work.Add(request)
-			return nil
 		}
+		if err != nil {
+			c.logger.Error("error while running trigger, adding re-reconcilation anyway", "error", err)
+		}
+		c.work.Add(request)
+		return nil
 	})
 }
 

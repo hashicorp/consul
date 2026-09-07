@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package config
@@ -101,6 +101,7 @@ func DefaultSource() Source {
 		limits = {
 			http_max_conns_per_client = 200
 			https_handshake_timeout = "5s"
+			grpc_max_conns_per_client = 100
 			request_limits = {
 				mode = "disabled"
 				read_rate = -1

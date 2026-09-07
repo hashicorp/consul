@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package state
@@ -78,6 +78,24 @@ func nodesTableSchema() *memdb.TableSchema {
 			},
 		},
 	}
+}
+
+func baseServiceNameFromVirtualIPEntry(name string) string {
+	_, serviceName, ok := splitAutoPortServiceVIPName(name)
+	if !ok {
+		return name
+	}
+	return serviceName
+}
+
+// splitAutoPortServiceVIPName parses synthetic service names of the form
+// "<port>.<service>" used for per-port VIP allocation.
+func splitAutoPortServiceVIPName(name string) (portName, serviceName string, ok bool) {
+	i := strings.IndexByte(name, '.')
+	if i <= 0 || i == len(name)-1 {
+		return "", "", false
+	}
+	return name[:i], name[i+1:], true
 }
 
 func indexFromNode(n *structs.Node) ([]byte, error) {

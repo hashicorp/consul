@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package external
@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/armon/go-metrics"
 	middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	"github.com/hashi-derek/grpc-proxy/proxy"
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-metrics"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -68,6 +68,14 @@ func NewServer(
 	opts := []grpc.ServerOption{
 		grpc.MaxConcurrentStreams(2048),
 		grpc.MaxRecvMsgSize(50 * 1024 * 1024),
+		// Bound the time a client may spend establishing a connection (including
+		// the TLS/HTTP2 handshake) before it is dropped. This limits how long an
+		// incomplete connection can hold server resources and, together with the
+		// per-client connection limiter applied to the listener, mitigates
+		// resource-exhaustion from clients that never complete the handshake.
+		// gRPC's default is 120s, which is far longer than a legitimate
+		// handshake requires.
+		grpc.ConnectionTimeout(20 * time.Second),
 		grpc.InTapHandle(agentmiddleware.ServerRateLimiterMiddleware(limiter, agentmiddleware.NewPanicHandler(logger), logger)),
 		grpc.StatsHandler(agentmiddleware.NewStatsHandler(metricsObj, metricsLabels)),
 		middleware.WithUnaryServerChain(unaryInterceptors...),

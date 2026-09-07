@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package agent
@@ -22,9 +22,9 @@ import (
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/NYTimes/gziphandler"
-	"github.com/armon/go-metrics"
-	"github.com/armon/go-metrics/prometheus"
 	"github.com/go-viper/mapstructure/v2"
+	"github.com/hashicorp/go-metrics"
+	"github.com/hashicorp/go-metrics/prometheus"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -357,14 +357,14 @@ func ensureContentTypeHeader(next http.Handler, logger hclog.Logger) http.Handle
 		contentType := api.GetContentType(req)
 
 		if req != nil {
-			logger.Debug("warning: request content-type is not supported", "request-path", req.URL)
+			logger.Debug("warning: request content-type is not supported", "request-path", req.URL.Path)
 			req.Header.Set(contentTypeHeader, contentType)
 		}
 
 		if resp != nil {
 			respContentType := resp.Header().Get(contentTypeHeader)
 			if respContentType == "" || respContentType != contentType {
-				logger.Debug("warning: response content-type header not explicitly set.", "request-path", req.URL)
+				logger.Debug("warning: response content-type header not explicitly set.", "request-path", req.URL.Path)
 				resp.Header().Set(contentTypeHeader, contentType)
 			}
 		}

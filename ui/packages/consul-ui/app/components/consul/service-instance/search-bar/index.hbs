@@ -50,14 +50,13 @@
           @onchange={{action @filter.searchproperty.change}}
           @multiple={{true}}
           @required={{true}}
-          as |components|
         >
-          <BlockSlot @name='selected'>
+          <:selected>
             <span>
               {{t 'common.search.searchproperty'}}
             </span>
-          </BlockSlot>
-          <BlockSlot @name='options'>
+          </:selected>
+        <:options as |components|>
             {{#let components.Option as |Option|}}
               {{#each @filter.searchproperty.default as |prop|}}
                 <Option @value={{prop}} @selected={{includes prop @filter.searchproperty.value}}>
@@ -65,8 +64,8 @@
                 </Option>
               {{/each}}
             {{/let}}
-          </BlockSlot>
-        </search.Select>
+          </:options>
+      </search.Select>
       {{/if}}
     </search.Search>
   </:search>
@@ -76,14 +75,13 @@
       @position='left'
       @onchange={{action @filter.status.change}}
       @multiple={{true}}
-      as |components|
     >
-      <BlockSlot @name='selected'>
+      <:selected>
         <span>
           {{t 'common.consul.status'}}
         </span>
-      </BlockSlot>
-      <BlockSlot @name='options'>
+      </:selected>
+        <:options as |components|>
         {{#let components.Optgroup components.Option as |Optgroup Option|}}
           {{#each (array 'passing' 'warning' 'critical' 'empty') as |state|}}
             <Option
@@ -95,21 +93,27 @@
             </Option>
           {{/each}}
         {{/let}}
-      </BlockSlot>
-    </search.Select>
+      </:options>
+      </search.Select>
     {{#if (gt @sources.length 0)}}
       <search.Select
         class='type-source'
         @position='left'
         @onchange={{action @filter.source.change}}
         @multiple={{true}}
-        as |components|
       >
-        <Consul::SourcesSelect
-          @components={{components}}
-          @filter={{@filter}}
-          @sources={{@sources}}
-        />
+        <:selected>
+          <span>
+            {{t 'common.search.source'}}
+          </span>
+        </:selected>
+        <:options as |components|>
+          <Consul::SourcesSelect
+            @components={{components}}
+            @filter={{@filter}}
+            @sources={{@sources}}
+          />
+        </:options>
       </search.Select>
     {{/if}}
   </:filter>
@@ -121,9 +125,8 @@
       @onchange={{action @sort.change}}
       @multiple={{false}}
       @required={{true}}
-      as |components|
     >
-      <BlockSlot @name='selected'>
+      <:selected>
         <span>
           {{#let
             (from-entries
@@ -139,8 +142,8 @@
             {{get selectable @sort.value}}
           {{/let}}
         </span>
-      </BlockSlot>
-      <BlockSlot @name='options'>
+      </:selected>
+        <:options as |components|>
         {{#let components.Optgroup components.Option as |Optgroup Option|}}
           <Optgroup @label={{t 'common.consul.status'}}>
             <Option @value='Status:asc' @selected={{eq 'Status:asc' @sort.value}}>{{t
@@ -159,7 +162,7 @@
               }}</Option>
           </Optgroup>
         {{/let}}
-      </BlockSlot>
-    </search.Select>
+      </:options>
+      </search.Select>
   </:sort>
 </SearchBar>

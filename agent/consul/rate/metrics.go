@@ -1,9 +1,9 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package rate
 
-import "github.com/armon/go-metrics/prometheus"
+import "github.com/hashicorp/go-metrics/prometheus"
 
 var Counters = []prometheus.CounterDefinition{
 	{

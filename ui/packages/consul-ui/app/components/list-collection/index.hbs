@@ -29,17 +29,17 @@
         onclick={{action 'click'}} style={{{cell.style}}}
         class={{if @linkable (if (is @linkable item=cell.item) 'linkable')}}
       >
-        <YieldSlot @name="header"><div class="header">{{yield cell.item cell.index}}</div></YieldSlot>
-        <YieldSlot @name="details"><div class="detail">{{yield cell.item cell.index}}</div></YieldSlot>
-        <YieldSlot @name="actions"
-          @params={{
-            block-params (component 'more-popover-menu' expanded=(if (eq this.checked cell.item.uid) true false) onchange=(action "change" cell.item.uid))
-          }}
-        >
+        {{#if (has-block "header")}}
+          <div class="header">{{yield cell.item cell.index to="header"}}</div>
+        {{/if}}
+        {{#if (has-block "details")}}
+          <div class="detail">{{yield cell.item cell.index to="details"}}</div>
+        {{/if}}
+        {{#if (and (not-eq @showActions false) (has-block "actions"))}}
           <div class="actions">
-            {{yield cell.item cell.index}}
+            {{yield cell.item cell.index (component 'more-popover-menu' expanded=(if (eq this.checked cell.item.uid) true false) onchange=(action "change" cell.item.uid)) to="actions"}}
           </div>
-        </YieldSlot>
+        {{/if}}
       </li>
     {{~/each~}}
   </EmberNativeScrollable>
@@ -53,17 +53,17 @@
         onclick={{action 'click'}}
         class={{if (not @linkable) 'linkable' (if (is @linkable item=item) 'linkable')}}
       >
-        <YieldSlot @name="header"><div class="header">{{yield item index}}</div></YieldSlot>
-        <YieldSlot @name="details"><div class="detail">{{yield item index}}</div></YieldSlot>
-        <YieldSlot @name="actions"
-          @params={{
-            block-params (component 'more-popover-menu' onchange=(action "change" item.uid))
-          }}
-        >
+        {{#if (has-block "header")}}
+          <div class="header">{{yield item index to="header"}}</div>
+        {{/if}}
+        {{#if (has-block "details")}}
+          <div class="detail">{{yield item index to="details"}}</div>
+        {{/if}}
+        {{#if (and (not-eq @showActions false) (has-block "actions"))}}
           <div class="actions">
-            {{yield item index}}
+            {{yield item index (component 'more-popover-menu' onchange=(action "change" item.uid)) to="actions"}}
           </div>
-        </YieldSlot>
+        {{/if}}
       </li>
     {{~/each~}}
   </ul>

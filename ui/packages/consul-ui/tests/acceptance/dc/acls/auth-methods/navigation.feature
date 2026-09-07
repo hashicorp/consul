@@ -11,6 +11,6 @@ Feature: dc / acls / auth-methods / navigation
     And the title should be "Auth Methods - Consul"
     Then I see 3 authMethod models
     When I click authMethod on the authMethods
-    And I click "[data-test-back]"
+    And I click "[data-test-back] a"
     Then the url should be /dc-1/acls/auth-methods
 

@@ -11,7 +11,7 @@ Feature: dc / services / navigation
     And the title should be "Services - Consul"
     Then I see 1 service models
     When I click service on the services
-    And I click "[data-test-back]"
+    And I click "[data-test-back] a"
     Then the url should be /dc-1/services
 
   Scenario: Clicking a peered service in the listing and back again
@@ -23,6 +23,6 @@ Feature: dc / services / navigation
     ---
     When I click service on the services
     Then the url should match /:billing/dc-1/services/service-0
-    And I click "[data-test-back]"
+    And I click "[data-test-back] a"
     Then the url should be /dc-1/services
 

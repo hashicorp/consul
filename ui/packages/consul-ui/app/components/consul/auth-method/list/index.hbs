@@ -6,9 +6,8 @@
 <ListCollection
   class="consul-auth-method-list"
   @items={{@items}}
-  as |item|
 >
-  <BlockSlot @name="header">
+  <:header as |item|>
   {{#if (not-eq item.DisplayName '')}}
     <a data-test-auth-method href={{href-to "dc.acls.auth-methods.show" item.Name}}>
       {{item.DisplayName}}
@@ -18,8 +17,8 @@
       {{item.Name}}
     </a>
   {{/if}}
-  </BlockSlot>
-  <BlockSlot @name="details">
+  </:header>
+  <:details as |item|>
     <Consul::AuthMethod::Type @item={{item}} />
   {{#if (not-eq item.DisplayName '')}}
     <span data-test-display-name>{{item.Name}}</span>
@@ -35,5 +34,5 @@
       <dd>{{item.MaxTokenTTL}}</dd>
     </dl>
   {{/if}}
-  </BlockSlot>
+  </:details>
 </ListCollection>

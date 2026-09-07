@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 // Package rate implements server-side RPC rate limiting.
@@ -14,8 +14,8 @@ import (
 
 	"github.com/hashicorp/consul/agent/metadata"
 
-	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-metrics"
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/agent/consul/multilimiter"

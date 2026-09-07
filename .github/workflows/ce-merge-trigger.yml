@@ -22,7 +22,7 @@ jobs:
       BRANCH: ${{ github.event.pull_request.base.ref }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Fetch active releases
         id: active
         run: |

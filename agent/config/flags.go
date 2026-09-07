@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package config
@@ -44,6 +44,7 @@ func AddFlags(fs *flag.FlagSet, f *LoadOpts) {
 	add(&f.ConfigFiles, "config-file", "Path to a file in JSON or HCL format with a matching file extension. Can be specified multiple times.")
 	fs.StringVar(&f.ConfigFormat, "config-format", "", "Config files are in this format irrespective of their extension. Must be 'hcl' or 'json'")
 	add(&f.FlagValues.DataDir, "data-dir", "Path to a data directory to store agent state.")
+	add(&f.FlagValues.TokenDirs, "token-dirs", "Path to a directory to store token files.")
 	add(&f.FlagValues.Datacenter, "datacenter", "Datacenter of the agent.")
 	add(&f.FlagValues.DefaultQueryTime, "default-query-time", "the amount of time a blocking query will wait before Consul will force a response. This value can be overridden by the 'wait' query parameter.")
 	add(&f.DevMode, "dev", "Starts the agent in development mode.")

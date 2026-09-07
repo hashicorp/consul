@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: migrate yadda/Gherkin acceptance tests to native QUnit (harness, intentions/create, components, settings)
+```

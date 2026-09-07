@@ -1,0 +1,3 @@
+```release-note:bug
+xds: only emit the client cert SDS block when both CertFile and KeyFile are set.
+```

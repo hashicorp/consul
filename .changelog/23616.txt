@@ -1,0 +1,3 @@
+```release-note:improvement
+server: Auth method TokenNameFormat field accepts OIDC and JWT claim mapping values
+```

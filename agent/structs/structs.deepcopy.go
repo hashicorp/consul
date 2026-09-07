@@ -446,6 +446,32 @@ func (o *HTTPRouteConfigEntry) DeepCopy() *HTTPRouteConfigEntry {
 			if o.Rules[i2].Filters.JWT != nil {
 				cp.Rules[i2].Filters.JWT = o.Rules[i2].Filters.JWT.DeepCopy()
 			}
+			if o.Rules[i2].Filters.ExtProc != nil {
+				cp.Rules[i2].Filters.ExtProc = make([]ExtProcFilter, len(o.Rules[i2].Filters.ExtProc))
+				copy(cp.Rules[i2].Filters.ExtProc, o.Rules[i2].Filters.ExtProc)
+				for i5 := range o.Rules[i2].Filters.ExtProc {
+					if o.Rules[i2].Filters.ExtProc[i5].Overrides != nil {
+						cp.Rules[i2].Filters.ExtProc[i5].Overrides = new(ExtProcOverrides)
+						*cp.Rules[i2].Filters.ExtProc[i5].Overrides = *o.Rules[i2].Filters.ExtProc[i5].Overrides
+						if o.Rules[i2].Filters.ExtProc[i5].Overrides.Processing != nil {
+							cp.Rules[i2].Filters.ExtProc[i5].Overrides.Processing = new(ExtProcProcessing)
+							*cp.Rules[i2].Filters.ExtProc[i5].Overrides.Processing = *o.Rules[i2].Filters.ExtProc[i5].Overrides.Processing
+							if o.Rules[i2].Filters.ExtProc[i5].Overrides.Processing.Request != nil {
+								cp.Rules[i2].Filters.ExtProc[i5].Overrides.Processing.Request = new(ExtProcProcessingDirection)
+								*cp.Rules[i2].Filters.ExtProc[i5].Overrides.Processing.Request = *o.Rules[i2].Filters.ExtProc[i5].Overrides.Processing.Request
+							}
+							if o.Rules[i2].Filters.ExtProc[i5].Overrides.Processing.Response != nil {
+								cp.Rules[i2].Filters.ExtProc[i5].Overrides.Processing.Response = new(ExtProcProcessingDirection)
+								*cp.Rules[i2].Filters.ExtProc[i5].Overrides.Processing.Response = *o.Rules[i2].Filters.ExtProc[i5].Overrides.Processing.Response
+							}
+						}
+					}
+				}
+			}
+			if o.Rules[i2].Filters.ExtAuthz != nil {
+				cp.Rules[i2].Filters.ExtAuthz = new(HTTPRouteExtAuthzFilter)
+				*cp.Rules[i2].Filters.ExtAuthz = *o.Rules[i2].Filters.ExtAuthz
+			}
 			if o.Rules[i2].ResponseFilters.Headers != nil {
 				cp.Rules[i2].ResponseFilters.Headers = make([]HTTPHeaderFilter, len(o.Rules[i2].ResponseFilters.Headers))
 				copy(cp.Rules[i2].ResponseFilters.Headers, o.Rules[i2].ResponseFilters.Headers)
@@ -530,6 +556,32 @@ func (o *HTTPRouteConfigEntry) DeepCopy() *HTTPRouteConfigEntry {
 					}
 					if o.Rules[i2].Services[i4].Filters.JWT != nil {
 						cp.Rules[i2].Services[i4].Filters.JWT = o.Rules[i2].Services[i4].Filters.JWT.DeepCopy()
+					}
+					if o.Rules[i2].Services[i4].Filters.ExtProc != nil {
+						cp.Rules[i2].Services[i4].Filters.ExtProc = make([]ExtProcFilter, len(o.Rules[i2].Services[i4].Filters.ExtProc))
+						copy(cp.Rules[i2].Services[i4].Filters.ExtProc, o.Rules[i2].Services[i4].Filters.ExtProc)
+						for i7 := range o.Rules[i2].Services[i4].Filters.ExtProc {
+							if o.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides != nil {
+								cp.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides = new(ExtProcOverrides)
+								*cp.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides = *o.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides
+								if o.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides.Processing != nil {
+									cp.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides.Processing = new(ExtProcProcessing)
+									*cp.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides.Processing = *o.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides.Processing
+									if o.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides.Processing.Request != nil {
+										cp.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides.Processing.Request = new(ExtProcProcessingDirection)
+										*cp.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides.Processing.Request = *o.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides.Processing.Request
+									}
+									if o.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides.Processing.Response != nil {
+										cp.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides.Processing.Response = new(ExtProcProcessingDirection)
+										*cp.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides.Processing.Response = *o.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides.Processing.Response
+									}
+								}
+							}
+						}
+					}
+					if o.Rules[i2].Services[i4].Filters.ExtAuthz != nil {
+						cp.Rules[i2].Services[i4].Filters.ExtAuthz = new(HTTPRouteExtAuthzFilter)
+						*cp.Rules[i2].Services[i4].Filters.ExtAuthz = *o.Rules[i2].Services[i4].Filters.ExtAuthz
 					}
 					if o.Rules[i2].Services[i4].ResponseFilters.Headers != nil {
 						cp.Rules[i2].Services[i4].ResponseFilters.Headers = make([]HTTPHeaderFilter, len(o.Rules[i2].Services[i4].ResponseFilters.Headers))
@@ -681,6 +733,18 @@ func (o *IngressListener) DeepCopy() *IngressListener {
 				if o.Services[i2].PassiveHealthCheck.EnforcingConsecutive5xx != nil {
 					cp.Services[i2].PassiveHealthCheck.EnforcingConsecutive5xx = new(uint32)
 					*cp.Services[i2].PassiveHealthCheck.EnforcingConsecutive5xx = *o.Services[i2].PassiveHealthCheck.EnforcingConsecutive5xx
+				}
+				if o.Services[i2].PassiveHealthCheck.EnforcingConsecutiveGatewayFailure != nil {
+					cp.Services[i2].PassiveHealthCheck.EnforcingConsecutiveGatewayFailure = new(uint32)
+					*cp.Services[i2].PassiveHealthCheck.EnforcingConsecutiveGatewayFailure = *o.Services[i2].PassiveHealthCheck.EnforcingConsecutiveGatewayFailure
+				}
+				if o.Services[i2].PassiveHealthCheck.Consecutive5xx != nil {
+					cp.Services[i2].PassiveHealthCheck.Consecutive5xx = new(uint32)
+					*cp.Services[i2].PassiveHealthCheck.Consecutive5xx = *o.Services[i2].PassiveHealthCheck.Consecutive5xx
+				}
+				if o.Services[i2].PassiveHealthCheck.ConsecutiveGatewayFailure != nil {
+					cp.Services[i2].PassiveHealthCheck.ConsecutiveGatewayFailure = new(uint32)
+					*cp.Services[i2].PassiveHealthCheck.ConsecutiveGatewayFailure = *o.Services[i2].PassiveHealthCheck.ConsecutiveGatewayFailure
 				}
 				if o.Services[i2].PassiveHealthCheck.MaxEjectionPercent != nil {
 					cp.Services[i2].PassiveHealthCheck.MaxEjectionPercent = new(uint32)
@@ -1364,6 +1428,18 @@ func (o *UpstreamConfiguration) DeepCopy() *UpstreamConfiguration {
 						cp.Overrides[i2].PassiveHealthCheck.EnforcingConsecutive5xx = new(uint32)
 						*cp.Overrides[i2].PassiveHealthCheck.EnforcingConsecutive5xx = *o.Overrides[i2].PassiveHealthCheck.EnforcingConsecutive5xx
 					}
+					if o.Overrides[i2].PassiveHealthCheck.EnforcingConsecutiveGatewayFailure != nil {
+						cp.Overrides[i2].PassiveHealthCheck.EnforcingConsecutiveGatewayFailure = new(uint32)
+						*cp.Overrides[i2].PassiveHealthCheck.EnforcingConsecutiveGatewayFailure = *o.Overrides[i2].PassiveHealthCheck.EnforcingConsecutiveGatewayFailure
+					}
+					if o.Overrides[i2].PassiveHealthCheck.Consecutive5xx != nil {
+						cp.Overrides[i2].PassiveHealthCheck.Consecutive5xx = new(uint32)
+						*cp.Overrides[i2].PassiveHealthCheck.Consecutive5xx = *o.Overrides[i2].PassiveHealthCheck.Consecutive5xx
+					}
+					if o.Overrides[i2].PassiveHealthCheck.ConsecutiveGatewayFailure != nil {
+						cp.Overrides[i2].PassiveHealthCheck.ConsecutiveGatewayFailure = new(uint32)
+						*cp.Overrides[i2].PassiveHealthCheck.ConsecutiveGatewayFailure = *o.Overrides[i2].PassiveHealthCheck.ConsecutiveGatewayFailure
+					}
 					if o.Overrides[i2].PassiveHealthCheck.MaxEjectionPercent != nil {
 						cp.Overrides[i2].PassiveHealthCheck.MaxEjectionPercent = new(uint32)
 						*cp.Overrides[i2].PassiveHealthCheck.MaxEjectionPercent = *o.Overrides[i2].PassiveHealthCheck.MaxEjectionPercent
@@ -1401,6 +1477,18 @@ func (o *UpstreamConfiguration) DeepCopy() *UpstreamConfiguration {
 			if o.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx != nil {
 				cp.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx = new(uint32)
 				*cp.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx = *o.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx
+			}
+			if o.Defaults.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure != nil {
+				cp.Defaults.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure = new(uint32)
+				*cp.Defaults.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure = *o.Defaults.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure
+			}
+			if o.Defaults.PassiveHealthCheck.Consecutive5xx != nil {
+				cp.Defaults.PassiveHealthCheck.Consecutive5xx = new(uint32)
+				*cp.Defaults.PassiveHealthCheck.Consecutive5xx = *o.Defaults.PassiveHealthCheck.Consecutive5xx
+			}
+			if o.Defaults.PassiveHealthCheck.ConsecutiveGatewayFailure != nil {
+				cp.Defaults.PassiveHealthCheck.ConsecutiveGatewayFailure = new(uint32)
+				*cp.Defaults.PassiveHealthCheck.ConsecutiveGatewayFailure = *o.Defaults.PassiveHealthCheck.ConsecutiveGatewayFailure
 			}
 			if o.Defaults.PassiveHealthCheck.MaxEjectionPercent != nil {
 				cp.Defaults.PassiveHealthCheck.MaxEjectionPercent = new(uint32)

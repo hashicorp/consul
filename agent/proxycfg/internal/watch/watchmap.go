@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package watch
@@ -62,6 +62,21 @@ func (m Map[K, V]) InitWatch(key K, cancel func()) {
 	}
 	m.M[key] = watchedVal[V]{
 		cancel: cancel,
+	}
+}
+
+// UpdateWatch replaces the cancel function for an existing key, canceling the
+// old context if present, while preserving any stored value. If the key does
+// not exist, it initializes a new entry with the provided cancel function.
+func (m Map[K, V]) UpdateWatch(key K, cancel func()) {
+	if entry, ok := m.M[key]; ok {
+		if entry.cancel != nil {
+			entry.cancel() // cancel the old context
+		}
+		entry.cancel = cancel // swap in new cancel
+		m.M[key] = entry      // stored Val PRESERVED
+	} else {
+		m.M[key] = watchedVal[V]{cancel: cancel}
 	}
 }
 

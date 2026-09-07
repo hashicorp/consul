@@ -14,19 +14,17 @@
         name=route.model.peer.Name
       )
     }}
-    as |api|
   >
-    {{#let
-      (or route.params.partition route.model.user.token.Partition "default")
-      api.data
-      as |partition items|
-    }}
+    <:error as |api|>
+      <AppError @error={{api.error}} @login={{route.model.app.login.open}} />
+    </:error>
 
-      <BlockSlot @name="error">
-        <AppError @error={{api.error}} @login={{route.model.app.login.open}} />
-      </BlockSlot>
-
-      <BlockSlot @name="loaded">
+    <:loaded as |api|>
+      {{#let
+        (or route.params.partition route.model.user.token.Partition "default")
+        api.data
+        as |partition items|
+      }}
         {{#if items.length}}
           <div class="search-bar">
             <form class="filter-bar">
@@ -87,23 +85,23 @@
                     @login={{route.model.app.login.open}}
                     data-test-exported-services-empty
                   >
-                    <BlockSlot @name="header">
+                    <:header>
                       <h2>
                         {{t
                           "routes.dc.peers.show.exported.empty.header"
                           name=route.model.peer.Name
                         }}
                       </h2>
-                    </BlockSlot>
-                    <BlockSlot @name="body">
+                    </:header>
+                    <:body>
                       {{t
                         "routes.dc.peers.show.exported.empty.body"
                         items=items.length
                         name=route.model.peer.Name
                         htmlSafe=true
                       }}
-                    </BlockSlot>
-                    <BlockSlot @name="actions">
+                    </:body>
+                    <:actions>
                       <li>
                         <Hds::Link::Standalone
                           @text='Documentation on Peers'
@@ -126,7 +124,7 @@
                           @size='small'
                         />
                       </li>
-                    </BlockSlot>
+                    </:actions>
                   </EmptyState>
                 {{/if}}
               </div>
@@ -134,8 +132,8 @@
           </Providers::Dimension>
 
         </Providers::Search>
-      </BlockSlot>
-    {{/let}}
+      {{/let}}
+    </:loaded>
   </DataLoader>
 
 </Route>

@@ -15,16 +15,16 @@ as |route|>
         name=route.params.name
         kind=(or (get route.model.items "firstObject.Service.Kind") '')
       )
-  }} as |loader|>
+  }}>
 
-    <BlockSlot @name="error">
+    <:error as |loader|>
       <AppError
         @error={{loader.error}}
         @login={{route.model.app.login.open}}
       />
-    </BlockSlot>
+    </:error>
 
-    <BlockSlot @name="loaded">
+    <:loaded as |loader|>
 {{#let
   route.params.nspace
   route.model.dc
@@ -179,6 +179,6 @@ as |nspace dc items topology|}}
     </DataSource>
   </div>
 {{/let}}
-    </BlockSlot>
+    </:loaded>
   </DataLoader>
 </Route>

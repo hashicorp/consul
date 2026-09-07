@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package xds
@@ -775,6 +775,24 @@ func TestInjectGatewayServiceAddons_TerminatingGateway_TLSContextUsesSDS(t *test
 	require.Equal(t, envoy_core_v3.ApiVersion_V3, certSDS.SdsConfig.ResourceApiVersion)
 }
 
+func TestInjectGatewayServiceAddons_TerminatingGateway_OneWayTLS_NoCertSDSConfig(t *testing.T) {
+	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
+	svc := structs.NewServiceName("db", structs.DefaultEnterpriseMetaInDefaultPartition())
+	snap := proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
+	snap.TerminatingGateway.GatewayServices = map[structs.ServiceName]structs.GatewayService{
+		svc: {Service: svc, CAFile: "ca.pem"},
+	}
+
+	c := &envoy_cluster_v3.Cluster{Name: "db"}
+	err := s.injectGatewayServiceAddons(snap, c, svc, &structs.LoadBalancer{})
+
+	require.NoError(t, err)
+	upstreamTLS := &envoy_tls_v3.UpstreamTlsContext{}
+	err = c.TransportSocket.GetTypedConfig().UnmarshalTo(upstreamTLS)
+	require.NoError(t, err)
+	require.Empty(t, upstreamTLS.CommonTlsContext.TlsCertificateSdsSecretConfigs, "one-way TLS must not request a client cert SDS secret")
+}
+
 func TestInjectGatewayServiceAddons_TerminatingGateway_ServiceNotInMap(t *testing.T) {
 	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
 	svc := structs.NewServiceName("unknown", structs.DefaultEnterpriseMetaInDefaultPartition())
@@ -887,7 +905,7 @@ func TestInjectGatewayDestinationAddons_TerminatingGateway_TLSContextUsesSDS(t *
 	svc := structs.NewServiceName("cache", structs.DefaultEnterpriseMetaInDefaultPartition())
 	snap := proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
 	snap.TerminatingGateway.DestinationServices = map[structs.ServiceName]structs.GatewayService{
-		svc: {Service: svc, CAFile: "ca.pem"},
+		svc: {Service: svc, CAFile: "ca.pem", CertFile: "cert.pem", KeyFile: "key.pem"},
 	}
 
 	c := &envoy_cluster_v3.Cluster{Name: "cache"}
@@ -910,6 +928,24 @@ func TestInjectGatewayDestinationAddons_TerminatingGateway_TLSContextUsesSDS(t *
 	require.Equal(t, "cache-ca", sdsCACfg.ValidationContextSdsSecretConfig.Name)
 	_, caUsesADS := sdsCACfg.ValidationContextSdsSecretConfig.SdsConfig.ConfigSourceSpecifier.(*envoy_core_v3.ConfigSource_Ads)
 	require.True(t, caUsesADS)
+}
+
+func TestInjectGatewayDestinationAddons_TerminatingGateway_OneWayTLS_NoCertSDSConfig(t *testing.T) {
+	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
+	svc := structs.NewServiceName("db", structs.DefaultEnterpriseMetaInDefaultPartition())
+	snap := proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
+	snap.TerminatingGateway.DestinationServices = map[structs.ServiceName]structs.GatewayService{
+		svc: {Service: svc, CAFile: "ca.pem"},
+	}
+
+	c := &envoy_cluster_v3.Cluster{Name: "db"}
+	err := s.injectGatewayDestinationAddons(snap, c, svc)
+
+	require.NoError(t, err)
+	upstreamTLS := &envoy_tls_v3.UpstreamTlsContext{}
+	err = c.TransportSocket.GetTypedConfig().UnmarshalTo(upstreamTLS)
+	require.NoError(t, err)
+	require.Empty(t, upstreamTLS.CommonTlsContext.TlsCertificateSdsSecretConfigs, "one-way TLS must not request a client cert SDS secret")
 }
 
 func TestInjectGatewayDestinationAddons_TerminatingGateway_DestinationNotInMap(t *testing.T) {
@@ -961,6 +997,43 @@ func TestMergeAPIGatewayUpstreamLimits(t *testing.T) {
 	require.Equal(t, 100, *merged.MaxConnections)
 	require.Equal(t, 500, *merged.MaxPendingRequests)
 	require.Equal(t, 50, *merged.MaxConcurrentRequests)
+}
+
+func TestMergeAPIGatewayUpstreamLimits_ZeroValuesOmitted(t *testing.T) {
+	t.Parallel()
+
+	merged := mergeAPIGatewayUpstreamLimits(
+		&structs.UpstreamLimits{
+			MaxConnections:        intPointer(0),
+			MaxPendingRequests:    intPointer(4),
+			MaxConcurrentRequests: intPointer(0),
+		},
+		&structs.UpstreamLimits{
+			MaxPendingRequests:    intPointer(3),
+			MaxConcurrentRequests: intPointer(2),
+		},
+	)
+
+	require.NotNil(t, merged)
+	require.Nil(t, merged.MaxConnections)
+	require.NotNil(t, merged.MaxPendingRequests)
+	require.Equal(t, 3, *merged.MaxPendingRequests)
+	require.NotNil(t, merged.MaxConcurrentRequests)
+	require.Equal(t, 2, *merged.MaxConcurrentRequests)
+
+	merged = mergeAPIGatewayUpstreamLimits(
+		&structs.UpstreamLimits{MaxConnections: intPointer(0)},
+		nil,
+	)
+	require.NotNil(t, merged)
+	require.Nil(t, merged.MaxConnections)
+
+	merged = mergeAPIGatewayUpstreamLimits(
+		nil,
+		&structs.UpstreamLimits{MaxConnections: intPointer(0)},
+	)
+	require.NotNil(t, merged)
+	require.Nil(t, merged.MaxConnections)
 }
 
 func TestMergedAPIGatewayUpstreamConfig(t *testing.T) {

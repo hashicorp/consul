@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package router
@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
+
+	"github.com/hashicorp/consul/agent/metadata"
 )
 
 // FloodAddrFn gets the address and port to use for a given server when
@@ -31,6 +32,12 @@ func FloodJoins(logger hclog.Logger, addrFn FloodAddrFn,
 	// with cheap lookups.
 	index := make(map[string]*metadata.Server)
 	for _, m := range dstSerf.Members() {
+		// Only treat alive members as already joined. Non-alive members
+		// (leaving/left/failed) must not suppress re-join attempts.
+		if m.Status != serf.StatusAlive {
+			continue
+		}
+
 		ok, server := metadata.IsConsulServer(m)
 		if !ok {
 			continue

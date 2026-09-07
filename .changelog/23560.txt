@@ -1,0 +1,6 @@
+```release-note:security
+security: Fixed Consul transaction endpoint authorization bypasses where service and check mutations could be authorized using request-provided names while applying changes by ID, including a bypass using the reserved `consul` service name.
+```
+```release-note:bug
+txn: Allow a service-level check write to be authorized in the same atomic transaction that creates its service. Previously, the transaction pre-check rejected the check op with "unknown service ID" because the service was not yet visible in committed FSM state, breaking the supported "register node + service + check in one transaction" workflow (regression in `TestAPI_ClientTxnWrite`). ACL hardening for the case where the service already exists is preserved.
+```

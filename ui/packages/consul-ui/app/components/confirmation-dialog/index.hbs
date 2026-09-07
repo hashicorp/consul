@@ -4,15 +4,19 @@
 }}
 
 <div class={{concat "with-confirmation" (if this.confirming " confirming" "")}} ...attributes>
-{{yield}}
-<YieldSlot @name="action" @params={{block-params (action "confirm") (action "cancel")}}>
-{{#if (or this.permanent (not this.confirming))}}
+  {{#if (has-block)}}
     {{yield}}
-{{/if}}
-</YieldSlot>
-<YieldSlot @name="dialog" @params={{block-params (action "execute") (action "cancel") @message this.actionName}}>
-{{#if this.confirming }}
-    {{yield}}
-{{/if}}
-</YieldSlot>
+  {{/if}}
+
+  {{#if (has-block "action")}}
+    {{#if (or this.permanent (not this.confirming))}}
+      {{yield (action "confirm") (action "cancel") to="action"}}
+    {{/if}}
+  {{/if}}
+
+  {{#if (has-block "dialog")}}
+    {{#if this.confirming}}
+      {{yield (action "execute") (action "cancel") @message this.actionName to="dialog"}}
+    {{/if}}
+  {{/if}}
 </div>

@@ -15,14 +15,13 @@
         peerId=route.model.peer.id
       )
     }}
-    as |api|
   >
 
-    <BlockSlot @name="error">
+    <:error as |api|>
       <AppError @error={{api.error}} @login={{route.model.app.login.open}} />
-    </BlockSlot>
+    </:error>
 
-    <BlockSlot @name="loaded">
+    <:loaded as |api|>
       {{#let
         (hash
           value=(or this.sortBy "Status:asc")
@@ -92,23 +91,23 @@
               @login={{route.model.app.login.open}}
               data-test-imported-services-empty
             >
-              <BlockSlot @name="header">
+              <:header>
                 <h2>
                   {{t
                     "routes.dc.peers.show.imported.empty.header"
                     name=route.model.peer.Name
                   }}
                 </h2>
-              </BlockSlot>
-              <BlockSlot @name="body">
+              </:header>
+              <:body>
                 {{t
                   "routes.dc.peers.show.imported.empty.body"
                   items=items.length
                   name=route.model.peer.Name
                   htmlSafe=true
                 }}
-              </BlockSlot>
-              <BlockSlot @name="actions">
+              </:body>
+              <:actions>
                 <li>
                   {{! what's the docs for peering?}}
                   <Hds::Link::Standalone
@@ -132,11 +131,11 @@
                     @size='small'
                   />
                 </li>
-              </BlockSlot>
+              </:actions>
             </EmptyState>
           </collection.Empty>
         </DataCollection>
       {{/let}}
-    </BlockSlot>
+    </:loaded>
   </DataLoader>
 </Route>

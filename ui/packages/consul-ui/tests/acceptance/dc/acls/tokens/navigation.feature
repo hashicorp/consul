@@ -11,5 +11,5 @@ Feature: dc / tokens / navigation
     And the title should be "Tokens - Consul"
     Then I see 3 token models
     When I click token on the tokens
-    And I click "[data-test-back]"
+    And I click "[data-test-back] a"
     Then the url should be /dc-1/acls/tokens

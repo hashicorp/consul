@@ -49,14 +49,13 @@
         @onchange={{action @filter.searchproperty.change}}
         @multiple={{true}}
         @required={{true}}
-        as |components|
       >
-        <BlockSlot @name='selected'>
+        <:selected>
           <span>
             {{t 'common.search.searchproperty'}}
           </span>
-        </BlockSlot>
-        <BlockSlot @name='options'>
+        </:selected>
+        <:options as |components|>
           {{#let components.Optgroup components.Option as |Optgroup Option|}}
             {{#each @filter.searchproperty.default as |prop|}}
               <Option @value={{prop}} @selected={{includes prop @filter.searchproperty.value}}>
@@ -64,7 +63,7 @@
               </Option>
             {{/each}}
           {{/let}}
-        </BlockSlot>
+        </:options>
       </search.Select>
     </search.Search>
   </:search>
@@ -74,14 +73,13 @@
       @position='left'
       @onchange={{action @filter.kind.change}}
       @multiple={{true}}
-      as |components|
     >
-      <BlockSlot @name='selected'>
+      <:selected>
         <span>
           {{t 'components.consul.auth-method.search-bar.kind.name'}}
         </span>
-      </BlockSlot>
-      <BlockSlot @name='options'>
+      </:selected>
+        <:options as |components|>
         {{#let components.Optgroup components.Option as |Optgroup Option|}}
           <Option @value='kubernetes' @selected={{includes 'kubernetes' @filter.kind.value}}>
             <Hds::Icon @name="kubernetes-color" @size="16" class="mr-2.5" />
@@ -100,21 +98,20 @@
             >OIDC</Option>
           {{/if}}
         {{/let}}
-      </BlockSlot>
-    </search.Select>
+      </:options>
+      </search.Select>
     <search.Select
       class='type-locality'
       @position='left'
       @onchange={{action @filter.source.change}}
       @multiple={{true}}
-      as |components|
     >
-      <BlockSlot @name='selected'>
+      <:selected>
         <span>
           {{t 'components.consul.auth-method.search-bar.locality.name'}}
         </span>
-      </BlockSlot>
-      <BlockSlot @name='options'>
+      </:selected>
+        <:options as |components|>
         {{#let components.Optgroup components.Option as |Optgroup Option|}}
           {{#each (array 'local' 'global') as |option|}}
             <Option
@@ -126,8 +123,8 @@
             </Option>
           {{/each}}
         {{/let}}
-      </BlockSlot>
-    </search.Select>
+      </:options>
+      </search.Select>
   </:filter>
   <:sort as |search|>
     <search.Select
@@ -137,9 +134,8 @@
       @onchange={{action @sort.change}}
       @multiple={{false}}
       @required={{true}}
-      as |components|
     >
-      <BlockSlot @name='selected'>
+      <:selected>
         <span>
           {{#let
             (from-entries
@@ -155,8 +151,8 @@
             {{get selectable @sort.value}}
           {{/let}}
         </span>
-      </BlockSlot>
-      <BlockSlot @name='options'>
+      </:selected>
+        <:options as |components|>
         {{#let components.Optgroup components.Option as |Optgroup Option|}}
           <Optgroup @label={{t 'common.ui.name'}}>
             <Option @value='MethodName:asc' @selected={{eq 'MethodName:asc' @sort.value}}>{{t
@@ -175,7 +171,7 @@
               }}</Option>
           </Optgroup>
         {{/let}}
-      </BlockSlot>
-    </search.Select>
+      </:options>
+      </search.Select>
   </:sort>
 </SearchBar>

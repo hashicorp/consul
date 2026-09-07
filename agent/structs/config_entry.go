@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package structs
@@ -1209,6 +1209,19 @@ type PassiveHealthCheck struct {
 	// This setting can be used to disable ejection or to ramp it up slowly. Defaults to 100.
 	EnforcingConsecutive5xx *uint32 `json:",omitempty" alias:"enforcing_consecutive_5xx"`
 
+	// EnforcingConsecutiveGatewayFailure is the % chance that a host will be actually ejected
+	// when an outlier status is detected through consecutive gateway failures.
+	// This setting can be used to disable ejection or to ramp it up slowly. Defaults to 0.
+	EnforcingConsecutiveGatewayFailure *uint32 `json:",omitempty" alias:"enforcing_consecutive_gateway_failure"`
+
+	// Consecutive5xx is the number of consecutive 5xx responses that trigger outlier detection.
+	// If not set, defaults to 5. Setting this overrides MaxFailures for 5xx detection.
+	Consecutive5xx *uint32 `json:",omitempty" alias:"consecutive_5xx"`
+
+	// ConsecutiveGatewayFailure is the number of consecutive gateway failures (502, 503, 504)
+	// that trigger outlier detection. If not set, defaults to 0 (disabled).
+	ConsecutiveGatewayFailure *uint32 `json:",omitempty" alias:"consecutive_gateway_failure"`
+
 	// The maximum % of an upstream cluster that can be ejected due to outlier detection.
 	// Defaults to 10% but will eject at least one host regardless of the value.
 	// TODO: remove me
@@ -1239,6 +1252,15 @@ func (chk PassiveHealthCheck) Validate() error {
 	}
 	if chk.EnforcingConsecutive5xx != nil && *chk.EnforcingConsecutive5xx > 100 {
 		return fmt.Errorf("passive health check enforcing_consecutive_5xx must be a percentage between 0 and 100")
+	}
+	if chk.EnforcingConsecutiveGatewayFailure != nil && *chk.EnforcingConsecutiveGatewayFailure > 100 {
+		return fmt.Errorf("passive health check enforcing_consecutive_gateway_failure must be a percentage between 0 and 100")
+	}
+	if chk.Consecutive5xx != nil && *chk.Consecutive5xx < 1 {
+		return fmt.Errorf("passive health check consecutive_5xx must be greater than 0")
+	}
+	if chk.ConsecutiveGatewayFailure != nil && *chk.ConsecutiveGatewayFailure < 1 {
+		return fmt.Errorf("passive health check consecutive_gateway_failure must be greater than 0")
 	}
 	if chk.MaxEjectionPercent != nil && *chk.MaxEjectionPercent > 100 {
 		return fmt.Errorf("passive health check max_ejection_percent must be a percentage between 0 and 100")

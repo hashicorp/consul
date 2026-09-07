@@ -6,12 +6,11 @@
 <ListCollection
   class="consul-role-list"
   ...attributes
-  @items={{@items}}
-as |item|>
-    <BlockSlot @name="header">
+  @items={{@items}}>
+    <:header as |item|>
       <a data-test-role={{item.Name}} href={{href-to 'dc.acls.roles.edit' item.ID}}>{{item.Name}}</a>
-    </BlockSlot>
-    <BlockSlot @name="details">
+    </:header>
+    <:details as |item|>
       <Consul::Token::Ruleset::List @item={{item}} />
       <dl>
         <dt>Description</dt>
@@ -19,36 +18,36 @@ as |item|>
             {{item.Description}}
         </dd>
       </dl>
-    </BlockSlot>
-    <BlockSlot @name="actions" as |Actions|>
+    </:details>
+    <:actions as |item index Actions|>
       <Actions as |Action|>
         <Action data-test-edit-action @href={{href-to 'dc.acls.roles.edit' item.ID}}>
-          <BlockSlot @name="label">
+          <:label>
 {{#if (can "write role" item=item)}}
             Edit
 {{else}}
             View
 {{/if}}
-          </BlockSlot>
+          </:label>
         </Action>
 {{#if (can "delete role" item=item)}}
         <Action data-test-delete-action @onclick={{action @ondelete item}} class="dangerous">
-          <BlockSlot @name="label">
+          <:label>
             Delete
-          </BlockSlot>
-          <BlockSlot @name='confirm-header'>
+          </:label>
+          <:confirmHeader>
             Confirm delete
-          </BlockSlot>
-          <BlockSlot @name='confirm-body'>
+          </:confirmHeader>
+          <:confirmBody>
             <p>
               Are you sure you want to delete this role?
             </p>
-          </BlockSlot>
-          <BlockSlot @name='confirm-footer' as |Params|>
+          </:confirmBody>
+          <:confirmFooter as |Params|>
             <Params.button @text='Delete' {{on 'click' Params.confirmAction}} />
-          </BlockSlot>
+          </:confirmFooter>
         </Action>
 {{/if}}
       </Actions>
-    </BlockSlot>
+    </:actions>
 </ListCollection>

@@ -1,4 +1,4 @@
-# Copyright (c) HashiCorp, Inc.
+# Copyright IBM Corp. 2024, 2026
 # SPDX-License-Identifier: BUSL-1.1
 
 acl_agent_master_token = "furuQD0b"
@@ -304,6 +304,7 @@ leave_on_terminate = true
 license_path = "/path/to/license.lic"
 limits {
     http_max_conns_per_client = 100
+    grpc_max_conns_per_client = 2953
     https_handshake_timeout = "2391ms"
     rpc_handshake_timeout = "1932ms"
     rpc_client_timeout = "62s"

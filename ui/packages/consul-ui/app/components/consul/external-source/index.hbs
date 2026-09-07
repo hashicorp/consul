@@ -10,19 +10,23 @@
           <dt>
             <span
               data-test-external-source={{externalSource}}
-              class="consul-external-source"
+              class="consul-external-source consul-external-source--hds"
               ...attributes
             >
-              <Hds::Icon @name={{icon-mapping externalSource}} class="mr-1.5 w-4 h-4"  />
-              Registered via {{t (concat "common.brand." externalSource)}}
+              <Hds::Badge
+                @text={{if @label @label (concat "Registered via " (t (concat "common.brand." externalSource)))}}
+                @icon={{icon-mapping externalSource}}
+                @color="neutral"
+                @size="small"
+              />
             </span>
           </dt>
           <dd>
             <MenuPanel @position="left" @menu={{false}}>
-              <BlockSlot @name="header">
+              <:header>
                 API Gateways manage north-south traffic from external services to services in the Datacenter. For more information, read our documentation.
-              </BlockSlot>
-              <BlockSlot @name="menu">
+              </:header>
+              <:menu>
                 <li role="separator">
                   About {{t (concat "common.brand." externalSource)}}
                 </li>
@@ -31,22 +35,22 @@
                     Learn guides
                   </a>
                 </li>
-              </BlockSlot>
+              </:menu>
             </MenuPanel>
           </dd>
         </dl>
   {{else if externalSource}}
     <span
       data-test-external-source={{externalSource}}
-      class="consul-external-source"
+      class="consul-external-source consul-external-source--hds"
       ...attributes
     >
-      <Hds::Icon @name={{icon-mapping externalSource}} @color="var(--token-color-hashicorp-brand)" class="mr-1.5 h-4 w-4" />
-      {{#if @label}}
-        {{@label}}
-      {{else}}
-        Registered via {{t (concat "common.brand." externalSource)}}
-      {{/if}}
+      <Hds::Badge
+        @text={{if @label @label (concat "Registered via " (t (concat "common.brand." externalSource)))}}
+        @icon={{icon-mapping externalSource}}
+        @color="neutral"
+        @size="small"
+      />
     </span>
   {{/if}}
   {{/let}}

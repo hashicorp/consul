@@ -17,9 +17,9 @@
   @src={{@src}}
   @onchange={{action this.change}}
   @onsubmit={{action this.onsubmit}}
-as |api|>
+>
 
-    <BlockSlot @name="error" as |after|>
+    <:error as |after err api|>
 {{#if (string-starts-with api.error.detail 'duplicate intention found:')}}
   <Hds::Toast
     @color='critical'
@@ -48,9 +48,9 @@ as |api|>
     </T.Description>
   </Hds::Toast>
   {{/if}}
-    </BlockSlot>
+    </:error>
 
-    <BlockSlot @name="form">
+    <:form as |api|>
 {{#let
   api.data
   (not (can 'write intention' item=api.data))
@@ -64,17 +64,19 @@ as |item readonly|}}
         @aria={{hash
           label=(concat "Set intention to " newAction)
         }}
-      as |modal|>
-        <Ref @target={{this}} @name="modal" @value={{modal}} />
-        <BlockSlot @name="header">
+      >
+        <:default as |modal|>
+          <Ref @target={{this}} @name="modal" @value={{modal}} />
+        </:default>
+        <:header>
           <h2>Set intention to {{newAction}}?</h2>
-        </BlockSlot>
-        <BlockSlot @name="body">
+        </:header>
+        <:body>
           <p>
             When you change this Intention to {{newAction}}, you will remove all the Layer 7 policy permissions currently saved to this Intention. Are you sure you want to set it to {{newAction}}?
           </p>
-        </BlockSlot>
-        <BlockSlot @name="actions" as |close|>
+        </:body>
+        <:actions as |close|>
           <Hds::ButtonSet>
             <Hds::Button
               data-test-action-warning-confirm
@@ -89,7 +91,7 @@ as |item readonly|}}
               onclick={{close}}
             />
           </Hds::ButtonSet>
-        </BlockSlot>
+        </:actions>
       </ModalDialog>
   {{/let}}
 
@@ -173,7 +175,7 @@ as |item readonly|}}
 {{#if (not api.isCreate)}}
   {{#if (not-eq item.ID 'anonymous') }}
           <ConfirmationDialog @message="Are you sure you want to delete this Intention?">
-            <BlockSlot @name="action" as |confirm|>
+            <:action as |confirm|>
               <Hds::Button
                 @text='Delete'
                 @color='critical'
@@ -181,14 +183,14 @@ as |item readonly|}}
                 {{on 'click' confirm}}
                 data-test-delete
               />
-            </BlockSlot>
-            <BlockSlot @name="dialog" as |execute cancel message|>
+            </:action>
+            <:dialog as |execute cancel message|>
               <DeleteConfirmation
                 @message={{message}}
                 @execute={{queue execute api.delete}}
                 @cancel={{cancel}}
               />
-            </BlockSlot>
+            </:dialog>
           </ConfirmationDialog>
   {{/if}}
 {{/if}}
@@ -215,6 +217,6 @@ as |item readonly|}}
   {{/if}}
 {{/let}}
 
-  </BlockSlot>
+  </:form>
 </DataForm>
 </div>

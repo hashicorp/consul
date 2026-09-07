@@ -1,9 +1,10 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package consul
 
 import (
+	"net"
 	"testing"
 
 	uuid "github.com/hashicorp/go-uuid"
@@ -256,6 +257,7 @@ type testMember struct {
 	build     string
 	segment   string
 	partition string
+	addr      net.IP
 }
 
 func (tm testMember) role() string {
@@ -273,6 +275,7 @@ func makeTestNode(t *testing.T, tm testMember) *serf.Member {
 	}
 	m := &serf.Member{
 		Name: tm.name,
+		Addr: tm.addr,
 		Tags: map[string]string{
 			"role":    tm.role(),
 			"dc":      tm.dc,

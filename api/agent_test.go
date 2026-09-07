@@ -1849,6 +1849,10 @@ func TestAPI_AgentConnectCARoots_list(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, meta.LastIndex > 0)
 	require.Len(t, list.Roots, 1)
+	require.NotNil(t, list.Roots[0].NotBefore)
+	require.NotNil(t, list.Roots[0].NotAfter)
+	require.True(t, list.Roots[0].NotAfter.After(*list.Roots[0].NotBefore))
+	require.True(t, list.Roots[0].NotAfter.After(time.Now()))
 }
 
 func TestAPI_AgentConnectCALeaf(t *testing.T) {

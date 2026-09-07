@@ -1,15 +1,14 @@
 /**
- * Copyright (c) HashiCorp, Inc.
+ * Copyright IBM Corp. 2024, 2026
  * SPDX-License-Identifier: BUSL-1.1
  */
 
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
 import { set } from '@ember/object';
-import Slotted from 'block-slots';
 import { isChangeset } from 'validated-changeset';
 
-export default Component.extend(Slotted, {
+export default Component.extend({
   tagName: '',
   dom: service('dom'),
   builder: service('form'),
@@ -32,10 +31,6 @@ export default Component.extend(Slotted, {
       // passthrough
       // this lets us load view only data that doesn't have a form
     }
-  },
-  willRender: function () {
-    this._super(...arguments);
-    set(this, 'hasError', this._isRegistered('error'));
   },
   actions: {
     setData: function (data) {

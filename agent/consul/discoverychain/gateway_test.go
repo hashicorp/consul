@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package discoverychain
@@ -6,9 +6,10 @@ package discoverychain
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/stretchr/testify/require"
 )
 
 func TestGatewayChainSynthesizer_AddTCPRoute(t *testing.T) {
@@ -1066,4 +1067,201 @@ func TestGatewayChainSynthesizer_ComplexChain(t *testing.T) {
 			require.Equal(t, tc.expectedDiscoveryChain, discoveryChains[0])
 		})
 	}
+}
+
+// TestSynthesizeHTTPRouteDiscoveryChain_ComposedDestinationProtocol is a
+// regression test for the protocol-resolution defect introduced by #12479.
+//
+// When an HTTPRoute's backend service has its own ServiceRouter, gateway
+// synthesis composes that router's routes into the synthetic gateway chain. A
+// composed route may point at a *different* downstream service than the one the
+// HTTPRoute named directly. That downstream service can be entry-less (no
+// service-defaults), relying on the global proxy-defaults protocol fallback.
+//
+// The synthetic entry set intentionally carries no proxy-defaults, so the
+// fallback the real compiler applies is unavailable during synthesis. Without a
+// synthetic http default for the composed destination, the synthesized chain
+// resolves it as tcp and fails with "uses inconsistent protocols" against the
+// http gateway chain — dropping the gateway's entire xDS config batch.
+func TestSynthesizeHTTPRouteDiscoveryChain_ComposedDestinationProtocol(t *testing.T) {
+	t.Parallel()
+
+	backend := structs.HTTPService{Name: "service-a"}
+
+	// service-a's own ServiceRouter routes to service-b, which has no
+	// service-defaults entry of its own.
+	serviceRouters := map[structs.ServiceName][]*structs.ServiceRoute{
+		backend.ServiceName(): {
+			{
+				Match: &structs.ServiceRouteMatch{
+					HTTP: &structs.ServiceRouteHTTPMatch{PathPrefix: "/b"},
+				},
+				Destination: &structs.ServiceRouteDestination{
+					Service: "service-b",
+				},
+			},
+		},
+	}
+
+	route := structs.HTTPRouteConfigEntry{
+		Kind: structs.HTTPRoute,
+		Name: "test-route",
+		Rules: []structs.HTTPRouteRule{{
+			Matches: []structs.HTTPMatch{{
+				Path: structs.HTTPPathMatch{Match: structs.HTTPPathMatchPrefix, Value: "/"},
+			}},
+			Services: []structs.HTTPService{backend},
+		}},
+	}
+
+	_, router, _, defaults := synthesizeHTTPRouteDiscoveryChain(route, serviceRouters)
+
+	// The composition must have produced a route to service-b.
+	var composedToB bool
+	for _, r := range router.Routes {
+		if r.Destination != nil && r.Destination.Service == "service-b" {
+			composedToB = true
+		}
+	}
+	require.True(t, composedToB, "expected a composed route to service-b")
+
+	protocols := make(map[string]string)
+	for _, d := range defaults {
+		protocols[d.Name] = d.Protocol
+	}
+
+	require.Equal(t, "http", protocols["service-a"], "direct destination should have an http default")
+	require.Equal(t, "http", protocols["service-b"],
+		"composed sub-destination must have a synthetic http default so the "+
+			"synthesized chain does not resolve it as tcp (regression #12479)")
+}
+
+// TestGatewaySynthesis_ProxyDefaultsFallback_StateFaithful reproduces the
+// customer's production regression the way proxycfg actually does it: the
+// backend service's discovery chain is compiled through the *real* compiler with
+// a full entry set (proxy-defaults present) — exactly what watchDiscoveryChain
+// stores in snap.APIGateway.DiscoveryChain — and *that* compiled chain is then
+// fed to the gateway synthesizer.
+//
+// This is the faithful model of:
+//
+//	API gateway (HTTP) --route--> service "x" (has a service-router w/ header
+//	routing) --router--> service "y" (entry-less, relies on proxy-defaults=http)
+//
+// It also answers the two questions raised by the field team's mitigation
+// evidence — does proxy-defaults clear the synthesis error? does service-defaults
+// on the router destination clear it? — by toggling those entries on the *real*
+// (backend) compile side and observing the synthesis outcome.
+func TestGatewaySynthesis_ProxyDefaultsFallback_StateFaithful(t *testing.T) {
+	t.Parallel()
+
+	proxyDefaultsHTTP := &structs.ProxyConfigEntry{
+		Kind:     structs.ProxyDefaults,
+		Name:     structs.ProxyConfigGlobal,
+		Protocol: "http",
+		Config:   map[string]interface{}{"protocol": "http"},
+	}
+
+	// service "x" has a real service-router doing header-based routing
+	// (X-Forwarded-For), whose destination is service "y".
+	xRouter := &structs.ServiceRouterConfigEntry{
+		Kind: structs.ServiceRouter,
+		Name: "x",
+		Routes: []structs.ServiceRoute{{
+			Match: &structs.ServiceRouteMatch{
+				HTTP: &structs.ServiceRouteHTTPMatch{
+					Header: []structs.ServiceRouteHTTPMatchHeader{{
+						Name:    "X-Forwarded-For",
+						Present: true,
+					}},
+				},
+			},
+			Destination: &structs.ServiceRouteDestination{Service: "y"},
+		}},
+	}
+
+	yServiceDefaultsHTTP := &structs.ServiceConfigEntry{
+		Kind:     structs.ServiceDefaults,
+		Name:     "y",
+		Protocol: "http",
+	}
+
+	// compileBackendChain mimics watchDiscoveryChain: compile x's chain via the
+	// real compiler against the given entry set.
+	compileBackendChain := func(t *testing.T, entries ...structs.ConfigEntry) (*structs.CompiledDiscoveryChain, error) {
+		t.Helper()
+		set := configentry.NewDiscoveryChainSet()
+		set.AddEntries(entries...)
+		return Compile(CompileRequest{
+			ServiceName:           "x",
+			EvaluateInNamespace:   "default",
+			EvaluateInPartition:   "default",
+			EvaluateInDatacenter:  "dc1",
+			EvaluateInTrustDomain: "domain",
+			Entries:               set,
+		})
+	}
+
+	synthesize := func(t *testing.T, backend *structs.CompiledDiscoveryChain) ([]*structs.CompiledDiscoveryChain, error) {
+		t.Helper()
+		synth := NewGatewayChainSynthesizer("dc1", "domain", "listener", &structs.APIGatewayConfigEntry{
+			Kind: structs.APIGateway,
+			Name: "gateway",
+		})
+		synth.SetHostname("*")
+		synth.AddHTTPRoute(structs.HTTPRouteConfigEntry{
+			Kind: structs.HTTPRoute,
+			Name: "route",
+			Rules: []structs.HTTPRouteRule{{
+				Matches: []structs.HTTPMatch{{
+					Path: structs.HTTPPathMatch{Match: structs.HTTPPathMatchPrefix, Value: "/"},
+				}},
+				Services: []structs.HTTPService{{Name: "x"}},
+			}},
+		})
+		_, chains, err := synth.Synthesize(backend)
+		return chains, err
+	}
+
+	// Sanity: with proxy-defaults=http, the REAL chain for x resolves http and
+	// compiles cleanly (y is http via the fallback) — i.e. /v1/discovery-chain
+	// would return http. This is the precondition that distinguishes the
+	// regression from a genuine protocol mismatch.
+	t.Run("real backend chain resolves http via proxy-defaults", func(t *testing.T) {
+		chain, err := compileBackendChain(t, proxyDefaultsHTTP, xRouter)
+		require.NoError(t, err)
+		require.Equal(t, "http", chain.Protocol,
+			"real compiler applies the proxy-defaults fallback for entry-less y")
+	})
+
+	// The regression itself: real chain is http, but gateway synthesis must not
+	// fail with "inconsistent protocols". With the fix in place this passes;
+	// before the fix this returned that error (the composed destination y had no
+	// synthetic http default). proxy-defaults alone does NOT prevent it — it is
+	// never part of the synthetic entry set — which is why the field team saw
+	// "proxy-defaults was set all along and it still failed".
+	t.Run("gateway synthesis succeeds (regression fixed)", func(t *testing.T) {
+		chain, err := compileBackendChain(t, proxyDefaultsHTTP, xRouter)
+		require.NoError(t, err)
+
+		chains, err := synthesize(t, chain)
+		require.NoError(t, err,
+			"gateway synthesis must not spuriously resolve y as tcp when the real chain is http")
+		require.NotEmpty(t, chains)
+	})
+
+	// Field-team mitigation check: adding service-defaults=http for y on the
+	// real/backend side. It keeps x's real chain http (already was) but note it
+	// does NOT feed the synthesizer's synthetic entry set — the synthesizer only
+	// receives x's compiled chain, not y's config. The fix (not the mitigation)
+	// is what makes synthesis pass here.
+	t.Run("service-defaults on y keeps real chain http", func(t *testing.T) {
+		chain, err := compileBackendChain(t, proxyDefaultsHTTP, xRouter, yServiceDefaultsHTTP)
+		require.NoError(t, err)
+		require.Equal(t, "http", chain.Protocol)
+
+		chains, err := synthesize(t, chain)
+		require.NoError(t, err)
+		require.NotEmpty(t, chains)
+	})
 }

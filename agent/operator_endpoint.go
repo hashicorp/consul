@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package agent
@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/armon/go-metrics"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/proto/private/pboperator"
+	"github.com/hashicorp/go-metrics"
 
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/raft"

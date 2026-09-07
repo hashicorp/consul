@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package acl
@@ -35,12 +35,13 @@ func TestServer_Login_Success(t *testing.T) {
 		Return(identity, nil)
 
 	token := &structs.ACLToken{
+		Name:       "token-name",
 		AccessorID: "accessor-id",
 		SecretID:   "secret-id",
 	}
 
 	login := NewMockLogin(t)
-	login.On("TokenForVerifiedIdentity", identity, authMethod, "token created via login").
+	login.On("TokenForVerifiedIdentity", identity, authMethod, "", "token created via login").
 		Return(token, nil)
 
 	server := NewServer(Config{
@@ -190,7 +191,7 @@ func TestServer_Login_TokenForVerifiedIdentityErrors(t *testing.T) {
 				Return(&authmethod.Identity{}, nil)
 
 			login := NewMockLogin(t)
-			login.On("TokenForVerifiedIdentity", mock.Anything, mock.Anything, mock.Anything).
+			login.On("TokenForVerifiedIdentity", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 				Return(nil, tc.error)
 
 			server := NewServer(Config{
@@ -220,7 +221,7 @@ func TestServer_Login_RPCForwarding(t *testing.T) {
 		Return(&authmethod.Identity{}, nil)
 
 	login := NewMockLogin(t)
-	login.On("TokenForVerifiedIdentity", mock.Anything, mock.Anything, mock.Anything).
+	login.On("TokenForVerifiedIdentity", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(&structs.ACLToken{AccessorID: "leader response"}, nil)
 
 	dc2 := NewServer(Config{

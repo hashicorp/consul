@@ -28,8 +28,8 @@
 {{!TODO: temporary policies id, look at the inception token modals and get rid of id="policies" and use something else}}
 <fieldset id="policies" class="policies">
   <h2>Policies</h2>
-  {{#yield-slot name='policy' params=(block-params this.item)}}
-    {{yield}}
+  {{#if (has-block 'policy')}}
+    {{yield this.item to='policy'}}
   {{else}}
     <PolicySelector
       @disabled={{not (can "write role" item=this.item)}}
@@ -38,5 +38,5 @@
       @nspace={{@nspace}}
       @items={{this.item.Policies}}
     />
-  {{/yield-slot}}
+  {{/if}}
 </fieldset>

@@ -1,0 +1,18 @@
+diff --git a/index.js b/index.js
+index 0b66b8f2764fa589f30d534bc91d722d0d1b8083..e4c34a0b02f50a6bd13fcf5a9efd989d8b9e4ed8 100644
+--- a/index.js
++++ b/index.js
+@@ -39,6 +39,10 @@ module.exports.types = {
+ }
+ 
+ // Removed functions from JS-YAML 3.0.x
+-module.exports.safeLoad = renamed('safeLoad', 'load')
+-module.exports.safeLoadAll = renamed('safeLoadAll', 'loadAll')
+-module.exports.safeDump = renamed('safeDump', 'dump')
++// Patched (HashiCorp): restored as aliases so transitive dev/test tooling
++// (eslint, @eslint/eslintrc, @hashicorp/api-double, tap-parser) keeps working
++// after forcing js-yaml >= 4.2.0 to remediate GHSA-h67p-54hq-rp68.
++// In v4 load/dump already default to the safe schema, so these are equivalent.
++module.exports.safeLoad = loader.load
++module.exports.safeLoadAll = loader.loadAll
++module.exports.safeDump = dumper.dump
