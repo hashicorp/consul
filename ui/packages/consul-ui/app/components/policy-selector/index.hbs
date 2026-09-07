@@ -4,8 +4,8 @@
 }}
 
 {{#if @showHeader}}
-  <div class="consul-token-section-header">
-    <Hds::Text::Display @size="300" @tag="h2">{{or @title "Policies"}}</Hds::Text::Display>
+  <div class='consul-token-section-header'>
+    <Hds::Text::Display @size='300' @tag='h2'>{{or @title 'Policies'}}</Hds::Text::Display>
     {{#if (not @disabled)}}
       <Hds::Button
         @text='Create new policy'
@@ -28,7 +28,7 @@
     @aria={{hash label='New Policy'}}
   >
     <:default as |modal|>
-      <Ref @target={{this}} @name="modal" @value={{modal}} />
+      <Ref @target={{this}} @name='modal' @value={{modal}} />
     </:default>
     <:header>
       <h2>New Policy</h2>
@@ -40,7 +40,7 @@
         @nspace={{@nspace}}
         @partition={{@partition}}
         @dc={{@dc}}
-        @allowServiceIdentity={{@allowServiceIdentity}}
+        @allowIdentity={{this.allowIdentity}}
       />
     </:body>
     <:actions as |close|>
@@ -49,7 +49,10 @@
           type='submit'
           @isLoading={{this.item.isSaving}}
           onclick={{perform this.save this.item @items (queue (action close) (action 'reset'))}}
-          disabled={{if (or this.item.isSaving this.item.isPristine this.item.isInvalid) 'disabled'}}
+          disabled={{if
+            (or this.item.isSaving this.item.isPristine this.item.isInvalid)
+            'disabled'
+          }}
           @text='Create and apply'
         />
         <Hds::Button
@@ -110,14 +113,14 @@
                 @loading='lazy'
               />
             {{/if}}
-            <div class="policy-accordion-content-row">
+            <div class='policy-accordion-content-row'>
               {{#if (eq item.template 'node-identity')}}
-                <dl class="policy-accordion-datacenter-info">
+                <dl class='policy-accordion-datacenter-info'>
                   <dt>Datacenter:</dt>
                   <dd>{{item.Datacenter}}</dd>
                 </dl>
               {{else}}
-                <dl class="policy-accordion-datacenter-info">
+                <dl class='policy-accordion-datacenter-info'>
                   <dt>Datacenters:</dt>
                   <dd>{{join ', ' (policy/datacenters (or this.loadedItem item))}}</dd>
                 </dl>
@@ -153,13 +156,13 @@
                       "region labels must be unique". Prefix it with the
                       policy's own name, visually hidden, so each region's
                       name is distinct without changing what's shown. }}
-                  <span class="policy-accordion__region-label">{{item.Name}}</span>
+                  <span class='policy-accordion__region-label'>{{item.Name}}</span>
                   Rules
                   <a
                     href='{{env "CONSUL_DOCS_URL"}}/secure/acl/rule'
                     rel='help noopener noreferrer'
                     target='_blank'
-                    style="color: inherit;"
+                    style='color: inherit;'
                   >(HCL Format)</a>
                 </CB.Title>
               </Hds::CodeBlock>
@@ -175,26 +178,30 @@
                 as |CB|
               >
                 <CB.Title @tag='span'>
-                  <span class="policy-accordion__region-label">{{item.Name}}</span>
+                  <span class='policy-accordion__region-label'>{{item.Name}}</span>
                   Rules
                   <a
                     href='{{env "CONSUL_DOCS_URL"}}/secure/acl/rule'
                     rel='help noopener noreferrer'
                     target='_blank'
-                    style="color: inherit;"
+                    style='color: inherit;'
                   >(HCL Format)</a>
                 </CB.Title>
               </Hds::CodeBlock>
             {{else}}
-              <Hds::CodeBlock @language='hcl' @value={{or this.loadedItem.Rules this.item.Rules ''}} as |CB|>
+              <Hds::CodeBlock
+                @language='hcl'
+                @value={{or this.loadedItem.Rules this.item.Rules ''}}
+                as |CB|
+              >
                 <CB.Title @tag='span'>
-                  <span class="policy-accordion__region-label">{{item.Name}}</span>
+                  <span class='policy-accordion__region-label'>{{item.Name}}</span>
                   Rules
                   <a
                     href='{{env "CONSUL_DOCS_URL"}}/secure/acl/rule'
                     rel='help noopener noreferrer'
                     target='_blank'
-                    style="color: inherit;"
+                    style='color: inherit;'
                   >(HCL Format)</a>
                 </CB.Title>
               </Hds::CodeBlock>

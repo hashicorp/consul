@@ -16,6 +16,21 @@ import { set } from '@ember/object';
  * All field-change events are forwarded to the parent form via `@onChange`.
  */
 export default class ConsulPolicyFieldsets extends Component {
+  templates = [
+    {
+      name: 'Policy',
+      template: '',
+    },
+    {
+      name: 'Service Identity',
+      template: 'service-identity',
+    },
+    {
+      name: 'Node Identity',
+      template: 'node-identity',
+    },
+  ];
+
   // true when the user has scoped the policy to specific datacenters
   @tracked isScoped = (this.args.item?.Datacenters?.length ?? 0) > 0;
 
@@ -24,6 +39,16 @@ export default class ConsulPolicyFieldsets extends Component {
 
   // saved datacenter selection while toggled to "All datacenters"
   previousDatacenters = null;
+
+  get name() {
+    return this.args.name ?? 'policy';
+  }
+
+  @action
+  selectTemplate(template, event) {
+    set(this.args.item, 'template', template);
+    this.args.onChange?.(event);
+  }
 
   @action
   setDatacenters(e) {
@@ -34,7 +59,7 @@ export default class ConsulPolicyFieldsets extends Component {
   handleChange(e, value) {
     const name = e?.target?.name ?? '';
 
-    if (name === 'policy[isScoped]') {
+    if (name === `${this.name}[isScoped]`) {
       if (this.isScoped) {
         // switching to "All datacenters" — save and clear the selection
         this.previousDatacenters = this.args.item.Datacenters;
