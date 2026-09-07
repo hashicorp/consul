@@ -4,12 +4,39 @@
  */
 
 .role-selector {
-  [name='role[state]'],
-  [name='role[state]'] + * {
-    display: none;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &__header-text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
   }
-  [name='role[state]']:checked + * {
-    display: block;
+
+  &__header-text > * {
+    margin: 0;
+  }
+
+  &__creator {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 16px;
+    border: 1px solid var(--token-color-border-primary);
+    border-radius: 5px;
+  }
+
+  &__creator > fieldset,
+  &__creator .role-form__policies {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin: 0;
+    padding: 0;
+    border: 0;
   }
 }
 

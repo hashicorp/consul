@@ -6,7 +6,12 @@
 import { clickable } from 'ember-cli-page-object';
 
 export default (clickableArg, deletable, collection, alias, policyForm) =>
-  (scope = '#policies', createSelector = '[data-test-policy-create]') => {
+  (
+    scope = '#policies',
+    createSelector = '[data-test-policy-create]',
+    modalSelector = '#new-policy',
+    formPrefix = 'policy'
+  ) => {
     const confirmDelete = clickable("[data-test-id='confirm-action']", {
       resetScope: true,
       testContainer: 'body',
@@ -14,7 +19,7 @@ export default (clickableArg, deletable, collection, alias, policyForm) =>
     return {
       scope: scope,
       create: clickableArg(createSelector),
-      form: policyForm('#new-policy'),
+      form: policyForm(modalSelector, '.modal-dialog-footer', formPrefix),
       policies: alias('selectedOptions'),
       selectedOptions: collection('[data-test-policies] .hds-accordion-item', {
         expand: clickableArg('button.hds-accordion-item__button'),
