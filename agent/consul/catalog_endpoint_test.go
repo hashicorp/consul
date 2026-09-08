@@ -479,7 +479,160 @@ func TestCatalog_Register_ConnectProxy_invalid(t *testing.T) {
 	assert.Contains(t, err.Error(), "DestinationServiceName")
 }
 
-// Test that write is required for the proxy destination to register a proxy.
+// TestCatalog_Register_ConnectProxy_EscapeHatchKeyRequiresMeshWrite verifies
+// that registering a connect-proxy via Catalog.Register with any escape-hatch
+// key in Proxy.Config requires mesh:write in addition to service:write
+// (SECVULN — Vector 2, catalog path).
+func TestCatalog_Register_ConnectProxy_EscapeHatchKeyRequiresMeshWrite(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	// Token with service:write on both names but no mesh:write.
+	serviceOnlyToken := createTokenWithPolicyNameFull(t, codec, "escape-hatch-service-only", `
+service_prefix "" { policy = "write" }
+node_prefix "" { policy = "write" }
+`, "root").SecretID
+
+	// Token with service:write + mesh:write.
+	meshToken := createTokenWithPolicyNameFull(t, codec, "escape-hatch-mesh-write", `
+service_prefix "" { policy = "write" }
+node_prefix "" { policy = "write" }
+mesh = "write"
+`, "root").SecretID
+
+	for _, key := range structs.EnvoyEscapeHatchKeyNames() {
+		key := key
+		t.Run(key, func(t *testing.T) {
+			arg := structs.RegisterRequest{
+				Datacenter: "dc1",
+				Node:       "foo",
+				Address:    "127.0.0.1",
+				Service: &structs.NodeService{
+					ID:      "web-sidecar-proxy",
+					Service: "web-sidecar-proxy",
+					Kind:    structs.ServiceKindConnectProxy,
+					Port:    20000,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "web",
+						Config:                 map[string]interface{}{key: `{}`},
+					},
+				},
+			}
+
+			var out struct{}
+
+			// service:write only — must be denied.
+			arg.Token = serviceOnlyToken
+			err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
+			require.Error(t, err, "key %q: expected denial without mesh:write", key)
+			require.True(t, acl.IsErrPermissionDenied(err), "key %q: expected permission denied, got: %v", key, err)
+
+			// service:write + mesh:write — ACL check must pass. The registration
+			// may still fail with a virtual-IP error in environments where no
+			// agent HTTP listener is running (pre-existing limitation of
+			// testServerWithConfig); that is not caused by our ACL gate.
+			arg.Token = meshToken
+			err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
+			if err != nil {
+				require.False(t, acl.IsErrPermissionDenied(err),
+					"key %q: mesh:write token must not be ACL-denied, got: %v", key, err)
+			}
+		})
+	}
+}
+
+// TestCatalog_Register_ConnectProxy_UpstreamEscapeHatchKeyRequiresMeshWrite
+// verifies that escape-hatch keys (envoy_listener_json, envoy_cluster_json)
+// set on a per-upstream Config map — not just the top-level Proxy.Config —
+// also require mesh:write via Catalog.Register (SECVULN — Vector 2, catalog
+// path, per-upstream placement).
+func TestCatalog_Register_ConnectProxy_UpstreamEscapeHatchKeyRequiresMeshWrite(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	serviceOnlyToken := createTokenWithPolicyNameFull(t, codec, "upstream-escape-hatch-service-only", `
+service_prefix "" { policy = "write" }
+node_prefix "" { policy = "write" }
+`, "root").SecretID
+
+	meshToken := createTokenWithPolicyNameFull(t, codec, "upstream-escape-hatch-mesh-write", `
+service_prefix "" { policy = "write" }
+node_prefix "" { policy = "write" }
+mesh = "write"
+`, "root").SecretID
+
+	for _, key := range []string{"envoy_listener_json", "envoy_cluster_json"} {
+		key := key
+		t.Run(key, func(t *testing.T) {
+			arg := structs.RegisterRequest{
+				Datacenter: "dc1",
+				Node:       "foo",
+				Address:    "127.0.0.1",
+				Service: &structs.NodeService{
+					ID:      "web-sidecar-proxy",
+					Service: "web-sidecar-proxy",
+					Kind:    structs.ServiceKindConnectProxy,
+					Port:    20000,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "web",
+						Upstreams: structs.Upstreams{
+							{
+								DestinationName: "db",
+								LocalBindPort:   9191,
+								Config:          map[string]interface{}{key: `{}`},
+							},
+						},
+					},
+				},
+			}
+
+			var out struct{}
+
+			// service:write only — must be denied.
+			arg.Token = serviceOnlyToken
+			err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
+			require.Error(t, err, "upstream key %q: expected denial without mesh:write", key)
+			require.True(t, acl.IsErrPermissionDenied(err), "upstream key %q: expected permission denied, got: %v", key, err)
+
+			// service:write + mesh:write — ACL check must pass.
+			arg.Token = meshToken
+			err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
+			if err != nil {
+				require.False(t, acl.IsErrPermissionDenied(err),
+					"upstream key %q: mesh:write token must not be ACL-denied, got: %v", key, err)
+			}
+		})
+	}
+}
+
 func TestCatalog_Register_ConnectProxy_ACLDestinationServiceName(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

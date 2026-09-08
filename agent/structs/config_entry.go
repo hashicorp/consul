@@ -363,7 +363,20 @@ func (e *ServiceConfigEntry) CanRead(authz acl.Authorizer) error {
 func (e *ServiceConfigEntry) CanWrite(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.ToAllowAuthorizer().ServiceWriteAllowed(e.Name, &authzContext)
+	if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(e.Name, &authzContext); err != nil {
+		return err
+	}
+	// Code-executing extensions (builtin/lua, builtin/wasm) and upstream escape-hatch
+	// overrides (envoy_listener_json, envoy_cluster_json) run or embed arbitrary Envoy
+	// JSON as the sidecar process user on every proxied request. Both require mesh:write
+	// in addition to service:write so the capability is independently auditable and
+	// cannot be reached via the standard application-team delegation pattern alone.
+	if e.EnvoyExtensions.HasCodeExecutingExtension() || e.UpstreamConfig.HasEscapeHatchOverride() {
+		if err := authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext); err != nil {
+			return fmt.Errorf("mesh:write required to attach code-executing EnvoyExtensions or upstream escape-hatch overrides (envoy_listener_json, envoy_cluster_json): %w", err)
+		}
+	}
+	return nil
 }
 
 func (e *ServiceConfigEntry) GetRaftIndex() *RaftIndex {
@@ -412,6 +425,26 @@ func (c *UpstreamConfiguration) Clone() *UpstreamConfiguration {
 	}
 
 	return &c2
+}
+
+// HasEscapeHatchOverride reports whether any upstream in the configuration
+// carries an envoy_listener_json or envoy_cluster_json escape-hatch override.
+// These fields embed arbitrary Envoy JSON that is delivered verbatim to the
+// sidecar, can introduce code-executing HTTP filters, and therefore require
+// mesh:write in addition to service:write.
+func (c *UpstreamConfiguration) HasEscapeHatchOverride() bool {
+	if c == nil {
+		return false
+	}
+	if c.Defaults != nil && (c.Defaults.EnvoyListenerJSON != "" || c.Defaults.EnvoyClusterJSON != "") {
+		return true
+	}
+	for _, o := range c.Overrides {
+		if o != nil && (o.EnvoyListenerJSON != "" || o.EnvoyClusterJSON != "") {
+			return true
+		}
+	}
+	return false
 }
 
 // DestinationConfig represents a virtual service, i.e. one that is external to Consul

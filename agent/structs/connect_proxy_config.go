@@ -333,6 +333,27 @@ type ConnectProxyConfig struct {
 	AccessLogs AccessLogsConfig `json:",omitempty" alias:"access_logs"`
 }
 
+// HasEnvoyEscapeHatchOverride reports whether the proxy's own opaque Config,
+// or any of its Upstreams[*].Config maps, sets an Envoy escape-hatch key (see
+// EnvoyEscapeHatchKeyNames). These keys embed arbitrary Envoy JSON that is
+// delivered verbatim to the sidecar and can introduce code-executing HTTP
+// filters (e.g. envoy_listener_json/envoy_cluster_json set per-upstream), so
+// callers must independently require mesh:write before honoring them.
+func (c *ConnectProxyConfig) HasEnvoyEscapeHatchOverride() bool {
+	if c == nil {
+		return false
+	}
+	if HasEnvoyEscapeHatchKey(c.Config) {
+		return true
+	}
+	for _, u := range c.Upstreams {
+		if HasEnvoyEscapeHatchKey(u.Config) {
+			return true
+		}
+	}
+	return false
+}
+
 func (t *ConnectProxyConfig) UnmarshalJSON(data []byte) (err error) {
 	type Alias ConnectProxyConfig
 	aux := &struct {

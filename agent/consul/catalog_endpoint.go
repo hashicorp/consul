@@ -287,6 +287,16 @@ func serviceACLCheckWithConsulExemption(
 		}
 	}
 
+	// Escape-hatch keys in Proxy.Config or Proxy.Upstreams[*].Config embed
+	// arbitrary Envoy JSON into the sidecar's bootstrap configuration or xDS
+	// listener/cluster resources. They can introduce code-executing HTTP
+	// filters and therefore require mesh:write independently of service:write.
+	if service.Proxy.HasEnvoyEscapeHatchOverride() {
+		if err := authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext); err != nil {
+			return fmt.Errorf("mesh:write required to set an Envoy escape-hatch key in Proxy.Config or Proxy.Upstreams[*].Config: %w", err)
+		}
+	}
+
 	return nil
 }
 
