@@ -598,6 +598,56 @@ func TestCatalog_Deregister(t *testing.T) {
 	}
 }
 
+// TestCatalog_Deregister_PeerName verifies that Catalog.Deregister rejects any
+// request that carries a non-default PeerName, preventing a local token from
+// deleting peer-imported catalog objects.
+func TestCatalog_Deregister_PeerName(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	tests := map[string]struct {
+		peerName string
+		wantErr  string
+	}{
+		"non-empty peer name rejected": {
+			peerName: "peer1",
+			wantErr:  "deregistering peer-imported catalog objects is not supported",
+		},
+		"default peer name allowed": {
+			peerName: structs.DefaultPeerKeyword,
+			wantErr:  "",
+		},
+	}
+
+	for name, tc := range tests {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			arg := structs.DeregisterRequest{
+				Datacenter: "dc1",
+				Node:       "foo",
+				PeerName:   tc.peerName,
+			}
+			var out struct{}
+			err := msgpackrpc.CallWithCodec(codec, "Catalog.Deregister", &arg, &out)
+			if tc.wantErr != "" {
+				require.ErrorContains(t, err, tc.wantErr)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestCatalog_Deregister_ACLDeny(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

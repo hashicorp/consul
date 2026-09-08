@@ -426,6 +426,10 @@ func vetRegisterWithACL(
 // If a ServiceID or CheckID is not provided in the request, the entire
 // node is deregistered.
 func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) error {
+	if args.PeerName != structs.DefaultPeerKeyword {
+		return errors.New("deregistering peer-imported catalog objects is not supported")
+	}
+
 	if done, err := c.srv.ForwardRPC("Catalog.Deregister", args, reply); done {
 		return err
 	}
