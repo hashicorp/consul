@@ -1018,7 +1018,6 @@ func TestMakeTLSParametersFromProxyTLSConfig_ECDHCurves(t *testing.T) {
 			},
 			want: &envoy_tls_v3.TlsParameters{
 				TlsMinimumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
-				TlsMaximumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
 				EcdhCurves:                []string{"X25519MLKEM768", "X25519"},
 			},
 		},
@@ -1029,7 +1028,6 @@ func TestMakeTLSParametersFromProxyTLSConfig_ECDHCurves(t *testing.T) {
 			},
 			want: &envoy_tls_v3.TlsParameters{
 				TlsMinimumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
-				TlsMaximumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
 				EcdhCurves:                []string{"X25519MLKEM768", "X25519"},
 			},
 		},
@@ -1040,7 +1038,6 @@ func TestMakeTLSParametersFromProxyTLSConfig_ECDHCurves(t *testing.T) {
 			},
 			want: &envoy_tls_v3.TlsParameters{
 				TlsMinimumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
-				TlsMaximumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
 				EcdhCurves:                []string{"P-384"},
 			},
 		},
@@ -1051,7 +1048,6 @@ func TestMakeTLSParametersFromProxyTLSConfig_ECDHCurves(t *testing.T) {
 			},
 			want: &envoy_tls_v3.TlsParameters{
 				TlsMinimumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
-				TlsMaximumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
 				EcdhCurves:                []string{"X25519MLKEM768", "X25519"},
 			},
 		},
@@ -1107,7 +1103,6 @@ func TestMakeTLSParametersFromGatewayTLSConfig(t *testing.T) {
 			},
 			want: &envoy_tls_v3.TlsParameters{
 				TlsMinimumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
-				TlsMaximumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
 				EcdhCurves:                nil,
 			},
 		},

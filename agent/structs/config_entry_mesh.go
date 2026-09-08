@@ -398,8 +398,8 @@ func validateECDHCurves(minVersion types.TLSVersion, curves []string) error {
 	if len(curves) == 0 {
 		return nil
 	}
-	if minVersion != types.TLSv1_3 {
-		return fmt.Errorf("ecdh_curves can only be configured when tls_min_version is 'TLSv1_3'")
+	if err, isLessThanTLS13 := minVersion.LessThan(types.TLSv1_3); err != nil || isLessThanTLS13 {
+		return fmt.Errorf("ecdh_curves can only be configured when tls_min_version is 'TLSv1_3' or higher")
 	}
 	for _, c := range curves {
 		if _, ok := validEnvoyECDHCurves[c]; !ok {

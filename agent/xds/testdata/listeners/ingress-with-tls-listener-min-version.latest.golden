@@ -37,7 +37,6 @@
                   }
                 ],
                 "tlsParams": {
-                  "tlsMaximumProtocolVersion": "TLSv1_3",
                   "tlsMinimumProtocolVersion": "TLSv1_3"
                 },
                 "validationContext": {
