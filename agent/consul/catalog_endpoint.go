@@ -172,6 +172,26 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 	if err != nil {
 		return fmt.Errorf("Node lookup failed: %v", err)
 	}
+
+	// If the request carries a Node.ID, check whether that ID already belongs
+	// to a different node. ensureNodeTxn resolves by ID first and will cascade-
+	// delete the existing node if the name differs, so we must authorize against
+	// the existing node's real name before vetRegisterWithACL checks the
+	// request's own name. This mirrors the protection in vetNodeTxnOp.
+	if args.ID != "" {
+		_, existingByID, err := state.GetNodeID(args.ID, &args.EnterpriseMeta, args.PeerName)
+		if err != nil {
+			return fmt.Errorf("node lookup by ID failed: %w", err)
+		}
+		if existingByID != nil && !strings.EqualFold(existingByID.Node, args.Node) {
+			var existingCtx acl.AuthorizerContext
+			existingByID.FillAuthzContext(&existingCtx)
+			if err := authz.ToAllowAuthorizer().NodeWriteAllowed(existingByID.Node, &existingCtx); err != nil {
+				return err
+			}
+		}
+	}
+
 	if err := vetRegisterWithACL(authz, args, ns); err != nil {
 		return err
 	}
