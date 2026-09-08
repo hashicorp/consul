@@ -4669,3 +4669,70 @@ func TestCatalog_VirtualIPForService_ACLDeny(t *testing.T) {
 	require.Contains(t, err.Error(), acl.ErrPermissionDenied.Error())
 	require.Equal(t, "", out2)
 }
+
+// TestCatalog_Register_NodeIDCrossNodeTakeover verifies that a caller who holds
+// node:write on their own node name cannot use a victim's Node.ID to cascade-
+// delete the victim's entire catalog registration and steal its identity.
+//
+// Without the fix, vetRegisterWithACL only checked the attacker's own node name;
+// ensureNodeTxn then resolved by ID, deleted the victim node, and re-inserted it
+// under the attacker's name.
+func TestCatalog_Register_NodeIDCrossNodeTakeover(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	victimID := types.NodeID("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
+
+	// Register victim node with a service via the management token.
+	var out struct{}
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &structs.RegisterRequest{
+		Datacenter: "dc1",
+		ID:         victimID,
+		Node:       "victim-node",
+		Address:    "10.0.0.1",
+		Service: &structs.NodeService{
+			ID:      "victim-svc",
+			Service: "victim-svc",
+			Port:    9999,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}, &out))
+
+	// Attacker token: write on "attacker-node" only; no access to "victim-node".
+	attackerToken := createToken(t, codec, `
+node "attacker-node" {
+  policy = "write"
+}`)
+
+	// Attacker submits Catalog.Register using their own node name but the
+	// victim's Node.ID. The fix must reject this with permission denied.
+	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &structs.RegisterRequest{
+		Datacenter:   "dc1",
+		ID:           victimID,
+		Node:         "attacker-node",
+		Address:      "10.0.0.2",
+		WriteRequest: structs.WriteRequest{Token: attackerToken},
+	}, &out)
+	require.Error(t, err, "expected the cross-node takeover to be rejected with a permission error")
+	require.True(t, acl.IsErrPermissionDenied(err), "expected permission denied, got: %v", err)
+
+	// Victim node must still exist in the state store.
+	_, victimNode, err := s1.fsm.State().GetNodeID(victimID, structs.NodeEnterpriseMetaInDefaultPartition(), "")
+	require.NoError(t, err)
+	require.NotNil(t, victimNode, "victim node was deleted — cross-node takeover succeeded")
+	require.Equal(t, "victim-node", victimNode.Node)
+}
