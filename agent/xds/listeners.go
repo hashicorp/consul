@@ -3251,7 +3251,7 @@ func makeTLSParametersFromTLSConfig(
 	}
 
 	if len(ecdhCurves) > 0 {
-		tlsParams.EcdhCurves = ecdhCurves
+		tlsParams.EcdhCurves = append([]string(nil), ecdhCurves...)
 	}
 
 	return &tlsParams

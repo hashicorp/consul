@@ -367,6 +367,10 @@ func (r *RequestNormalizationMeshConfig) GetHeadersWithUnderscoresAction() Heade
 	return r.HeadersWithUnderscoresAction
 }
 
+// validEnvoyECDHCurves defines the supported ECDH/KEM curves for TLS 1.3.
+// NOTE: If this map is updated, ensure the corresponding validCurves list
+// and Kubebuilder enum markers in github.com/hashicorp/consul-k8s/control-plane/api/v1alpha1/mesh_types.go
+// are also updated.
 var validEnvoyECDHCurves = map[string]struct{}{
 	"X25519MLKEM768": {},
 	"X25519":         {},
