@@ -181,7 +181,11 @@ func (s *ResourceGenerator) mapDiscoChainTargets(
 	// keeps a wholly incoherent snapshot away from a cold-starting Envoy,
 	// while this guard covers what the gate cannot -- a gate that expired on
 	// its timeout, and steady-state churn after the first push has opened it.
-	if failoverTargets.failover && !forMeshGateway && cfgSnap.Kind == structs.ServiceKindAPIGateway {
+	//
+	// DisableAPIGatewayFailoverGuard is an escape hatch (see its doc comment
+	// on Server) for the unlikely case that this guard itself misbehaves; it
+	// is not expected to be set in normal operation.
+	if !s.DisableAPIGatewayFailoverGuard && failoverTargets.failover && !forMeshGateway && cfgSnap.Kind == structs.ServiceKindAPIGateway {
 		unready := failoverTargets.unreadyFailoverMembers(
 			chain,
 			upstreamsSnapshot.WatchedUpstreamEndpoints[uid],

@@ -102,12 +102,13 @@ func (s *Server) DeltaAggregatedResources(stream ADSDeltaStream) error {
 
 // getEnvoyConfiguration is a utility function that instantiates the proper
 // Envoy resource generator and returns the generated Envoy configuration.
-func getEnvoyConfiguration(snapshot *proxycfg.ConfigSnapshot, logger hclog.Logger, cfgFetcher configfetcher.ConfigFetcher) (map[string][]proto.Message, error) {
+func getEnvoyConfiguration(snapshot *proxycfg.ConfigSnapshot, logger hclog.Logger, cfgFetcher configfetcher.ConfigFetcher, disableAPIGatewayFailoverGuard bool) (map[string][]proto.Message, error) {
 	generator := NewResourceGenerator(
 		logger,
 		cfgFetcher,
 		true,
 	)
+	generator.DisableAPIGatewayFailoverGuard = disableAPIGatewayFailoverGuard
 	return generator.AllResourcesFromSnapshot(snapshot)
 }
 
@@ -281,7 +282,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			}
 			snapshot = cs
 
-			newRes, err := getEnvoyConfiguration(snapshot, logger, s.CfgFetcher)
+			newRes, err := getEnvoyConfiguration(snapshot, logger, s.CfgFetcher, s.DisableAPIGatewayFailoverGuard)
 			if err != nil {
 				return status.Errorf(codes.Unavailable, "failed to generate all xDS resources from the snapshot: %v", err)
 			}

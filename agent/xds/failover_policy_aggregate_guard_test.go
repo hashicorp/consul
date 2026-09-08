@@ -164,6 +164,51 @@ func TestMapDiscoChainTargets_APIGatewayAggregateGuard(t *testing.T) {
 	}
 }
 
+// TestMapDiscoChainTargets_APIGatewayAggregateGuard_KillSwitch covers
+// Server.DisableAPIGatewayFailoverGuard / ResourceGenerator.
+// DisableAPIGatewayFailoverGuard, the escape hatch for the aggregate guard.
+// It must fully restore the pre-guard behavior: an unready failover member no
+// longer degrades the chain, and the aggregate cluster is emitted as-is. This
+// is the reachable equivalent of the guard's own falsification test -- proof
+// that turning the switch off actually turns the guard off.
+func TestMapDiscoChainTargets_APIGatewayAggregateGuard_KillSwitch(t *testing.T) {
+	chain, node := failoverChainForTest(t)
+
+	primaryTargetID := node.Resolver.Target
+	failoverTargetID := node.Resolver.Failover.Targets[0]
+	uid := proxycfg.NewUpstreamIDFromServiceName(structs.NewServiceName("db", nil))
+
+	snap := testAggregateGuardSnapshot(t, structs.ServiceKindAPIGateway)
+	upstreams, err := snap.ToConfigSnapshotUpstreams()
+	require.NoError(t, err)
+	upstreams.DiscoveryChain[uid] = chain
+	// Only the primary's endpoints are assembled, so without the guard's
+	// escape hatch this would degrade to a single plain EDS cluster (see the
+	// "failover member unready" case above).
+	upstreams.WatchedUpstreamEndpoints[uid] = map[string]structs.CheckServiceNodes{
+		primaryTargetID: proxycfg.TestUpstreamNodes(t, "db"),
+	}
+
+	s := &ResourceGenerator{Logger: testutil.Logger(t), DisableAPIGatewayFailoverGuard: true}
+
+	mapped, err := s.mapDiscoChainTargets(snap, uid, chain, node, structs.UpstreamConfig{}, false, "")
+	require.NoError(t, err)
+
+	require.True(t, mapped.failover, "the kill switch must fully disable the guard, including for an unready member")
+	require.True(t, mapped.isAggregateCluster())
+	require.False(t, mapped.degraded)
+
+	var gotTargetIDs []string
+	for _, ti := range mapped.targets {
+		gotTargetIDs = append(gotTargetIDs, ti.TargetID)
+	}
+	require.Equal(t, []string{primaryTargetID, failoverTargetID}, gotTargetIDs)
+
+	groups, err := mapped.groupedTargets()
+	require.NoError(t, err)
+	require.Len(t, groups, 2, "the aggregate's member clusters must be emitted even though a member is unready")
+}
+
 func testAggregateGuardSnapshot(t *testing.T, kind structs.ServiceKind) *proxycfg.ConfigSnapshot {
 	t.Helper()
 
