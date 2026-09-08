@@ -186,14 +186,15 @@ func (s *ResourceGenerator) mapDiscoChainTargets(
 	// on Server) for the unlikely case that this guard itself misbehaves; it
 	// is not expected to be set in normal operation.
 	if !s.DisableAPIGatewayFailoverGuard && failoverTargets.failover && !forMeshGateway && cfgSnap.Kind == structs.ServiceKindAPIGateway {
-		unready := failoverTargets.unreadyFailoverMembers(
+		unready, ready := failoverTargets.classifyFailoverMembers(
 			chain,
 			upstreamsSnapshot.WatchedUpstreamEndpoints[uid],
 			upstreamsSnapshot.WatchedGatewayEndpoints[uid],
 			cfgSnap.Locality,
 		)
 		if len(unready) > 0 {
-			degradedTo := failoverTargets.degradeToSingleTarget(primaryTargetID)
+			degradedTo := failoverTargets.degradeToSingleTarget(primaryTargetID, ready)
+			_, degradedToReady := ready[degradedTo]
 			switch {
 			case degradedTo == "":
 				// Every target was dropped while mapping, so there is nothing
@@ -206,24 +207,26 @@ func (s *ResourceGenerator) mapDiscoChainTargets(
 					"cluster", failoverTargets.baseClusterName,
 					"unready_targets", unready)
 			case degradedTo != primaryTargetID:
-				// The primary was dropped while mapping (reachable when it is a
-				// peered target whose peering metadata has not resolved yet).
-				// Falling back to the highest-priority remaining target is both
+				// Either the primary is not ready and a lower-priority member
+				// is, or the primary was dropped while mapping (reachable when
+				// it is a peered target whose peering metadata has not resolved
+				// yet). Taking the next usable target in failover order is both
 				// safe -- a plain EDS cluster is benign no matter how ready it
-				// is -- and the correct reading of failover intent: the primary
-				// is unusable, so the next target in order takes over.
-				s.Logger.Debug("api-gateway: rendering upstream without failover over a non-primary target because the primary is unavailable; "+
-					"failover is restored automatically once the primary and member endpoints arrive",
+				// is -- and the correct reading of failover intent.
+				s.Logger.Debug("api-gateway: rendering upstream without failover over a non-primary target; "+
+					"failover is restored automatically once the member endpoints arrive",
 					"upstream", uid,
 					"cluster", failoverTargets.baseClusterName,
 					"primary_target", primaryTargetID,
 					"degraded_to", degradedTo,
+					"degraded_to_ready", degradedToReady,
 					"unready_targets", unready)
 			default:
 				s.Logger.Debug("api-gateway: rendering upstream without failover because member endpoints are not assembled; "+
 					"failover is restored automatically once the endpoints arrive",
 					"upstream", uid,
 					"cluster", failoverTargets.baseClusterName,
+					"degraded_to_ready", degradedToReady,
 					"unready_targets", unready)
 			}
 		}
@@ -232,9 +235,21 @@ func (s *ResourceGenerator) mapDiscoChainTargets(
 	return failoverTargets, nil
 }
 
-// unreadyFailoverMembers returns the IDs of mapped targets whose EDS assignment
-// would be skipped by endpoint generation -- that is, the members that would
-// leave an aggregate cluster pointing at an unpopulated priority set.
+// classifyFailoverMembers splits the mapped targets by whether endpoint
+// generation would emit an EDS assignment for them.
+//
+// unready lists the members that would leave an aggregate cluster pointing at
+// an unpopulated priority set -- the shape that faults Envoy -- and is what
+// decides whether the guard fires. ready is the set that endpoint generation
+// would populate, and is what degradeToSingleTarget picks from, so that
+// degrading cannot discard a member that could have served traffic.
+//
+// A target that is neither ready nor unready has unknown readiness rather than
+// known-good readiness: the two sets are deliberately not complements. Peered
+// and external members land there (see the KNOWN LIMITATION below), which keeps
+// them out of unready, where they would trip the guard on a readiness this
+// function cannot judge, and equally out of ready, where degradeToSingleTarget
+// would treat an unverified member as a safe landing spot.
 //
 // It calls makeLoadAssignmentEndpointGroup, the very function endpoint
 // generation uses, rather than re-deriving the readiness rule, so the cluster
@@ -265,13 +280,13 @@ func (s *ResourceGenerator) mapDiscoChainTargets(
 // share this gap. Reaching it needs an API gateway whose service-resolver fails
 // over to a peered target whose peering metadata has resolved but whose
 // endpoints have not -- a narrower topology than the one this guard targets.
-func (ft discoChainTargets) unreadyFailoverMembers(
+func (ft discoChainTargets) classifyFailoverMembers(
 	chain *structs.CompiledDiscoveryChain,
 	upstreamEndpoints map[string]structs.CheckServiceNodes,
 	gatewayEndpoints map[string]structs.CheckServiceNodes,
 	localKey proxycfg.GatewayKey,
-) []string {
-	var unready []string
+) (unready []string, ready map[string]struct{}) {
+	ready = make(map[string]struct{}, len(ft.targets))
 	for _, ti := range ft.targets {
 		target := chain.Targets[ti.TargetID]
 		if target == nil {
@@ -294,9 +309,11 @@ func (ft discoChainTargets) unreadyFailoverMembers(
 			false,
 		); !valid {
 			unready = append(unready, ti.TargetID)
+			continue
 		}
+		ready[ti.TargetID] = struct{}{}
 	}
-	return unready
+	return unready, ready
 }
 
 // degradeToSingleTarget rewrites the mapped targets so they render as a single
@@ -306,19 +323,42 @@ func (ft discoChainTargets) unreadyFailoverMembers(
 // a plain EDS cluster with no assignment simply warms, times out and resolves
 // with zero hosts.
 //
-// It prefers the primary target, and otherwise falls back to the
-// highest-priority target still present -- the primary can legitimately be
-// absent, because a peered target whose peering metadata has not resolved is
-// dropped while mapping. It returns the target ID it degraded onto, or the
-// empty string if no target remained, in which case failover is still cleared
-// so that no aggregate can be emitted over an empty member list.
-func (ft *discoChainTargets) degradeToSingleTarget(primaryTargetID string) string {
+// Selection walks ft.targets, which mapDiscoChainTargets builds in failover
+// priority order (primary first, then the resolver's failover targets in
+// declared order), and takes the first member endpoint generation would
+// actually populate. That is what the failover policy would have selected
+// anyway, and it matters because the alternative is a cluster that is
+// guaranteed to answer 503: degrading onto an unready primary while a ready
+// member sits behind it converts a working failover into an outage, which is a
+// worse result than the aggregate this guard is replacing.
+//
+// When no member is ready the choice cannot affect traffic -- every candidate
+// resolves with zero hosts -- so it prefers the primary to keep the rendered
+// cluster stable, and otherwise falls back to the highest-priority target still
+// present. The primary can legitimately be absent, because a peered target
+// whose peering metadata has not resolved is dropped while mapping.
+//
+// ready must come from classifyFailoverMembers: it holds only members whose
+// readiness was positively verified, so members of unknown readiness are never
+// chosen as if they were serving.
+//
+// It returns the target ID it degraded onto, or the empty string if no target
+// remained, in which case failover is still cleared so that no aggregate can be
+// emitted over an empty member list.
+func (ft *discoChainTargets) degradeToSingleTarget(primaryTargetID string, ready map[string]struct{}) string {
 	ft.failover = false
 	ft.failoverPolicy = structs.ServiceResolverFailoverPolicy{}
 	ft.degraded = true
 
 	if len(ft.targets) == 0 {
 		return ""
+	}
+
+	for _, ti := range ft.targets {
+		if _, ok := ready[ti.TargetID]; ok {
+			ft.targets = []targetInfo{ti}
+			return ti.TargetID
+		}
 	}
 
 	chosen := ft.targets[0]

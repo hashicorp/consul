@@ -107,6 +107,18 @@ func TestMapDiscoChainTargets_APIGatewayAggregateGuard(t *testing.T) {
 			expectTargetIDs:  []string{primaryTargetID},
 			expectClusterQty: 1,
 		},
+		// Degrading onto the primary here would discard the one member that can
+		// actually serve traffic, turning a working failover into a guaranteed
+		// 503. Reachable in steady state: resetWatchesFromChain drops every
+		// target's endpoints at once and they refill independently, so "the
+		// failover member refilled first" is an ordinary race.
+		"api gateway, primary unready but member ready: degrades to the ready member": {
+			kind:             structs.ServiceKindAPIGateway,
+			readyTargets:     []string{failoverTargetID},
+			expectFailover:   false,
+			expectTargetIDs:  []string{failoverTargetID},
+			expectClusterQty: 1,
+		},
 		// The crash is only reachable through a gateway cold start, and the
 		// user-facing contract for sidecars is unchanged, so the guard is
 		// deliberately scoped to API gateways.
@@ -223,47 +235,101 @@ func testAggregateGuardSnapshot(t *testing.T, kind structs.ServiceKind) *proxycf
 	}
 }
 
-// TestDegradeToSingleTarget_DroppedPrimary covers the case where the primary
-// target is absent from the mapped targets, which happens when it is a peered
-// target whose peering metadata has not resolved and it is therefore dropped
-// while mapping. The guard must still clear failover: leaving the shape
-// untouched would emit an aggregate over the remaining unready members, which
-// is precisely the crash the guard exists to prevent.
-func TestDegradeToSingleTarget_DroppedPrimary(t *testing.T) {
+// TestDegradeToSingleTarget covers which target the guard degrades onto.
+//
+// Two things must hold. Failover is always cleared, even when no target
+// survives -- leaving the shape untouched would emit an aggregate over the
+// remaining unready members, which is precisely the crash the guard exists to
+// prevent. And the chosen target is the highest-priority member that endpoint
+// generation would actually populate, because degrading onto an unready member
+// while a ready one sits behind it turns a working failover into a guaranteed
+// 503.
+//
+// The primary can be absent entirely: a peered target whose peering metadata
+// has not resolved is dropped while mapping.
+func TestDegradeToSingleTarget(t *testing.T) {
 	const (
 		primary   = "db.default.default.dc1"
 		failoverA = "fail-a.default.default.dc1"
 		failoverB = "fail-b.default.default.dc1"
 	)
 
+	all := []targetInfo{{TargetID: primary}, {TargetID: failoverA}, {TargetID: failoverB}}
+
 	cases := map[string]struct {
 		targets      []targetInfo
+		ready        []string
 		expectChosen string
 		expectTarget []string
 	}{
-		"primary present: degrades onto the primary": {
-			targets: []targetInfo{
-				{TargetID: primary}, {TargetID: failoverA}, {TargetID: failoverB},
-			},
+		"primary ready: degrades onto the primary": {
+			targets:      all,
+			ready:        []string{primary},
 			expectChosen: primary,
 			expectTarget: []string{primary},
 		},
-		"primary present but not first: still degrades onto the primary": {
-			targets: []targetInfo{
-				{TargetID: failoverA}, {TargetID: primary},
-			},
+		"primary ready and others too: still prefers the primary": {
+			targets:      all,
+			ready:        []string{primary, failoverA, failoverB},
 			expectChosen: primary,
 			expectTarget: []string{primary},
 		},
-		"primary dropped: degrades onto the highest-priority remaining target": {
-			targets: []targetInfo{
-				{TargetID: failoverA}, {TargetID: failoverB},
-			},
+		// The regression this selection exists to prevent: choosing the primary
+		// here yields a cluster with no endpoints while a member that could
+		// serve traffic is discarded.
+		"primary unready, member ready: degrades onto the ready member": {
+			targets:      all,
+			ready:        []string{failoverA},
 			expectChosen: failoverA,
 			expectTarget: []string{failoverA},
 		},
+		"several members ready: takes the highest-priority one": {
+			targets:      all,
+			ready:        []string{failoverB, failoverA},
+			expectChosen: failoverA,
+			expectTarget: []string{failoverA},
+		},
+		"nothing ready: falls back to the primary": {
+			targets:      all,
+			ready:        nil,
+			expectChosen: primary,
+			expectTarget: []string{primary},
+		},
+		"nothing ready, primary not first: still falls back to the primary": {
+			targets: []targetInfo{
+				{TargetID: failoverA}, {TargetID: primary},
+			},
+			ready:        nil,
+			expectChosen: primary,
+			expectTarget: []string{primary},
+		},
+		"primary dropped, nothing ready: falls back to the highest-priority remaining target": {
+			targets: []targetInfo{
+				{TargetID: failoverA}, {TargetID: failoverB},
+			},
+			ready:        nil,
+			expectChosen: failoverA,
+			expectTarget: []string{failoverA},
+		},
+		"primary dropped, a member is ready: degrades onto the ready member": {
+			targets: []targetInfo{
+				{TargetID: failoverA}, {TargetID: failoverB},
+			},
+			ready:        []string{failoverB},
+			expectChosen: failoverB,
+			expectTarget: []string{failoverB},
+		},
+		// A peered member is neither ready nor unready: its readiness is
+		// unknown, so it must not be treated as a safe landing spot.
+		"unknown-readiness members are not chosen over the primary": {
+			targets:      all,
+			ready:        nil,
+			expectChosen: primary,
+			expectTarget: []string{primary},
+		},
 		"every target dropped: clears failover and leaves nothing to emit": {
 			targets:      nil,
+			ready:        nil,
 			expectChosen: "",
 			expectTarget: nil,
 		},
@@ -278,7 +344,12 @@ func TestDegradeToSingleTarget_DroppedPrimary(t *testing.T) {
 				failoverPolicy:  structs.ServiceResolverFailoverPolicy{Mode: "sequential"},
 			}
 
-			chosen := ft.degradeToSingleTarget(primary)
+			ready := make(map[string]struct{}, len(tc.ready))
+			for _, id := range tc.ready {
+				ready[id] = struct{}{}
+			}
+
+			chosen := ft.degradeToSingleTarget(primary, ready)
 			require.Equal(t, tc.expectChosen, chosen)
 
 			// Failover must be cleared unconditionally. This is the invariant
