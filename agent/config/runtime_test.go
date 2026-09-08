@@ -4770,6 +4770,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.HTTPMaxConnsPerClient = 200
 			rt.GRPCMaxConnsPerClient = 100
 			rt.RPCMaxConnsPerClient = 100
+			rt.RPCMaxHeaderBytes = 512
 			rt.RequestLimitsMode = consulrate.ModeDisabled
 			rt.RequestLimitsReadRate = rate.Inf
 			rt.RequestLimitsWriteRate = rate.Inf
@@ -6716,6 +6717,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		RPCRateLimit:            12029.43,
 		RPCMaxBurst:             44848,
 		RPCMaxConnsPerClient:    2954,
+		RPCMaxHeaderBytes:       8192,
 		RaftProtocol:            3,
 		RaftSnapshotThreshold:   16384,
 		RaftSnapshotInterval:    30 * time.Second,
