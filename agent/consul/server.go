@@ -19,7 +19,6 @@ import (
 	"time"
 
 	"github.com/fullstorydev/grpchan/inprocgrpc"
-	"github.com/hashicorp/go-metrics"
 	"go.etcd.io/bbolt"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
@@ -28,6 +27,7 @@ import (
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-metrics"
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
 	raftboltdb "github.com/hashicorp/raft-boltdb/v2"
@@ -49,6 +49,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
 	"github.com/hashicorp/consul/agent/consul/wanfed"
 	"github.com/hashicorp/consul/agent/consul/xdscapacity"
+	"github.com/hashicorp/consul/agent/featuregate"
 	"github.com/hashicorp/consul/agent/grpc-external/services/peerstream"
 	logdrop "github.com/hashicorp/consul/agent/log-drop"
 	"github.com/hashicorp/consul/agent/metadata"
@@ -196,6 +197,9 @@ type Server struct {
 	// configReplicator is used to manage the leaders replication routines for
 	// centralized config
 	configReplicator *Replicator
+
+	featureGateRegistry featuregate.Registry
+	featureGateStore    *featuregate.Store
 
 	// federationStateReplicator is used to manage the leaders replication routines for
 	// federation states
@@ -443,6 +447,12 @@ type Server struct {
 	registry resource.Registry
 }
 
+// FeatureGateStore exposes the server-local cache of final committed feature
+// decisions to server-side runtime consumers such as agentless proxycfg.
+func (s *Server) FeatureGateStore() *featuregate.Store {
+	return s.featureGateStore
+}
+
 func (s *Server) DecrementBlockingQueries() uint64 {
 	return atomic.AddUint64(&s.queriesBlocking, ^uint64(0))
 }
@@ -476,6 +486,9 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	if err := config.CheckEnumStrings(); err != nil {
 		return nil, err
 	}
+	if config.FeatureGateRegistry == nil {
+		config.FeatureGateRegistry = featuregate.DefaultRegistry()
+	}
 	if err := state.SetVirtualIPConfig(config.ConnectVirtualIPCIDRv4, config.ConnectVirtualIPCIDRv6); err != nil {
 		return nil, fmt.Errorf("failed to configure virtual IP ranges: %w", err)
 	}
@@ -498,6 +511,8 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	// Create server.
 	s := &Server{
 		config:                  config,
+		featureGateRegistry:     config.FeatureGateRegistry,
+		featureGateStore:        &featuregate.Store{},
 		tokens:                  flat.Tokens,
 		connPool:                flat.ConnPool,
 		grpcConnPool:            flat.GRPCConnPool,
@@ -540,6 +555,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		Publisher:      flat.EventPublisher,
 		StorageBackend: s.raftStorageBackend,
 	})
+	go s.runFeatureGateCache(&lib.StopChannelContext{StopCh: shutdownCh})
 
 	var recorder *middleware.RequestRecorder
 	if flat.NewRequestRecorderFunc != nil {

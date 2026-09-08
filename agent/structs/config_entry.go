@@ -1288,6 +1288,12 @@ type UpstreamLimits struct {
 	// to the upstream cluster at a point in time. This is mostly applicable to HTTP/2
 	// clusters since all HTTP/1.1 requests are limited by MaxConnections.
 	MaxConcurrentRequests *int `json:",omitempty" alias:"max_concurrent_requests"`
+
+	// PassiveHealthCheck configuration determines how upstream proxy instances will
+	// be monitored for removal from the load balancing pool. When set on an API
+	// gateway's Defaults it applies to all routed services; a per-service value
+	// overrides it.
+	PassiveHealthCheck *PassiveHealthCheck `json:",omitempty" alias:"passive_health_check"`
 }
 
 func (ul *UpstreamLimits) Clone() *UpstreamLimits {
@@ -1298,6 +1304,7 @@ func (ul *UpstreamLimits) Clone() *UpstreamLimits {
 		MaxConnections:        intPointerCopy(ul.MaxConnections),
 		MaxPendingRequests:    intPointerCopy(ul.MaxPendingRequests),
 		MaxConcurrentRequests: intPointerCopy(ul.MaxConcurrentRequests),
+		PassiveHealthCheck:    ul.PassiveHealthCheck.Clone(),
 	}
 }
 
@@ -1323,6 +1330,11 @@ func (ul UpstreamLimits) Validate() error {
 	}
 	if ul.MaxConcurrentRequests != nil && *ul.MaxConcurrentRequests < 0 {
 		return fmt.Errorf("max concurrent requests cannot be negative")
+	}
+	if ul.PassiveHealthCheck != nil {
+		if err := ul.PassiveHealthCheck.Validate(); err != nil {
+			return err
+		}
 	}
 	return nil
 }

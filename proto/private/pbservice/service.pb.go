@@ -480,6 +480,647 @@ func (x *ServiceConnect) GetPeerMeta() *PeeringServiceMeta {
 	return nil
 }
 
+// ServiceAI is the inline AI role block (CAMP). It carries the service's AI
+// semantics (inference-model, mcp-server, or ai-agent).
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ServiceAI
+// output=service.gen.go
+// name=Structs
+type ServiceAI struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Role determines which role-specific sub-block is valid.
+	// mog: func-to=structs.ServiceAIRole func-from=string
+	Role string `protobuf:"bytes,1,opt,name=Role,proto3" json:"Role,omitempty"`
+	// Exactly one of the following is set, matching Role.
+	InferenceModel *AIInferenceModel `protobuf:"bytes,2,opt,name=InferenceModel,proto3" json:"InferenceModel,omitempty"`
+	MCPServer      *AIMCPServer      `protobuf:"bytes,3,opt,name=MCPServer,proto3" json:"MCPServer,omitempty"`
+	Agent          *AIAgent          `protobuf:"bytes,4,opt,name=Agent,proto3" json:"Agent,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *ServiceAI) Reset() {
+	*x = ServiceAI{}
+	mi := &file_private_pbservice_service_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ServiceAI) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ServiceAI) ProtoMessage() {}
+
+func (x *ServiceAI) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbservice_service_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ServiceAI.ProtoReflect.Descriptor instead.
+func (*ServiceAI) Descriptor() ([]byte, []int) {
+	return file_private_pbservice_service_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ServiceAI) GetRole() string {
+	if x != nil {
+		return x.Role
+	}
+	return ""
+}
+
+func (x *ServiceAI) GetInferenceModel() *AIInferenceModel {
+	if x != nil {
+		return x.InferenceModel
+	}
+	return nil
+}
+
+func (x *ServiceAI) GetMCPServer() *AIMCPServer {
+	if x != nil {
+		return x.MCPServer
+	}
+	return nil
+}
+
+func (x *ServiceAI) GetAgent() *AIAgent {
+	if x != nil {
+		return x.Agent
+	}
+	return nil
+}
+
+// AIInferenceModel is the role-specific config for the inference-model role.
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIInferenceModel
+// output=service.gen.go
+// name=Structs
+type AIInferenceModel struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Protocol      string                 `protobuf:"bytes,1,opt,name=Protocol,proto3" json:"Protocol,omitempty"`
+	Path          string                 `protobuf:"bytes,2,opt,name=Path,proto3" json:"Path,omitempty"`
+	Defaults      *AIModelDefaults       `protobuf:"bytes,3,opt,name=Defaults,proto3" json:"Defaults,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AIInferenceModel) Reset() {
+	*x = AIInferenceModel{}
+	mi := &file_private_pbservice_service_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AIInferenceModel) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AIInferenceModel) ProtoMessage() {}
+
+func (x *AIInferenceModel) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbservice_service_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AIInferenceModel.ProtoReflect.Descriptor instead.
+func (*AIInferenceModel) Descriptor() ([]byte, []int) {
+	return file_private_pbservice_service_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *AIInferenceModel) GetProtocol() string {
+	if x != nil {
+		return x.Protocol
+	}
+	return ""
+}
+
+func (x *AIInferenceModel) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *AIInferenceModel) GetDefaults() *AIModelDefaults {
+	if x != nil {
+		return x.Defaults
+	}
+	return nil
+}
+
+// AIModelDefaults carries optional request defaults for an inference model.
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIModelDefaults
+// output=service.gen.go
+// name=Structs
+type AIModelDefaults struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// mog: func-to=int func-from=int32
+	MaxTokens     int32   `protobuf:"varint,1,opt,name=MaxTokens,proto3" json:"MaxTokens,omitempty"`
+	Temperature   float64 `protobuf:"fixed64,2,opt,name=Temperature,proto3" json:"Temperature,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AIModelDefaults) Reset() {
+	*x = AIModelDefaults{}
+	mi := &file_private_pbservice_service_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AIModelDefaults) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AIModelDefaults) ProtoMessage() {}
+
+func (x *AIModelDefaults) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbservice_service_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AIModelDefaults.ProtoReflect.Descriptor instead.
+func (*AIModelDefaults) Descriptor() ([]byte, []int) {
+	return file_private_pbservice_service_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *AIModelDefaults) GetMaxTokens() int32 {
+	if x != nil {
+		return x.MaxTokens
+	}
+	return 0
+}
+
+func (x *AIModelDefaults) GetTemperature() float64 {
+	if x != nil {
+		return x.Temperature
+	}
+	return 0
+}
+
+// AIMCPServer is the role-specific config for the mcp-server role.
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIMCPServer
+// output=service.gen.go
+// name=Structs
+type AIMCPServer struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Transport       string                 `protobuf:"bytes,1,opt,name=Transport,proto3" json:"Transport,omitempty"`
+	Path            string                 `protobuf:"bytes,2,opt,name=Path,proto3" json:"Path,omitempty"`
+	ProtocolVersion string                 `protobuf:"bytes,3,opt,name=ProtocolVersion,proto3" json:"ProtocolVersion,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *AIMCPServer) Reset() {
+	*x = AIMCPServer{}
+	mi := &file_private_pbservice_service_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AIMCPServer) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AIMCPServer) ProtoMessage() {}
+
+func (x *AIMCPServer) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbservice_service_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AIMCPServer.ProtoReflect.Descriptor instead.
+func (*AIMCPServer) Descriptor() ([]byte, []int) {
+	return file_private_pbservice_service_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *AIMCPServer) GetTransport() string {
+	if x != nil {
+		return x.Transport
+	}
+	return ""
+}
+
+func (x *AIMCPServer) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *AIMCPServer) GetProtocolVersion() string {
+	if x != nil {
+		return x.ProtocolVersion
+	}
+	return ""
+}
+
+// AIAgent is the role-specific config for the ai-agent role.
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIAgent
+// output=service.gen.go
+// name=Structs
+type AIAgent struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Inference     *AIAgentInference      `protobuf:"bytes,1,opt,name=Inference,proto3" json:"Inference,omitempty"`
+	MCP           *AIAgentMCP            `protobuf:"bytes,2,opt,name=MCP,proto3" json:"MCP,omitempty"`
+	RateLimits    *AIAgentRateLimits     `protobuf:"bytes,3,opt,name=RateLimits,proto3" json:"RateLimits,omitempty"`
+	Interceptor   *AIAgentInterceptor    `protobuf:"bytes,4,opt,name=Interceptor,proto3" json:"Interceptor,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AIAgent) Reset() {
+	*x = AIAgent{}
+	mi := &file_private_pbservice_service_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AIAgent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AIAgent) ProtoMessage() {}
+
+func (x *AIAgent) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbservice_service_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AIAgent.ProtoReflect.Descriptor instead.
+func (*AIAgent) Descriptor() ([]byte, []int) {
+	return file_private_pbservice_service_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *AIAgent) GetInference() *AIAgentInference {
+	if x != nil {
+		return x.Inference
+	}
+	return nil
+}
+
+func (x *AIAgent) GetMCP() *AIAgentMCP {
+	if x != nil {
+		return x.MCP
+	}
+	return nil
+}
+
+func (x *AIAgent) GetRateLimits() *AIAgentRateLimits {
+	if x != nil {
+		return x.RateLimits
+	}
+	return nil
+}
+
+func (x *AIAgent) GetInterceptor() *AIAgentInterceptor {
+	if x != nil {
+		return x.Interceptor
+	}
+	return nil
+}
+
+// AIAgentInference describes the inference specialization for an agent.
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIAgentInference
+// output=service.gen.go
+// name=Structs
+type AIAgentInference struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Specialization []string               `protobuf:"bytes,1,rep,name=Specialization,proto3" json:"Specialization,omitempty"`
+	Vendor         string                 `protobuf:"bytes,2,opt,name=Vendor,proto3" json:"Vendor,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *AIAgentInference) Reset() {
+	*x = AIAgentInference{}
+	mi := &file_private_pbservice_service_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AIAgentInference) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AIAgentInference) ProtoMessage() {}
+
+func (x *AIAgentInference) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbservice_service_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AIAgentInference.ProtoReflect.Descriptor instead.
+func (*AIAgentInference) Descriptor() ([]byte, []int) {
+	return file_private_pbservice_service_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *AIAgentInference) GetSpecialization() []string {
+	if x != nil {
+		return x.Specialization
+	}
+	return nil
+}
+
+func (x *AIAgentInference) GetVendor() string {
+	if x != nil {
+		return x.Vendor
+	}
+	return ""
+}
+
+// AIAgentMCP is the MCP egress configuration for an agent.
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIAgentMCP
+// output=service.gen.go
+// name=Structs
+type AIAgentMCP struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// mog: func-to=int func-from=int32
+	Port          int32           `protobuf:"varint,1,opt,name=Port,proto3" json:"Port,omitempty"`
+	HITL          *AIAgentMCPHITL `protobuf:"bytes,2,opt,name=HITL,proto3" json:"HITL,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AIAgentMCP) Reset() {
+	*x = AIAgentMCP{}
+	mi := &file_private_pbservice_service_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AIAgentMCP) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AIAgentMCP) ProtoMessage() {}
+
+func (x *AIAgentMCP) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbservice_service_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AIAgentMCP.ProtoReflect.Descriptor instead.
+func (*AIAgentMCP) Descriptor() ([]byte, []int) {
+	return file_private_pbservice_service_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *AIAgentMCP) GetPort() int32 {
+	if x != nil {
+		return x.Port
+	}
+	return 0
+}
+
+func (x *AIAgentMCP) GetHITL() *AIAgentMCPHITL {
+	if x != nil {
+		return x.HITL
+	}
+	return nil
+}
+
+// AIAgentMCPHITL is the human-in-the-loop approval configuration for MCP tool
+// calls.
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIAgentMCPHITL
+// output=service.gen.go
+// name=Structs
+type AIAgentMCPHITL struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// mog: func-to=int func-from=int32
+	Port            int32  `protobuf:"varint,1,opt,name=Port,proto3" json:"Port,omitempty"`
+	ApprovalTimeout string `protobuf:"bytes,2,opt,name=ApprovalTimeout,proto3" json:"ApprovalTimeout,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *AIAgentMCPHITL) Reset() {
+	*x = AIAgentMCPHITL{}
+	mi := &file_private_pbservice_service_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AIAgentMCPHITL) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AIAgentMCPHITL) ProtoMessage() {}
+
+func (x *AIAgentMCPHITL) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbservice_service_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AIAgentMCPHITL.ProtoReflect.Descriptor instead.
+func (*AIAgentMCPHITL) Descriptor() ([]byte, []int) {
+	return file_private_pbservice_service_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *AIAgentMCPHITL) GetPort() int32 {
+	if x != nil {
+		return x.Port
+	}
+	return 0
+}
+
+func (x *AIAgentMCPHITL) GetApprovalTimeout() string {
+	if x != nil {
+		return x.ApprovalTimeout
+	}
+	return ""
+}
+
+// AIAgentRateLimits are per-agent tool-call rate limits.
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIAgentRateLimits
+// output=service.gen.go
+// name=Structs
+type AIAgentRateLimits struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// mog: func-to=int func-from=int32
+	ToolCallsPerMinute int32 `protobuf:"varint,1,opt,name=ToolCallsPerMinute,proto3" json:"ToolCallsPerMinute,omitempty"`
+	// mog: func-to=int func-from=int32
+	ToolCallsPerHour int32 `protobuf:"varint,2,opt,name=ToolCallsPerHour,proto3" json:"ToolCallsPerHour,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *AIAgentRateLimits) Reset() {
+	*x = AIAgentRateLimits{}
+	mi := &file_private_pbservice_service_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AIAgentRateLimits) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AIAgentRateLimits) ProtoMessage() {}
+
+func (x *AIAgentRateLimits) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbservice_service_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AIAgentRateLimits.ProtoReflect.Descriptor instead.
+func (*AIAgentRateLimits) Descriptor() ([]byte, []int) {
+	return file_private_pbservice_service_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *AIAgentRateLimits) GetToolCallsPerMinute() int32 {
+	if x != nil {
+		return x.ToolCallsPerMinute
+	}
+	return 0
+}
+
+func (x *AIAgentRateLimits) GetToolCallsPerHour() int32 {
+	if x != nil {
+		return x.ToolCallsPerHour
+	}
+	return 0
+}
+
+// AIAgentInterceptor configures the co-located governance interceptor.
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIAgentInterceptor
+// output=service.gen.go
+// name=Structs
+type AIAgentInterceptor struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// mog: func-to=int func-from=int32
+	Port          int32 `protobuf:"varint,1,opt,name=Port,proto3" json:"Port,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AIAgentInterceptor) Reset() {
+	*x = AIAgentInterceptor{}
+	mi := &file_private_pbservice_service_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AIAgentInterceptor) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AIAgentInterceptor) ProtoMessage() {}
+
+func (x *AIAgentInterceptor) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbservice_service_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AIAgentInterceptor.ProtoReflect.Descriptor instead.
+func (*AIAgentInterceptor) Descriptor() ([]byte, []int) {
+	return file_private_pbservice_service_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *AIAgentInterceptor) GetPort() int32 {
+	if x != nil {
+		return x.Port
+	}
+	return 0
+}
+
 // PeeringServiceMeta is read-only information provided from an exported peer.
 //
 // mog annotation:
@@ -498,7 +1139,7 @@ type PeeringServiceMeta struct {
 
 func (x *PeeringServiceMeta) Reset() {
 	*x = PeeringServiceMeta{}
-	mi := &file_private_pbservice_service_proto_msgTypes[3]
+	mi := &file_private_pbservice_service_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -510,7 +1151,7 @@ func (x *PeeringServiceMeta) String() string {
 func (*PeeringServiceMeta) ProtoMessage() {}
 
 func (x *PeeringServiceMeta) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbservice_service_proto_msgTypes[3]
+	mi := &file_private_pbservice_service_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -523,7 +1164,7 @@ func (x *PeeringServiceMeta) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PeeringServiceMeta.ProtoReflect.Descriptor instead.
 func (*PeeringServiceMeta) Descriptor() ([]byte, []int) {
-	return file_private_pbservice_service_proto_rawDescGZIP(), []int{3}
+	return file_private_pbservice_service_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *PeeringServiceMeta) GetSNI() []string {
@@ -569,7 +1210,7 @@ type ExposeConfig struct {
 
 func (x *ExposeConfig) Reset() {
 	*x = ExposeConfig{}
-	mi := &file_private_pbservice_service_proto_msgTypes[4]
+	mi := &file_private_pbservice_service_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -581,7 +1222,7 @@ func (x *ExposeConfig) String() string {
 func (*ExposeConfig) ProtoMessage() {}
 
 func (x *ExposeConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbservice_service_proto_msgTypes[4]
+	mi := &file_private_pbservice_service_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -594,7 +1235,7 @@ func (x *ExposeConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExposeConfig.ProtoReflect.Descriptor instead.
 func (*ExposeConfig) Descriptor() ([]byte, []int) {
-	return file_private_pbservice_service_proto_rawDescGZIP(), []int{4}
+	return file_private_pbservice_service_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ExposeConfig) GetChecks() bool {
@@ -637,7 +1278,7 @@ type ExposePath struct {
 
 func (x *ExposePath) Reset() {
 	*x = ExposePath{}
-	mi := &file_private_pbservice_service_proto_msgTypes[5]
+	mi := &file_private_pbservice_service_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -649,7 +1290,7 @@ func (x *ExposePath) String() string {
 func (*ExposePath) ProtoMessage() {}
 
 func (x *ExposePath) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbservice_service_proto_msgTypes[5]
+	mi := &file_private_pbservice_service_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -662,7 +1303,7 @@ func (x *ExposePath) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExposePath.ProtoReflect.Descriptor instead.
 func (*ExposePath) Descriptor() ([]byte, []int) {
-	return file_private_pbservice_service_proto_rawDescGZIP(), []int{5}
+	return file_private_pbservice_service_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ExposePath) GetListenerPort() int32 {
@@ -715,7 +1356,7 @@ type MeshGatewayConfig struct {
 
 func (x *MeshGatewayConfig) Reset() {
 	*x = MeshGatewayConfig{}
-	mi := &file_private_pbservice_service_proto_msgTypes[6]
+	mi := &file_private_pbservice_service_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -727,7 +1368,7 @@ func (x *MeshGatewayConfig) String() string {
 func (*MeshGatewayConfig) ProtoMessage() {}
 
 func (x *MeshGatewayConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbservice_service_proto_msgTypes[6]
+	mi := &file_private_pbservice_service_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -740,7 +1381,7 @@ func (x *MeshGatewayConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MeshGatewayConfig.ProtoReflect.Descriptor instead.
 func (*MeshGatewayConfig) Descriptor() ([]byte, []int) {
-	return file_private_pbservice_service_proto_rawDescGZIP(), []int{6}
+	return file_private_pbservice_service_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *MeshGatewayConfig) GetMode() string {
@@ -769,7 +1410,7 @@ type TransparentProxyConfig struct {
 
 func (x *TransparentProxyConfig) Reset() {
 	*x = TransparentProxyConfig{}
-	mi := &file_private_pbservice_service_proto_msgTypes[7]
+	mi := &file_private_pbservice_service_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -781,7 +1422,7 @@ func (x *TransparentProxyConfig) String() string {
 func (*TransparentProxyConfig) ProtoMessage() {}
 
 func (x *TransparentProxyConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbservice_service_proto_msgTypes[7]
+	mi := &file_private_pbservice_service_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -794,7 +1435,7 @@ func (x *TransparentProxyConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TransparentProxyConfig.ProtoReflect.Descriptor instead.
 func (*TransparentProxyConfig) Descriptor() ([]byte, []int) {
-	return file_private_pbservice_service_proto_rawDescGZIP(), []int{7}
+	return file_private_pbservice_service_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *TransparentProxyConfig) GetOutboundListenerPort() int32 {
@@ -832,7 +1473,7 @@ type AccessLogsConfig struct {
 
 func (x *AccessLogsConfig) Reset() {
 	*x = AccessLogsConfig{}
-	mi := &file_private_pbservice_service_proto_msgTypes[8]
+	mi := &file_private_pbservice_service_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -844,7 +1485,7 @@ func (x *AccessLogsConfig) String() string {
 func (*AccessLogsConfig) ProtoMessage() {}
 
 func (x *AccessLogsConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbservice_service_proto_msgTypes[8]
+	mi := &file_private_pbservice_service_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -857,7 +1498,7 @@ func (x *AccessLogsConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AccessLogsConfig.ProtoReflect.Descriptor instead.
 func (*AccessLogsConfig) Descriptor() ([]byte, []int) {
-	return file_private_pbservice_service_proto_rawDescGZIP(), []int{8}
+	return file_private_pbservice_service_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *AccessLogsConfig) GetEnabled() bool {
@@ -953,14 +1594,17 @@ type ServiceDefinition struct {
 	Locality *pbcommon.Locality `protobuf:"bytes,19,opt,name=Locality,proto3" json:"Locality,omitempty"`
 	// Ports is a list of ports that the service exposes.
 	// mog: func-to=PortsToStructs func-from=NewPortsFromStructs
-	Ports         []*ServicePort `protobuf:"bytes,20,rep,name=Ports,proto3" json:"Ports,omitempty"`
+	Ports []*ServicePort `protobuf:"bytes,20,rep,name=Ports,proto3" json:"Ports,omitempty"`
+	// AI is the inline AI role block (CAMP). Optional; nil for non-AI services.
+	// mog: func-to=ServiceAIPtrToStructs func-from=NewServiceAIPtrFromStructs
+	AI            *ServiceAI `protobuf:"bytes,21,opt,name=AI,proto3" json:"AI,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ServiceDefinition) Reset() {
 	*x = ServiceDefinition{}
-	mi := &file_private_pbservice_service_proto_msgTypes[9]
+	mi := &file_private_pbservice_service_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -972,7 +1616,7 @@ func (x *ServiceDefinition) String() string {
 func (*ServiceDefinition) ProtoMessage() {}
 
 func (x *ServiceDefinition) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbservice_service_proto_msgTypes[9]
+	mi := &file_private_pbservice_service_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -985,7 +1629,7 @@ func (x *ServiceDefinition) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServiceDefinition.ProtoReflect.Descriptor instead.
 func (*ServiceDefinition) Descriptor() ([]byte, []int) {
-	return file_private_pbservice_service_proto_rawDescGZIP(), []int{9}
+	return file_private_pbservice_service_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *ServiceDefinition) GetKind() string {
@@ -1121,6 +1765,13 @@ func (x *ServiceDefinition) GetPorts() []*ServicePort {
 	return nil
 }
 
+func (x *ServiceDefinition) GetAI() *ServiceAI {
+	if x != nil {
+		return x.AI
+	}
+	return nil
+}
+
 // ServicePort contains the port information for a service.
 // mog annotation:
 //
@@ -1142,7 +1793,7 @@ type ServicePort struct {
 
 func (x *ServicePort) Reset() {
 	*x = ServicePort{}
-	mi := &file_private_pbservice_service_proto_msgTypes[10]
+	mi := &file_private_pbservice_service_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1154,7 +1805,7 @@ func (x *ServicePort) String() string {
 func (*ServicePort) ProtoMessage() {}
 
 func (x *ServicePort) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbservice_service_proto_msgTypes[10]
+	mi := &file_private_pbservice_service_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1167,7 +1818,7 @@ func (x *ServicePort) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServicePort.ProtoReflect.Descriptor instead.
 func (*ServicePort) Descriptor() ([]byte, []int) {
-	return file_private_pbservice_service_proto_rawDescGZIP(), []int{10}
+	return file_private_pbservice_service_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *ServicePort) GetPort() int32 {
@@ -1203,7 +1854,7 @@ type ServiceAddress struct {
 
 func (x *ServiceAddress) Reset() {
 	*x = ServiceAddress{}
-	mi := &file_private_pbservice_service_proto_msgTypes[11]
+	mi := &file_private_pbservice_service_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1215,7 +1866,7 @@ func (x *ServiceAddress) String() string {
 func (*ServiceAddress) ProtoMessage() {}
 
 func (x *ServiceAddress) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbservice_service_proto_msgTypes[11]
+	mi := &file_private_pbservice_service_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1228,7 +1879,7 @@ func (x *ServiceAddress) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServiceAddress.ProtoReflect.Descriptor instead.
 func (*ServiceAddress) Descriptor() ([]byte, []int) {
-	return file_private_pbservice_service_proto_rawDescGZIP(), []int{11}
+	return file_private_pbservice_service_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ServiceAddress) GetAddress() string {
@@ -1258,7 +1909,7 @@ type Weights struct {
 
 func (x *Weights) Reset() {
 	*x = Weights{}
-	mi := &file_private_pbservice_service_proto_msgTypes[12]
+	mi := &file_private_pbservice_service_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1270,7 +1921,7 @@ func (x *Weights) String() string {
 func (*Weights) ProtoMessage() {}
 
 func (x *Weights) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbservice_service_proto_msgTypes[12]
+	mi := &file_private_pbservice_service_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1283,7 +1934,7 @@ func (x *Weights) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Weights.ProtoReflect.Descriptor instead.
 func (*Weights) Descriptor() ([]byte, []int) {
-	return file_private_pbservice_service_proto_rawDescGZIP(), []int{12}
+	return file_private_pbservice_service_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *Weights) GetPassing() int32 {
@@ -1344,7 +1995,45 @@ const file_private_pbservice_service_proto_rawDesc = "" +
 	"\x0eServiceConnect\x12\x16\n" +
 	"\x06Native\x18\x01 \x01(\bR\x06Native\x12\\\n" +
 	"\x0eSidecarService\x18\x03 \x01(\v24.hashicorp.consul.internal.service.ServiceDefinitionR\x0eSidecarService\x12Q\n" +
-	"\bPeerMeta\x18\x04 \x01(\v25.hashicorp.consul.internal.service.PeeringServiceMetaR\bPeerMetaJ\x04\b\x02\x10\x03\"^\n" +
+	"\bPeerMeta\x18\x04 \x01(\v25.hashicorp.consul.internal.service.PeeringServiceMetaR\bPeerMetaJ\x04\b\x02\x10\x03\"\x8c\x02\n" +
+	"\tServiceAI\x12\x12\n" +
+	"\x04Role\x18\x01 \x01(\tR\x04Role\x12[\n" +
+	"\x0eInferenceModel\x18\x02 \x01(\v23.hashicorp.consul.internal.service.AIInferenceModelR\x0eInferenceModel\x12L\n" +
+	"\tMCPServer\x18\x03 \x01(\v2..hashicorp.consul.internal.service.AIMCPServerR\tMCPServer\x12@\n" +
+	"\x05Agent\x18\x04 \x01(\v2*.hashicorp.consul.internal.service.AIAgentR\x05Agent\"\x92\x01\n" +
+	"\x10AIInferenceModel\x12\x1a\n" +
+	"\bProtocol\x18\x01 \x01(\tR\bProtocol\x12\x12\n" +
+	"\x04Path\x18\x02 \x01(\tR\x04Path\x12N\n" +
+	"\bDefaults\x18\x03 \x01(\v22.hashicorp.consul.internal.service.AIModelDefaultsR\bDefaults\"Q\n" +
+	"\x0fAIModelDefaults\x12\x1c\n" +
+	"\tMaxTokens\x18\x01 \x01(\x05R\tMaxTokens\x12 \n" +
+	"\vTemperature\x18\x02 \x01(\x01R\vTemperature\"i\n" +
+	"\vAIMCPServer\x12\x1c\n" +
+	"\tTransport\x18\x01 \x01(\tR\tTransport\x12\x12\n" +
+	"\x04Path\x18\x02 \x01(\tR\x04Path\x12(\n" +
+	"\x0fProtocolVersion\x18\x03 \x01(\tR\x0fProtocolVersion\"\xcc\x02\n" +
+	"\aAIAgent\x12Q\n" +
+	"\tInference\x18\x01 \x01(\v23.hashicorp.consul.internal.service.AIAgentInferenceR\tInference\x12?\n" +
+	"\x03MCP\x18\x02 \x01(\v2-.hashicorp.consul.internal.service.AIAgentMCPR\x03MCP\x12T\n" +
+	"\n" +
+	"RateLimits\x18\x03 \x01(\v24.hashicorp.consul.internal.service.AIAgentRateLimitsR\n" +
+	"RateLimits\x12W\n" +
+	"\vInterceptor\x18\x04 \x01(\v25.hashicorp.consul.internal.service.AIAgentInterceptorR\vInterceptor\"R\n" +
+	"\x10AIAgentInference\x12&\n" +
+	"\x0eSpecialization\x18\x01 \x03(\tR\x0eSpecialization\x12\x16\n" +
+	"\x06Vendor\x18\x02 \x01(\tR\x06Vendor\"g\n" +
+	"\n" +
+	"AIAgentMCP\x12\x12\n" +
+	"\x04Port\x18\x01 \x01(\x05R\x04Port\x12E\n" +
+	"\x04HITL\x18\x02 \x01(\v21.hashicorp.consul.internal.service.AIAgentMCPHITLR\x04HITL\"N\n" +
+	"\x0eAIAgentMCPHITL\x12\x12\n" +
+	"\x04Port\x18\x01 \x01(\x05R\x04Port\x12(\n" +
+	"\x0fApprovalTimeout\x18\x02 \x01(\tR\x0fApprovalTimeout\"o\n" +
+	"\x11AIAgentRateLimits\x12.\n" +
+	"\x12ToolCallsPerMinute\x18\x01 \x01(\x05R\x12ToolCallsPerMinute\x12*\n" +
+	"\x10ToolCallsPerHour\x18\x02 \x01(\x05R\x10ToolCallsPerHour\"(\n" +
+	"\x12AIAgentInterceptor\x12\x12\n" +
+	"\x04Port\x18\x01 \x01(\x05R\x04Port\"^\n" +
 	"\x12PeeringServiceMeta\x12\x10\n" +
 	"\x03SNI\x18\x01 \x03(\tR\x03SNI\x12\x1a\n" +
 	"\bSpiffeID\x18\x02 \x03(\tR\bSpiffeID\x12\x1a\n" +
@@ -1374,7 +2063,7 @@ const file_private_pbservice_service_proto_rawDesc = "" +
 	"JSONFormat\x12\x1e\n" +
 	"\n" +
 	"TextFormat\x18\x06 \x01(\tR\n" +
-	"TextFormat\"\xbc\t\n" +
+	"TextFormat\"\xfa\t\n" +
 	"\x11ServiceDefinition\x12\x12\n" +
 	"\x04Kind\x18\x01 \x01(\tR\x04Kind\x12\x0e\n" +
 	"\x02ID\x18\x02 \x01(\tR\x02ID\x12\x12\n" +
@@ -1397,7 +2086,8 @@ const file_private_pbservice_service_proto_rawDesc = "" +
 	"\x0eEnterpriseMeta\x18\x11 \x01(\v20.hashicorp.consul.internal.common.EnterpriseMetaR\x0eEnterpriseMeta\x12K\n" +
 	"\aConnect\x18\x0f \x01(\v21.hashicorp.consul.internal.service.ServiceConnectR\aConnect\x12F\n" +
 	"\bLocality\x18\x13 \x01(\v2*.hashicorp.consul.internal.common.LocalityR\bLocality\x12D\n" +
-	"\x05Ports\x18\x14 \x03(\v2..hashicorp.consul.internal.service.ServicePortR\x05Ports\x1au\n" +
+	"\x05Ports\x18\x14 \x03(\v2..hashicorp.consul.internal.service.ServicePortR\x05Ports\x12<\n" +
+	"\x02AI\x18\x15 \x01(\v2,.hashicorp.consul.internal.service.ServiceAIR\x02AI\x1au\n" +
 	"\x14TaggedAddressesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12G\n" +
 	"\x05value\x18\x02 \x01(\v21.hashicorp.consul.internal.service.ServiceAddressR\x05value:\x028\x01\x1a7\n" +
@@ -1428,59 +2118,79 @@ func file_private_pbservice_service_proto_rawDescGZIP() []byte {
 	return file_private_pbservice_service_proto_rawDescData
 }
 
-var file_private_pbservice_service_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_private_pbservice_service_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
 var file_private_pbservice_service_proto_goTypes = []any{
 	(*ConnectProxyConfig)(nil),      // 0: hashicorp.consul.internal.service.ConnectProxyConfig
 	(*Upstream)(nil),                // 1: hashicorp.consul.internal.service.Upstream
 	(*ServiceConnect)(nil),          // 2: hashicorp.consul.internal.service.ServiceConnect
-	(*PeeringServiceMeta)(nil),      // 3: hashicorp.consul.internal.service.PeeringServiceMeta
-	(*ExposeConfig)(nil),            // 4: hashicorp.consul.internal.service.ExposeConfig
-	(*ExposePath)(nil),              // 5: hashicorp.consul.internal.service.ExposePath
-	(*MeshGatewayConfig)(nil),       // 6: hashicorp.consul.internal.service.MeshGatewayConfig
-	(*TransparentProxyConfig)(nil),  // 7: hashicorp.consul.internal.service.TransparentProxyConfig
-	(*AccessLogsConfig)(nil),        // 8: hashicorp.consul.internal.service.AccessLogsConfig
-	(*ServiceDefinition)(nil),       // 9: hashicorp.consul.internal.service.ServiceDefinition
-	(*ServicePort)(nil),             // 10: hashicorp.consul.internal.service.ServicePort
-	(*ServiceAddress)(nil),          // 11: hashicorp.consul.internal.service.ServiceAddress
-	(*Weights)(nil),                 // 12: hashicorp.consul.internal.service.Weights
-	nil,                             // 13: hashicorp.consul.internal.service.ServiceDefinition.TaggedAddressesEntry
-	nil,                             // 14: hashicorp.consul.internal.service.ServiceDefinition.MetaEntry
-	(*structpb.Struct)(nil),         // 15: google.protobuf.Struct
-	(*pbcommon.EnvoyExtension)(nil), // 16: hashicorp.consul.internal.common.EnvoyExtension
-	(*CheckType)(nil),               // 17: hashicorp.consul.internal.service.CheckType
-	(*pbcommon.EnterpriseMeta)(nil), // 18: hashicorp.consul.internal.common.EnterpriseMeta
-	(*pbcommon.Locality)(nil),       // 19: hashicorp.consul.internal.common.Locality
+	(*ServiceAI)(nil),               // 3: hashicorp.consul.internal.service.ServiceAI
+	(*AIInferenceModel)(nil),        // 4: hashicorp.consul.internal.service.AIInferenceModel
+	(*AIModelDefaults)(nil),         // 5: hashicorp.consul.internal.service.AIModelDefaults
+	(*AIMCPServer)(nil),             // 6: hashicorp.consul.internal.service.AIMCPServer
+	(*AIAgent)(nil),                 // 7: hashicorp.consul.internal.service.AIAgent
+	(*AIAgentInference)(nil),        // 8: hashicorp.consul.internal.service.AIAgentInference
+	(*AIAgentMCP)(nil),              // 9: hashicorp.consul.internal.service.AIAgentMCP
+	(*AIAgentMCPHITL)(nil),          // 10: hashicorp.consul.internal.service.AIAgentMCPHITL
+	(*AIAgentRateLimits)(nil),       // 11: hashicorp.consul.internal.service.AIAgentRateLimits
+	(*AIAgentInterceptor)(nil),      // 12: hashicorp.consul.internal.service.AIAgentInterceptor
+	(*PeeringServiceMeta)(nil),      // 13: hashicorp.consul.internal.service.PeeringServiceMeta
+	(*ExposeConfig)(nil),            // 14: hashicorp.consul.internal.service.ExposeConfig
+	(*ExposePath)(nil),              // 15: hashicorp.consul.internal.service.ExposePath
+	(*MeshGatewayConfig)(nil),       // 16: hashicorp.consul.internal.service.MeshGatewayConfig
+	(*TransparentProxyConfig)(nil),  // 17: hashicorp.consul.internal.service.TransparentProxyConfig
+	(*AccessLogsConfig)(nil),        // 18: hashicorp.consul.internal.service.AccessLogsConfig
+	(*ServiceDefinition)(nil),       // 19: hashicorp.consul.internal.service.ServiceDefinition
+	(*ServicePort)(nil),             // 20: hashicorp.consul.internal.service.ServicePort
+	(*ServiceAddress)(nil),          // 21: hashicorp.consul.internal.service.ServiceAddress
+	(*Weights)(nil),                 // 22: hashicorp.consul.internal.service.Weights
+	nil,                             // 23: hashicorp.consul.internal.service.ServiceDefinition.TaggedAddressesEntry
+	nil,                             // 24: hashicorp.consul.internal.service.ServiceDefinition.MetaEntry
+	(*structpb.Struct)(nil),         // 25: google.protobuf.Struct
+	(*pbcommon.EnvoyExtension)(nil), // 26: hashicorp.consul.internal.common.EnvoyExtension
+	(*CheckType)(nil),               // 27: hashicorp.consul.internal.service.CheckType
+	(*pbcommon.EnterpriseMeta)(nil), // 28: hashicorp.consul.internal.common.EnterpriseMeta
+	(*pbcommon.Locality)(nil),       // 29: hashicorp.consul.internal.common.Locality
 }
 var file_private_pbservice_service_proto_depIdxs = []int32{
-	10, // 0: hashicorp.consul.internal.service.ConnectProxyConfig.LocalServicePorts:type_name -> hashicorp.consul.internal.service.ServicePort
-	15, // 1: hashicorp.consul.internal.service.ConnectProxyConfig.Config:type_name -> google.protobuf.Struct
+	20, // 0: hashicorp.consul.internal.service.ConnectProxyConfig.LocalServicePorts:type_name -> hashicorp.consul.internal.service.ServicePort
+	25, // 1: hashicorp.consul.internal.service.ConnectProxyConfig.Config:type_name -> google.protobuf.Struct
 	1,  // 2: hashicorp.consul.internal.service.ConnectProxyConfig.Upstreams:type_name -> hashicorp.consul.internal.service.Upstream
-	6,  // 3: hashicorp.consul.internal.service.ConnectProxyConfig.MeshGateway:type_name -> hashicorp.consul.internal.service.MeshGatewayConfig
-	4,  // 4: hashicorp.consul.internal.service.ConnectProxyConfig.Expose:type_name -> hashicorp.consul.internal.service.ExposeConfig
-	7,  // 5: hashicorp.consul.internal.service.ConnectProxyConfig.TransparentProxy:type_name -> hashicorp.consul.internal.service.TransparentProxyConfig
-	16, // 6: hashicorp.consul.internal.service.ConnectProxyConfig.EnvoyExtensions:type_name -> hashicorp.consul.internal.common.EnvoyExtension
-	8,  // 7: hashicorp.consul.internal.service.ConnectProxyConfig.AccessLogs:type_name -> hashicorp.consul.internal.service.AccessLogsConfig
-	15, // 8: hashicorp.consul.internal.service.Upstream.Config:type_name -> google.protobuf.Struct
-	6,  // 9: hashicorp.consul.internal.service.Upstream.MeshGateway:type_name -> hashicorp.consul.internal.service.MeshGatewayConfig
-	9,  // 10: hashicorp.consul.internal.service.ServiceConnect.SidecarService:type_name -> hashicorp.consul.internal.service.ServiceDefinition
-	3,  // 11: hashicorp.consul.internal.service.ServiceConnect.PeerMeta:type_name -> hashicorp.consul.internal.service.PeeringServiceMeta
-	5,  // 12: hashicorp.consul.internal.service.ExposeConfig.Paths:type_name -> hashicorp.consul.internal.service.ExposePath
-	13, // 13: hashicorp.consul.internal.service.ServiceDefinition.TaggedAddresses:type_name -> hashicorp.consul.internal.service.ServiceDefinition.TaggedAddressesEntry
-	14, // 14: hashicorp.consul.internal.service.ServiceDefinition.Meta:type_name -> hashicorp.consul.internal.service.ServiceDefinition.MetaEntry
-	17, // 15: hashicorp.consul.internal.service.ServiceDefinition.Check:type_name -> hashicorp.consul.internal.service.CheckType
-	17, // 16: hashicorp.consul.internal.service.ServiceDefinition.Checks:type_name -> hashicorp.consul.internal.service.CheckType
-	12, // 17: hashicorp.consul.internal.service.ServiceDefinition.Weights:type_name -> hashicorp.consul.internal.service.Weights
-	0,  // 18: hashicorp.consul.internal.service.ServiceDefinition.Proxy:type_name -> hashicorp.consul.internal.service.ConnectProxyConfig
-	18, // 19: hashicorp.consul.internal.service.ServiceDefinition.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
-	2,  // 20: hashicorp.consul.internal.service.ServiceDefinition.Connect:type_name -> hashicorp.consul.internal.service.ServiceConnect
-	19, // 21: hashicorp.consul.internal.service.ServiceDefinition.Locality:type_name -> hashicorp.consul.internal.common.Locality
-	10, // 22: hashicorp.consul.internal.service.ServiceDefinition.Ports:type_name -> hashicorp.consul.internal.service.ServicePort
-	11, // 23: hashicorp.consul.internal.service.ServiceDefinition.TaggedAddressesEntry.value:type_name -> hashicorp.consul.internal.service.ServiceAddress
-	24, // [24:24] is the sub-list for method output_type
-	24, // [24:24] is the sub-list for method input_type
-	24, // [24:24] is the sub-list for extension type_name
-	24, // [24:24] is the sub-list for extension extendee
-	0,  // [0:24] is the sub-list for field type_name
+	16, // 3: hashicorp.consul.internal.service.ConnectProxyConfig.MeshGateway:type_name -> hashicorp.consul.internal.service.MeshGatewayConfig
+	14, // 4: hashicorp.consul.internal.service.ConnectProxyConfig.Expose:type_name -> hashicorp.consul.internal.service.ExposeConfig
+	17, // 5: hashicorp.consul.internal.service.ConnectProxyConfig.TransparentProxy:type_name -> hashicorp.consul.internal.service.TransparentProxyConfig
+	26, // 6: hashicorp.consul.internal.service.ConnectProxyConfig.EnvoyExtensions:type_name -> hashicorp.consul.internal.common.EnvoyExtension
+	18, // 7: hashicorp.consul.internal.service.ConnectProxyConfig.AccessLogs:type_name -> hashicorp.consul.internal.service.AccessLogsConfig
+	25, // 8: hashicorp.consul.internal.service.Upstream.Config:type_name -> google.protobuf.Struct
+	16, // 9: hashicorp.consul.internal.service.Upstream.MeshGateway:type_name -> hashicorp.consul.internal.service.MeshGatewayConfig
+	19, // 10: hashicorp.consul.internal.service.ServiceConnect.SidecarService:type_name -> hashicorp.consul.internal.service.ServiceDefinition
+	13, // 11: hashicorp.consul.internal.service.ServiceConnect.PeerMeta:type_name -> hashicorp.consul.internal.service.PeeringServiceMeta
+	4,  // 12: hashicorp.consul.internal.service.ServiceAI.InferenceModel:type_name -> hashicorp.consul.internal.service.AIInferenceModel
+	6,  // 13: hashicorp.consul.internal.service.ServiceAI.MCPServer:type_name -> hashicorp.consul.internal.service.AIMCPServer
+	7,  // 14: hashicorp.consul.internal.service.ServiceAI.Agent:type_name -> hashicorp.consul.internal.service.AIAgent
+	5,  // 15: hashicorp.consul.internal.service.AIInferenceModel.Defaults:type_name -> hashicorp.consul.internal.service.AIModelDefaults
+	8,  // 16: hashicorp.consul.internal.service.AIAgent.Inference:type_name -> hashicorp.consul.internal.service.AIAgentInference
+	9,  // 17: hashicorp.consul.internal.service.AIAgent.MCP:type_name -> hashicorp.consul.internal.service.AIAgentMCP
+	11, // 18: hashicorp.consul.internal.service.AIAgent.RateLimits:type_name -> hashicorp.consul.internal.service.AIAgentRateLimits
+	12, // 19: hashicorp.consul.internal.service.AIAgent.Interceptor:type_name -> hashicorp.consul.internal.service.AIAgentInterceptor
+	10, // 20: hashicorp.consul.internal.service.AIAgentMCP.HITL:type_name -> hashicorp.consul.internal.service.AIAgentMCPHITL
+	15, // 21: hashicorp.consul.internal.service.ExposeConfig.Paths:type_name -> hashicorp.consul.internal.service.ExposePath
+	23, // 22: hashicorp.consul.internal.service.ServiceDefinition.TaggedAddresses:type_name -> hashicorp.consul.internal.service.ServiceDefinition.TaggedAddressesEntry
+	24, // 23: hashicorp.consul.internal.service.ServiceDefinition.Meta:type_name -> hashicorp.consul.internal.service.ServiceDefinition.MetaEntry
+	27, // 24: hashicorp.consul.internal.service.ServiceDefinition.Check:type_name -> hashicorp.consul.internal.service.CheckType
+	27, // 25: hashicorp.consul.internal.service.ServiceDefinition.Checks:type_name -> hashicorp.consul.internal.service.CheckType
+	22, // 26: hashicorp.consul.internal.service.ServiceDefinition.Weights:type_name -> hashicorp.consul.internal.service.Weights
+	0,  // 27: hashicorp.consul.internal.service.ServiceDefinition.Proxy:type_name -> hashicorp.consul.internal.service.ConnectProxyConfig
+	28, // 28: hashicorp.consul.internal.service.ServiceDefinition.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	2,  // 29: hashicorp.consul.internal.service.ServiceDefinition.Connect:type_name -> hashicorp.consul.internal.service.ServiceConnect
+	29, // 30: hashicorp.consul.internal.service.ServiceDefinition.Locality:type_name -> hashicorp.consul.internal.common.Locality
+	20, // 31: hashicorp.consul.internal.service.ServiceDefinition.Ports:type_name -> hashicorp.consul.internal.service.ServicePort
+	3,  // 32: hashicorp.consul.internal.service.ServiceDefinition.AI:type_name -> hashicorp.consul.internal.service.ServiceAI
+	21, // 33: hashicorp.consul.internal.service.ServiceDefinition.TaggedAddressesEntry.value:type_name -> hashicorp.consul.internal.service.ServiceAddress
+	34, // [34:34] is the sub-list for method output_type
+	34, // [34:34] is the sub-list for method input_type
+	34, // [34:34] is the sub-list for extension type_name
+	34, // [34:34] is the sub-list for extension extendee
+	0,  // [0:34] is the sub-list for field type_name
 }
 
 func init() { file_private_pbservice_service_proto_init() }
@@ -1495,7 +2205,7 @@ func file_private_pbservice_service_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_private_pbservice_service_proto_rawDesc), len(file_private_pbservice_service_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   15,
+			NumMessages:   25,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

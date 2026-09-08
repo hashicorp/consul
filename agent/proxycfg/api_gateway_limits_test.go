@@ -5,6 +5,7 @@ package proxycfg
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -50,4 +51,54 @@ func TestAPIGatewayEffectiveUpstreamLimits_ZeroReturnsNil(t *testing.T) {
 
 	effective := apiGatewayEffectiveUpstreamLimits(nil, &structs.UpstreamLimits{})
 	require.Nil(t, effective)
+}
+
+func TestAPIGatewayEffectiveUpstreamLimits_PassiveHealthCheckInheritedFromDefaults(t *testing.T) {
+	t.Parallel()
+
+	defaults := &structs.UpstreamLimits{
+		PassiveHealthCheck: &structs.PassiveHealthCheck{
+			Interval:    5 * time.Second,
+			MaxFailures: 3,
+		},
+	}
+	// Service overrides only a numeric limit and leaves the health check unset,
+	// so the gateway default health check is inherited.
+	service := &structs.UpstreamLimits{
+		MaxConnections: intPointer(10),
+	}
+
+	effective := apiGatewayEffectiveUpstreamLimits(defaults, service)
+	require.NotNil(t, effective)
+	require.Equal(t, 10, *effective.MaxConnections)
+	require.NotNil(t, effective.PassiveHealthCheck)
+	require.Equal(t, 5*time.Second, effective.PassiveHealthCheck.Interval)
+	require.Equal(t, uint32(3), effective.PassiveHealthCheck.MaxFailures)
+}
+
+func TestAPIGatewayEffectiveUpstreamLimits_PassiveHealthCheckServiceOverride(t *testing.T) {
+	t.Parallel()
+
+	defaults := &structs.UpstreamLimits{
+		PassiveHealthCheck: &structs.PassiveHealthCheck{
+			Interval:    5 * time.Second,
+			MaxFailures: 3,
+		},
+	}
+	service := &structs.UpstreamLimits{
+		PassiveHealthCheck: &structs.PassiveHealthCheck{
+			Interval:    10 * time.Second,
+			MaxFailures: 7,
+		},
+	}
+
+	effective := apiGatewayEffectiveUpstreamLimits(defaults, service)
+	require.NotNil(t, effective)
+	require.NotNil(t, effective.PassiveHealthCheck)
+	require.Equal(t, 10*time.Second, effective.PassiveHealthCheck.Interval)
+	require.Equal(t, uint32(7), effective.PassiveHealthCheck.MaxFailures)
+
+	// The override must be a clone, not an alias of the service value.
+	service.PassiveHealthCheck.MaxFailures = 99
+	require.Equal(t, uint32(7), effective.PassiveHealthCheck.MaxFailures)
 }

@@ -895,6 +895,52 @@ func TestBuilder_CheckExperimentsInSecondaryDatacenters(t *testing.T) {
 	}
 }
 
+func TestBuilder_FeatureGatesBootstrap(t *testing.T) {
+	t.Run("server accepts known feature", func(t *testing.T) {
+		devMode := true
+		result, err := Load(LoadOpts{
+			DevMode: &devMode,
+			HCL: []string{`
+				feature_gates {
+					bootstrap = { "api-gateway-upstream-routing" = true }
+				}
+			`},
+		})
+		require.NoError(t, err)
+		require.Equal(t, map[string]bool{"api-gateway-upstream-routing": true}, result.RuntimeConfig.FeatureGatesBootstrap)
+	})
+
+	t.Run("client rejects bootstrap", func(t *testing.T) {
+		devMode := false
+		opts := LoadOpts{
+			DevMode: &devMode,
+			HCL: []string{`
+				server = false
+				data_dir = "/tmp/consul-feature-gates-client-test"
+				feature_gates {
+					bootstrap = { "api-gateway-upstream-routing" = true }
+				}
+			`},
+		}
+		patchLoadOptsShims(&opts)
+		_, err := Load(opts)
+		require.ErrorContains(t, err, "feature_gates.bootstrap requires server = true")
+	})
+
+	t.Run("rejects unknown feature", func(t *testing.T) {
+		devMode := true
+		_, err := Load(LoadOpts{
+			DevMode: &devMode,
+			HCL: []string{`
+				feature_gates {
+					bootstrap = { "not-registered" = true }
+				}
+			`},
+		})
+		require.ErrorContains(t, err, `feature_gates.bootstrap contains unknown feature "not-registered"`)
+	})
+}
+
 func TestBuilder_DatacenterDNSCompatibleWarning(t *testing.T) {
 	type testCase struct {
 		name          string

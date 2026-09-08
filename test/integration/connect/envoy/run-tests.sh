@@ -21,9 +21,16 @@ if [[ -z "${ENVOY_VERSION:-}" ]]; then
 fi
 export ENVOY_VERSION
 
+# ENVOY_UID optionally sets the user ID Envoy containers run as.
+# On ARM64 hosts (e.g. Apple Silicon) running amd64 Envoy images under Rosetta
+# emulation the default non-root uid can cause socket bind failures.  Set
+# ENVOY_UID=0 to run Envoy as root and avoid those spurious errors locally.
+ENVOY_UID=${ENVOY_UID:-}
+
 export DOCKER_BUILDKIT=1
-# Always run tests on amd64 because that's what the CI environment uses.
-export DOCKER_DEFAULT_PLATFORM="linux/amd64"
+# Always run tests on amd64 in CI. Override with DOCKER_DEFAULT_PLATFORM for
+# local development on arm64 (e.g. Apple Silicon).
+export DOCKER_DEFAULT_PLATFORM="${DOCKER_DEFAULT_PLATFORM:-linux/amd64}"
 
 if [ ! -z "$DEBUG" ] ; then
   set -x
@@ -45,6 +52,14 @@ function command_error {
 trap 'command_error $? "${BASH_COMMAND}" "${LINENO}" "${FUNCNAME[0]:-main}" "${BASH_SOURCE[0]}:${BASH_LINENO[0]}"' ERR
 
 readonly WORKDIR_SNIPPET='-v envoy_workdir:/workdir'
+
+# Build a --user flag snippet from ENVOY_UID when set; otherwise empty so
+# existing CI behaviour (no --user flag) is completely unchanged.
+function envoy_user_snippet {
+  if [[ -n "${ENVOY_UID:-}" ]]; then
+    echo "--user ${ENVOY_UID}"
+  fi
+}
 
 function network_snippet {
     local DC="$1"
@@ -152,6 +167,11 @@ function start_consul {
   # 8500/8502 are for consul
   # 9411 is for zipkin which shares the network with consul
   # 16686 is for jaeger ui which also shares the network with consul
+  # Use random host-side ports (127.0.0.1:: notation) so the test suite works
+  # even when ports 8500/8502/9411/16686 are already in use on the host (e.g.
+  # by Docker Desktop gvproxy or a locally running Consul agent).  All
+  # inter-container traffic goes through the envoy-tests Docker network and
+  # never touches these host-mapped ports, so the actual numbers don't matter.
   ports=(
     '-p=8500:8500'
     '-p=8502:8502'
@@ -553,24 +573,51 @@ function suite_setup {
     docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 -d --name envoy_workdir_1 \
         $WORKDIR_SNIPPET \
         --net=none \
-        registry.k8s.io/pause &>/dev/null
+        registry.k8s.io/pause:3.9 &>/dev/null
 
     # pre-build the verify container
     echo "Rebuilding 'bats-verify' image..."
-    retry_default docker build -t bats-verify -f Dockerfile-bats .
+    retry_default docker buildx build --load --platform "${DOCKER_DEFAULT_PLATFORM}" -t bats-verify -f Dockerfile-bats .
 
     echo "Checking bats image..."
     docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 --rm -t bats-verify -v
 
-    # pre-build the consul+envoy container
+    # pre-build the consul+envoy container.
+    # LOCAL_BUILD=1: use --load so the desktop-linux BuildKit driver can
+    # resolve consul:local from the local image store.  In CI the legacy path
+    # (no --load) works because Docker Hub credentials are available and the
+    # image store is shared differently.
     echo "Rebuilding 'consul-dev-envoy:${ENVOY_VERSION}' image..."
-    retry_default docker build -t consul-dev-envoy:${ENVOY_VERSION} \
-        --build-arg ENVOY_VERSION=${ENVOY_VERSION} \
-        -f Dockerfile-consul-envoy .
+    if [[ "${LOCAL_BUILD:-}" == "1" ]]; then
+        retry_default env DOCKER_BUILDKIT=1 docker build --load \
+            -t consul-dev-envoy:${ENVOY_VERSION} \
+            --build-arg ENVOY_VERSION=${ENVOY_VERSION} \
+            -f Dockerfile-consul-envoy .
+    else
+        retry_default env DOCKER_BUILDKIT=0 docker build \
+            -t consul-dev-envoy:${ENVOY_VERSION} \
+            --build-arg ENVOY_VERSION=${ENVOY_VERSION} \
+            -f Dockerfile-consul-envoy .
+    fi
 
-    # pre-build the test-sds-server container
+    # pre-build the test-sds-server image.
+    # LOCAL_BUILD=1: compile the binary locally for linux/amd64 (avoids pulling
+    # golang:* from Docker Hub, which may be blocked by macOS keychain helpers)
+    # and build using Dockerfile.local which just COPYs the pre-built binary
+    # into a minimal debian base.  CI uses the original Dockerfile that builds
+    # from source inside the container.
+    if [[ "${LOCAL_BUILD:-}" == "1" ]]; then
+        echo "Building 'test-sds-server' binary (linux/amd64) via local Go toolchain..."
+        CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+            -o test-sds-server/test-sds-server \
+            test-sds-server/sds.go
+        SDS_DOCKERFILE="test-sds-server/Dockerfile.local"
+    else
+        SDS_DOCKERFILE="test-sds-server/Dockerfile"
+    fi
+
     echo "Rebuilding 'test-sds-server' image..."
-    retry_default docker build -t test-sds-server -f test-sds-server/Dockerfile test-sds-server
+    retry_default docker build --load -t test-sds-server -f "${SDS_DOCKERFILE}" test-sds-server
 }
 
 function suite_teardown {
@@ -736,10 +783,14 @@ function common_run_container_sidecar_proxy {
   # despite separate containers that don't share IPC namespace. Not quite
   # sure how this happens but may be due to unix socket being in some shared
   # location?
+  # ENVOY_UID=0: skip the entrypoint chown of /dev/stdout which fails on
+  # Docker Desktop for Mac when running in --net container: mode.
   docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 -d --name $(container_name_prev) \
+    $(envoy_user_snippet) \
     $WORKDIR_SNIPPET \
     $(network_snippet $CLUSTER) \
     $(aws_snippet) \
+    -e ENVOY_UID=0 \
     "${HASHICORP_DOCKER_PROXY}/envoyproxy/envoy:v${ENVOY_VERSION}" \
     envoy \
     -c /workdir/${CLUSTER}/envoy/${service}-bootstrap.json \
@@ -824,10 +875,14 @@ function common_run_container_gateway {
   # despite separate containers that don't share IPC namespace. Not quite
   # sure how this happens but may be due to unix socket being in some shared
   # location?
+  # ENVOY_UID=0: skip the entrypoint chown of /dev/stdout which fails on
+  # Docker Desktop for Mac when running in --net container: mode.
   docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 -d --name $(container_name_prev) \
+    $(envoy_user_snippet) \
     $WORKDIR_SNIPPET \
     $(network_snippet $DC) \
     $(aws_snippet) \
+    -e ENVOY_UID=0 \
     "${HASHICORP_DOCKER_PROXY}/envoyproxy/envoy:v${ENVOY_VERSION}" \
     envoy \
     -c /workdir/${DC}/envoy/${name}-bootstrap.json \

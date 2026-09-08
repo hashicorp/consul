@@ -5,6 +5,7 @@ package structs
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -1755,6 +1756,126 @@ func TestAPIGateway_Listeners(t *testing.T) {
 				},
 				EnterpriseMeta: *defaultMeta,
 			},
+		},
+		"valid defaults passive health check": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-defaults-phc",
+				Defaults: &UpstreamLimits{
+					PassiveHealthCheck: &PassiveHealthCheck{
+						Interval:    5 * time.Second,
+						MaxFailures: 3,
+					},
+				},
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     80,
+						Protocol: APIGatewayListenerProtocol("http"),
+					},
+				},
+			},
+			expected: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-defaults-phc",
+				Defaults: &UpstreamLimits{
+					PassiveHealthCheck: &PassiveHealthCheck{
+						Interval:    5 * time.Second,
+						MaxFailures: 3,
+					},
+				},
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     80,
+						Protocol: APIGatewayListenerProtocol("http"),
+					},
+				},
+				EnterpriseMeta: *defaultMeta,
+			},
+		},
+		"valid defaults all limits and passive health check": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-defaults-full",
+				Defaults: &UpstreamLimits{
+					MaxConnections:        intPointer(50),
+					MaxPendingRequests:    intPointer(100),
+					MaxConcurrentRequests: intPointer(200),
+					PassiveHealthCheck: &PassiveHealthCheck{
+						Interval:           10 * time.Second,
+						MaxFailures:        5,
+						MaxEjectionPercent: uintPointer(50),
+					},
+				},
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     9194,
+						Protocol: APIGatewayListenerProtocol("http"),
+					},
+				},
+			},
+			expected: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-defaults-full",
+				Defaults: &UpstreamLimits{
+					MaxConnections:        intPointer(50),
+					MaxPendingRequests:    intPointer(100),
+					MaxConcurrentRequests: intPointer(200),
+					PassiveHealthCheck: &PassiveHealthCheck{
+						Interval:           10 * time.Second,
+						MaxFailures:        5,
+						MaxEjectionPercent: uintPointer(50),
+					},
+				},
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     9194,
+						Protocol: APIGatewayListenerProtocol("http"),
+					},
+				},
+				EnterpriseMeta: *defaultMeta,
+			},
+		},
+		"invalid defaults passive health check negative interval": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-defaults-phc-invalid",
+				Defaults: &UpstreamLimits{
+					PassiveHealthCheck: &PassiveHealthCheck{
+						Interval: -1 * time.Second,
+					},
+				},
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     80,
+						Protocol: APIGatewayListenerProtocol("http"),
+					},
+				},
+			},
+			validateErr: "cannot be negative",
+		},
+		"invalid defaults passive health check max ejection percent": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-defaults-phc-pct-invalid",
+				Defaults: &UpstreamLimits{
+					PassiveHealthCheck: &PassiveHealthCheck{
+						MaxEjectionPercent: uintPointer(101),
+					},
+				},
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     80,
+						Protocol: APIGatewayListenerProtocol("http"),
+					},
+				},
+			},
+			validateErr: "must be a percentage",
 		},
 	}
 	testConfigEntryNormalizeAndValidate(t, cases)

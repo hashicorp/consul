@@ -1,0 +1,12 @@
+# Copyright IBM Corp. 2024, 2026
+# SPDX-License-Identifier: BUSL-1.1
+
+# Local-development Dockerfile: expects the sds-server binary to have been
+# pre-built for linux/amd64 by run-tests.sh (LOCAL_BUILD=1) before this
+# docker build runs.  Uses a minimal base to avoid pulling golang:* from
+# Docker Hub, which may be blocked by macOS keychain credential helpers.
+FROM docker.mirror.hashicorp.services/library/debian:stable-slim
+
+COPY test-sds-server /go/src/test-sds-server
+
+CMD ["/go/src/test-sds-server"]

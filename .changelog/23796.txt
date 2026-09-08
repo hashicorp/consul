@@ -9,5 +9,4 @@ rejected with HTTP 403, causing attacker-controlled heap growth. All four
 endpoints now cap the request body at 512 KiB before any decoding occurs,
 returning HTTP 413 for oversized bodies. This limit applies to chunked
 transfer encoding as well as declared `Content-Length`.
-(SECVULN-50418)
 ```

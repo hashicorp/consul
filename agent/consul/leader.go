@@ -13,11 +13,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/go-metrics"
-	"github.com/hashicorp/go-metrics/prometheus"
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-metrics"
+	"github.com/hashicorp/go-metrics/prometheus"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/raft"
@@ -310,6 +310,7 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 
 	s.getOrCreateAutopilotConfig()
 	s.autopilot.EnableReconciliation()
+	s.startFeatureGateReconciliation(ctx)
 
 	s.startConfigReplication(ctx)
 
@@ -352,6 +353,7 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 func (s *Server) revokeLeadership() {
 
 	s.stopLogVerification()
+	s.stopFeatureGateReconciliation()
 
 	// Disable the tombstone GC, since it is only useful as a leader
 	s.tombstoneGC.SetEnabled(false)

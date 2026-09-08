@@ -18,14 +18,21 @@ import (
 // GatewayChainSynthesizer is used to synthesize a discovery chain for a
 // gateway from its configuration and multiple other discovery chains.
 type GatewayChainSynthesizer struct {
-	datacenter        string
-	trustDomain       string
-	suffix            string
-	gateway           *structs.APIGatewayConfigEntry
-	hostname          string
-	matchesByHostname map[string][]hostnameMatch
-	tcpRoutes         []structs.TCPRouteConfigEntry
-	serviceRouters    map[structs.ServiceName][]*structs.ServiceRoute
+	datacenter             string
+	trustDomain            string
+	suffix                 string
+	gateway                *structs.APIGatewayConfigEntry
+	hostname               string
+	matchesByHostname      map[string][]hostnameMatch
+	tcpRoutes              []structs.TCPRouteConfigEntry
+	serviceRouters         map[structs.ServiceName][]*structs.ServiceRoute
+	composeUpstreamRouting bool
+}
+
+// EnableUpstreamRoutingComposition enables composition of API Gateway routes
+// with upstream service-router and service-resolver policy.
+func (l *GatewayChainSynthesizer) EnableUpstreamRoutingComposition() {
+	l.composeUpstreamRouting = true
 }
 
 type hostnameMatch struct {
@@ -110,22 +117,35 @@ func initHostMatches(hostname string, route *structs.HTTPRouteConfigEntry, curre
 // This is currently used to help API gateways masquarade as ingress gateways
 // by providing a set of virtual config entries that change the routing behavior
 // to upstreams referenced in the given HTTPRoutes or TCPRoutes.
-func (l *GatewayChainSynthesizer) Synthesize(chains ...*structs.CompiledDiscoveryChain) ([]structs.IngressService, []*structs.CompiledDiscoveryChain, error) {
+//
+// Routes whose synthetic chain fails to compile are skipped and their errors are returned
+// in the second return value so the caller can log warnings without aborting the rest of
+// the listener. This prevents a single misconfigured HTTPRoute (e.g. one whose backend
+// service-router redirects to a genuinely tcp-only service) from wiping the xDS config
+// for all other correctly-configured routes on the same listener.
+func (l *GatewayChainSynthesizer) Synthesize(chains ...*structs.CompiledDiscoveryChain) ([]structs.IngressService, []*structs.CompiledDiscoveryChain, []error, error) {
 	if len(chains) == 0 {
-		return nil, nil, fmt.Errorf("must provide at least one compiled discovery chain")
+		return nil, nil, nil, fmt.Errorf("must provide at least one compiled discovery chain")
 	}
 
-	l.serviceRouters = serviceRouterRulesFromChains(chains)
+	if l.composeUpstreamRouting {
+		l.serviceRouters = serviceRouterRulesFromChains(chains)
+	}
 	services, set := l.synthesizeEntries()
-	resolverEntries := resolverEntriesFromChains(chains)
+	var resolverEntries []*structs.ServiceResolverConfigEntry
+	if l.composeUpstreamRouting {
+		resolverEntries = resolverEntriesFromChains(chains)
+	}
 
 	if len(set) == 0 {
 		// we can't actually compile a discovery chain, i.e. we're using a TCPRoute-based listener, instead, just return the ingresses
 		// and the pre-compiled discovery chains
-		return services, chains, nil
+		return services, chains, nil, nil
 	}
 
+	var skipped []error
 	compiledChains := make([]*structs.CompiledDiscoveryChain, 0, len(set))
+	compiledServices := make([]structs.IngressService, 0, len(set))
 	for i, service := range services {
 
 		entries := set[i]
@@ -142,7 +162,12 @@ func (l *GatewayChainSynthesizer) Synthesize(chains ...*structs.CompiledDiscover
 			Entries:               entries,
 		})
 		if err != nil {
-			return nil, nil, err
+			// A compile error for one route (e.g. "inconsistent protocols" caused
+			// by a backend service-router redirecting to a tcp-only service) must
+			// not abort the entire listener. Skip this route, record the error for
+			// the caller to log as a warning, and continue with the remaining routes.
+			skipped = append(skipped, fmt.Errorf("skipping route for service %q: %w", service.Name, err))
+			continue
 		}
 
 		node := compiled.Nodes[compiled.StartNode]
@@ -194,9 +219,10 @@ func (l *GatewayChainSynthesizer) Synthesize(chains ...*structs.CompiledDiscover
 			compiled.EnvoyExtensions = append(compiled.EnvoyExtensions, c.EnvoyExtensions...)
 		}
 		compiledChains = append(compiledChains, compiled)
+		compiledServices = append(compiledServices, service)
 	}
 
-	return services, compiledChains, nil
+	return compiledServices, compiledChains, skipped, nil
 }
 
 // resolverEntriesFromChains builds minimal service-resolver entries that include
@@ -350,7 +376,7 @@ func (l *GatewayChainSynthesizer) synthesizeEntries() ([]structs.IngressService,
 	entries := []*configentry.DiscoveryChainSet{}
 
 	for _, route := range l.consolidateHTTPRoutes() {
-		ingress, router, splitters, defaults := synthesizeHTTPRouteDiscoveryChain(route, l.serviceRouters)
+		ingress, router, splitters, defaults := synthesizeHTTPRouteDiscoveryChain(route, l.serviceRouters, l.composeUpstreamRouting)
 
 		services = append(services, ingress)
 

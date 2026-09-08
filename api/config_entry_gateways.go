@@ -343,7 +343,7 @@ type APIGatewayListener struct {
 	MaxRequestHeadersKB *uint32 `json:",omitempty"`
 }
 
-// APIGatewayTLSConfiguration specifies the configuration of a listener’s
+// APIGatewayTLSConfiguration specifies the configuration of a listener's
 // TLS settings.
 type APIGatewayTLSConfiguration struct {
 	// Certificates is a set of references to certificates

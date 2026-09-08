@@ -8,9 +8,9 @@ import (
 	"net"
 
 	"github.com/go-viper/mapstructure/v2"
-	"github.com/hashicorp/raft"
 
 	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
+	"github.com/hashicorp/raft"
 
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
@@ -26,6 +26,7 @@ func init() {
 	registerRestorer(structs.CoordinateBatchUpdateType, restoreCoordinates)
 	registerRestorer(structs.PreparedQueryRequestType, restorePreparedQuery)
 	registerRestorer(structs.AutopilotRequestType, restoreAutopilot)
+	registerRestorer(structs.FeatureGateRequestType, restoreFeatureGates)
 	registerRestorer(structs.IntentionRequestType, restoreLegacyIntention)
 	registerRestorer(structs.ConnectCARequestType, restoreConnectCA)
 	registerRestorer(structs.ConnectCAProviderStateType, restoreConnectCAProviderState)
@@ -69,6 +70,9 @@ func persistCE(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) erro
 		return err
 	}
 	if err := s.persistAutopilot(sink, encoder); err != nil {
+		return err
+	}
+	if err := s.persistFeatureGates(sink, encoder); err != nil {
 		return err
 	}
 	if err := s.persistLegacyIntentions(sink, encoder); err != nil {
@@ -363,6 +367,20 @@ func (s *snapshot) persistAutopilot(sink raft.SnapshotSink,
 		return err
 	}
 	return nil
+}
+
+func (s *snapshot) persistFeatureGates(sink raft.SnapshotSink, encoder *codec.Encoder) error {
+	featureGates, err := s.state.FeatureGates()
+	if err != nil {
+		return err
+	}
+	if featureGates == nil {
+		return nil
+	}
+	if _, err := sink.Write([]byte{byte(structs.FeatureGateRequestType)}); err != nil {
+		return err
+	}
+	return encoder.Encode(featureGates)
 }
 
 func (s *snapshot) persistConnectCA(sink raft.SnapshotSink,
@@ -714,6 +732,14 @@ func restoreAutopilot(header *SnapshotHeader, restore *state.Restore, decoder *c
 		return err
 	}
 	return nil
+}
+
+func restoreFeatureGates(_ *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var snapshot structs.FeatureGateSnapshot
+	if err := decoder.Decode(&snapshot); err != nil {
+		return err
+	}
+	return restore.FeatureGates(&snapshot)
 }
 
 func restoreLegacyIntention(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {

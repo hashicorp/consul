@@ -79,6 +79,16 @@ func TestClient_ServiceNodes_BackendRouting(t *testing.T) {
 			expected: useCache,
 		},
 		{
+			name: "use cache for api-gateway request",
+			req: structs.ServiceSpecificRequest{
+				Datacenter:   "dc1",
+				ServiceName:  "web1",
+				QueryOptions: structs.QueryOptions{UseCache: true},
+				APIGateway:   true,
+			},
+			expected: useCache,
+		},
+		{
 			name: "use cache for near request",
 			req: structs.ServiceSpecificRequest{
 				Datacenter:   "dc1",

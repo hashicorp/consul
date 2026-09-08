@@ -3539,7 +3539,7 @@ func TestAgent_UpdateCheck(t *testing.T) {
 	t.Run("oversized body returns 413", func(t *testing.T) {
 		// Send a body larger than maxAgentRequestBodyBytes (512 KiB) to verify
 		// HTTP 413 is returned before ACL authorization, closing the
-		// unauthenticated heap-growth path described in SECVULN-50418.
+		// HTTP 413 is returned before ACL authorization occurs.
 		oversized := checkUpdate{
 			Status: api.HealthPassing,
 			Output: strings.Repeat("A", maxAgentRequestBodyBytes+1),
@@ -6938,7 +6938,7 @@ func TestAgentConnectCARoots_list(t *testing.T) {
 // http_config { use_cache = false }, GET /v1/agent/connect/ca/roots bypasses
 // the agent cache entirely. Each request with a unique token must produce no
 // X-Cache header, proving the cache path was never entered and the token-based
-// cache-key fanout attack (SECVULN-50292) is closed.
+// X-Cache header, proving the cache path was never entered.
 func TestAgentConnectCARoots_cacheDisabled(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -6969,7 +6969,7 @@ func TestAgentConnectCARoots_cacheDisabled(t *testing.T) {
 // http_config { use_cache = false }, POST /v1/agent/connect/authorize bypasses
 // the agent cache entirely. Each request with a unique token must produce no
 // X-Cache header, proving the token-based cache-key fanout attack
-// (SECVULN-50293) is closed.
+// X-Cache header, proving the cache path was never entered.
 func TestAgentConnectAuthorize_cacheDisabled(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

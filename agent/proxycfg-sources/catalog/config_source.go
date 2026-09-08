@@ -19,7 +19,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-const source proxycfg.ProxySource = "catalog"
+const source proxycfg.ProxySource = proxycfg.ProxySourceCatalog
 
 // ConfigSource wraps a proxycfg.Manager to register services with it, from the
 // catalog, when they are requested by the xDS server.

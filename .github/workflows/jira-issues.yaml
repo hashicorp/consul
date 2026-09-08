@@ -76,10 +76,30 @@ jobs:
       - name: Search
         if: github.event.action != 'opened'
         id: search
-        uses: tomhjp/gh-action-jira-search@04700b457f317c3e341ce90da5a3ff4ce058f2fa # v0.2.2
-        with:
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
           # cf[10089] is Issue Link (use JIRA API to retrieve)
-          jql: 'issuetype = "${{ steps.set-ticket-type.outputs.TYPE }}" and cf[10089] = "${{ github.event.issue.html_url || github.event.pull_request.html_url }}"'
+          JQL: 'issuetype = "${{ steps.set-ticket-type.outputs.TYPE }}" and cf[10089] = "${{ github.event.issue.html_url || github.event.pull_request.html_url }}"'
+        run: |
+          response="$(curl --fail-with-body --silent --show-error \
+            --request POST \
+            --url "${JIRA_BASE_URL%/}/rest/api/3/search/jql" \
+            --user "${JIRA_USER_EMAIL}:${JIRA_API_TOKEN}" \
+            --header "Accept: application/json" \
+            --header "Content-Type: application/json" \
+            --data "$(jq --null-input --arg jql "${JQL}" \
+              '{jql: $jql, maxResults: 2, fields: ["key"]}')")"
+
+          matches="$(jq '.issues | length' <<< "${response}")"
+          if (( matches > 1 )); then
+            echo "::error::JQL returned more than one Jira issue"
+            exit 1
+          fi
+
+          issue="$(jq --raw-output '.issues[0].key // empty' <<< "${response}")"
+          echo "issue=${issue}" >> "${GITHUB_OUTPUT}"
 
       - name: Sync comment
         if: github.event.action == 'created' && steps.search.outputs.issue

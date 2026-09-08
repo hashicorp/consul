@@ -57,6 +57,7 @@ func NodeServiceToStructs(s *NodeService, t *structs.NodeService) {
 	if s.Connect != nil {
 		ServiceConnectToStructs(s.Connect, &t.Connect)
 	}
+	t.AI = ServiceAIPtrToStructs(s.AI)
 	t.LocallyRegisteredAsSidecar = s.LocallyRegisteredAsSidecar
 	t.EnterpriseMeta = EnterpriseMetaToStructs(s.EnterpriseMeta)
 	t.PeerName = s.PeerName
@@ -89,6 +90,7 @@ func NodeServiceFromStructs(t *structs.NodeService, s *NodeService) {
 		ServiceConnectFromStructs(&t.Connect, &x)
 		s.Connect = &x
 	}
+	s.AI = NewServiceAIPtrFromStructs(t.AI)
 	s.LocallyRegisteredAsSidecar = t.LocallyRegisteredAsSidecar
 	s.EnterpriseMeta = NewEnterpriseMetaFromStructs(t.EnterpriseMeta)
 	s.PeerName = t.PeerName

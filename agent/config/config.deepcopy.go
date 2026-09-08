@@ -430,5 +430,11 @@ func (o *RuntimeConfig) DeepCopy() *RuntimeConfig {
 		cp.Experiments = make([]string, len(o.Experiments))
 		copy(cp.Experiments, o.Experiments)
 	}
+	if o.FeatureGatesBootstrap != nil {
+		cp.FeatureGatesBootstrap = make(map[string]bool, len(o.FeatureGatesBootstrap))
+		for k2, v2 := range o.FeatureGatesBootstrap {
+			cp.FeatureGatesBootstrap[k2] = v2
+		}
+	}
 	return &cp
 }

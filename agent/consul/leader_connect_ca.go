@@ -481,7 +481,7 @@ func (c *CAManager) newProvider(conf *structs.CAConfiguration) (ca.Provider, err
 // This must be called for every ProviderConfig.RawConfig that will be passed to
 // provider.Configure so that an operator:write caller cannot use the
 // ConnectCA.ConfigurationSet API to widen the Vault credential-file allowlist
-// after the agent has started (SECVULN-44970).
+// after the agent has started.
 func (c *CAManager) injectTokenDirs(rawConfig map[string]interface{}) map[string]interface{} {
 	out := make(map[string]interface{}, len(rawConfig)+1)
 	for k, v := range rawConfig {

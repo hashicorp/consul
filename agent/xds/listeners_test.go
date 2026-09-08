@@ -178,6 +178,10 @@ func (f configFetcherFunc) AdvertiseAddrLAN() string {
 	return f()
 }
 
+func (f configFetcherFunc) DNSRecursors() []string {
+	return nil
+}
+
 func TestResolveListenerSDSConfig(t *testing.T) {
 	type testCase struct {
 		name    string
@@ -882,7 +886,7 @@ func TestFinalizePublicListenerFromConfig_PropagatesInjectionErrors(t *testing.T
 }
 
 // Test_injectRequestNormalizationOnFilterChains is a unit test for
-// SECVULN-50295. It verifies that injectRequestNormalizationOnFilterChains
+// Test_injectRequestNormalizationOnFilterChains verifies that injectRequestNormalizationOnFilterChains
 // correctly applies Consul's normalization defaults to every
 // HttpConnectionManager filter on a user-provided public listener, and that it
 // handles edge cases (no HCM filter, unsupported ConfigType, disabled

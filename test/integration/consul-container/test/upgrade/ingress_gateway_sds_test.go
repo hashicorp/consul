@@ -12,17 +12,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/go-connections/nat"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
+
 	"github.com/hashicorp/consul/api"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/wait"
 )
 
 const sdsServerPort = 1234
@@ -223,12 +223,12 @@ func TestIngressGateway_SDS_UpgradeToTarget_fromLatest(t *testing.T) {
 			reqHost := fmt.Sprintf("%s.ingress.consul:%d", libservice.StaticServerServiceName, port)
 			portMapped, _ := cluster.Servers()[0].GetPod().MappedPort(
 				context.Background(),
-				nat.Port(fmt.Sprintf("%d/tcp", port)),
+				fmt.Sprintf("%d/tcp", port),
 			)
 
 			httpClient := httpClientWithCA(t, reqHost, string(rootPEM))
 			urlbase := fmt.Sprintf("https://%s", reqHost)
-			resp := mappedHTTPGET(t, urlbase, portMapped.Int(), nil, nil, httpClient)
+			resp := mappedHTTPGET(t, urlbase, int(portMapped.Num()), nil, nil, httpClient)
 			defer resp.Body.Close()
 
 			require.Equal(t, 1, len(resp.TLS.PeerCertificates))
@@ -241,12 +241,12 @@ func TestIngressGateway_SDS_UpgradeToTarget_fromLatest(t *testing.T) {
 			reqHost := fmt.Sprintf("%s:%d", hostnameWWW, port)
 			portMapped, _ := cluster.Servers()[0].GetPod().MappedPort(
 				context.Background(),
-				nat.Port(fmt.Sprintf("%d/tcp", port)),
+				fmt.Sprintf("%d/tcp", port),
 			)
 
 			httpClient := httpClientWithCA(t, reqHost, string(rootPEM))
 			urlbase := fmt.Sprintf("https://%s", reqHost)
-			resp := mappedHTTPGET(t, urlbase, portMapped.Int(), nil, nil, httpClient)
+			resp := mappedHTTPGET(t, urlbase, int(portMapped.Num()), nil, nil, httpClient)
 			defer resp.Body.Close()
 
 			require.Equal(t, 1, len(resp.TLS.PeerCertificates))
@@ -259,12 +259,12 @@ func TestIngressGateway_SDS_UpgradeToTarget_fromLatest(t *testing.T) {
 			reqHost := fmt.Sprintf("%s:%d", hostnameFoo, port)
 			portMapped, _ := cluster.Servers()[0].GetPod().MappedPort(
 				context.Background(),
-				nat.Port(fmt.Sprintf("%d/tcp", port)),
+				fmt.Sprintf("%d/tcp", port),
 			)
 
 			httpClient := httpClientWithCA(t, reqHost, string(rootPEM))
 			urlbase := fmt.Sprintf("https://%s", reqHost)
-			resp := mappedHTTPGET(t, urlbase, portMapped.Int(), nil, nil, httpClient)
+			resp := mappedHTTPGET(t, urlbase, int(portMapped.Num()), nil, nil, httpClient)
 			defer resp.Body.Close()
 
 			require.Equal(t, 1, len(resp.TLS.PeerCertificates))

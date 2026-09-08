@@ -165,6 +165,56 @@
       ],
       "name": "public_listener:0.0.0.0:9999",
       "trafficDirection": "INBOUND"
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "address": {
+        "socketAddress": {
+          "address": "127.0.0.1",
+          "portValue": 8653,
+          "protocol": "UDP"
+        }
+      },
+      "listenerFilters": [
+        {
+          "name": "envoy.filters.udp.dns_filter",
+          "typedConfig": {
+            "@type": "type.googleapis.com/envoy.extensions.filters.udp.dns_filter.v3.DnsFilterConfig",
+            "serverConfig": {
+              "inlineDnsTable": {
+                "virtualDomains": [
+                  {
+                    "endpoint": {
+                      "addressList": {
+                        "address": [
+                          "10.0.0.1",
+                          "240.0.0.1"
+                        ]
+                      }
+                    },
+                    "name": "api-a.virtual.default.ns.default.ap.dc1.dc.consul"
+                  },
+                  {
+                    "endpoint": {
+                      "addressList": {
+                        "address": [
+                          "10.0.0.2",
+                          "240.0.0.2"
+                        ]
+                      }
+                    },
+                    "name": "db.virtual.default.ns.default.ap.dc1.dc.consul"
+                  }
+                ]
+              }
+            },
+            "statPrefix": "consul_virtual_dns"
+          }
+        }
+      ],
+      "name": "virtual_dns:127.0.0.1:8653",
+      "trafficDirection": "OUTBOUND",
+      "udpListenerConfig": {}
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",

@@ -772,14 +772,24 @@ type configSnapshotAPIGateway struct {
 	// leaf cert watch with different parameters.
 	LeafCertWatchCancel context.CancelFunc
 
-	// Listeners is the original listener config from the api-gateway config
-	// entry to save us trying to pass fields through Upstreams
-	Listeners map[string]structs.APIGatewayListener
+	// LeafCertDNSSANs is the sorted set of DNS Subject Alternative Names most
+	// recently requested for the gateway's leaf certificate. It is used to avoid
+	// re-establishing the leaf cert watch when the computed SANs have not changed
+	// (e.g. on unrelated route updates), preventing needless cert churn.
+	LeafCertDNSSANs []string
 
+	// BoundListeners is the reconciled listener state from the bound-api-gateway
+	// config entry. Each entry carries both the controller-managed route/cert
+	// bindings AND the operator-configured fields (Port, Protocol, TLS, etc.)
+	// copied from the corresponding APIGatewayListener at reconcile time.
 	BoundListeners map[string]structs.BoundAPIGatewayListener
+
+	// ComposeUpstreamRouting is the final committed feature decision captured
+	// for this snapshot. It is true only for the server-catalog path.
+	ComposeUpstreamRouting bool
 }
 
-func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, listener structs.APIGatewayListener, boundListener structs.BoundAPIGatewayListener) ([]structs.IngressService, structs.Upstreams, []*structs.CompiledDiscoveryChain, error) {
+func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, boundListener structs.BoundAPIGatewayListener) ([]structs.IngressService, structs.Upstreams, []*structs.CompiledDiscoveryChain, []error, error) {
 	chains := []*structs.CompiledDiscoveryChain{}
 
 	// We leverage the test trust domain knowing
@@ -804,13 +814,17 @@ DOMAIN_LOOP:
 		}
 	}
 
-	synthesizer := discoverychain.NewGatewayChainSynthesizer(datacenter, trustDomain, listener.Name, c.GatewayConfig)
-	synthesizer.SetHostname(listener.GetHostname())
+	synthesizer := discoverychain.NewGatewayChainSynthesizer(datacenter, trustDomain, boundListener.Name, c.GatewayConfig)
+	if c.ComposeUpstreamRouting {
+		synthesizer.EnableUpstreamRoutingComposition()
+	}
+	synthesizer.SetHostname(boundListener.GetHostname())
+	var preSkipped []error
 	for _, routeRef := range boundListener.Routes {
 		switch routeRef.Kind {
 		case structs.HTTPRoute:
 			route, ok := c.HTTPRoutes.Get(routeRef)
-			if !ok || !structs.IsProtocolHTTPLike(string(listener.Protocol)) {
+			if !ok || !structs.IsProtocolHTTPLike(string(boundListener.Protocol)) {
 				continue
 			}
 			synthesizer.AddHTTPRoute(*route)
@@ -822,7 +836,7 @@ DOMAIN_LOOP:
 			}
 		case structs.TCPRoute:
 			route, ok := c.TCPRoutes.Get(routeRef)
-			if !ok || listener.Protocol != structs.ListenerProtocolTCP {
+			if !ok || boundListener.Protocol != structs.ListenerProtocolTCP {
 				continue
 			}
 			synthesizer.AddTCPRoute(*route)
@@ -833,18 +847,25 @@ DOMAIN_LOOP:
 				}
 			}
 		default:
-			return nil, nil, nil, fmt.Errorf("unknown route kind %q", routeRef.Kind)
+			// An unrecognized route kind for a single routeRef must not abort
+			// synthesis for the rest of this listener (or discard chains already
+			// synthesized for other listeners in this same recompile pass). Skip
+			// it and record the error for the caller to log as a warning, same as
+			// the per-route Compile failures handled in Synthesize().
+			preSkipped = append(preSkipped, fmt.Errorf("skipping route %q: unknown route kind %q", routeRef.Name, routeRef.Kind))
+			continue
 		}
 	}
 
 	if len(chains) == 0 {
-		return nil, nil, nil, nil
+		return nil, nil, nil, preSkipped, nil
 	}
 
-	services, compiled, err := synthesizer.Synthesize(chains...)
+	services, compiled, skipped, err := synthesizer.Synthesize(chains...)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, preSkipped, err
 	}
+	skipped = append(skipped, preSkipped...)
 
 	// reconstruct the upstreams
 	upstreams := make([]structs.Upstream, 0, len(services))
@@ -854,14 +875,14 @@ DOMAIN_LOOP:
 			DestinationNamespace: service.NamespaceOrDefault(),
 			DestinationPartition: service.PartitionOrDefault(),
 			IngressHosts:         service.Hosts,
-			LocalBindPort:        listener.Port,
+			LocalBindPort:        boundListener.Port,
 			Config: map[string]interface{}{
-				"protocol": string(listener.Protocol),
+				"protocol": string(boundListener.Protocol),
 			},
 		})
 	}
 
-	return services, upstreams, compiled, err
+	return services, upstreams, compiled, skipped, nil
 }
 
 // valid tests for two valid api gateway snapshot states:
@@ -939,6 +960,10 @@ func (c *configSnapshotIngressGateway) valid() bool {
 type APIGatewayListenerKey = IngressListenerKey
 
 func APIGatewayListenerKeyFromListener(l structs.APIGatewayListener) APIGatewayListenerKey {
+	return APIGatewayListenerKey{Protocol: string(l.Protocol), Port: l.Port}
+}
+
+func APIGatewayListenerKeyFromBoundListener(l structs.BoundAPIGatewayListener) APIGatewayListenerKey {
 	return APIGatewayListenerKey{Protocol: string(l.Protocol), Port: l.Port}
 }
 

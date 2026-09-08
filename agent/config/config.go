@@ -189,6 +189,7 @@ type Config struct {
 	EncryptVerifyOutgoing                  *bool               `mapstructure:"encrypt_verify_outgoing" json:"encrypt_verify_outgoing,omitempty"`
 	Experiments                            []string            `mapstructure:"experiments" json:"experiments,omitempty"`
 	FederationStateAntiEntropySyncInterval *string             `mapstructure:"federation_state_anti_entropy_sync_interval" json:"federation_state_anti_entropy_sync_interval,omitempty"`
+	FeatureGates                           FeatureGates        `mapstructure:"feature_gates" json:"feature_gates,omitempty"`
 	GossipLAN                              GossipLANConfig     `mapstructure:"gossip_lan" json:"-"`
 	GossipWAN                              GossipWANConfig     `mapstructure:"gossip_wan" json:"-"`
 	HTTPConfig                             HTTPConfig          `mapstructure:"http_config" json:"-"`
@@ -382,6 +383,13 @@ type Autopilot struct {
 	UpgradeVersionTag *string `mapstructure:"upgrade_version_tag"`
 }
 
+// FeatureGates configures one-time bootstrap intent for dynamic feature gates.
+// Once a Raft policy exists these values are diagnostic only and cannot
+// override cluster state.
+type FeatureGates struct {
+	Bootstrap map[string]bool `mapstructure:"bootstrap" json:"bootstrap,omitempty"`
+}
+
 // ServiceWeights defines the registration of weights used in DNS for a Service
 type ServiceWeights struct {
 	Passing *int `mapstructure:"passing"`
@@ -420,8 +428,67 @@ type ServiceDefinition struct {
 	Proxy             *ServiceProxy             `mapstructure:"proxy"`
 	Connect           *ServiceConnect           `mapstructure:"connect"`
 	Locality          *Locality                 `mapstructure:"locality"`
+	AI                *ServiceAI                `mapstructure:"ai"`
 
 	EnterpriseMeta `mapstructure:",squash"`
+}
+
+// ServiceAI is the config-layer representation of the `ai` block in a service
+// definition. It mirrors structs.ServiceAI but uses pointer fields and
+// mapstructure tags so it can be decoded from HCL/JSON config files.
+type ServiceAI struct {
+	Role           *string           `mapstructure:"role"`
+	InferenceModel *AIInferenceModel `mapstructure:"inference_model"`
+	MCPServer      *AIMCPServer      `mapstructure:"mcp_server"`
+	Agent          *AIAgent          `mapstructure:"agent"`
+}
+
+type AIInferenceModel struct {
+	Protocol *string          `mapstructure:"protocol"`
+	Path     *string          `mapstructure:"path"`
+	Defaults *AIModelDefaults `mapstructure:"defaults"`
+}
+
+type AIModelDefaults struct {
+	MaxTokens   *int     `mapstructure:"max_tokens"`
+	Temperature *float64 `mapstructure:"temperature"`
+}
+
+type AIMCPServer struct {
+	Transport       *string `mapstructure:"transport"`
+	Path            *string `mapstructure:"path"`
+	ProtocolVersion *string `mapstructure:"protocol_version"`
+}
+
+type AIAgent struct {
+	Inference   *AIAgentInference   `mapstructure:"inference"`
+	MCP         *AIAgentMCP         `mapstructure:"mcp"`
+	RateLimits  *AIAgentRateLimits  `mapstructure:"rate_limits"`
+	Interceptor *AIAgentInterceptor `mapstructure:"interceptor"`
+}
+
+type AIAgentInference struct {
+	Specialization []string `mapstructure:"specialization"`
+	Vendor         *string  `mapstructure:"vendor"`
+}
+
+type AIAgentMCP struct {
+	Port *int            `mapstructure:"port"`
+	HITL *AIAgentMCPHITL `mapstructure:"hitl"`
+}
+
+type AIAgentMCPHITL struct {
+	Port            *int    `mapstructure:"port"`
+	ApprovalTimeout *string `mapstructure:"approval_timeout"`
+}
+
+type AIAgentRateLimits struct {
+	ToolCallsPerMinute *int `mapstructure:"tool_calls_per_minute"`
+	ToolCallsPerHour   *int `mapstructure:"tool_calls_per_hour"`
+}
+
+type AIAgentInterceptor struct {
+	Port *int `mapstructure:"port"`
 }
 
 type CheckDefinition struct {

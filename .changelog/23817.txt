@@ -1,0 +1,3 @@
+```release-note:improvement
+api-gateway: add `invert` field to `HTTPHeaderMatch` in `http-route` config entries, enabling negated header match conditions (e.g. "route when header is absent" or "route when header value does NOT match"). Brings API Gateway to parity with the Ingress Gateway's existing `Invert` support in `service-router`.
+```
