@@ -288,6 +288,16 @@ func serviceACLCheckWithConsulExemption(
 		}
 	}
 
+	// Escape-hatch keys in Proxy.Config or Proxy.Upstreams[*].Config embed
+	// arbitrary Envoy JSON into the sidecar's bootstrap configuration or xDS
+	// listener/cluster resources. They can introduce code-executing HTTP
+	// filters and therefore require mesh:write independently of service:write.
+	if service.Proxy.HasEnvoyEscapeHatchOverride() {
+		if err := authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext); err != nil {
+			return fmt.Errorf("mesh:write required to set an Envoy escape-hatch key in Proxy.Config or Proxy.Upstreams[*].Config: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -426,6 +436,10 @@ func vetRegisterWithACL(
 // If a ServiceID or CheckID is not provided in the request, the entire
 // node is deregistered.
 func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) error {
+	if args.PeerName != structs.DefaultPeerKeyword {
+		return errors.New("deregistering peer-imported catalog objects is not supported")
+	}
+
 	if done, err := c.srv.ForwardRPC("Catalog.Deregister", args, reply); done {
 		return err
 	}
