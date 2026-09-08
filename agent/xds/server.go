@@ -6,6 +6,8 @@ package xds
 import (
 	"context"
 	"errors"
+	"os"
+	"strconv"
 	"sync/atomic"
 	"time"
 
@@ -43,11 +45,23 @@ var (
 			Name: []string{"xds", "server", "streamDrained"},
 			Help: "Counts the number of xDS streams that are drained when rebalancing the load between servers.",
 		},
+		{
+			Name: []string{"xds", "server", "bootstrapGateTimeout"},
+			Help: "Counts the number of times the api-gateway bootstrap completeness gate released an xDS stream's first push on its deadline before all discovery-chain endpoints were assembled.",
+		},
+		{
+			Name: []string{"xds", "server", "apiGatewayFailoverDegraded"},
+			Help: "Counts the number of times an api-gateway failover upstream was rendered as a single plain EDS cluster instead of an aggregate because a member's endpoints were not yet assembled. This averts an Envoy worker-startup crash and self-heals once the endpoints arrive.",
+		},
 	}
 	StatsSummaries = []prometheus.SummaryDefinition{
 		{
 			Name: []string{"xds", "server", "streamStart"},
 			Help: "Measures the time in milliseconds after an xDS stream is opened until xDS resources are first generated for the stream.",
+		},
+		{
+			Name: []string{"xds", "server", "bootstrapGateHeld"},
+			Help: "Measures the time in milliseconds an api-gateway xDS stream's first push was held by the bootstrap completeness gate before the snapshot's discovery-chain endpoints were assembled.",
 		},
 	}
 )
@@ -73,7 +87,100 @@ const (
 	// DefaultAuthCheckFrequency is the default value for
 	// Server.AuthCheckFrequency to use when the zero value is provided.
 	DefaultAuthCheckFrequency = 5 * time.Minute
+
+	// DefaultBootstrapGateTimeout is the default value for
+	// Server.BootstrapGateTimeout. It bounds how long an api-gateway xDS stream
+	// will hold its first push waiting for the snapshot's discovery-chain
+	// endpoints to be assembled (ITCO-15826).
+	//
+	// The gate is only ever expected to be satisfiable, but it must not be able
+	// to wedge a stream if that assumption is ever violated: Consul programs
+	// lds_config/cds_config with initial_fetch_timeout: 0s (wait forever), so a
+	// permanently-held first push means a gateway that never becomes ready at
+	// all. Past this deadline we push what we have — a gateway answering 503s is
+	// strictly better than one that never listens.
+	DefaultBootstrapGateTimeout = 30 * time.Second
 )
+
+// TODO(CSL-11921): remove once the guard is proven in the field
+const (
+	// EnvBootstrapGateTimeout overrides Server.BootstrapGateTimeout. It accepts
+	// any time.ParseDuration value; a negative duration disables the api-gateway
+	// cold-start gate entirely.
+	//
+	// This is a break-glass control, deliberately an environment variable rather
+	// than an agent config option: it exists so a misbehaving gate can be
+	// neutralized on a running cluster without a binary rollback, not as a knob
+	// operators are expected to tune. The default is correct for all known
+	// topologies.
+	EnvBootstrapGateTimeout = "CONSUL_XDS_APIGATEWAY_BOOTSTRAP_GATE_TIMEOUT"
+
+	// EnvDisableAPIGatewayFailoverGuard disables the api-gateway
+	// aggregate-cluster failover guard when set to a value strconv.ParseBool
+	// reads as true. See Server.DisableAPIGatewayFailoverGuard, and the
+	// break-glass note on EnvBootstrapGateTimeout.
+	EnvDisableAPIGatewayFailoverGuard = "CONSUL_XDS_DISABLE_APIGATEWAY_FAILOVER_GUARD"
+)
+
+// bootstrapGateTimeoutFromEnv resolves Server.BootstrapGateTimeout from
+// EnvBootstrapGateTimeout, falling back to DefaultBootstrapGateTimeout.
+//
+// An unset or malformed value yields the default rather than the zero value:
+// callers read zero as "use the default" anyway, but returning the default
+// explicitly keeps a typo from being indistinguishable from an intentional
+// override in a log.
+func bootstrapGateTimeoutFromEnv(logger hclog.Logger) time.Duration {
+	raw, ok := os.LookupEnv(EnvBootstrapGateTimeout)
+	if !ok || raw == "" {
+		return DefaultBootstrapGateTimeout
+	}
+
+	timeout, err := time.ParseDuration(raw)
+	if err != nil {
+		logger.Warn("ignoring malformed environment variable; using the default api-gateway bootstrap gate timeout",
+			"env", EnvBootstrapGateTimeout, "value", raw, "default", DefaultBootstrapGateTimeout, "error", err)
+		return DefaultBootstrapGateTimeout
+	}
+
+	if timeout < 0 {
+		logger.Warn("api-gateway xDS bootstrap gate is DISABLED by environment variable; "+
+			"a cold-starting api-gateway Envoy may receive clusters whose endpoints are not assembled yet",
+			"env", EnvBootstrapGateTimeout, "value", raw)
+	} else {
+		logger.Info("api-gateway xDS bootstrap gate timeout overridden by environment variable",
+			"env", EnvBootstrapGateTimeout, "timeout", timeout)
+	}
+	return timeout
+}
+
+// disableAPIGatewayFailoverGuardFromEnv resolves
+// Server.DisableAPIGatewayFailoverGuard from
+// EnvDisableAPIGatewayFailoverGuard.
+//
+// Anything other than an explicit, parseable true leaves the guard enabled. The
+// guard averts an Envoy crash, so a malformed value must fail closed: silently
+// disabling it on a typo would reintroduce the fault it exists to prevent.
+func disableAPIGatewayFailoverGuardFromEnv(logger hclog.Logger) bool {
+	raw, ok := os.LookupEnv(EnvDisableAPIGatewayFailoverGuard)
+	if !ok || raw == "" {
+		return false
+	}
+
+	disabled, err := strconv.ParseBool(raw)
+	if err != nil {
+		logger.Warn("ignoring malformed environment variable; the api-gateway failover guard remains enabled",
+			"env", EnvDisableAPIGatewayFailoverGuard, "value", raw, "error", err)
+		return false
+	}
+
+	if disabled {
+		logger.Warn("api-gateway aggregate-cluster failover guard is DISABLED by environment variable; "+
+			"an api-gateway whose failover member endpoints are not assembled may crash its Envoy "+
+			"(envoyproxy/envoy#35157)",
+			"env", EnvDisableAPIGatewayFailoverGuard)
+	}
+	return disabled
+}
 
 // ACLResolverFunc is a shim to resolve ACLs. Since ACL enforcement is so far
 // entirely agent-local and all uses private methods this allows a simple shim
@@ -104,6 +211,29 @@ type Server struct {
 	// This is only used during idle periods of stream interactions (i.e. when
 	// there has been no recent DiscoveryRequest).
 	AuthCheckFrequency time.Duration
+
+	// BootstrapGateTimeout bounds the api-gateway cold-start completeness gate
+	// applied to a stream's first push. Zero means DefaultBootstrapGateTimeout;
+	// a negative value disables the gate entirely. NewServer populates it from
+	// EnvBootstrapGateTimeout.
+	BootstrapGateTimeout time.Duration
+
+	// DisableAPIGatewayFailoverGuard disables the aggregate-cluster guard that
+	// rewrites an api-gateway failover chain into a single plain EDS cluster
+	// when a failover member's endpoints are not assembled yet
+	// (agent/xds/failover_policy.go, ITCO-15826). The guard is the safety net
+	// for an aggregate cluster whose members have no EDS assignment, which
+	// faults Envoy during worker startup rather than merely degrading
+	// (envoyproxy/envoy#35157).
+	//
+	// This exists purely as an escape hatch in case the guard misbehaves in a
+	// topology we have not exercised, so that recovery does not require a
+	// binary rollback. NewServer populates it from
+	// EnvDisableAPIGatewayFailoverGuard; it is an environment variable rather
+	// than an agent config option because the zero value (false) is correct for
+	// all known topologies, and disabling it re-exposes the crash the guard
+	// exists to prevent.
+	DisableAPIGatewayFailoverGuard bool
 
 	// ResourceMapMutateFn exclusively exists for testing purposes.
 	ResourceMapMutateFn func(resourceMap *xdscommon.IndexedResources)
@@ -158,6 +288,9 @@ func NewServer(
 		CfgFetcher:         cfgFetcher,
 		AuthCheckFrequency: DefaultAuthCheckFrequency,
 		activeStreams:      &activeStreamCounters{},
+
+		BootstrapGateTimeout:           bootstrapGateTimeoutFromEnv(logger),
+		DisableAPIGatewayFailoverGuard: disableAPIGatewayFailoverGuardFromEnv(logger),
 	}
 }
 
