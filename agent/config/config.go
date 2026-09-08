@@ -780,6 +780,7 @@ type Limits struct {
 	RPCHandshakeTimeout   *string       `mapstructure:"rpc_handshake_timeout"`
 	RPCMaxBurst           *int          `mapstructure:"rpc_max_burst"`
 	RPCMaxConnsPerClient  *int          `mapstructure:"rpc_max_conns_per_client"`
+	RPCMaxHeaderBytes     *int          `mapstructure:"rpc_max_header_bytes"`
 	RPCRate               *float64      `mapstructure:"rpc_rate"`
 	KVMaxValueSize        *uint64       `mapstructure:"kv_max_value_size"`
 	TxnMaxReqLen          *uint64       `mapstructure:"txn_max_req_len"`

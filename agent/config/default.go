@@ -112,6 +112,7 @@ func DefaultSource() Source {
 			rpc_rate = -1
 			rpc_max_burst = 1000
 			rpc_max_conns_per_client = 100
+			rpc_max_header_bytes = 512
 			kv_max_value_size = ` + strconv.FormatInt(raft.SuggestedMaxDataSize, 10) + `
 			txn_max_req_len = ` + strconv.FormatInt(raft.SuggestedMaxDataSize, 10) + `
 		}
