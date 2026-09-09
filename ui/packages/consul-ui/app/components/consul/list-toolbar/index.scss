@@ -38,48 +38,6 @@
       padding-top: 0;
     }
 
-    /* render the applied-filter HDS tags as fully-rounded pills */
-    .hds-filter-bar__applied-filters .hds-tag {
-      border-radius: 9999px;
-      background-color: var(--token-color-surface-faint);
-      border-color: var(--token-color-border-faint);
-    }
-
-    /* HDS renders "Clear all filters" as a tertiary link-like button; give it
-       a solid neutral button look so it reads as an actionable control */
-    .hds-filter-bar__clear-button {
-      padding: 0 10px;
-      min-height: 1.75rem;
-      border: 1px solid transparent;
-      border-radius: 5px;
-      background-color: var(--token-color-surface-strong);
-      transition: background-color 0.15s ease, border-color 0.15s ease,
-        box-shadow 0.15s ease;
-
-      &,
-      &:hover,
-      &:active,
-      &:focus {
-        color: var(--token-color-foreground-strong);
-
-        .hds-icon {
-          color: var(--token-color-foreground-strong);
-        }
-      }
-
-      &:hover {
-        background-color: var(--token-color-surface-interactive-hover);
-        border-color: var(--token-color-border-strong);
-        box-shadow: var(--token-elevation-low-box-shadow);
-      }
-
-      &:active {
-        background-color: var(--token-color-surface-interactive-active);
-        border-color: var(--token-color-border-strong);
-        box-shadow: none;
-      }
-    }
-
     /* The right-actions area (hds-filter-bar__actions__right) hosts the
        Search Across dropdown and health quick-filter buttons. Stretch it to
        fill remaining bar width so the inner wrapper can use space-between. */
