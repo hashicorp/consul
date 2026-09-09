@@ -1,3 +1,67 @@
+## 2.0.4 (September 9, 2026)
+BREAKING CHANGES:
+
+* acl: Tokens that hold service:write but not mesh:write will now receive a permission-denied error when attempting to attach builtin/lua or builtin/wasm EnvoyExtensions (or upstream envoy_listener_json/envoy_cluster_json escape-hatch overrides) to a service-defaults config entry, or when registering a connect-proxy sidecar with bootstrap or xDS escape-hatch keys set in the top-level Proxy.Config map or per-upstream in Proxy.Upstreams[*].Config. Operators must grant mesh:write to any token that legitimately needs these capabilities. [[GH-23901](https://github.com/hashicorp/consul/issues/23901)]
+
+SECURITY:
+
+* Upgrade go version to 1.26.7 to address security vulnerabilities. [[GH-23869](https://github.com/hashicorp/consul/issues/23869)]
+* acl: Require mesh:write in addition to service:write when attaching code-executing EnvoyExtensions (builtin/lua, builtin/wasm) or upstream escape-hatch overrides (envoy_listener_json, envoy_cluster_json in UpstreamConfig defaults or overrides) to a service-defaults config entry. Previously a holder of service:write on a service could attach a Lua script or Wasm module, or an upstream escape-hatch override, that Envoy compiled and executed on every proxied request as the sidecar process user, with access to mTLS private keys, request bodies, and the host filesystem. [[GH-23901](https://github.com/hashicorp/consul/issues/23901)]
+* acl: Require mesh:write in addition to service:write when registering a connect-proxy sidecar with bootstrap or xDS escape-hatch keys, whether set in the top-level Proxy.Config map or per-upstream in Proxy.Upstreams[*].Config (envoy_bootstrap_json_tpl, envoy_extra_static_listeners_json, envoy_public_listener_json, envoy_listener_json, envoy_cluster_json, envoy_local_cluster_json, envoy_extra_static_clusters_json, envoy_extra_stats_sinks_json, envoy_tracing_json, envoy_stats_config_json, envoy_listener_tracing_json). Key matching is case-insensitive to match the mapstructure decoding used downstream. Previously a holder of service:write on the proxy and its destination could inject arbitrary Envoy filter chain configuration into the sidecar bootstrap or xDS resources, including via a per-upstream override or a mixed-case key. [[GH-23901](https://github.com/hashicorp/consul/issues/23901)]
+* agent: Fixed a pre-authorization memory exhaustion vulnerability where
+an mTLS-authenticated RPC client with no ACL token could terminate a Consul server by
+sending a MessagePack request header with a large declared length. The MessagePack
+decoder allocated a byte slice of the declared size before method lookup, ACL token
+validation, or the rate-limiting interceptor could run, allowing a single oversized
+header to OOM-kill the server process.
+
+Two mitigations are applied:
+
+1. Each RPC request header is now validated against RPCMaxHeaderBytes (default 512
+   bytes) before it is decoded. Every length prefix in the header is checked against
+   the limit, so an oversized value is rejected before the decoder allocates memory
+   for it, and the connection is closed before any ACL evaluation. Request bodies
+   remain unbounded by this limit.
+
+2. A per-request read deadline (reusing RPCHandshakeTimeout) is applied inside
+   handleConsulConn and handleInsecureConn so that a slow attacker trickling an
+   oversized header cannot retain a goroutine and logical heap indefinitely. [[GH-23898](https://github.com/hashicorp/consul/issues/23898)]
+* catalog: Fixed an ACL bypass vulnerability in `Catalog.Register` where a caller
+with `node:write` on an attacker-controlled node name could supply a victim node's
+`Node.ID` to cascade-delete the victim node and all its services and health checks.
+`vetRegisterWithACL` checked ACLs only against the request's node name;
+`ensureNodeTxn` resolved by `Node.ID` first and silently deleted any existing node
+whose name differed. The fix looks up any existing node by the request's `Node.ID`
+before ACL evaluation and requires `node:write` on the existing node's real name
+when it differs from the request's name, mirroring the protection already present
+in `vetNodeTxnOp`. [[GH-23899](https://github.com/hashicorp/consul/issues/23899)]
+* catalog: Fixed an incorrect authorization vulnerability where a local
+ACL token with `service:write` or `node:write` could delete peer-imported catalog
+objects by supplying a non-default `PeerName` in a `Catalog.Deregister` request.
+Authorization was checked only against the local service or node name, not the peer
+origin, allowing deletion of objects in a peer-scoped catalog namespace the caller
+does not control. `Catalog.Deregister` now rejects any request whose `PeerName` is
+not the default, mirroring the existing guard on `Catalog.Register` and
+`Catalog.ListServices`. Legitimate peer-state deletion continues through the internal
+`PeeringBackend.CatalogDeregister` path. [[GH-23897](https://github.com/hashicorp/consul/issues/23897)]
+* security: Upgrade golang.org/x/mod to v0.41.0, golang.org/x/crypto to v0.57.0, and golang.org/x/net to v0.59.0 to address security vulnerabilities. [[GH-23913](https://github.com/hashicorp/consul/issues/23913)]
+* xds: escape regex metacharacters in service name, namespace, partition, and trust domain values when building Envoy RBAC SPIFFE match patterns, preventing an intention/authorization bypass via regex injection. [[GH-23900](https://github.com/hashicorp/consul/issues/23900)]
+
+BUG FIXES:
+
+* api-gateway: Fix a cold-start crash where an api-gateway's Envoy proxy could
+segfault during worker startup when a route's failover upstream was rendered as
+an aggregate cluster before its endpoints were assembled. Consul now holds each
+xDS stream's first push until the gateway's discovery-chain endpoints are ready
+(per-stream, first-push only, skipped for streams Envoy resumes, and bounded by
+a 30s deadline), and renders a failover upstream as a plain EDS cluster instead
+of an aggregate whenever its member endpoints are not yet available -- restoring
+full failover automatically once they arrive. Steady-state updates are never
+withheld. [[GH-23892](https://github.com/hashicorp/consul/issues/23892)]
+* api-gateway: Fixed a bug where a single misconfigured route on an API Gateway listener could cause discovery-chain
+synthesis to fail for the entire listener, dropping the xDS configuration for every other route sharing it.
+The misconfigured route is now skipped and logged instead, while the rest of the listener's routes continue to be served. [[GH-23891](https://github.com/hashicorp/consul/issues/23891)]
+
 ## 2.0.3 (August 7, 2026)
 SECURITY:
 
