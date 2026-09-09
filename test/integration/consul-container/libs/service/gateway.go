@@ -137,7 +137,7 @@ func (g gatewayContainer) Restart() error {
 
 func (g gatewayContainer) GetStatus() (string, error) {
 	state, err := g.container.State(g.ctx)
-	return state.Status, err
+	return string(state.Status), err
 }
 
 type GatewayConfig struct {
@@ -241,15 +241,15 @@ func NewGatewayServiceReg(ctx context.Context, gwCfg GatewayConfig, node libclus
 
 	portMappings := make(map[int]int)
 	for _, port := range ports {
-		portMappings[port] = info.MappedPorts[strconv.Itoa(port)].Int()
+		portMappings[port] = int(info.MappedPorts[strconv.Itoa(port)].Num())
 	}
 
 	out := &gatewayContainer{
 		ctx:          ctx,
 		container:    info.Container,
 		ip:           info.IP,
-		port:         info.MappedPorts[portStr].Int(),
-		adminPort:    info.MappedPorts[adminPortStr].Int(),
+		port:         int(info.MappedPorts[portStr].Num()),
+		adminPort:    int(info.MappedPorts[adminPortStr].Num()),
 		serviceName:  gwCfg.Name,
 		portMappings: portMappings,
 	}

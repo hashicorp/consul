@@ -156,7 +156,7 @@ func (g ConnectContainer) GetAdminAddr() (string, int) {
 
 func (g ConnectContainer) GetStatus() (string, error) {
 	state, err := g.container.State(g.ctx)
-	return state.Status, err
+	return string(state.Status), err
 }
 
 type SidecarConfig struct {
@@ -301,13 +301,13 @@ func NewConnectService(
 		ctx:               ctx,
 		container:         info.Container,
 		ip:                info.IP,
-		externalAdminPort: info.MappedPorts[adminPortStr].Int(),
+		externalAdminPort: int(info.MappedPorts[adminPortStr].Num()),
 		internalAdminPort: internalAdminPort,
 		serviceName:       sidecarCfg.Name,
 	}
 
 	for _, port := range appPortStrs {
-		out.appPort = append(out.appPort, info.MappedPorts[port].Int())
+		out.appPort = append(out.appPort, int(info.MappedPorts[port].Num()))
 	}
 
 	fmt.Printf("NewConnectService: name %s, mapped App Port %d, service bind port %v\n",
