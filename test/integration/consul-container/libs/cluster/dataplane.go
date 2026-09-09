@@ -60,7 +60,7 @@ func (g ConsulDataplaneContainer) Exec(ctx context.Context, cmd []string) (strin
 
 func (g ConsulDataplaneContainer) GetStatus() (string, error) {
 	state, err := g.container.State(g.ctx)
-	return state.Status, err
+	return string(state.Status), err
 }
 
 func NewConsulDataplane(ctx context.Context, proxyID string, serverAddresses string, grpcPort int, serviceBindPorts []int,
@@ -154,12 +154,12 @@ func NewConsulDataplane(ctx context.Context, proxyID string, serverAddresses str
 		container:         info.Container,
 		ip:                info.IP,
 		serviceName:       containerName,
-		externalAdminPort: info.MappedPorts[adminPortStr].Int(),
+		externalAdminPort: int(info.MappedPorts[adminPortStr].Num()),
 		internalAdminPort: internalAdminPort,
 	}
 
 	for _, port := range appPortStrs {
-		out.appPort = append(out.appPort, info.MappedPorts[port].Int())
+		out.appPort = append(out.appPort, int(info.MappedPorts[port].Num()))
 	}
 
 	fmt.Printf("NewConsulDataplane: proxyID %s, mapped App Port %d, service bind port %v\n",

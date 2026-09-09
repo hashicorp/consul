@@ -17,10 +17,9 @@ import (
 	"time"
 
 	goretry "github.com/avast/retry-go"
-	dockercontainer "github.com/docker/docker/api/types/container"
-	"github.com/docker/go-connections/nat"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-multierror"
+	dockercontainer "github.com/moby/moby/api/types/container"
 	"github.com/otiai10/copy"
 	"github.com/pkg/errors"
 	"github.com/testcontainers/testcontainers-go"
@@ -270,10 +269,7 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 
 	// TODO: Support gRPC+TLS port.
 	if pc.Ports.GRPC > 0 {
-		port, err := nat.NewPort("tcp", strconv.Itoa(pc.Ports.GRPC))
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse gRPC TLS port: %w", err)
-		}
+		port := fmt.Sprintf("%d/tcp", pc.Ports.GRPC)
 		endpoint, err := podContainer.PortEndpoint(ctx, port, "tcp")
 		if err != nil {
 			return nil, fmt.Errorf("failed to get gRPC TLS endpoint: %w", err)
