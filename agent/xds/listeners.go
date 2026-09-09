@@ -3211,7 +3211,7 @@ var tlsVersionsWithConfigurableCipherSuites = map[types.TLSVersion]struct{}{
 	types.TLSv1_2: {},
 }
 
-var defaultPQCECDHCurves = []string{"X25519MLKEM768", "X25519"}
+var defaultPQCECDHCurves = types.DefaultPQCECDHCurves
 
 func makeTLSParametersFromProxyTLSConfig(tlsConf *structs.MeshDirectionalTLSConfig) *envoy_tls_v3.TlsParameters {
 	if tlsConf == nil {

@@ -51,3 +51,24 @@ func TestTLSVersion_ToJSON(t *testing.T) {
 		require.Equal(t, tlsVersion, version)
 	}
 }
+
+func TestTLSECDHCurves_Validation(t *testing.T) {
+	// Valid curves for Consul Agent and Envoy
+	require.NoError(t, ValidateConsulAgentECDHCurves([]TLSECDHCurve{CurveX25519MLKEM768, CurveX25519}))
+	require.NoError(t, ValidateConsulAgentECDHCurves([]TLSECDHCurve{CurveP256, CurveP384, CurveP521}))
+	require.NoError(t, ValidateEnvoyECDHCurves([]string{"X25519MLKEM768", "X25519"}))
+	require.NoError(t, ValidateEnvoyECDHCurves([]string{"P-256", "P-384", "P-521"}))
+
+	// Invalid curve
+	require.ErrorContains(t, ValidateConsulAgentECDHCurves([]TLSECDHCurve{"secp256k1"}), "no matching Consul Agent TLS curve found for secp256k1")
+	require.ErrorContains(t, ValidateEnvoyECDHCurves([]string{"secp256k1"}), `unsupported ecdh_curve "secp256k1"`)
+
+	// Compatibility validation
+	require.NoError(t, ValidateTLSVersionECDHCurvesCompat(TLSVersionUnspecified))
+	require.NoError(t, ValidateTLSVersionECDHCurvesCompat(TLSVersionAuto))
+	require.NoError(t, ValidateTLSVersionECDHCurvesCompat(TLSv1_2))
+	require.NoError(t, ValidateTLSVersionECDHCurvesCompat(TLSv1_3))
+	require.ErrorContains(t, ValidateTLSVersionECDHCurvesCompat(TLSv1_0), "ecdh_curves can only be configured when tls_min_version is 'TLSv1_2' or higher")
+	require.ErrorContains(t, ValidateTLSVersionECDHCurvesCompat(TLSv1_1), "ecdh_curves can only be configured when tls_min_version is 'TLSv1_2' or higher")
+}
+

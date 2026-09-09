@@ -6,7 +6,6 @@ package structs
 import (
 	"encoding/json"
 	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/hashicorp/consul/acl"
@@ -380,12 +379,7 @@ var validEnvoyECDHCurves = map[string]struct{}{
 }
 
 func sortedEnvoyECDHCurves() []string {
-	curves := make([]string, 0, len(validEnvoyECDHCurves))
-	for c := range validEnvoyECDHCurves {
-		curves = append(curves, c)
-	}
-	sort.Strings(curves)
-	return curves
+	return types.SortedEnvoyECDHCurves()
 }
 
 func validateMeshDirectionalTLSConfig(cfg *MeshDirectionalTLSConfig) error {
@@ -402,17 +396,12 @@ func validateECDHCurves(minVersion types.TLSVersion, curves []string) error {
 	if len(curves) == 0 {
 		return nil
 	}
-	if err, isLessThanTLS13 := minVersion.LessThan(types.TLSv1_3); err != nil || isLessThanTLS13 {
-		return fmt.Errorf("ecdh_curves can only be configured when tls_min_version is 'TLSv1_3' or higher")
+	if err := types.ValidateTLSVersionECDHCurvesCompat(minVersion); err != nil {
+		return err
 	}
-	for _, c := range curves {
-		if _, ok := validEnvoyECDHCurves[c]; !ok {
-			return fmt.Errorf("unsupported ecdh_curve %q; must be one of [%s]",
-				c, strings.Join(sortedEnvoyECDHCurves(), ", "))
-		}
-	}
-	return nil
+	return types.ValidateEnvoyECDHCurves(curves)
 }
+
 
 func validateTLSConfig(
 	tlsMinVersion types.TLSVersion,

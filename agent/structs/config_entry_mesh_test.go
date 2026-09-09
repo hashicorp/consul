@@ -266,33 +266,56 @@ func TestMeshConfigEntry_validateMeshDirectionalTLSConfig(t *testing.T) {
 			},
 			wantErr: `unsupported ecdh_curve "INVALID_CURVE"; must be one of [P-256, P-384, P-521, X25519, X25519MLKEM768]`,
 		},
-		"ECDHCurves with TLSv1_2 is rejected": {
+		"ECDHCurves with TLSv1_2 is valid": {
 			input: &MeshDirectionalTLSConfig{
 				TLSMinVersion: types.TLSv1_2,
+				ECDHCurves:    []string{"X25519MLKEM768", "X25519"},
+			},
+			wantErr: "",
+		},
+		"ECDHCurves with TLS_AUTO is valid": {
+			input: &MeshDirectionalTLSConfig{
+				TLSMinVersion: types.TLSVersionAuto,
+				ECDHCurves:    []string{"X25519"},
+			},
+			wantErr: "",
+		},
+		"ECDHCurves with unspecified TLS version is valid": {
+			input: &MeshDirectionalTLSConfig{
+				TLSMinVersion: types.TLSVersionUnspecified,
 				ECDHCurves:    []string{"X25519MLKEM768"},
 			},
-			wantErr: "ecdh_curves can only be configured when tls_min_version is 'TLSv1_3' or higher",
+			wantErr: "",
 		},
 		"ECDHCurves with TLSv1_1 is rejected": {
 			input: &MeshDirectionalTLSConfig{
 				TLSMinVersion: types.TLSv1_1,
 				ECDHCurves:    []string{"X25519"},
 			},
-			wantErr: "ecdh_curves can only be configured when tls_min_version is 'TLSv1_3' or higher",
+			wantErr: "ecdh_curves can only be configured when tls_min_version is 'TLSv1_2' or higher, TLSMinVersion is set to TLSv1_1",
 		},
 		"ECDHCurves with TLSv1_0 is rejected": {
 			input: &MeshDirectionalTLSConfig{
 				TLSMinVersion: types.TLSv1_0,
 				ECDHCurves:    []string{"P-256"},
 			},
-			wantErr: "ecdh_curves can only be configured when tls_min_version is 'TLSv1_3' or higher",
+			wantErr: "ecdh_curves can only be configured when tls_min_version is 'TLSv1_2' or higher, TLSMinVersion is set to TLSv1_0",
 		},
-		"ECDHCurves with unspecified TLS version is rejected": {
+		"ECDHCurves and CipherSuites together with TLSv1_2 is valid": {
 			input: &MeshDirectionalTLSConfig{
-				TLSMinVersion: types.TLSVersionUnspecified,
+				TLSMinVersion: types.TLSv1_2,
+				CipherSuites:  []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256},
+				ECDHCurves:    []string{"X25519"},
+			},
+			wantErr: "",
+		},
+		"ECDHCurves and CipherSuites together with TLSv1_3 rejects cipher suites": {
+			input: &MeshDirectionalTLSConfig{
+				TLSMinVersion: types.TLSv1_3,
+				CipherSuites:  []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256},
 				ECDHCurves:    []string{"X25519MLKEM768"},
 			},
-			wantErr: "ecdh_curves can only be configured when tls_min_version is 'TLSv1_3' or higher",
+			wantErr: "configuring CipherSuites is only applicable to connections negotiated with TLS 1.2 or earlier, TLSMinVersion is set to TLSv1_3",
 		},
 	}
 	for name, tc := range tests {
@@ -342,12 +365,12 @@ func TestMeshConfigEntry_Validate_DirectionalTLS(t *testing.T) {
 			entry: &MeshConfigEntry{
 				TLS: &MeshTLSConfig{
 					Outgoing: &MeshDirectionalTLSConfig{
-						TLSMinVersion: types.TLSv1_2,
+						TLSMinVersion: types.TLSv1_1,
 						ECDHCurves:    []string{"X25519MLKEM768"},
 					},
 				},
 			},
-			wantErr: "error in outgoing TLS configuration: ecdh_curves can only be configured when tls_min_version is 'TLSv1_3' or higher",
+			wantErr: "error in outgoing TLS configuration: ecdh_curves can only be configured when tls_min_version is 'TLSv1_2' or higher, TLSMinVersion is set to TLSv1_1",
 		},
 	}
 	for name, tc := range tests {
