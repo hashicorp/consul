@@ -57,8 +57,7 @@
   margin-bottom: 0.3em;
 }
 
-/* Output row: copy button on the left, followed by the raw output text with
-   no surrounding box. */
+/* Output row: the raw output text followed by the copy button on the right. */
 %healthcheck-output dl:last-of-type dd {
   display: flex;
   align-items: flex-start;
@@ -74,7 +73,7 @@
 %healthcheck-output pre code {
   word-wrap: break-word;
 }
-%healthcheck-output .copy-button {
+%healthcheck-output .hds-copy-button {
   flex: 0 0 auto;
 }
 @media #{$--lt-spacious-healthcheck-output} {
