@@ -31,7 +31,9 @@ export default modifier(function fixSuperSelectAria(element) {
         if (!popup || POPUP_ROLES.includes(popup.getAttribute('role'))) {
           return;
         }
-        const listbox = popup.querySelector(POPUP_ROLES.map((role) => `[role="${role}"]`).join(', '));
+        const listbox = popup.querySelector(
+          POPUP_ROLES.map((role) => `[role="${role}"]`).join(', ')
+        );
         if (listbox) {
           // The dropdown has been opened at least once, so the real listbox
           // exists inside the wrapper — point the reference straight at it
@@ -117,41 +119,48 @@ export default modifier(function fixSuperSelectAria(element) {
       'aria-labelledby',
       'tabindex',
     ];
-    const RESTORED_ATTRS = ['role', 'aria-autocomplete', 'aria-haspopup', 'aria-labelledby', 'tabindex'];
-    element
-      .querySelectorAll('.ember-basic-dropdown-trigger[data-ebd-id]')
-      .forEach((trigger) => {
-        // role="combobox" is gone once demoted, so match on that *or* our
-        // own marker — otherwise a demoted trigger falls out of this query
-        // entirely and never gets restored once its popup closes.
-        if (trigger.getAttribute('role') !== 'combobox' && !trigger.hasAttribute('data-a11y-demoted')) {
-          return;
-        }
-        const uniqueId = trigger.getAttribute('data-ebd-id').replace(/-trigger$/, '');
-        const content = document.getElementById(`ember-basic-dropdown-content-${uniqueId}`);
-        const input = content && content.querySelector('input[role="combobox"]');
+    const RESTORED_ATTRS = [
+      'role',
+      'aria-autocomplete',
+      'aria-haspopup',
+      'aria-labelledby',
+      'tabindex',
+    ];
+    element.querySelectorAll('.ember-basic-dropdown-trigger[data-ebd-id]').forEach((trigger) => {
+      // role="combobox" is gone once demoted, so match on that *or* our
+      // own marker — otherwise a demoted trigger falls out of this query
+      // entirely and never gets restored once its popup closes.
+      if (
+        trigger.getAttribute('role') !== 'combobox' &&
+        !trigger.hasAttribute('data-a11y-demoted')
+      ) {
+        return;
+      }
+      const uniqueId = trigger.getAttribute('data-ebd-id').replace(/-trigger$/, '');
+      const content = document.getElementById(`ember-basic-dropdown-content-${uniqueId}`);
+      const input = content && content.querySelector('input[role="combobox"]');
 
-        if (input && !trigger.hasAttribute('data-a11y-demoted')) {
-          trigger.setAttribute('data-a11y-demoted', 'true');
-          DEMOTED_ATTRS.forEach((attr) => {
-            const value = trigger.getAttribute(attr);
-            if (value !== null && RESTORED_ATTRS.includes(attr)) {
-              trigger.setAttribute(`data-a11y-orig-${attr}`, value);
-            }
-            trigger.removeAttribute(attr);
-          });
-          trigger.setAttribute('tabindex', '-1');
-        } else if (!input && trigger.hasAttribute('data-a11y-demoted')) {
-          trigger.removeAttribute('data-a11y-demoted');
-          RESTORED_ATTRS.forEach((attr) => {
-            const orig = trigger.getAttribute(`data-a11y-orig-${attr}`);
-            if (orig !== null) {
-              trigger.setAttribute(attr, orig);
-            }
-            trigger.removeAttribute(`data-a11y-orig-${attr}`);
-          });
-        }
-      });
+      if (input && !trigger.hasAttribute('data-a11y-demoted')) {
+        trigger.setAttribute('data-a11y-demoted', 'true');
+        DEMOTED_ATTRS.forEach((attr) => {
+          const value = trigger.getAttribute(attr);
+          if (value !== null && RESTORED_ATTRS.includes(attr)) {
+            trigger.setAttribute(`data-a11y-orig-${attr}`, value);
+          }
+          trigger.removeAttribute(attr);
+        });
+        trigger.setAttribute('tabindex', '-1');
+      } else if (!input && trigger.hasAttribute('data-a11y-demoted')) {
+        trigger.removeAttribute('data-a11y-demoted');
+        RESTORED_ATTRS.forEach((attr) => {
+          const orig = trigger.getAttribute(`data-a11y-orig-${attr}`);
+          if (orig !== null) {
+            trigger.setAttribute(attr, orig);
+          }
+          trigger.removeAttribute(`data-a11y-orig-${attr}`);
+        });
+      }
+    });
 
     // role="combobox" isn't a valid explicit ARIA role on <input type="search">
     // per the ARIA-in-HTML mapping (only type="text"/no type allows it), but

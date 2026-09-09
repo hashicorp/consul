@@ -13,11 +13,6 @@ export default (submitable, cancelable, policySelector) => () => {
     },
     ...submitable(),
     ...cancelable(),
-    policies: policySelector(
-      '',
-      '[data-test-policy-create]',
-      '#new-role-policy',
-      'role[policy]'
-    ),
+    policies: policySelector('', '[data-test-policy-create]', '#new-role-policy', 'role[policy]'),
   };
 };
