@@ -120,13 +120,7 @@ as |item|}}
                   {{compute (fn route.t 'tolerance.optimistic.body')}}
                 </p>
                 <div class="server-failure-tolerance__value" aria-live="polite">
-                  <Hds::Badge
-                    @text={{item.OptimisticFailureTolerance}}
-                    @icon={{if (eq item.OptimisticFailureTolerance 0) "alert-circle" "check"}}
-                    @color={{if (eq item.OptimisticFailureTolerance 0) "warning" "success"}}
-                    @type="filled"
-                    @size="large"
-                  />
+                  <Hds::BadgeCount @text={{item.OptimisticFailureTolerance}} @size="large" @type="filled" @color="neutral" />
                 </div>
               </Hds::Card::Container>
               {{/if}}

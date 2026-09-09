@@ -3,14 +3,19 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-section[data-route='dc.show.serverstatus'] {
-  @extend %serverstatus-route;
-}
-%serverstatus-route .server-failure-tolerance,
+/* These rules are anchored on the component class names rather than on the
+   route's [data-route] attribute. That attribute is set on the outlet from an
+   afterRender callback (see `addRoute` in app/services/routlet.js) and is never
+   cleared on teardown, so during a route transition it lags behind the
+   rendered content and any rules scoped to it stop matching — which dropped
+   the layout on page change. */
+
 .server-failure-tolerance {
   @extend %server-failure-tolerance;
 }
-%serverstatus-route .redundancy-zones {
+/* %redundancy-zones carries no properties of its own; it exists so the zone
+   `section`s nested inside it pick up %redundancy-zone. */
+.redundancy-zones {
   @extend %redundancy-zones;
 }
 %redundancy-zones section {
@@ -19,9 +24,9 @@ section[data-route='dc.show.serverstatus'] {
 
 /**/
 
-%serverstatus-route h2,
-%serverstatus-route h3,
-.server-failure-tolerance > header > h2 {
+.server-failure-tolerance > header > h2,
+.server-failure-tolerance ~ section h2,
+.server-failure-tolerance ~ section h3 {
   @extend %display-300-semibold;
 }
 
@@ -60,12 +65,10 @@ section[data-route='dc.show.serverstatus'] {
   content: '';
 }
 
-%serverstatus-route section h2,
 .server-failure-tolerance ~ section h2 {
   margin-top: 1.5rem; /* 24px */
   margin-bottom: 1.5rem; /* 24px */
 }
-%serverstatus-route section header,
 .server-failure-tolerance ~ section header {
   margin-top: 18px;
   margin-bottom: 18px;
