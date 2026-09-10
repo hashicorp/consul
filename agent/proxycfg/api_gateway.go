@@ -796,21 +796,24 @@ func (h *handlerAPIGateway) watchIngressLeafCert(ctx context.Context, snap *Conf
 	return nil
 }
 
-// apiGatewayTLSServingEnabled returns true if the gateway-level TLS flag is
-// enabled (APIGatewayConfigEntry.TLS.Enabled). This is the sole signal that
-// the gateway terminates downstream TLS and therefore needs DNS SANs in its
-// leaf certificate.
+// apiGatewayTLSServingEnabled returns true if downstream TLS termination is
+// active on the API gateway — either globally via the gateway-level TLS flag
+// (APIGatewayConfigEntry.TLS.Enabled) or on at least one bound listener (a
+// listener carries certificates or an SDS source).
 //
-// Listener-level TLS configuration (APIGatewayTLSConfiguration.Certificates /
-// SDS) controls which custom certificate is presented on a given listener, not
-// whether TLS is active — so it is intentionally not checked here.
+// This mirrors connectTLSServingEnabled used by ingress gateways. DNS SANs are
+// only needed when the gateway actually terminates TLS for downstream clients.
 //
-// This mirrors the connectTLSServingEnabled guard used by ingress gateways.
-// The leaf cert itself is always requested regardless (see watchIngressLeafCert)
-// because the gateway uses it as a client cert for outbound mTLS even when
-// downstream TLS is off. Only the DNS SAN set is gated here.
+// Note: the leaf cert itself is always requested (see watchIngressLeafCert)
+// because the gateway needs it as a client cert for outbound mTLS even when no
+// listener terminates downstream TLS. Only the DNS SAN set is gated here.
 func apiGatewayTLSServingEnabled(snap *ConfigSnapshot) bool {
-	return snap.APIGateway.TLSConfig.Enabled
+	// Gateway-level global TLS flag (APIGatewayConfigEntry.TLS.Enabled).
+	if snap.APIGateway.TLSConfig.Enabled {
+		return true
+	}
+
+	return false
 }
 
 // generateAPIGatewayDNSSANs returns the set of DNS Subject Alternative Names that
