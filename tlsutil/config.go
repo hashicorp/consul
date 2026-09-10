@@ -87,7 +87,6 @@ type ProtocolConfig struct {
 	// ECDHCurves is the list of ECDH/KEM curves to use for key agreement.
 	ECDHCurves []types.TLSECDHCurve
 
-
 	// VerifyOutgoing is used to verify the authenticity of outgoing
 	// connections.  This means that TLS requests are used, and TCP
 	// requests are not made. TLS connections must match a provided
@@ -609,7 +608,6 @@ func (c *Configurator) commonTLSConfig(state protocolConfig, cfg ProtocolConfig,
 		curves, _ := curveLookup(cfg.ECDHCurves)
 		tlsConfig.CurvePreferences = curves
 	}
-
 
 	// GetCertificate is used when acting as a server and responding to
 	// client requests. Default to the manually configured cert, but allow
@@ -1229,4 +1227,3 @@ func curveLookup(curves []types.TLSECDHCurve) ([]tls.CurveID, error) {
 
 	return out, nil
 }
-

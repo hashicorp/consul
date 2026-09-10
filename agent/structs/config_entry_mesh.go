@@ -402,7 +402,6 @@ func validateECDHCurves(minVersion types.TLSVersion, curves []string) error {
 	return types.ValidateEnvoyECDHCurves(curves)
 }
 
-
 func validateTLSConfig(
 	tlsMinVersion types.TLSVersion,
 	tlsMaxVersion types.TLSVersion,

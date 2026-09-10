@@ -88,7 +88,6 @@ const (
 	AgentMinSupportedTLSVersion = TLSv1_2
 )
 
-
 func (v *TLSVersion) String() string {
 	return string(*v)
 }
@@ -338,4 +337,3 @@ func ValidateTLSVersionECDHCurvesCompat(tlsMinVersion TLSVersion) error {
 	}
 	return nil
 }
-

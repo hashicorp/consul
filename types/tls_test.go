@@ -71,4 +71,3 @@ func TestTLSECDHCurves_Validation(t *testing.T) {
 	require.ErrorContains(t, ValidateTLSVersionECDHCurvesCompat(TLSv1_0), "ecdh_curves can only be configured when tls_min_version is 'TLSv1_2' or higher")
 	require.ErrorContains(t, ValidateTLSVersionECDHCurvesCompat(TLSv1_1), "ecdh_curves can only be configured when tls_min_version is 'TLSv1_2' or higher")
 }
-
