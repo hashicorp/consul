@@ -19,7 +19,7 @@
 #
 repos:
 -   repo: https://github.com/hashicorp/hashiguard-hooks
-    rev: v0.2.0
+    rev: v0.2.1
     hooks:
     # Blocks commits that introduce internal Jira issue IDs (e.g. IPENG-123,
     # CONSUL-456) into CE repository code, branch names, and commit messages.
