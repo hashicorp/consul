@@ -4,21 +4,14 @@
  */
 
 import Component from '@glimmer/component';
+import { inject as service } from '@ember/service';
 
-const HEALTH_OPTIONS = [
-  { value: 'passing', label: 'Passing' },
-  { value: 'warning', label: 'Warning' },
-  { value: 'critical', label: 'Critical' },
-];
+import {
+  healthOptions as buildHealthOptions,
+  healthQuickFilters as buildHealthQuickFilters,
+} from 'consul-ui/utils/health-filter-options';
 
-// Quick-filter health buttons shown in the segmented control next to the
-// Filter Bar. `value` maps to the same `status` filter values used by the
-// "Health" group inside the Filter Bar, so both stay in sync.
-const HEALTH_QUICK_FILTERS = [
-  { value: 'passing', label: 'Passing', icon: 'check-circle' },
-  { value: 'warning', label: 'Warning', icon: 'alert-triangle' },
-  { value: 'critical', label: 'Critical', icon: 'x-circle' },
-];
+const HEALTH_STATUSES = ['passing', 'warning', 'critical'];
 
 /**
  * Consul::Node::Toolbar
@@ -29,7 +22,11 @@ const HEALTH_QUICK_FILTERS = [
  * in the generic toolbar.
  */
 export default class ConsulNodeToolbar extends Component {
-  healthQuickFilters = HEALTH_QUICK_FILTERS;
+  @service intl;
+
+  get healthQuickFilters() {
+    return buildHealthQuickFilters(this.intl);
+  }
 
   // The Consul versions available for filtering come from the API as a list of
   // raw version strings; display them as "<version>.x" to match the old UI.
@@ -43,7 +40,13 @@ export default class ConsulNodeToolbar extends Component {
   // The multi-select filter groups passed to the generic toolbar. The version
   // group is only included when the API reports more than one version.
   get filterGroups() {
-    const groups = [{ key: 'status', text: 'Health', options: HEALTH_OPTIONS }];
+    const groups = [
+      {
+        key: 'status',
+        text: 'Health',
+        options: buildHealthOptions(this.intl, HEALTH_STATUSES),
+      },
+    ];
     if (this.versionOptions.length) {
       groups.push({
         key: 'version',

@@ -30,6 +30,7 @@ consul:
   passing: Passing
   warning: Warning
   critical: Critical
+  unknown: Unknown
   registered: Registered
   not-registered: Not Registered
   empty: No checks
