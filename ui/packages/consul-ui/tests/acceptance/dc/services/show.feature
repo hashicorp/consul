@@ -261,6 +261,27 @@ Feature: dc / services / show: Show Service
     ---
     # The external dashboard link should use the Service.Name not the ID
     And I see href on the dashboardAnchor like "https://something.com?service-0&dc1"
+  Scenario: Given a dashboard template includes service meta
+    Given 1 datacenter model with the value "dc1"
+    And 1 node models
+    And 1 service model from yaml
+    ---
+    - Service:
+        Kind: ~
+        Meta:
+          dashboard: G7Z29GzMGz
+    ---
+    And ui_config from yaml
+    ---
+    dashboard_url_templates:
+      service: https://grafana.service.consul/d/{{Service.Meta.dashboard}}
+    ---
+    When I visit the service page for yaml
+    ---
+      dc: dc1
+      service: service-0
+    ---
+    And I see href on the dashboardAnchor like "https://grafana.service.consul/d/G7Z29GzMGz"
   Scenario: With no access to service
     Given 1 datacenter model with the value "dc1"
     And permissions from yaml
