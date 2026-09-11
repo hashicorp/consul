@@ -75,11 +75,11 @@ dc:
         learn: Take the tutorial
     show:
       rtt:
-        title: Round Trip Time
+        title: Round trip time
       metadata:
         title: Metadata
       sessions:
-        title: Lock Sessions
+        title: Lock sessions
         empty:
           header: Welcome to Lock Sessions
           body: |
@@ -90,7 +90,7 @@ dc:
             }
             </p>
       services:
-        title: Service Instances
+        title: Service instances
         empty: |
           <p>
             This Node has no Service Instances{items, select,
@@ -99,7 +99,7 @@ dc:
             }.
           </p>
       healthchecks:
-        title: Health Checks
+        title: Health checks
         empty: |
           <p>
             This Node has no Health Checks{items, select,

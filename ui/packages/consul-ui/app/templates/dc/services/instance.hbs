@@ -157,7 +157,7 @@
               @items={{compact
                 (array
                   (hash
-                    label='Health Checks'
+                    label='Health checks'
                     href=(href-to 'dc.services.instance.healthchecks')
                     selected=(is-href 'dc.services.instance.healthchecks')
                   )
@@ -180,13 +180,13 @@
                   (if
                     this.proxy
                     (hash
-                      label='Exposed Paths'
+                      label='Exposed paths'
                       href=(href-to 'dc.services.instance.exposedpaths')
                       selected=(is-href 'dc.services.instance.exposedpaths')
                     )
                   )
                   (hash
-                    label='Tags & Meta'
+                    label='Tags & meta'
                     href=(href-to 'dc.services.instance.metadata')
                     selected=(is-href 'dc.services.instance.metadata')
                   )
