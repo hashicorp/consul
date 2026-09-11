@@ -7,8 +7,9 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
@@ -368,4 +369,345 @@ func TestRecompileDiscoveryChains_ListenerAllRoutesUnknownKindOnly(t *testing.T)
 		"the unknown-kind error must reach the logs even via synthesizeChains' len(chains)==0 early return")
 	require.Contains(t, logBuf.String(), "listener-1",
 		"the warning should identify which listener the unknown-kind route was on")
+}
+
+// TestDiscoveryChainsMissingEndpoints_OrphanChainSkipped is the direct regression
+// test for the "noisy-neighbour" bug introduced by PR #13169 where a single
+// HTTPRoute backend that failed BackendRef resolution (e.g. namespace
+// "gapi-blue" does not exist) left an orphan chain in DiscoveryChain that was
+// never added to any listener's Upstreams map. The pre-fix predicate iterated all
+// chains — including orphan ones — and reported the orphan's unsatisfied EDS
+// targets as missing, which permanently blocked snapshot admission and caused
+// "no healthy upstream" 503 for every route on the gateway.
+//
+// Three sub-cases confirm the predicate behaves correctly:
+//
+//  1. All chains in Upstreams, all endpoints present  → nothing missing
+//  2. Orphan chain (not in Upstreams) whose target has no endpoints:
+//     pre-fix: reported missing (bug — blocks admission)
+//     post-fix: not reported (orphan is skipped)
+//  3. Active chain (in Upstreams) whose target has no endpoints → reported missing
+//     (the gate still fires for genuinely-missing EDS data)
+func TestDiscoveryChainsMissingEndpoints_OrphanChainSkipped(t *testing.T) {
+	t.Parallel()
+
+	// Build two real chains: one for the active service (in a listener upstream)
+	// and one for the orphan (BackendNotFound — never put in Upstreams).
+	activeUID := NewUpstreamIDFromServiceName(structs.NewServiceName("active-svc", nil))
+	orphanUID := NewUpstreamIDFromServiceName(structs.NewServiceName("orphan-svc", nil))
+
+	activeChain := mustCompileTestHTTPChain(t, "active-svc")
+	orphanChain := mustCompileTestHTTPChain(t, "orphan-svc")
+
+	// Identify the single target ID in each chain (mustCompileTestHTTPChain
+	// produces a one-target chain).
+	var activeTargetID string
+	for id := range activeChain.Targets {
+		activeTargetID = id
+		break
+	}
+	var orphanTargetID string
+	for id := range orphanChain.Targets {
+		orphanTargetID = id
+		break
+	}
+
+	// Build the listenerRouteUpstreams that represents the resolved listener
+	// state: only active-svc reaches a listener; orphan-svc (BackendNotFound)
+	// does not.
+	routeRef := structs.ResourceReference{Kind: structs.HTTPRoute, Name: "good-route"}
+	listenerKey := APIGatewayListenerKey{Protocol: "http", Port: 8080}
+	// Do NOT set Datacenter here: NewUpstreamID normalises empty DC to ""
+	// (no "?dc=" suffix), matching NewUpstreamIDFromServiceName's output.
+	activeUpstream := structs.Upstream{DestinationName: "active-svc", DestinationNamespace: "default", DestinationPartition: "default"}
+	upstreams := listenerRouteUpstreams{}
+	upstreams.set(routeRef, listenerKey, structs.Upstreams{activeUpstream})
+
+	// localKey matches the DC/partition of all test chains so no mesh-gateway
+	// path is taken; this keeps the subtests focused on the orphan-chain gate.
+	localKey := GatewayKey{Datacenter: "dc1", Partition: "default"}
+
+	t.Run("all_active_endpoints_present_returns_true", func(t *testing.T) {
+		snap := &configSnapshotAPIGateway{
+			ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
+				DiscoveryChain: map[UpstreamID]*structs.CompiledDiscoveryChain{
+					activeUID: activeChain,
+					orphanUID: orphanChain,
+				},
+				WatchedUpstreamEndpoints: map[UpstreamID]map[string]structs.CheckServiceNodes{
+					// active chain has its EDS data populated
+					activeUID: {activeTargetID: structs.CheckServiceNodes{}},
+					// orphan chain also populated (unrelated — demonstrates gating
+					// only on Upstreams membership regardless of EDS state)
+					orphanUID: {orphanTargetID: structs.CheckServiceNodes{}},
+				},
+			},
+			Upstreams: upstreams,
+		}
+		wireReadyListener(snap, listenerKey, routeRef)
+		require.Empty(t, snap.discoveryChainsMissingEndpoints(localKey),
+			"when all active chains have endpoints, the gate must report nothing missing")
+	})
+
+	t.Run("orphan_chain_no_endpoints_returns_true", func(t *testing.T) {
+		// This is the exact regression scenario: orphan chain's EDS target is
+		// absent from WatchedUpstreamEndpoints, but because orphan-svc is NOT
+		// in Upstreams, the gate must skip it and return true.
+		snap := &configSnapshotAPIGateway{
+			ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
+				DiscoveryChain: map[UpstreamID]*structs.CompiledDiscoveryChain{
+					activeUID: activeChain,
+					orphanUID: orphanChain,
+				},
+				WatchedUpstreamEndpoints: map[UpstreamID]map[string]structs.CheckServiceNodes{
+					// active chain has its EDS data
+					activeUID: {activeTargetID: structs.CheckServiceNodes{}},
+					// orphan chain intentionally has NO entry — simulates the
+					// BackendNotFound case where watch was never registered
+				},
+			},
+			Upstreams: upstreams,
+		}
+		wireReadyListener(snap, listenerKey, routeRef)
+		require.Empty(t, snap.discoveryChainsMissingEndpoints(localKey),
+			"orphan chain (not in Upstreams) with missing endpoints must NOT block admission — "+
+				"this is the PR #13169 regression guard")
+	})
+
+	t.Run("active_chain_missing_endpoints_returns_false", func(t *testing.T) {
+		// Confirm the gate still fires correctly when a *real* active upstream
+		// is missing its EDS data (cold-start window, not an orphan).
+		snap := &configSnapshotAPIGateway{
+			ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
+				DiscoveryChain: map[UpstreamID]*structs.CompiledDiscoveryChain{
+					activeUID: activeChain,
+				},
+				WatchedUpstreamEndpoints: map[UpstreamID]map[string]structs.CheckServiceNodes{
+					// active chain's EDS target deliberately missing
+				},
+			},
+			Upstreams: upstreams,
+		}
+		wireReadyListener(snap, listenerKey, routeRef)
+		require.NotEmpty(t, snap.discoveryChainsMissingEndpoints(localKey),
+			"active chain (in Upstreams) with missing EDS target must still be reported missing — "+
+				"the cold-start gate must remain intact for genuine EDS lag")
+	})
+
+	t.Run("mesh_gateway_endpoints_missing_returns_false", func(t *testing.T) {
+		// Regression guard for the rolling-restart segfault: a service whose
+		// discovery-chain target lives in a remote datacenter (dc2) routes
+		// through a remote mesh gateway. makeLoadAssignmentEndpointGroup checks
+		// WatchedGatewayEndpoints for those targets. If that watch hasn't fired
+		// yet, it returns valid=false, EDS is skipped, but CDS already emitted
+		// the cluster → segfault. This subtest ensures the gate also blocks on
+		// WatchedGatewayEndpoints.
+		//
+		// The single target has MeshGatewayModeRemote and lives in a remote
+		// datacenter (dc2 != localKey's dc1) so that localKey.Matches() returns
+		// false and the gateway-endpoint check is triggered. Using a remote
+		// datacenter (not a remote partition) keeps this identical under CE and ent.
+		remoteUID := NewUpstreamIDFromServiceName(structs.NewServiceName("remote-svc", nil))
+		remoteTargetID := "remote-svc.default.default.dc2"
+
+		remoteChain := &structs.CompiledDiscoveryChain{
+			ServiceName: "remote-svc",
+			Namespace:   "default",
+			Partition:   "default",
+			Datacenter:  "dc2",
+			StartNode:   "resolver:remote-svc.default.default.dc2",
+			Nodes: map[string]*structs.DiscoveryGraphNode{
+				"resolver:remote-svc.default.default.dc2": {
+					Type: structs.DiscoveryGraphNodeTypeResolver,
+					Name: "remote-svc",
+					Resolver: &structs.DiscoveryResolver{
+						ConnectTimeout: 5000000000,
+						Target:         remoteTargetID,
+					},
+				},
+			},
+			Targets: map[string]*structs.DiscoveryTarget{
+				remoteTargetID: {
+					ID:          remoteTargetID,
+					Service:     "remote-svc",
+					Namespace:   "default",
+					Partition:   "default",
+					Datacenter:  "dc2",
+					MeshGateway: structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
+				},
+			},
+		}
+
+		remoteRouteRef := structs.ResourceReference{Kind: structs.HTTPRoute, Name: "remote-route"}
+		remoteUpstream := structs.Upstream{DestinationName: "remote-svc", DestinationNamespace: "default", DestinationPartition: "default"}
+		remoteUpstreams := listenerRouteUpstreams{}
+		remoteUpstreams.set(remoteRouteRef, listenerKey, structs.Upstreams{remoteUpstream})
+
+		snap := &configSnapshotAPIGateway{
+			ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
+				DiscoveryChain: map[UpstreamID]*structs.CompiledDiscoveryChain{
+					remoteUID: remoteChain,
+				},
+				WatchedUpstreamEndpoints: map[UpstreamID]map[string]structs.CheckServiceNodes{
+					// upstream endpoint watch fired (real service nodes populated)
+					remoteUID: {remoteTargetID: structs.CheckServiceNodes{}},
+				},
+				// WatchedGatewayEndpoints intentionally absent — gateway watch hasn't fired yet
+				WatchedGatewayEndpoints: map[UpstreamID]map[string]structs.CheckServiceNodes{},
+			},
+			Upstreams: remoteUpstreams,
+		}
+		wireReadyListener(snap, listenerKey, remoteRouteRef)
+		require.NotEmpty(t, snap.discoveryChainsMissingEndpoints(localKey),
+			"active chain with a remote mesh-gateway target whose WatchedGatewayEndpoints "+
+				"has not yet been populated must block snapshot admission (rolling-restart segfault guard)")
+	})
+
+	t.Run("mesh_gateway_endpoints_present_returns_true", func(t *testing.T) {
+		// Same setup as above but with WatchedGatewayEndpoints populated — gate must pass.
+		remoteUID := NewUpstreamIDFromServiceName(structs.NewServiceName("remote-svc", nil))
+		remoteTargetID := "remote-svc.default.default.dc2"
+
+		remoteChain := &structs.CompiledDiscoveryChain{
+			ServiceName: "remote-svc",
+			Namespace:   "default",
+			Partition:   "default",
+			Datacenter:  "dc2",
+			StartNode:   "resolver:remote-svc.default.default.dc2",
+			Nodes: map[string]*structs.DiscoveryGraphNode{
+				"resolver:remote-svc.default.default.dc2": {
+					Type: structs.DiscoveryGraphNodeTypeResolver,
+					Name: "remote-svc",
+					Resolver: &structs.DiscoveryResolver{
+						ConnectTimeout: 5000000000,
+						Target:         remoteTargetID,
+					},
+				},
+			},
+			Targets: map[string]*structs.DiscoveryTarget{
+				remoteTargetID: {
+					ID:          remoteTargetID,
+					Service:     "remote-svc",
+					Namespace:   "default",
+					Partition:   "default",
+					Datacenter:  "dc2",
+					MeshGateway: structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
+				},
+			},
+		}
+
+		remoteRouteRef := structs.ResourceReference{Kind: structs.HTTPRoute, Name: "remote-route"}
+		remoteUpstream := structs.Upstream{DestinationName: "remote-svc", DestinationNamespace: "default", DestinationPartition: "default"}
+		remoteUpstreams := listenerRouteUpstreams{}
+		remoteUpstreams.set(remoteRouteRef, listenerKey, structs.Upstreams{remoteUpstream})
+
+		gwKey := GatewayKey{Datacenter: "dc2", Partition: "default"}
+		snap := &configSnapshotAPIGateway{
+			ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
+				DiscoveryChain: map[UpstreamID]*structs.CompiledDiscoveryChain{
+					remoteUID: remoteChain,
+				},
+				WatchedUpstreamEndpoints: map[UpstreamID]map[string]structs.CheckServiceNodes{
+					remoteUID: {remoteTargetID: structs.CheckServiceNodes{}},
+				},
+				WatchedGatewayEndpoints: map[UpstreamID]map[string]structs.CheckServiceNodes{
+					// gateway watch has fired
+					remoteUID: {gwKey.String(): structs.CheckServiceNodes{}},
+				},
+			},
+			Upstreams: remoteUpstreams,
+		}
+		wireReadyListener(snap, listenerKey, remoteRouteRef)
+		require.Empty(t, snap.discoveryChainsMissingEndpoints(localKey),
+			"active chain with a remote mesh-gateway target whose WatchedGatewayEndpoints "+
+				"is populated must allow snapshot admission")
+	})
+}
+
+// TestAPIGatewayCompleteness_CoalesceRace documents how this approach (B)
+// handles the coalesce-window race described in ITCO-15826 (cold-start segfault).
+//
+// The scenario:
+//  1. Chains for some services have arrived with their endpoint data.
+//  2. During the coalesce delay, another chain (svc2) arrives via handleUpdate
+//     but its endpoint watch has NOT yet fired (svc2 not in
+//     WatchedUpstreamEndpoints yet).
+//  3. If a snapshot were pushed in this window it would carry a CDS cluster for
+//     svc2 with no matching EDS — the cold-start segfault path.
+//
+// In approach B, valid() intentionally does NOT gate on endpoints — proxycfg
+// keeps delivering snapshots so steady-state churn is never starved. The
+// CDS/EDS coherence gate lives per-stream in the xDS layer, which consults
+// discoveryChainsMissingEndpoints to hold only a stream's FIRST push. This test
+// verifies that split: valid() stays true during the race, while the
+// completeness predicate correctly reports svc2's target as missing until its
+// endpoints arrive.
+func TestAPIGatewayCompleteness_CoalesceRace(t *testing.T) {
+	t.Parallel()
+
+	routeRef := structs.ResourceReference{Kind: structs.HTTPRoute, Name: "routes"}
+	listenerKey := APIGatewayListenerKey{Protocol: "http", Port: 8080}
+	localKey := GatewayKey{Datacenter: "dc1", Partition: "default"}
+
+	// Build two active chains (both registered in Upstreams).
+	svc1UID := NewUpstreamIDFromServiceName(structs.NewServiceName("svc1", nil))
+	svc2UID := NewUpstreamIDFromServiceName(structs.NewServiceName("svc2", nil))
+	svc1Chain := mustCompileTestHTTPChain(t, "svc1")
+	svc2Chain := mustCompileTestHTTPChain(t, "svc2")
+
+	var svc1TargetID, svc2TargetID string
+	for id := range svc1Chain.Targets {
+		svc1TargetID = id
+	}
+	for id := range svc2Chain.Targets {
+		svc2TargetID = id
+	}
+
+	svc1Up := structs.Upstream{DestinationName: "svc1", DestinationNamespace: "default", DestinationPartition: "default"}
+	svc2Up := structs.Upstream{DestinationName: "svc2", DestinationNamespace: "default", DestinationPartition: "default"}
+	ups := listenerRouteUpstreams{}
+	ups.set(routeRef, listenerKey, structs.Upstreams{svc1Up, svc2Up})
+
+	// Simulate the coalesce-window race: svc2 chain arrived but its endpoint
+	// watch has not fired yet (no entry in WatchedUpstreamEndpoints for svc2).
+	snapPartial := &configSnapshotAPIGateway{
+		GatewayConfigLoaded:      true,
+		BoundGatewayConfigLoaded: true,
+		ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
+			Leaf: &structs.IssuedCert{},
+			DiscoveryChain: map[UpstreamID]*structs.CompiledDiscoveryChain{
+				svc1UID: svc1Chain,
+				svc2UID: svc2Chain, // svc2 chain present but endpoints not yet
+			},
+			WatchedUpstreamEndpoints: map[UpstreamID]map[string]structs.CheckServiceNodes{
+				svc1UID: {svc1TargetID: structs.CheckServiceNodes{}}, // svc1 ready
+				// svc2 endpoint watch has NOT fired yet — this is the race window
+			},
+			WatchedGatewayEndpoints: map[UpstreamID]map[string]structs.CheckServiceNodes{},
+		},
+		Upstreams: ups,
+	}
+	wireReadyListener(snapPartial, listenerKey, routeRef)
+
+	// Approach B: valid() must NOT gate on endpoints. proxycfg keeps delivering;
+	// the cold-start coherence gate is applied per-stream in the xDS layer.
+	require.True(t, snapPartial.valid(),
+		"approach B: valid() must stay true during the race — the stream-level gate "+
+			"handles cold-start CDS/EDS coherence, so proxycfg is never starved")
+
+	// The completeness predicate (consumed by the xDS stream gate) must report
+	// svc2's target as missing during the race window.
+	require.ElementsMatch(t,
+		[]string{svc2UID.String() + "/" + svc2TargetID},
+		snapPartial.discoveryChainsMissingEndpoints(localKey),
+		"the predicate must report svc2's target as missing so the stream gate "+
+			"holds the first push (cold-start segfault fix, ITCO-15826)")
+
+	// Simulate the endpoint watch for svc2 firing — now the snapshot is complete.
+	snapPartial.WatchedUpstreamEndpoints[svc2UID] = map[string]structs.CheckServiceNodes{
+		svc2TargetID: {},
+	}
+	require.Empty(t, snapPartial.discoveryChainsMissingEndpoints(localKey),
+		"once svc2 endpoints arrive the predicate reports complete and the stream "+
+			"gate opens")
 }

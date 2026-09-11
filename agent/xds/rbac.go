@@ -5,6 +5,7 @@ package xds
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -1153,6 +1154,21 @@ func makeSpiffePattern(src rbacService) string {
 		host = src.TrustDomain
 	}
 
+	// Escape regex metacharacters in user-controlled values so they are matched
+	// literally. Service names, namespaces, and partitions may legitimately
+	// contain characters such as '.', '|', or '+' which would otherwise be
+	// interpreted as regex operators and could broaden the RBAC match beyond the
+	// intended identity, bypassing intention enforcement. The anyPath ('[^/]+')
+	// values are intentional regex wildcards and must not be escaped.
+	if ns != anyPath {
+		ns = regexp.QuoteMeta(ns)
+	}
+	if svc != anyPath {
+		svc = regexp.QuoteMeta(svc)
+	}
+	ap = regexp.QuoteMeta(ap)
+	host = regexp.QuoteMeta(host)
+
 	id := connect.SpiffeIDService{
 		Namespace: ns,
 		Service:   svc,
@@ -1170,8 +1186,10 @@ func makeSpiffePattern(src rbacService) string {
 
 func makeSpiffeMeshGatewayPattern(gwTrustDomain, gwPartition string) string {
 	id := connect.SpiffeIDMeshGateway{
-		Host:      gwTrustDomain,
-		Partition: gwPartition,
+		// Escape regex metacharacters so user-controlled values are matched
+		// literally rather than being interpreted as regex operators.
+		Host:      regexp.QuoteMeta(gwTrustDomain),
+		Partition: regexp.QuoteMeta(gwPartition),
 		// Datacenter is not verified by RBAC, so we match on any value.
 		Datacenter: anyPath,
 	}
