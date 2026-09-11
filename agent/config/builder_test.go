@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -47,6 +48,54 @@ func TestLoad(t *testing.T) {
 	require.NotNil(t, cfg)
 	require.Equal(t, "hobbiton", cfg.NodeName)
 	require.Equal(t, 1*time.Millisecond, cfg.CheckReapInterval)
+}
+
+// TestLoad_TLSCertFileMustExist reproduces
+// https://github.com/hashicorp/consul/issues/23820: a typo'd path to a TLS
+// certificate file used to pass config validation cleanly and only fail
+// once the agent tried to start and load the (nonexistent) file.
+func TestLoad_TLSCertFileMustExist(t *testing.T) {
+	devMode := true
+
+	_, err := Load(LoadOpts{
+		DevMode: &devMode,
+		DefaultConfig: FileSource{
+			Name:   "test",
+			Format: "hcl",
+			Data: `
+				node_name = "hobbiton"
+				tls {
+					internal_rpc {
+						cert_file = "/tmp/does-not-exist-consul-tls-cert.pem"
+					}
+				}
+			`,
+		},
+	})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "tls.internal_rpc.cert_file")
+	require.Contains(t, err.Error(), "does not exist")
+
+	certFile := filepath.Join(t.TempDir(), "cert.pem")
+	require.NoError(t, os.WriteFile(certFile, []byte("test"), 0600))
+
+	result, err := Load(LoadOpts{
+		DevMode: &devMode,
+		DefaultConfig: FileSource{
+			Name:   "test",
+			Format: "hcl",
+			Data: fmt.Sprintf(`
+				node_name = "hobbiton"
+				tls {
+					internal_rpc {
+						cert_file = %q
+					}
+				}
+			`, certFile),
+		},
+	})
+	require.NoError(t, err)
+	require.Equal(t, certFile, result.RuntimeConfig.TLS.InternalRPC.CertFile)
 }
 
 func TestShouldParseFile(t *testing.T) {
@@ -674,6 +723,11 @@ func TestBuilder_tlsVersion(t *testing.T) {
 }
 
 func TestBuilder_WarnGRPCTLS(t *testing.T) {
+	// cert_file only needs to exist on disk for these cases; its contents
+	// are never read by the validation being exercised here.
+	certFile := filepath.Join(t.TempDir(), "cert.pem")
+	require.NoError(t, os.WriteFile(certFile, []byte("test"), 0600))
+
 	tests := []struct {
 		name      string
 		hcl       string
@@ -686,34 +740,34 @@ func TestBuilder_WarnGRPCTLS(t *testing.T) {
 		},
 		{
 			name: "grpc_tls is disabled but explicitly defined",
-			hcl: `
+			hcl: fmt.Sprintf(`
 			ports { grpc_tls = -1 }
-			tls { grpc { cert_file = "defined" }}
-			`,
+			tls { grpc { cert_file = %q }}
+			`, certFile),
 			// This behavior is a little strange, but it allows users
 			// to setup TLS and disable the port if they wish.
 			expectErr: false,
 		},
 		{
 			name: "grpc is disabled",
-			hcl: `
+			hcl: fmt.Sprintf(`
 			ports { grpc = -1 }
-			tls { grpc { cert_file = "defined" }}
-			`,
+			tls { grpc { cert_file = %q }}
+			`, certFile),
 			expectErr: false,
 		},
 		{
 			name: "grpc_tls is undefined with default manual cert",
-			hcl: `
-			tls { defaults { cert_file = "defined" }}
-			`,
+			hcl: fmt.Sprintf(`
+			tls { defaults { cert_file = %q }}
+			`, certFile),
 			expectErr: true,
 		},
 		{
 			name: "grpc_tls is undefined with manual cert",
-			hcl: `
-			tls { grpc { cert_file = "defined" }}
-			`,
+			hcl: fmt.Sprintf(`
+			tls { grpc { cert_file = %q }}
+			`, certFile),
 			expectErr: true,
 		},
 		{
@@ -755,6 +809,74 @@ func TestBuilder_WarnGRPCTLS(t *testing.T) {
 			require.NoError(t, err)
 		}
 	}
+}
+
+func TestBuilder_validateTLSFiles(t *testing.T) {
+	dir := t.TempDir()
+	realFile := filepath.Join(dir, "cert.pem")
+	require.NoError(t, os.WriteFile(realFile, []byte("test"), 0600))
+	realDir := filepath.Join(dir, "ca")
+	require.NoError(t, os.Mkdir(realDir, 0755))
+	missing := filepath.Join(dir, "does-not-exist")
+
+	t.Run("empty config is valid", func(t *testing.T) {
+		require.NoError(t, validateTLSFiles(tlsutil.Config{}))
+	})
+
+	t.Run("all real paths are valid", func(t *testing.T) {
+		cfg := tlsutil.Config{
+			InternalRPC: tlsutil.ProtocolConfig{
+				CertFile: realFile,
+				KeyFile:  realFile,
+				CAFile:   realFile,
+				CAPath:   realDir,
+			},
+		}
+		require.NoError(t, validateTLSFiles(cfg))
+	})
+
+	t.Run("missing cert_file is an error", func(t *testing.T) {
+		cfg := tlsutil.Config{InternalRPC: tlsutil.ProtocolConfig{CertFile: missing}}
+		err := validateTLSFiles(cfg)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "tls.internal_rpc.cert_file")
+		require.Contains(t, err.Error(), "does not exist")
+	})
+
+	t.Run("missing key_file is an error", func(t *testing.T) {
+		cfg := tlsutil.Config{HTTPS: tlsutil.ProtocolConfig{KeyFile: missing}}
+		err := validateTLSFiles(cfg)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "tls.https.key_file")
+	})
+
+	t.Run("missing ca_file is an error", func(t *testing.T) {
+		cfg := tlsutil.Config{GRPC: tlsutil.ProtocolConfig{CAFile: missing}}
+		err := validateTLSFiles(cfg)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "tls.grpc.ca_file")
+	})
+
+	t.Run("missing ca_path is an error", func(t *testing.T) {
+		cfg := tlsutil.Config{InternalRPC: tlsutil.ProtocolConfig{CAPath: missing}}
+		err := validateTLSFiles(cfg)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "tls.internal_rpc.ca_path")
+	})
+
+	t.Run("cert_file pointing at a directory is an error", func(t *testing.T) {
+		cfg := tlsutil.Config{InternalRPC: tlsutil.ProtocolConfig{CertFile: realDir}}
+		err := validateTLSFiles(cfg)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "is a directory, not a file")
+	})
+
+	t.Run("ca_path pointing at a file is an error", func(t *testing.T) {
+		cfg := tlsutil.Config{InternalRPC: tlsutil.ProtocolConfig{CAPath: realFile}}
+		err := validateTLSFiles(cfg)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "is not a directory")
+	})
 }
 
 func TestBuilder_tlsCipherSuites(t *testing.T) {
