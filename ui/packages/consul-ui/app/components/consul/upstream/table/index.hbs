@@ -65,6 +65,7 @@
       <B.Td data-test-service-health={{item.MeshStatus}}>
         <Consul::HealthBadge
           @status={{item.MeshStatus}}
+          @emptyText="No service checks"
           @tooltip={{item.healthTooltipText}}
         />
       </B.Td>

@@ -100,9 +100,9 @@ as |items item dc|}}
       services=(and (eq item.Service.Kind 'terminating-gateway') (not item.Service.PeerName))
       upstreams=(and (eq item.Service.Kind 'ingress-gateway') (not item.Service.PeerName))
       instances=true
-      intentions=(and (not-eq item.Service.Kind 'terminating-gateway') (can 'read intention for service' item=item.Service) (not item.Service.PeerName))
+      intentions=(and (not-eq item.Service.Kind 'terminating-gateway') (not-eq item.Service.Kind 'mesh-gateway') (can 'read intention for service' item=item.Service) (not item.Service.PeerName))
       routing=(and dc.MeshEnabled item.IsOrigin (not item.Service.PeerName))
-      tags=true
+      tags=(not-eq item.Service.Kind 'mesh-gateway')
   )
   as |tabs|}}
         <AppView>
@@ -114,15 +114,21 @@ as |items item dc|}}
             />
           </:notification>
           <:header>
-              <h1>
-                <route.Title @title={{item.Service.Service}} />
-              </h1>
+              <div class="consul-service-title">
+                <h1>
+                  <route.Title @title={{item.Service.Service}} />
+                </h1>
+                <Consul::HealthBadge
+                  @status={{service-health-status items}}
+                  @emptyText="No service checks"
+                  data-test-service-health
+                />
+              </div>
               <Consul::ExternalSource @item={{item.Service}} @withInfo={{true}} />
               <Consul::Kind @item={{item.Service}} @withInfo={{true}} />
               <Consul::Peer::Info @item={{item.Service}} />
           </:header>
           <:nav>
-            {{#if (not-eq item.Service.Kind 'mesh-gateway')}}
               <TabNav @items={{
                 compact
                   (array
@@ -149,7 +155,6 @@ as |items item dc|}}
                     '')
                   )
               }}/>
-            {{/if}}
           </:nav>
           <:actions>
             <DataSource

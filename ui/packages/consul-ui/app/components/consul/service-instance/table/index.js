@@ -5,7 +5,7 @@
 
 import Component from '@glimmer/component';
 import mergeChecks from 'consul-ui/utils/merge-checks';
-import { STATUS_ORDER, statusFromChecks, healthFromChecks } from 'consul-ui/utils/health-status';
+import { healthFromChecks } from 'consul-ui/utils/health-status';
 
 /**
  * Consul::ServiceInstance::Table
@@ -89,8 +89,11 @@ export default class ConsulServiceInstanceTable extends Component {
     return healthFromChecks(this.nodeChecks(item));
   };
 
-  // Column definitions. Sort comparators map onto the same status precedence
-  // the legacy Status sort used; Name sorts on the instance ID like the list.
+  // Column definitions, ordered to match the migration designs:
+  // Instance, Service health, Service mesh, Node, Node health, Address,
+  // External source. Only Instance and Node are sortable — the designs carry a
+  // sort control on those two alone, and ranking rows by health sorts them by
+  // an internal status order rather than anything meaningful to the user.
   get columns() {
     const columns = [
       {
@@ -98,22 +101,9 @@ export default class ConsulServiceInstanceTable extends Component {
         sortKey: 'name',
         sortValue: (item) => (item.Service?.ID || '').toLowerCase(),
       },
-      {
-        label: 'Service health',
-        sortKey: 'service-health',
-        sortValue: (item) => STATUS_ORDER[statusFromChecks(this.serviceChecks(item))] ?? 4,
-      },
+      { label: 'Service health' },
+      { label: 'Service mesh' },
     ];
-
-    if (!this.isNodeView) {
-      columns.push({
-        label: 'Node health',
-        sortKey: 'node-health',
-        sortValue: (item) => STATUS_ORDER[statusFromChecks(this.nodeChecks(item))] ?? 4,
-      });
-    }
-
-    columns.push({ label: 'Service mesh' });
 
     if (!this.isNodeView) {
       columns.push({
@@ -121,6 +111,7 @@ export default class ConsulServiceInstanceTable extends Component {
         sortKey: 'node',
         sortValue: (item) => (item.Node?.Node || '').toLowerCase(),
       });
+      columns.push({ label: 'Node health' });
     }
 
     columns.push({ label: 'Address' });

@@ -20,7 +20,13 @@ export default function (
     externalSource: attribute('data-test-external-source', '[data-test-external-source]', {
       scope: '.title',
     }),
-    tabs: tabs('tab', ['health-checks', 'upstreams', 'exposed-paths', 'addresses', 'tags-&-meta']),
+    tabs: tabs('tab', [
+      'health-checks',
+      'upstreams',
+      'exposed-paths',
+      'addresses',
+      'tags-&-metadata',
+    ]),
     checks: alias('healthChecks.item'),
     healthChecks: healthChecks(),
     upstreams: alias('upstreamInstances.item'),

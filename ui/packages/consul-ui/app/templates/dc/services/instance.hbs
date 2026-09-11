@@ -111,6 +111,20 @@
             </h1>
             <Consul::ExternalSource @item={{item}} @withInfo={{true}} />
             <Consul::Kind @item={{item}} @withInfo={{true}} />
+            {{#let (or item.Service.Address item.Node.Address) as |address|}}
+              {{#if address}}
+                <span class="consul-service-instance-address">
+                  Address: {{format-ipaddr address}}
+                  <Hds::Copy::Button
+                    @textToCopy={{format-ipaddr address}}
+                    @text={{t 'components.consul-copy-button.title' name='address'}}
+                    @isIconOnly={{true}}
+                    @size="small"
+                    data-test-copy-address
+                  />
+                </span>
+              {{/if}}
+            {{/let}}
             {{! TODO: Looks like we can get this straight from item.Proxy.Mode }}
             {{! the less we need `proxy` and `meta` the better }}
             {{#if (eq this.meta.ServiceProxy.Mode 'transparent')}}
@@ -119,14 +133,14 @@
           </:header>
           <:nav>
             <dl>
-              <dt>Service Name</dt>
+              <dt>Service name</dt>
               <dd><a
                   href='{{href-to "dc.services.show" item.Service.Service}}'
                 >{{item.Service.Service}}</a></dd>
             </dl>
             {{#unless item.Node.Meta.synthetic-node}}
               <dl>
-                <dt>Node Name</dt>
+                <dt>Node name</dt>
                 <dd><a
                     data-test-service-instance-node-name
                     href='{{href-to "dc.nodes.show" item.Node.Node}}'
@@ -135,7 +149,7 @@
             {{/unless}}
             {{#if item.Service.PeerName}}
               <dl>
-                <dt>Peer Name</dt>
+                <dt>Peer name</dt>
                 <dd><a
                     data-test-service-instance-peer-name
                     href={{href-to
@@ -147,11 +161,6 @@
               </dl>
             {{/if}}
           </:nav>
-          <:actions>
-            {{#let (or item.Service.Address item.Node.Address) as |address|}}
-              <ConsulCopyButton @value={{format-ipaddr address}} @name='Address'>{{format-ipaddr address}}</ConsulCopyButton>
-            {{/let}}
-          </:actions>
           <:content>
             <TabNav
               @items={{compact
@@ -186,7 +195,7 @@
                     )
                   )
                   (hash
-                    label='Tags & meta'
+                    label='Tags & metadata'
                     href=(href-to 'dc.services.instance.metadata')
                     selected=(is-href 'dc.services.instance.metadata')
                   )

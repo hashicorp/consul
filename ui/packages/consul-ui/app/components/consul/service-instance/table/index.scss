@@ -16,8 +16,17 @@
     gap: 4px;
 
     a {
-      font-weight: var(--token-typography-font-weight-semibold);
+      font-weight: var(--token-typography-font-weight-medium);
     }
+  }
+
+  /* The node name links to the node page but sits outside the table's link
+     column, so it doesn't pick up the shared link styling from
+     Consul::DataTable. Match it here so both links in the row read the same. */
+  [data-test-node-name] {
+    color: var(--token-color-foreground-strong);
+    font-weight: var(--token-typography-font-weight-medium);
+    text-decoration: underline;
   }
 
   .consul-service-instance-table__tags {
