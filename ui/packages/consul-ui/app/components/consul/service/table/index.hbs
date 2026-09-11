@@ -69,70 +69,10 @@
 
         {{! ---- Health ---- }}
         <B.Td data-test-service-health={{item.MeshStatus}}>
-          {{#if (eq item.MeshStatus "empty")}}
-            {{! No health checks registered — plain text, no badge }}
-            <span>No service checks</span>
-          {{else if (eq item.MeshStatus "passing")}}
-            {{! Every check is passing }}
-            <Hds::Badge
-              @text="All checks passing"
-              @icon="check"
-              @color="success"
-              @type="filled"
-              @size="small"
-              role="group"
-              tabindex="-1"
-              aria-label="All checks passing"
-              {{hds-tooltip item.healthTooltipText options=(detached-tooltip-options)}}
-            />
-          {{else if (eq item.MeshStatus "critical")}}
-            {{! At least one critical check — show count if not all failing }}
-            <Hds::Badge
-              @icon="x"
-              @color="critical"
-              @type="filled"
-              @size="small"
-              @text={{if
-                (eq item.MeshChecksPassing 0)
-                "All checks failing"
-                (concat item.MeshChecksCritical "/" item.MeshChecksTotal " checks failing")
-              }}
-              role="group"
-              tabindex="-1"
-              aria-label={{if
-                (eq item.MeshChecksPassing 0)
-                "All checks failing"
-                (concat item.MeshChecksCritical "/" item.MeshChecksTotal " checks failing")
-              }}
-              {{hds-tooltip item.healthTooltipText options=(detached-tooltip-options)}}
-            />
-          {{else if (eq item.MeshStatus "warning")}}
-            {{! Warning checks but no critical — show failing count }}
-            <Hds::Badge
-              @icon="alert-triangle"
-              @color="warning"
-              @type="filled"
-              @size="small"
-              @text={{concat item.MeshChecksWarning "/" item.MeshChecksTotal " checks failing"}}
-              role="group"
-              tabindex="-1"
-              aria-label={{concat item.MeshChecksWarning "/" item.MeshChecksTotal " checks failing"}}
-              {{hds-tooltip item.healthTooltipText options=(detached-tooltip-options)}}
-            />
-          {{else}}
-            {{! unknown / peer-related states }}
-            <Hds::Badge
-              @text="Unknown"
-              @icon="help"
-              @color="neutral"
-              @type="outlined"
-              @size="small"
-              role="group"
-              tabindex="-1"
-              aria-label="Unknown"
-              {{hds-tooltip item.healthTooltipText options=(detached-tooltip-options)}}
-            />
-          {{/if}}
+          <Consul::HealthBadge
+            @status={{item.MeshStatus}}
+            @tooltip={{item.healthTooltipText}}
+          />
         </B.Td>
 
         {{! ---- Service mesh ---- }}

@@ -5,21 +5,7 @@
 
 import Component from '@glimmer/component';
 import mergeChecks from 'consul-ui/utils/merge-checks';
-
-// Coarse health ordering shared by the Service health and Node health columns
-// (critical first, then warning, passing, empty/unknown last). Mirrors the
-// status precedence used by Consul::InstanceChecks when it picks which status
-// to display for a group of checks.
-const STATUS_ORDER = { critical: 0, warning: 1, passing: 2, empty: 3 };
-
-// Worst status present in a list of checks, matching the precedence
-// Consul::InstanceChecks uses to pick which status to display.
-function statusFromChecks(checks = []) {
-  if (checks.some((c) => c.Status === 'critical')) return 'critical';
-  if (checks.some((c) => c.Status === 'warning')) return 'warning';
-  if (checks.some((c) => c.Status === 'passing')) return 'passing';
-  return 'empty';
-}
+import { STATUS_ORDER, statusFromChecks, healthFromChecks } from 'consul-ui/utils/health-status';
 
 /**
  * Consul::ServiceInstance::Table
@@ -91,6 +77,16 @@ export default class ConsulServiceInstanceTable extends Component {
   // `reject-by 'ServiceID' ''`).
   nodeChecks = (item) => {
     return this.mergedChecks(item).filter((check) => check.ServiceID !== '');
+  };
+
+  // `{ status, count, total }` descriptors for the two health columns, fed
+  // straight to Consul::HealthBadge (which renders them with counts here).
+  serviceHealth = (item) => {
+    return healthFromChecks(this.serviceChecks(item));
+  };
+
+  nodeHealth = (item) => {
+    return healthFromChecks(this.nodeChecks(item));
   };
 
   // Column definitions. Sort comparators map onto the same status precedence

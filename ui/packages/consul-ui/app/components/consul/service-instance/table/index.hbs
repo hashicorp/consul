@@ -72,21 +72,31 @@
 
       {{! ---- Service health ---- }}
       <B.Td>
-        <Consul::InstanceChecks
-          @type="service"
-          @items={{this.serviceChecks item}}
-        />
+        {{#let (this.serviceHealth item) as |health|}}
+          <Consul::HealthBadge
+            @status={{health.status}}
+            @count={{health.count}}
+            @total={{health.total}}
+            @showCount={{true}}
+            @tooltip="Service checks"
+          />
+        {{/let}}
       </B.Td>
 
       {{! ---- Node health (non-node view only) ---- }}
       {{#unless this.isNodeView}}
         <B.Td>
           {{#unless item.Node.Meta.synthetic-node}}
-            <Consul::InstanceChecks
-              @type="node"
-              @items={{this.nodeChecks item}}
-              data-test-node-health-checks
-            />
+            {{#let (this.nodeHealth item) as |health|}}
+              <Consul::HealthBadge
+                @status={{health.status}}
+                @count={{health.count}}
+                @total={{health.total}}
+                @showCount={{true}}
+                @tooltip="Node checks"
+                data-test-node-health-checks
+              />
+            {{/let}}
           {{/unless}}
         </B.Td>
       {{/unless}}

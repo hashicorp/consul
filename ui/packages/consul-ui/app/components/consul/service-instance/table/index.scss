@@ -86,13 +86,4 @@
     display: none;
     margin: 0;
   }
-
-  /* Consul::InstanceChecks renders a <dl> with an iconless <dt> label; hide the
-     label so only the humanized status text shows in the health columns. */
-  .consul-instance-checks dt {
-    display: none;
-  }
-  .consul-instance-checks dd {
-    margin-left: 0;
-  }
 }

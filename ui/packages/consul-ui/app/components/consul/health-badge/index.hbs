@@ -1,0 +1,18 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{! role/tabindex make the badge a tooltip target that keyboard users can reach. }}
+<Hds::Badge
+  @text={{this.text}}
+  @icon={{this.presentation.icon}}
+  @color={{this.presentation.color}}
+  @type={{this.presentation.type}}
+  @size="small"
+  role="group"
+  tabindex="-1"
+  aria-label={{this.text}}
+  {{hds-tooltip (or @tooltip this.text) options=(detached-tooltip-options)}}
+  ...attributes
+/>
