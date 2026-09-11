@@ -193,6 +193,28 @@ type RuntimeConfig struct {
 	// hcl: dns_config { a_record_limit = int }
 	DNSARecordLimit int
 
+	// DNSLocalityAwareLookup controls DNS locality-aware lookup: candidate
+	// selection for service and prepared-query DNS responses when the local
+	// agent and service instances have Consul locality populated. Supported
+	// values are "off", "always", and "balanced".
+	//
+	// hcl: dns_config { locality_aware_lookup = ("off"|"always"|"balanced") }
+	DNSLocalityAwareLookup string
+
+	// DNSLocalityAwareLookupServiceAllowlist, when non-empty, limits locality-
+	// aware lookup to exact matches of these DNS-normalized service names.
+	// Mutually exclusive with DNSLocalityAwareLookupServiceBlocklist.
+	//
+	// hcl: dns_config { locality_aware_lookup_service_allowlist = []string }
+	DNSLocalityAwareLookupServiceAllowlist []string
+
+	// DNSLocalityAwareLookupServiceBlocklist, when non-empty, skips locality-
+	// aware lookup for exact matches of these DNS-normalized service names.
+	// Mutually exclusive with DNSLocalityAwareLookupServiceAllowlist.
+	//
+	// hcl: dns_config { locality_aware_lookup_service_blocklist = []string }
+	DNSLocalityAwareLookupServiceBlocklist []string
+
 	// DNSDisableCompression is used to control whether DNS responses are
 	// compressed. In Consul 0.7 this was turned on by default and this
 	// config was added as an opt-out.

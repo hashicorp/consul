@@ -54,6 +54,10 @@ const (
 	// trimUDP call) consul would fail to respond and the consumer timesout
 	// the request.
 	maxUDPDatagramSize = math.MaxUint16 - 68
+
+	localityAwareLookupModeOff      = "off"
+	localityAwareLookupModeAlways   = "always"
+	localityAwareLookupModeBalanced = "balanced"
 )
 
 type dnsSOAConfig struct {
@@ -74,23 +78,35 @@ type dnsRequestConfig struct {
 }
 
 type dnsServerConfig struct {
-	AllowStale       bool
-	Datacenter       string
-	EnableTruncate   bool
-	MaxStale         time.Duration
-	UseCache         bool
-	CacheMaxAge      time.Duration
-	NodeName         string
-	NodeTTL          time.Duration
-	OnlyPassing      bool
-	RecursorStrategy structs.RecursorStrategy
-	RecursorTimeout  time.Duration
-	Recursors        []string
-	SegmentName      string
-	UDPAnswerLimit   int
-	ARecordLimit     int
-	NodeMetaTXT      bool
-	SOAConfig        dnsSOAConfig
+	AllowStale     bool
+	Datacenter     string
+	EnableTruncate bool
+	// LocalityAwareLookup selects how service nodes are narrowed before DNS
+	// shuffling: "off", "always", or "balanced" (see dns_config docs).
+	LocalityAwareLookup string
+	// Locality is this agent's configured region/zone; used when
+	// LocalityAwareLookup is not "off".
+	Locality *structs.Locality
+	// LocalityAwareLookupServiceAllowlist, when non-empty, limits locality-
+	// aware filtering to these exact DNS-normalized service names.
+	LocalityAwareLookupServiceAllowlist map[string]struct{}
+	// LocalityAwareLookupServiceBlocklist, when non-empty, skips locality-
+	// aware filtering for these exact DNS-normalized service names.
+	LocalityAwareLookupServiceBlocklist map[string]struct{}
+	MaxStale                            time.Duration
+	UseCache                            bool
+	CacheMaxAge                         time.Duration
+	NodeName                            string
+	NodeTTL                             time.Duration
+	OnlyPassing                         bool
+	RecursorStrategy                    structs.RecursorStrategy
+	RecursorTimeout                     time.Duration
+	Recursors                           []string
+	SegmentName                         string
+	UDPAnswerLimit                      int
+	ARecordLimit                        int
+	NodeMetaTXT                         bool
+	SOAConfig                           dnsSOAConfig
 	// TTLRadix sets service TTLs by prefix, eg: "database-*"
 	TTLRadix *radix.Tree
 	// TTLStict sets TTLs to service by full name match. It Has higher priority than TTLRadix
@@ -180,10 +196,18 @@ func NewDNSServer(a *Agent) (*DNSServer, error) {
 // getDNSServerConfig takes global config and creates the config used by DNS server
 func getDNSServerConfig(conf *config.RuntimeConfig) (*dnsServerConfig, error) {
 	cfg := &dnsServerConfig{
-		AllowStale:         conf.DNSAllowStale,
-		ARecordLimit:       conf.DNSARecordLimit,
-		Datacenter:         conf.Datacenter,
-		EnableTruncate:     conf.DNSEnableTruncate,
+		AllowStale:          conf.DNSAllowStale,
+		ARecordLimit:        conf.DNSARecordLimit,
+		Datacenter:          conf.Datacenter,
+		EnableTruncate:      conf.DNSEnableTruncate,
+		LocalityAwareLookup: conf.DNSLocalityAwareLookup,
+		Locality:            conf.StructLocality(),
+		LocalityAwareLookupServiceAllowlist: serviceNameSet(
+			conf.DNSLocalityAwareLookupServiceAllowlist,
+		),
+		LocalityAwareLookupServiceBlocklist: serviceNameSet(
+			conf.DNSLocalityAwareLookupServiceBlocklist,
+		),
 		MaxStale:           conf.DNSMaxStale,
 		NodeName:           conf.NodeName,
 		NodeTTL:            conf.DNSNodeTTL,
@@ -245,6 +269,46 @@ func (cfg *dnsServerConfig) GetTTLForService(service string) (time.Duration, boo
 		}
 	}
 	return 0, false
+}
+
+// serviceNameSet builds an O(1) lookup set from a list of DNS-normalized
+// service names. Returns nil when the list is empty so callers can treat unset
+// and empty alike.
+func serviceNameSet(names []string) map[string]struct{} {
+	if len(names) == 0 {
+		return nil
+	}
+	set := make(map[string]struct{}, len(names))
+	for _, name := range names {
+		set[strings.ToLower(name)] = struct{}{}
+	}
+	return set
+}
+
+// localityAwareLookupAppliesTo reports whether locality-aware filtering should
+// run for the given service name, based on the configured allowlist/blocklist.
+// When neither list is set, locality applies to all services.
+func (cfg *dnsServerConfig) localityAwareLookupAppliesTo(service string) bool {
+	service = strings.ToLower(service)
+	if len(cfg.LocalityAwareLookupServiceAllowlist) > 0 {
+		_, ok := cfg.LocalityAwareLookupServiceAllowlist[service]
+		return ok
+	}
+	if len(cfg.LocalityAwareLookupServiceBlocklist) > 0 {
+		_, blocked := cfg.LocalityAwareLookupServiceBlocklist[service]
+		return !blocked
+	}
+	return true
+}
+
+// localityAwareLookupAppliesToLookup reports whether locality-aware filtering
+// should run for this DNS service lookup. Direct Connect and ingress DNS
+// lookups have their own mesh/gateway semantics and are intentionally excluded.
+func (cfg *dnsServerConfig) localityAwareLookupAppliesToLookup(lookup serviceLookup) bool {
+	if lookup.Connect || lookup.Ingress {
+		return false
+	}
+	return cfg.localityAwareLookupAppliesTo(lookup.Service)
 }
 
 func (d *DNSServer) ListenAndServe(network, addr string, notif func()) error {
@@ -1575,6 +1639,11 @@ func (d *DNSServer) handleServiceQuery(cfg *dnsRequestConfig, lookup serviceLook
 		return errNameNotFound
 	}
 
+	if cfg.LocalityAwareLookup != localityAwareLookupModeOff &&
+		cfg.localityAwareLookupAppliesToLookup(lookup) {
+		out.Nodes = filterCheckServiceNodesForLocalityAwareLookup(out.Nodes, cfg.Locality, cfg.LocalityAwareLookup)
+	}
+
 	// Perform a random shuffle
 	out.Nodes.Shuffle()
 
@@ -1613,6 +1682,113 @@ func ednsSubnetForRequest(req *dns.Msg) *dns.EDNS0_SUBNET {
 	}
 
 	return nil
+}
+
+// localityMatches reports whether remote matches local's region, and matches
+// local's zone when local has a non-empty zone (if local.Zone is empty, same
+// region is sufficient).
+func localityMatches(local, remote *structs.Locality) bool {
+	if local == nil || remote == nil || local.Region == "" || remote.Region == "" {
+		return false
+	}
+	if local.Region != remote.Region {
+		return false
+	}
+	if local.Zone == "" {
+		return true
+	}
+	return remote.Zone == local.Zone
+}
+
+// localityRegionMatches reports whether both localities exist and their
+// non-empty regions are equal.
+func localityRegionMatches(local, remote *structs.Locality) bool {
+	return local != nil && remote != nil && local.Region != "" && remote.Region == local.Region
+}
+
+// localityServiceZonesInBalance reports whether every zone label in local's region
+// (among nodes in nodes that carry a zone) appears the same number of times as
+// local's zone. "balanced" locality-aware lookup uses this to decide whether
+// same-zone-only answers would skew traffic across uneven zone sizes and thus
+// led to uneven load distribution and eventual instability.
+func localityServiceZonesInBalance(nodes structs.CheckServiceNodes, local *structs.Locality) bool {
+	if local == nil || local.Region == "" || local.Zone == "" {
+		return true
+	}
+
+	counts := make(map[string]int)
+	for _, node := range nodes {
+		remote := node.Locality()
+		if !localityRegionMatches(local, remote) || remote.Zone == "" {
+			continue
+		}
+		counts[remote.Zone]++
+	}
+
+	if len(counts) == 0 {
+		return false
+	}
+
+	localCount, ok := counts[local.Zone]
+	if !ok {
+		return false
+	}
+
+	for _, count := range counts {
+		if count != localCount {
+			return false
+		}
+	}
+
+	return true
+}
+
+// filterCheckServiceNodesForLocalityAwareLookup narrows catalog nodes for DNS
+// using the querying agent's locality and mode. Missing local region returns a
+// shallow clone of nodes unchanged. "always" prefers same region and zone;
+// "balanced" falls back to region-wide nodes when zone populations in the
+// region are uneven and exact zone matches exist.
+func filterCheckServiceNodesForLocalityAwareLookup(nodes structs.CheckServiceNodes, local *structs.Locality, mode string) structs.CheckServiceNodes {
+	if local == nil || local.Region == "" {
+		return nodes.ShallowClone()
+	}
+
+	exactMatches := make(structs.CheckServiceNodes, 0, len(nodes))
+	regionMatches := make(structs.CheckServiceNodes, 0, len(nodes))
+	for _, node := range nodes {
+		remote := node.Locality()
+		if localityRegionMatches(local, remote) {
+			regionMatches = append(regionMatches, node)
+		}
+		if localityMatches(local, remote) {
+			exactMatches = append(exactMatches, node)
+		}
+	}
+
+	if len(exactMatches) > 0 {
+		switch mode {
+		case localityAwareLookupModeAlways:
+			return exactMatches
+		case localityAwareLookupModeBalanced:
+			if localityServiceZonesInBalance(nodes, local) {
+				return exactMatches
+			}
+			// fall through to region / full-set fallback below
+		default:
+			// Config validation rejects unknown modes; treat like always for safety.
+			return exactMatches
+		}
+		if len(regionMatches) > 0 {
+			return regionMatches
+		}
+		return nodes.ShallowClone()
+	}
+
+	if len(regionMatches) > 0 {
+		return regionMatches
+	}
+
+	return nodes.ShallowClone()
 }
 
 // handlePreparedQuery is used to handle a prepared query.
@@ -1688,6 +1864,13 @@ func (d *DNSServer) handlePreparedQuery(cfg *dnsRequestConfig, datacenter, query
 	// If we have no nodes, return not found!
 	if len(out.Nodes) == 0 {
 		return errNameNotFound
+	}
+
+	// Prepared-query DNS remains part of classic DNS consumption, so apply
+	// locality-aware filtering to its resolved service candidates.
+	if cfg.LocalityAwareLookup != localityAwareLookupModeOff &&
+		cfg.localityAwareLookupAppliesTo(out.Service) {
+		out.Nodes = filterCheckServiceNodesForLocalityAwareLookup(out.Nodes, cfg.Locality, cfg.LocalityAwareLookup)
 	}
 
 	// Add various responses depending on the request.

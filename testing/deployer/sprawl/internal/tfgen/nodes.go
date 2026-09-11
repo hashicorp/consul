@@ -73,8 +73,8 @@ func (g *Generator) generateNodeContainers(
 		}
 	}
 
-	wrkContainers := []Resource{}
 	for _, wrk := range node.SortedWorkloads() {
+		wrkContainers := []Resource{}
 		token := g.sec.ReadWorkloadToken(node.Cluster, wrk.ID)
 		switch {
 		case wrk.IsMeshGateway && !node.IsDataplane():
