@@ -261,6 +261,26 @@ Feature: dc / services / show: Show Service
     ---
     # The external dashboard link should use the Service.Name not the ID
     And I see href on the dashboardAnchor like "https://something.com?service-0&dc1"
+  Scenario: Given a dashboard template includes service namespace
+    Given 1 datacenter model with the value "dc1"
+    And 1 node models
+    And 1 service model from yaml
+    ---
+    - Service:
+        Kind: ~
+        Namespace: team-a
+    ---
+    And ui_config from yaml
+    ---
+    dashboard_url_templates:
+      service: https://something.com?{{Service.Name}}&{{Service.Namespace}}&{{Datacenter}}
+    ---
+    When I visit the service page for yaml
+    ---
+      dc: dc1
+      service: service-0
+    ---
+    And I see href on the dashboardAnchor like "https://something.com?service-0&team-a&dc1"
   Scenario: With no access to service
     Given 1 datacenter model with the value "dc1"
     And permissions from yaml
