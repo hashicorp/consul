@@ -1010,8 +1010,8 @@ func xfccPrincipal(src rbacService) *envoy_rbac_v3.Principal {
 	idPattern = idPattern[1 : len(idPattern)-1]
 
 	// Anchor to the first XFCC component, allowing subsequent semicolon-separated
-	// fields (such as ;DNS=... or ;Subject=...) before any comma or end of string.
-	pattern := `^[^,]+;URI=` + idPattern + `(?:;[^,]*)?(?:,.*)?$`
+	// fields (such as ;DNS=... or ;Subject=...) or comma-separated hops.
+	pattern := `^[^,]+;URI=` + idPattern + `(?:[;,].*)?$`
 
 	// By=spiffe://8c7db6d3-e4ee-aa8c-488c-dbedd3772b78.consul/gateway/mesh/dc/dc2;
 	// Hash=2a2db78ac351a05854a0abd350631bf98cc0eb827d21f4ed5935ccd287779eb6;

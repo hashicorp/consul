@@ -1434,8 +1434,23 @@ func TestXFCCPrincipal(t *testing.T) {
 			expected: true,
 		},
 		{
+			name:     "api gateway - with trailing Subject field",
+			xfcc:     `By=spiffe://server.consul/gateway/mesh/dc/server;Hash=abc;URI=spiffe://2f6cbc1e-8ff2-dd37-0d90-12156d7d2795.consul/ns/default/dc/client/svc/gateway;Subject="CN=gateway.default"`,
+			expected: true,
+		},
+		{
+			name:     "api gateway - with trailing Subject and multiple hops",
+			xfcc:     `By=spiffe://server.consul/gateway/mesh/dc/server;Hash=abc;URI=spiffe://2f6cbc1e-8ff2-dd37-0d90-12156d7d2795.consul/ns/default/dc/client/svc/gateway;Subject="CN=gateway.default",By=spiffe://server.consul/gateway/mesh/dc/server`,
+			expected: true,
+		},
+		{
 			name:     "negative: service name prefix spoofing (gateway2)",
 			xfcc:     `By=spiffe://server.consul/gateway/mesh/dc/server;URI=spiffe://2f6cbc1e-8ff2-dd37-0d90-12156d7d2795.consul/ns/default/dc/client/svc/gateway2`,
+			expected: false,
+		},
+		{
+			name:     "negative: hyphenated prefix spoofing (gateway-evil)",
+			xfcc:     `By=spiffe://server.consul/gateway/mesh/dc/server;URI=spiffe://2f6cbc1e-8ff2-dd37-0d90-12156d7d2795.consul/ns/default/dc/client/svc/gateway-evil`,
 			expected: false,
 		},
 		{
