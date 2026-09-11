@@ -86,7 +86,7 @@ func TestPeerings_PeeringDisabled(t *testing.T) {
 
 	// Expect the proper call, but return the peering disabled error
 	client.On("PeeringList", mock.Anything, mock.Anything, mock.Anything).
-		Return(resp, grpcstatus.Error(codes.FailedPrecondition, "peering must be enabled to use this endpoint"))
+		Return(resp, grpcstatus.Error(codes.FailedPrecondition, "peering is disabled"))
 
 	// Fetch and assert against the result.
 	result, err := typ.Fetch(context.Background(), cache.FetchOptions{}, &PeeringListRequest{
