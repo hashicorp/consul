@@ -65,6 +65,7 @@ type MeshDirectionalTLSConfig struct {
 	TLSMinVersion string   `json:",omitempty" alias:"tls_min_version"`
 	TLSMaxVersion string   `json:",omitempty" alias:"tls_max_version"`
 	CipherSuites  []string `json:",omitempty" alias:"cipher_suites"`
+	ECDHCurves    []string `json:",omitempty" alias:"ecdh_curves"`
 }
 
 type MeshHTTPConfig struct {

@@ -1618,6 +1618,7 @@ type MeshDirectionalTLSConfig struct {
 	TLSMaxVersion string `protobuf:"bytes,2,opt,name=TLSMaxVersion,proto3" json:"TLSMaxVersion,omitempty"`
 	// mog: func-from=cipherSuitesFromStructs func-to=cipherSuitesToStructs
 	CipherSuites  []string `protobuf:"bytes,3,rep,name=CipherSuites,proto3" json:"CipherSuites,omitempty"`
+	ECDHCurves    []string `protobuf:"bytes,4,rep,name=ECDHCurves,proto3" json:"ECDHCurves,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1669,6 +1670,13 @@ func (x *MeshDirectionalTLSConfig) GetTLSMaxVersion() string {
 func (x *MeshDirectionalTLSConfig) GetCipherSuites() []string {
 	if x != nil {
 		return x.CipherSuites
+	}
+	return nil
+}
+
+func (x *MeshDirectionalTLSConfig) GetECDHCurves() []string {
+	if x != nil {
+		return x.ECDHCurves
 	}
 	return nil
 }
@@ -9160,11 +9168,14 @@ const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"\x14MeshDestinationsOnly\x18\x01 \x01(\bR\x14MeshDestinationsOnly\"\xc9\x01\n" +
 	"\rMeshTLSConfig\x12[\n" +
 	"\bIncoming\x18\x01 \x01(\v2?.hashicorp.consul.internal.configentry.MeshDirectionalTLSConfigR\bIncoming\x12[\n" +
-	"\bOutgoing\x18\x02 \x01(\v2?.hashicorp.consul.internal.configentry.MeshDirectionalTLSConfigR\bOutgoing\"\x8a\x01\n" +
+	"\bOutgoing\x18\x02 \x01(\v2?.hashicorp.consul.internal.configentry.MeshDirectionalTLSConfigR\bOutgoing\"\xaa\x01\n" +
 	"\x18MeshDirectionalTLSConfig\x12$\n" +
 	"\rTLSMinVersion\x18\x01 \x01(\tR\rTLSMinVersion\x12$\n" +
 	"\rTLSMaxVersion\x18\x02 \x01(\tR\rTLSMaxVersion\x12\"\n" +
-	"\fCipherSuites\x18\x03 \x03(\tR\fCipherSuites\"\xb2\x01\n" +
+	"\fCipherSuites\x18\x03 \x03(\tR\fCipherSuites\x12\x1e\n" +
+	"\n" +
+	"ECDHCurves\x18\x04 \x03(\tR\n" +
+	"ECDHCurves\"\xb2\x01\n" +
 	"\x0eMeshHTTPConfig\x12B\n" +
 	"\x1cSanitizeXForwardedClientCert\x18\x01 \x01(\bR\x1cSanitizeXForwardedClientCert\x12\\\n" +
 	"\bIncoming\x18\x02 \x01(\v2@.hashicorp.consul.internal.configentry.MeshDirectionalHTTPConfigR\bIncoming\"\x96\x01\n" +
