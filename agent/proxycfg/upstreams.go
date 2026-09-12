@@ -97,10 +97,13 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEv
 			return fmt.Errorf("discovery-chain watch fired for unsupported kind: %s", snap.Kind)
 		}
 
+		prevChain := upstreamsSnapshot.DiscoveryChain[uid]
 		upstreamsSnapshot.DiscoveryChain[uid] = resp.Chain
 
-		if err := s.resetWatchesFromChain(ctx, uid, resp.Chain, upstreamsSnapshot); err != nil {
-			return err
+		if s.needsWatchResetFromChain(prevChain, resp.Chain, upstreamsSnapshot.WatchedUpstreams[uid]) {
+			if err := s.resetWatchesFromChain(ctx, uid, resp.Chain, upstreamsSnapshot); err != nil {
+				return err
+			}
 		}
 		reconcilePeeringWatches(upstreamsSnapshot.DiscoveryChain, upstreamsSnapshot.UpstreamConfig, upstreamsSnapshot.PeeredUpstreams, upstreamsSnapshot.PeerUpstreamEndpoints, upstreamsSnapshot.UpstreamPeerTrustBundles)
 
@@ -261,6 +264,48 @@ func (s *handlerUpstreams) setPeerEndpoints(upstreamsSnapshot *ConfigSnapshotUps
 			delete(upstreamsSnapshot.PeerUpstreamEndpointsUseHostnames, uid)
 		}
 	}
+}
+
+// needsWatchResetFromChain reports whether the target watches for an upstream
+// must be torn down and re-established in response to a discovery chain update.
+//
+// The discovery chain watch is backed by a memdb index that spans the whole
+// config-entries table, and chain compilation reads several entry kinds that
+// commonly do not exist (router, splitter, defaults), which registers broad
+// radix-tree watches. As a result the watch wakes on essentially any
+// config-entry write in the cluster, and the majority of those wakeups deliver
+// a chain identical to the one already held. Unconditionally resetting on those
+// cancels and re-establishes every target watch and clears the upstream's
+// endpoints, which leaves clusters present without their endpoint assignments
+// until the health watches re-fire.
+//
+// Note that the spurious-wakeup suppression in ServerLocalBlockingQuery does not
+// filter these out, because the hash it compares is taken over a result struct
+// that embeds the query index.
+func (s *handlerUpstreams) needsWatchResetFromChain(
+	prevChain *structs.CompiledDiscoveryChain,
+	nextChain *structs.CompiledDiscoveryChain,
+	watchedUpstreams map[string]context.CancelFunc,
+) bool {
+	if prevChain == nil || nextChain == nil {
+		return true
+	}
+	if prevChain.GetHash() != nextChain.GetHash() {
+		return true
+	}
+
+	// The chain is unchanged, so the existing watches are still the correct set.
+	// Confirm they are all actually present before skipping: resetWatchesFromChain
+	// can fail partway through establishing them, and that error is logged and
+	// discarded by the caller, so a previous attempt may have left this upstream
+	// with an incomplete set of watches that would otherwise never be repaired.
+	for _, target := range nextChain.Targets {
+		if _, ok := watchedUpstreams[target.ID]; !ok {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (s *handlerUpstreams) resetWatchesFromChain(
