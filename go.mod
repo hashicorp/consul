@@ -25,7 +25,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.30
 	github.com/aws/aws-sdk-go-v2/service/acmpca v1.47.2
 	github.com/aws/smithy-go v1.27.3
-	github.com/coreos/go-oidc/v3 v3.18.0
+	github.com/coreos/go-oidc/v3 v3.20.0
 	github.com/deckarep/golang-set/v2 v2.9.0
 	github.com/docker/go-connections v0.7.0
 	github.com/envoyproxy/go-control-plane v0.14.0
