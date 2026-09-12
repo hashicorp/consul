@@ -1797,3 +1797,41 @@ func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
 		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
 	}
 }
+
+func TestConfigurator_PostQuantumKeyExchange(t *testing.T) {
+    // This test proves that when TLS 1.3 is enabled and CurvePreferences is left nil
+    // (which is what Consul does), Go's default includes X25519MLKEM768.
+
+    cfg := ProtocolConfig{
+        CertFile:      "../test/hostname/Alice.crt",
+        KeyFile:       "../test/hostname/Alice.key",
+        CAFile:        "../test/hostname/CertAuth.crt",
+        TLSMinVersion: types.TLSv1_3,
+    }
+
+    c := makeConfigurator(t, Config{HTTPS: cfg})
+
+    serverTLS := c.IncomingHTTPSConfig()
+
+    // Consul deliberately leaves this nil → Go uses its post-quantum default
+    require.Nil(t, serverTLS.CurvePreferences)
+
+    clientConn, errc, _ := startTLSServer(serverTLS)
+    if clientConn == nil {
+        t.Fatalf("startTLSServer failed: %v", <-errc)
+    }
+
+    clientTLS := &tls.Config{
+        InsecureSkipVerify: true,
+        MinVersion:         tls.VersionTLS13,
+        // Leave CurvePreferences nil so both sides use Go defaults
+    }
+
+    tlsClient := tls.Client(clientConn, clientTLS)
+    require.NoError(t, tlsClient.Handshake())
+
+    state := tlsClient.ConnectionState()
+    require.Equal(t, uint16(tls.VersionTLS13), state.Version)
+    require.Equal(t, tls.X25519MLKEM768, state.CurveID,
+        "expected post-quantum hybrid key exchange X25519MLKEM768")
+}
