@@ -67,13 +67,12 @@ function assert_not_empty {
 }
 
 function install_dependencies {
-  local -r consul_ip="$1"
-
   log_info "Installing dependencies"
   sudo apt-get update -y
-  echo iptables-persistent iptables-persistent/autosave_v4 boolean true | sudo debconf-set-selections
-  echo iptables-persistent iptables-persistent/autosave_v6 boolean true | sudo debconf-set-selections
-  sudo apt-get install -y iptables-persistent
+  # nftables has no interactive installer prompts; no debconf pre-seeding needed.
+  # systemctl enable replaces what iptables-persistent did: load /etc/nftables.conf on boot.
+  sudo apt-get install -y nftables
+  sudo systemctl enable nftables
 }
 
 function configure_systemd_resolved {
@@ -81,14 +80,24 @@ function configure_systemd_resolved {
   local -r consul_ip="$2"
   local -r consul_port="$3"
 
-  UBUNTU_VERSION=`lsb_release -s -r`
+  UBUNTU_VERSION=$(lsb_release -s -r)
   if [ "$UBUNTU_VERSION" == "18.04" ]; then
     log_info "Configuring systemd-resolved to forward lookups of the '$consul_domain' domain to $consul_ip:$consul_port in $CONSUL_DNS_MASQ_CONFIG_FILE"
 
-    sudo iptables -t nat -A OUTPUT -d localhost -p udp -m udp --dport 53 -j REDIRECT --to-ports $consul_port
-    sudo iptables -t nat -A OUTPUT -d localhost -p tcp -m tcp --dport 53 -j REDIRECT --to-ports $consul_port
-    sudo iptables-save | sudo tee /etc/iptables/rules.v4
-    sudo ip6tables-save | sudo tee /etc/iptables/rules.v6
+    # Redirect outbound DNS (UDP and TCP port 53) to the Consul DNS port — IPv4 only,
+    # matching the original iptables rules. Persisted in /etc/nftables.conf (replaces
+    # iptables-save → /etc/iptables/rules.v4); loaded at boot by the nftables service.
+    sudo tee /etc/nftables.conf > /dev/null <<NFT
+#!/usr/sbin/nft -f
+table ip consul_dns {
+  chain output {
+    type nat hook output priority -100;
+    ip daddr 127.0.0.1 udp dport 53 redirect to :${consul_port}
+    ip daddr 127.0.0.1 tcp dport 53 redirect to :${consul_port}
+  }
+}
+NFT
+    sudo nft -f /etc/nftables.conf
     sudo sed -i "s/#DNS=/DNS=${consul_ip}/g" "$SYSTEMD_RESVOLDED_CONFIG_FILE"
     sudo sed -i "s/#Domains=/Domains=~${consul_domain}/g" "$SYSTEMD_RESVOLDED_CONFIG_FILE"
   else
