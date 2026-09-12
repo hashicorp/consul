@@ -150,6 +150,11 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 			return nil, err
 		}
 		clusters = append(clusters, upstreamCluster)
+
+		clusters, err = s.appendEntPeeredMultiportClusters(clusters, cfgSnap, uid, upstreamCluster)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// add clusters for jwt-providers
@@ -836,7 +841,10 @@ func (s *ResourceGenerator) makeGatewayOutgoingClusterPeeringServiceClusters(cfg
 		return nil, fmt.Errorf("unsupported gateway kind %q", cfgSnap.Kind)
 	}
 
-	var clusters []proto.Message
+	var (
+		clusters []proto.Message
+		err      error
+	)
 
 	for _, serviceGroups := range cfgSnap.MeshGateway.PeeringServices {
 		for sn, serviceGroup := range serviceGroups {
@@ -867,6 +875,11 @@ func (s *ResourceGenerator) makeGatewayOutgoingClusterPeeringServiceClusters(cfg
 			cluster := s.makeGatewayCluster(cfgSnap, opts)
 
 			clusters = append(clusters, cluster)
+
+			clusters, err = s.appendEntGatewayOutgoingPeeringServiceMultiportClusters(clusters, cfgSnap, serviceGroup, node)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 

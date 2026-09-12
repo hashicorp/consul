@@ -929,6 +929,26 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 		}
 	}
 
+	// For imported peered services with multiport, allocate per-port VIPs on the
+	// consumer side. The base VIP is allocated when the synthetic connect proxy is
+	// registered (above block), but per-port VIPs must be allocated from the typical
+	// service instances which carry the Ports field.
+	if svc.PeerName != "" && svc.Kind == structs.ServiceKindTypical {
+		supported, err := virtualIPsSupported(tx, nil)
+		if err != nil {
+			return err
+		}
+		if supported {
+			sn := structs.ServiceName{Name: svc.Service, EnterpriseMeta: svc.EnterpriseMeta}
+			if len(svc.Ports) > 0 && svc.TaggedAddresses == nil {
+				svc.TaggedAddresses = make(map[string]structs.ServiceAddress)
+			}
+			if err := reconcileImportedServicePortVirtualIPs(tx, idx, node, sn, svc); err != nil {
+				return err
+			}
+		}
+	}
+
 	if svc.PeerName == "" {
 		// If there's a terminating gateway config entry for this service, populate the tagged addresses
 		// with virtual IP mappings.
@@ -2101,6 +2121,18 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 
 	if err := cleanupMeshTopology(tx, idx, svc); err != nil {
 		return fmt.Errorf("failed to clean up mesh-topology associations for %q: %v", psn.String(), err)
+	}
+
+	if svc.PeerName != "" && svc.ServiceKind == structs.ServiceKindTypical {
+		supported, err := virtualIPsSupported(tx, nil)
+		if err != nil {
+			return err
+		}
+		if supported {
+			if err := reconcileDeletedImportedServicePortVirtualIPs(tx, idx, psn.ServiceName, svc.PeerName); err != nil {
+				return err
+			}
+		}
 	}
 
 	q := Query{
