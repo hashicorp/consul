@@ -1,0 +1,8 @@
+```release-note:bug
+proxycfg: fixed a bug where a transient "ACL not found" error for a valid token (e.g.
+from a Raft follower momentarily behind on replication) would immediately and
+permanently tear down a proxy's Connect/xDS configuration. A brief streak of
+consecutive occurrences is now tolerated, in both the agent-cache-backed and
+server-local materialized-view-backed data source paths, before a proxy's watches are
+torn down.
+```

@@ -18,6 +18,7 @@ import (
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
+	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/structs"
 	apimod "github.com/hashicorp/consul/api"
@@ -4263,6 +4264,107 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestState_ToleratesTransientACLNotFound verifies that a data source
+// reporting "ACL not found" doesn't tear down a proxy's entire config state
+// on the very first occurrence, since a Raft follower that is momentarily
+// behind on replication can transiently report a valid token as missing.
+// Only a sustained streak of consecutive not-found errors for the same data
+// source terminates the state, and non-ACL terminal errors still terminate
+// immediately as before.
+func TestState_ToleratesTransientACLNotFound(t *testing.T) {
+	newTestState := func(t *testing.T, seed func(*state)) *state {
+		t.Helper()
+		ns := structs.TestNodeServiceProxy(t)
+		proxyID := ProxyID{ServiceID: ns.CompoundServiceID()}
+
+		sc := stateConfig{
+			logger: testutil.Logger(t),
+			source: &structs.QuerySource{Datacenter: "dc1"},
+		}
+		recordWatches(&sc)
+
+		st, err := newState(proxyID, ns, testSource, aclToken, sc, rate.NewLimiter(rate.Inf, 0))
+		require.NoError(t, err)
+
+		var ctx context.Context
+		ctx, st.cancel = context.WithCancel(context.Background())
+		t.Cleanup(st.cancel)
+
+		snap, err := st.handler.initialize(ctx)
+		require.NoError(t, err)
+
+		// Seed any pre-existing state before starting the run loop's goroutine,
+		// so tests can set up scenarios (like a stale streak) without racing
+		// with unsafeRun's own access to the same fields.
+		if seed != nil {
+			seed(st)
+		}
+
+		go st.unsafeRun(ctx, &snap)
+		return st
+	}
+
+	t.Run("tolerates a streak below the threshold, and a success resets it", func(t *testing.T) {
+		st := newTestState(t, nil)
+		notFoundEvent := UpdateEvent{CorrelationID: rootsWatchID, Err: TerminalError(acl.ErrNotFound)}
+
+		for i := 0; i < acl.MaxConsecutiveNotFoundTolerance-1; i++ {
+			st.ch <- notFoundEvent
+		}
+		require.Never(t, st.stoppedRunning, 200*time.Millisecond, 10*time.Millisecond,
+			"state should not close after a streak below the threshold")
+
+		// A success for the same data source resets its streak.
+		st.ch <- UpdateEvent{CorrelationID: rootsWatchID, Result: &structs.IndexedCARoots{}, Err: nil}
+
+		for i := 0; i < acl.MaxConsecutiveNotFoundTolerance-1; i++ {
+			st.ch <- notFoundEvent
+		}
+		require.Never(t, st.stoppedRunning, 200*time.Millisecond, 10*time.Millisecond,
+			"state should not close after the streak resets and climbs again below the threshold")
+	})
+
+	t.Run("terminates once the streak reaches the threshold", func(t *testing.T) {
+		st := newTestState(t, nil)
+		notFoundEvent := UpdateEvent{CorrelationID: rootsWatchID, Err: TerminalError(acl.ErrNotFound)}
+
+		for i := 0; i < acl.MaxConsecutiveNotFoundTolerance; i++ {
+			st.ch <- notFoundEvent
+		}
+		require.Eventually(t, st.stoppedRunning, time.Second, 10*time.Millisecond,
+			"state should close after a sustained streak of ACL not-found errors")
+		require.True(t, st.failed())
+	})
+
+	t.Run("a reused CorrelationID does not inherit a stale streak from a previous incarnation", func(t *testing.T) {
+		// Simulate a watch that was cancelled (e.g. a linked service was
+		// unlinked) while it had a partial, never-resolved streak, and whose
+		// CorrelationID is later reused by an unrelated, freshly created watch
+		// (e.g. the service was relinked) well after the reset window.
+		st := newTestState(t, func(st *state) {
+			st.aclNotFoundStreaks[rootsWatchID] = aclNotFoundStreak{
+				count:    acl.MaxConsecutiveNotFoundTolerance - 1,
+				lastSeen: time.Now().Add(-(aclNotFoundStreakResetWindow + time.Second)),
+			}
+		})
+
+		// A single not-found for the new incarnation must be treated as a
+		// fresh occurrence, not as the (threshold)-th in a row.
+		st.ch <- UpdateEvent{CorrelationID: rootsWatchID, Err: TerminalError(acl.ErrNotFound)}
+		require.Never(t, st.stoppedRunning, 200*time.Millisecond, 10*time.Millisecond,
+			"a stale streak from a previous incarnation of this CorrelationID must not count toward the new one")
+	})
+
+	t.Run("non-ACL terminal errors still close immediately", func(t *testing.T) {
+		st := newTestState(t, nil)
+		st.ch <- UpdateEvent{CorrelationID: rootsWatchID, Err: TerminalError(stream.ErrSubForceClosed)}
+
+		require.Eventually(t, st.stoppedRunning, time.Second, 10*time.Millisecond,
+			"state should close immediately on a non-ACL terminal error")
+		require.True(t, st.failed())
+	})
 }
 
 func Test_hostnameEndpoints(t *testing.T) {

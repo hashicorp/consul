@@ -16,7 +16,10 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-metrics"
+	"github.com/hashicorp/go-metrics/prometheus"
 
+	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/featuregate"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
@@ -24,6 +27,19 @@ import (
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
+
+// StatsCounters registers the proxycfg-specific counters with the agent's
+// telemetry system (see agent/setup.go).
+var StatsCounters = []prometheus.CounterDefinition{
+	{
+		Name: []string{"proxycfg", "acl_not_found", "tolerated"},
+		Help: "Increments each time a transient \"ACL not found\" error for a proxy's data source is tolerated instead of tearing down the proxy's watches.",
+	},
+	{
+		Name: []string{"proxycfg", "acl_not_found", "terminated"},
+		Help: "Increments when a proxy's watches are torn down after repeated \"ACL not found\" errors for one of its data sources.",
+	},
+}
 
 const (
 	coalesceTimeout                    = 200 * time.Millisecond
@@ -65,6 +81,17 @@ const (
 	svcChecksWatchIDPrefix             = cachetype.ServiceHTTPChecksName + ":"
 	preparedQueryIDPrefix              = string(structs.UpstreamDestTypePreparedQuery) + ":"
 	defaultPreparedQueryPollInterval   = 30 * time.Second
+
+	// aclNotFoundStreakResetWindow bounds how long an "ACL not found" streak
+	// for a given CorrelationID stays meaningful. CorrelationIDs are often
+	// deterministic (e.g. derived from a service name) and get reused when a
+	// watch is cancelled and later re-created for an unrelated reason (e.g. a
+	// terminating-gateway's linked service being unlinked and relinked). Once
+	// a CorrelationID has gone this long without reporting another "ACL not
+	// found", any earlier count is considered stale and tolerance starts over
+	// from zero, so a new incarnation of a watch never inherits a stale
+	// streak from a previous one.
+	aclNotFoundStreakResetWindow = 2 * time.Minute
 )
 
 type stateConfig struct {
@@ -101,6 +128,18 @@ type state struct {
 	doneCh chan struct{}
 
 	rateLimiter *rate.Limiter
+
+	// aclNotFoundStreaks tracks consecutive "ACL not found" errors per
+	// CorrelationID, so a single transient blip doesn't tear down the whole
+	// state. Only ever touched from within unsafeRun's single goroutine.
+	aclNotFoundStreaks map[string]aclNotFoundStreak
+}
+
+// aclNotFoundStreak is the tolerance bookkeeping for one CorrelationID's
+// consecutive "ACL not found" results.
+type aclNotFoundStreak struct {
+	count    int
+	lastSeen time.Time
 }
 
 func (s *state) stoppedRunning() bool {
@@ -202,15 +241,16 @@ func newState(id ProxyID, ns *structs.NodeService, source ProxySource, token str
 	}
 
 	return &state{
-		source:          source,
-		logger:          config.logger.With("proxy", s.proxyID, "kind", s.kind),
-		serviceInstance: s,
-		handler:         handler,
-		ch:              ch,
-		snapCh:          make(chan ConfigSnapshot, 1),
-		reqCh:           make(chan chan *ConfigSnapshot, 1),
-		doneCh:          make(chan struct{}),
-		rateLimiter:     rateLimiter,
+		source:             source,
+		logger:             config.logger.With("proxy", s.proxyID, "kind", s.kind),
+		serviceInstance:    s,
+		handler:            handler,
+		ch:                 ch,
+		snapCh:             make(chan ConfigSnapshot, 1),
+		reqCh:              make(chan chan *ConfigSnapshot, 1),
+		doneCh:             make(chan struct{}),
+		rateLimiter:        rateLimiter,
+		aclNotFoundStreaks: make(map[string]aclNotFoundStreak),
 	}, nil
 }
 
@@ -392,7 +432,36 @@ func (s *state) unsafeRun(ctx context.Context, snap *ConfigSnapshot) {
 		case u := <-s.ch:
 			s.logger.Trace("Data source returned; handling snapshot update", "correlationID", u.CorrelationID)
 
+			// Track (and decay) the ACL-not-found streak for this CorrelationID
+			// before deciding whether u.Err is terminal, so the decision below
+			// always sees an up-to-date count. Any outcome other than "ACL not
+			// found" clears the streak entirely - CorrelationIDs are often
+			// deterministic and get reused across unrelated watch instances, so
+			// only an unbroken run of not-found results should count.
+			var streak int
+			if acl.IsErrNotFound(u.Err) {
+				entry := s.aclNotFoundStreaks[u.CorrelationID]
+				if time.Since(entry.lastSeen) > aclNotFoundStreakResetWindow {
+					entry.count = 0
+				}
+				entry.count++
+				entry.lastSeen = time.Now()
+				s.aclNotFoundStreaks[u.CorrelationID] = entry
+				streak = entry.count
+			} else {
+				delete(s.aclNotFoundStreaks, u.CorrelationID)
+			}
+
 			if IsTerminalError(u.Err) {
+				if acl.IsErrNotFound(u.Err) && streak < acl.MaxConsecutiveNotFoundTolerance {
+					s.logger.Warn("ACL not found for data source; tolerating transient error",
+						"correlationID", u.CorrelationID, "streak", streak, "error", u.Err)
+					metrics.IncrCounter([]string{"proxycfg", "acl_not_found", "tolerated"}, 1)
+					continue
+				}
+				if acl.IsErrNotFound(u.Err) {
+					metrics.IncrCounter([]string{"proxycfg", "acl_not_found", "terminated"}, 1)
+				}
 				s.logger.Error("Data source in an irrecoverable state; exiting", "error", u.Err, "correlationID", u.CorrelationID)
 				s.Close(true)
 				return
