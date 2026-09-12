@@ -2000,10 +2000,8 @@ func TestFetch_ExistingValid_NoIgnore(t *testing.T) {
 	}
 
 	opts := newGetOptions(c.types["t"], TestRequest(t, RequestInfo{Key: "key"}))
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	// Should return a closed channel immediately
-	ch := c.fetch(ctx, key, opts, true, 0, false)
+	ch := c.fetch(key, opts, true, 0, false)
 
 	select {
 	case <-ch:
@@ -2028,9 +2026,7 @@ func TestFetch_AllowNewFalse(t *testing.T) {
 
 	key := "test/missing"
 	opts := newGetOptions(c.types["t"], TestRequest(t, RequestInfo{Key: "missing"}))
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	ch := c.fetch(ctx, key, opts, false, 0, false)
+	ch := c.fetch(key, opts, false, 0, false)
 
 	select {
 	case <-ch:
@@ -2065,10 +2061,8 @@ func TestFetch_Coalescing(t *testing.T) {
 	}
 
 	opts := newGetOptions(c.types["t"], TestRequest(t, RequestInfo{Key: "coalesce"}))
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	// Call fetch
-	ch := c.fetch(ctx, key, opts, true, 0, false)
+	ch := c.fetch(key, opts, true, 0, false)
 
 	// Ensure we got the exact same channel back.
 	// Note: We cast the local bidirectional channel to read-only for comparison.
@@ -2096,10 +2090,8 @@ func TestFetch_StopCh(t *testing.T) {
 
 	opts := newGetOptions(c.types["t"], TestRequest(t, RequestInfo{Key: "k"}))
 	key := makeEntryKey("t", "", "", "", "k")
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	// Start fetch
-	waiter := c.fetch(ctx, key, opts, true, 0, false)
+	waiter := c.fetch(key, opts, true, 0, false)
 
 	// Ensure fetch has started (Wait for Fetching to be true)
 	assert.Eventually(t, func() bool {
@@ -2140,9 +2132,7 @@ func TestFetch_ResultStateOnly(t *testing.T) {
 		Return(FetchResult{Value: nil, State: "some_state"}, nil)
 
 	opts := newGetOptions(c.types["t"], TestRequest(t, RequestInfo{Key: "state_only"}))
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	waiter := c.fetch(ctx, key, opts, true, 0, false)
+	waiter := c.fetch(key, opts, true, 0, false)
 	<-waiter
 
 	c.entriesLock.RLock()
@@ -2171,9 +2161,7 @@ func TestFetch_ZeroIndexSafety(t *testing.T) {
 		Return(FetchResult{Value: "val", Index: 0}, nil)
 
 	opts := newGetOptions(c.types["t"], TestRequest(t, RequestInfo{Key: "zero_idx"}))
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	waiter := c.fetch(ctx, key, opts, true, 0, false)
+	waiter := c.fetch(key, opts, true, 0, false)
 	<-waiter
 
 	c.entriesLock.RLock()
@@ -2199,21 +2187,18 @@ func TestFetch_ReplacesHandle(t *testing.T) {
 	handle := c.getOrReplaceFetchHandle(key)
 
 	// Start a new fetch for the same key. This calls getOrReplaceFetchHandle again.
-	// We expect the previous handle's stopCh to be closed.
+	// We expect the previous handle's context to be canceled.
 
 	typ.On("Fetch", mock.Anything, mock.Anything, mock.Anything).
 		Return(FetchResult{Value: "val"}, nil)
 
 	opts := newGetOptions(c.types["t"], TestRequest(t, RequestInfo{Key: "k"}))
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	waiter := c.fetch(ctx, key, opts, true, 0, true) // ignoreExisting forces new fetch logic
+	waiter := c.fetch(key, opts, true, 0, true) // ignoreExisting forces new fetch logic
 	<-waiter
 
 	select {
-	case <-handle.stopCh:
+	case <-handle.ctx.Done():
 		// Success: the previous handle was signaled to stop
 	default:
 		t.Fatal("Expected previous fetch handle to be stopped")
@@ -2245,10 +2230,8 @@ func TestFetch_EvictionRace(t *testing.T) {
 
 	opts := newGetOptions(c.types["t"], TestRequest(t, RequestInfo{Key: "evict"}))
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	// Start fetch in background
-	go c.fetch(ctx, key, opts, true, 0, false)
+	go c.fetch(key, opts, true, 0, false)
 
 	<-fetchStarted
 
@@ -2306,10 +2289,7 @@ func TestFetch_Refresh_Backoff_Logic(t *testing.T) {
 	opts := newGetOptions(c.types["t"], TestRequest(t, RequestInfo{Key: "refresh"}))
 
 	// Start initial fetch
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	c.fetch(ctx, key, opts, true, 0, false)
+	c.fetch(key, opts, true, 0, false)
 
 	// Wait for first fetch
 	<-fetched
@@ -2320,5 +2300,108 @@ func TestFetch_Refresh_Backoff_Logic(t *testing.T) {
 		// Success, recursion worked
 	case <-time.After(2 * time.Second):
 		t.Fatal("Background refresh did not trigger second fetch")
+	}
+}
+
+// TestFetch_BackgroundRefreshSurvivesCallerCancel is a regression test for a
+// bug where a cache entry could get permanently stuck serving stale data.
+//
+// The first Get for a key is what starts the background refresh loop. If that
+// loop is bound to the calling request's context, then when that one client
+// disconnects the refresh dies -- but the entry is left behind still marked
+// Valid. Every later Get then hits that frozen entry and returns the stale
+// value with a frozen X-Consul-Index, forever (until the LastGetTTL, which is
+// refreshed by those very same Gets, so in practice never).
+func TestFetch_BackgroundRefreshSurvivesCallerCancel(t *testing.T) {
+	t.Parallel()
+
+	typ := &MockType{}
+	typ.On("RegisterOptions").Return(RegisterOptions{
+		Refresh:          true,
+		SupportsBlocking: true,
+		RefreshTimer:     5 * time.Millisecond,
+		QueryTimeout:     10 * time.Minute,
+	})
+
+	var index uint64 = 10
+	var fetches int64
+	typ.On("Fetch", mock.Anything, mock.Anything, mock.Anything).Return(
+		func(ctx context.Context, opts FetchOptions, r Request) FetchResult {
+			atomic.AddInt64(&fetches, 1)
+			i := atomic.AddUint64(&index, 1)
+			return FetchResult{Value: int(i), Index: i}
+		},
+		func(ctx context.Context, opts FetchOptions, r Request) error { return nil },
+	)
+
+	c := New(Options{})
+	defer c.Close()
+	c.RegisterType("t", typ)
+
+	req := TestRequest(t, RequestInfo{Key: "hello"})
+
+	// A short-lived caller populates the entry and starts the refresh loop.
+	ctx, cancel := context.WithCancel(context.Background())
+	_, _, err := c.Get(ctx, "t", req)
+	require.NoError(t, err)
+
+	// That caller disconnects.
+	cancel()
+
+	// The background refresh must keep running for later callers.
+	before := atomic.LoadInt64(&fetches)
+	retry.Run(t, func(r *retry.R) {
+		require.Greater(r, atomic.LoadInt64(&fetches), before,
+			"background refresh stopped after the caller that started it was canceled")
+	})
+
+	// And a fresh caller must observe an advancing index, not a frozen one.
+	_, meta1, err := c.Get(context.Background(), "t", req)
+	require.NoError(t, err)
+	retry.Run(t, func(r *retry.R) {
+		_, meta2, err := c.Get(context.Background(), "t", req)
+		require.NoError(r, err)
+		require.Greater(r, meta2.Index, meta1.Index, "cache entry index is stuck")
+	})
+}
+
+// TestFetch_CloseDuringInflightFetchUnblocksGet verifies that closing the Cache
+// while a fetch is in flight still unblocks callers waiting on that fetch,
+// matching the documented Close behavior that in-flight fetches are allowed to
+// run to completion.
+func TestFetch_CloseDuringInflightFetchUnblocksGet(t *testing.T) {
+	t.Parallel()
+
+	c := New(Options{})
+	typ := &MockType{}
+	typ.On("RegisterOptions").Return(RegisterOptions{})
+	c.RegisterType("t", typ)
+
+	release := make(chan struct{})
+	typ.On("Fetch", mock.Anything, mock.Anything, mock.Anything).
+		Run(func(args mock.Arguments) { <-release }).
+		Return(FetchResult{Value: "v", Index: 5}, nil)
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		// We only care that Get returns at all, not what it returns.
+		_, _, _ = c.Get(context.Background(), "t", TestRequest(t, RequestInfo{Key: "k"}))
+	}()
+
+	// Let the fetch start, then close the cache and let the fetch finish.
+	retry.Run(t, func(r *retry.R) {
+		c.entriesLock.RLock()
+		defer c.entriesLock.RUnlock()
+		e, ok := c.entries[makeEntryKey("t", "", "", "", "k")]
+		require.True(r, ok && e.Fetching)
+	})
+	require.NoError(t, c.Close())
+	close(release)
+
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("Get did not return after Close during an in-flight fetch")
 	}
 }
