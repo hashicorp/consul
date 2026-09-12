@@ -570,4 +570,18 @@ func TestDiscoveryChainController(t *testing.T) {
 		Name: "foo-2",
 	}))
 	require.True(t, ensureCalled(reconciler.received, "foo-1"))
+
+	// A change after the state read but before AddTrigger closes one of the
+	// WatchSet's channels. Registering that WatchSet must immediately enqueue a
+	// reconciliation so callers can finish populating it before it is watched.
+	ws = memdb.NewWatchSet()
+	ws.Add(store.AbandonCh())
+	_, _, err = store.ReadDiscoveryChainConfigEntries(ws, "foo-3", nil)
+	require.NoError(t, err)
+	require.NoError(t, store.EnsureConfigEntry(2, &structs.ServiceResolverConfigEntry{
+		Kind: structs.ServiceResolver,
+		Name: "foo-3",
+	}))
+	controller.AddTrigger(request, ws.WatchCtx)
+	require.True(t, ensureCalled(reconciler.received, "foo-1"))
 }

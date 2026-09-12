@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -449,18 +448,13 @@ func (r *apiGatewayReconciler) reconcileRoute(_ context.Context, req controller.
 		return nil
 	}
 
-	var triggerOnce sync.Once
-	for _, service := range route.GetServiceNames() {
+	services := route.GetServiceNames()
+	for _, service := range services {
 		_, chainSet, err := store.ReadDiscoveryChainConfigEntries(ws, service.Name, pointerTo(service.EnterpriseMeta))
 		if err != nil {
 			logger.Warn("error reading discovery chain", "error", err)
 			return err
 		}
-
-		// trigger a watch since we now need to check when the discovery chain gets updated
-		triggerOnce.Do(func() {
-			r.controller.AddTrigger(req, ws.WatchCtx)
-		})
 
 		// make sure that we can actually compile a discovery chain based on this route
 		// the main check is to make sure that all of the protocols align
@@ -488,8 +482,13 @@ func (r *apiGatewayReconciler) reconcileRoute(_ context.Context, req controller.
 	// if we have no upstream targets, then set the route as invalid
 	// this should already happen in the validation check on write, but
 	// we'll do it here too just in case
-	if len(route.GetServiceNames()) == 0 {
+	if len(services) == 0 {
 		updater.SetCondition(routeNoUpstreams())
+	} else {
+		// Populate the WatchSet for every service before handing it to the
+		// controller, which starts watching it asynchronously. A WatchSet is a
+		// map and is not safe to mutate once WatchCtx starts iterating it.
+		r.controller.AddTrigger(req, ws.WatchCtx)
 	}
 
 	// the route is valid, attempt to bind it to all gateways
