@@ -18,6 +18,7 @@ export default class Token extends Model {
   @attr('string') Partition;
   @attr('string') IDPName;
   @attr('string') SecretID;
+  @attr('string') IDPLogoutURL;
 
   @attr('boolean') Legacy;
   @attr('boolean') Local;

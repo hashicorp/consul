@@ -41,6 +41,12 @@ export default class TokenSource extends Component {
           // but we might be testing for nspaces everywhere
           // Namespace: typeof this.Namespace !== 'undefined' ? this.Namespace : undefined
         },
+        // Carry the IdP (front-channel) logout URL through so auth-dialog can
+        // open it in a new tab when the user clicks logout, mirroring what
+        // `consul logout` does on the CLI.
+        ...(typeof this.IDPLogoutURL === 'string' && this.IDPLogoutURL !== ''
+          ? { IDPLogoutURL: this.IDPLogoutURL }
+          : {}),
       };
     };
     // TODO: We should probably put the component into idle state

@@ -116,6 +116,14 @@ type Config struct {
 	// Valid only if Type=oidc
 	VerboseOIDCLogging bool
 
+	// OIDCPostLogoutRedirectURIs is the list of allowed post_logout_redirect_uri
+	// values that the provider may redirect the user back to after an
+	// RP-initiated logout. When empty no post_logout_redirect_uri is sent and
+	// the provider displays its own post-logout page.
+	//
+	// Valid only if Type=oidc
+	OIDCPostLogoutRedirectURIs []string
+
 	// -------
 	// just for type=jwt
 	// -------
@@ -248,6 +256,18 @@ func (c *Config) Validate() error {
 			return fmt.Errorf("Invalid AllowedRedirectURIs provided: %v", bad)
 		}
 
+		// OIDCPostLogoutRedirectURIs must use https per the OIDC RP-Initiated
+		// Logout spec (https://openid.net/specs/openid-connect-rpinitiated-1_0.html).
+		for i, uri := range c.OIDCPostLogoutRedirectURIs {
+			u, err := url.Parse(uri)
+			if err != nil {
+				return fmt.Errorf("'OIDCPostLogoutRedirectURIs[%d]' is not a valid URL: %v", i, err)
+			}
+			if u.Scheme != "https" {
+				return fmt.Errorf("'OIDCPostLogoutRedirectURIs[%d]' must use https, got %q", i, u.Scheme)
+			}
+		}
+
 		if c.OIDCClientAssertion != nil {
 			// Validate KeyAlgorithm if set
 			if c.OIDCClientAssertion.KeyAlgorithm != "" &&
@@ -273,6 +293,8 @@ func (c *Config) Validate() error {
 			return fmt.Errorf("'AllowedRedirectURIs' must not be set for type %q", c.Type)
 		case c.VerboseOIDCLogging:
 			return fmt.Errorf("'VerboseOIDCLogging' must not be set for type %q", c.Type)
+		case len(c.OIDCPostLogoutRedirectURIs) != 0:
+			return fmt.Errorf("'OIDCPostLogoutRedirectURIs' must not be set for type %q", c.Type)
 		}
 
 		methodCount := 0
