@@ -28,11 +28,14 @@ fieldset > header,
   @extend %body-200-regular;
 }
 
-%healthcheck-output dt,
 %table td:first-child p,
 %table td:first-child,
 %sliding-toggle label span {
   @extend %body-200-semibold;
+}
+/* Health-check card field labels — Body/100/Semibold per HDS design. */
+%healthcheck-output dt {
+  @extend %body-100-semibold;
 }
 
 %filter-bar input,
@@ -108,7 +111,7 @@ fieldset > header,
   }
 }
 %healthcheck-output dl > dd {
-  @extend %body-200-regular;
+  @extend %body-100-regular;
 }
 
 h1 {

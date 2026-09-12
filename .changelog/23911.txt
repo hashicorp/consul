@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: Migrate the Consul UI to the HashiCorp Design System (HDS). This covers the global navigation shell and breadcrumbs, the list pages (key/value, peers, auth methods, services, service instances, nodes, intentions, linked services, upstreams, and access control), and the access control, namespace, and admin partition forms. Includes numerous accessibility (A11y) fixes.
+```

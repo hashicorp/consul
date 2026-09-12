@@ -7,7 +7,7 @@ Feature: dc / intentions / permissions / create: Intention Permission Create
       dc: datacenter
     ---
     Then the url should be /datacenter/intentions/create
-    And the title should be "New Intention - Consul"
+    And the title should be "Create Intention - Consul"
     # Specifically set L7
     And I click ".value-"
 

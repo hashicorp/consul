@@ -14,6 +14,9 @@
 {{#if @item.Failover}}
       <dl class="failover">
         <dt
+          role="group"
+          tabindex="-1"
+          aria-label={{concat @item.Failover.Type ' failover'}}
           {{hds-tooltip (concat @item.Failover.Type ' failover') options=(detached-tooltip-options)}}
         >
           {{concat @item.Failover.Type ' failover'}}
@@ -41,6 +44,9 @@
     {{#if child.Redirect}}
           <dl class="redirect">
             <dt
+              role="group"
+              tabindex="-1"
+              aria-label={{concat child.Redirect ' redirect'}}
               {{hds-tooltip (concat child.Redirect ' redirect') options=(detached-tooltip-options)}}
             >
               {{child.Redirect}} redirect
@@ -52,6 +58,9 @@
           {{#if child.Failover}}
             <dl class="failover">
               <dt
+                role="group"
+                tabindex="-1"
+                aria-label={{concat child.Failover.Type ' failover'}}
                 {{hds-tooltip (concat child.Failover.Type ' failover') options=(detached-tooltip-options)}}
               >
                 {{child.Failover.Type}} failover
@@ -71,6 +80,9 @@
           {{child.Name}}
           <dl class="failover">
             <dt
+              role="group"
+              tabindex="-1"
+              aria-label={{concat child.Failover.Type ' failover'}}
               {{hds-tooltip (concat child.Failover.Type ' failover') options=(detached-tooltip-options)}}
             >
               {{concat child.Failover.Type ' failover'}}

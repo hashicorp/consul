@@ -60,18 +60,6 @@ as |route|>
   />
 {{/if}}
       </:actions>
-      <:toolbar>
-      {{#if (gt items.length 0)}}
-        <Consul::Partition::SearchBar
-          @search={{this.search}}
-          @onsearch={{action (mut this.search) value="target.value"}}
-
-          @sort={{sort}}
-
-          @filter={{filters}}
-        />
-      {{/if}}
-      </:toolbar>
       <:content>
         {{#let (refresh-route) as |refreshRoute|}}
         <DataWriter
@@ -102,10 +90,19 @@ as |route|>
           @items={{items}}
         as |collection|>
           <collection.Collection>
-            <Consul::Partition::List
+            <Consul::Partition::List::Table
               @items={{collection.items}}
               @ondelete={{writer.delete}}
-            />
+            >
+              <:toolbar>
+                <Consul::Partition::Toolbar
+                  @search={{this.search}}
+                  @onsearch={{action (mut this.search) value="target.value"}}
+                  @sort={{sort}}
+                  @filter={{filters}}
+                />
+              </:toolbar>
+            </Consul::Partition::List::Table>
           </collection.Collection>
           <collection.Empty>
             <EmptyState
@@ -125,13 +122,14 @@ as |route|>
                 </p>
               </:body>
               <:actions>
-                <li class="docs-link">
-                  <Action
+                <li>
+                  <Hds::Link::Standalone
+                    @text='Documentation on Admin Partitions'
                     @href="{{env 'CONSUL_DOCS_URL'}}/enterprise/admin-partitions"
-                    @external={{true}}
-                  >
-                    Documentation on Admin Partitions
-                  </Action>
+                    @icon='docs-link'
+                    @iconPosition='trailing'
+                    @size='small'
+                  />
                 </li>
               </:actions>
             </EmptyState>

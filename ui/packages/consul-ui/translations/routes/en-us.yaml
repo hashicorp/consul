@@ -14,10 +14,10 @@ dc:
         header: Server fault tolerance
         immediate:
           header: Immediate
-          body: the number of healthy active voting servers that can fail at once without causing an outage
+          body: The number of healthy active voting servers that can fail at once without causing an outage
         optimistic:
           header: Optimistic
-          body: the number of healthy active and back-up voting servers that can fail gradually without causing an outage
+          body: The number of healthy active and backup voting servers that can fail gradually without causing an outage
     cataloghealth:
       title: Health
     license:
@@ -170,7 +170,13 @@ dc:
       addresses:
         empty:
           header: No server adddresses.
-          body: <div>There don't seem to be any server addresses for this peer.</div>
+          body: |
+            <div>
+            {items, select,
+              0 {There don't seem to be any server addresses for this peer.}
+              other {No server addresses were found matching that search.}
+            }
+            </div>
   partitions:
     index:
       empty:
@@ -229,11 +235,11 @@ dc:
           </p>
     instance:
       exposedpaths:
-        intro: |
-          <p>
-            The following list shows individual HTTP paths exposed through Envoy for external services like Prometheus. Read more about this in our <a href="{CONSUL_DOCS_URL}/connect/registration/service-registration#expose-paths-configuration-reference" target="_blank" rel="noopener noreferrer">documentation</a>.
-          </p>
-
+        intro:
+          body: The following table shows individual HTTP paths exposed through Envoy for external services like Prometheus.
+          footer:
+            link: "/connect/registration/service-registration#expose-paths-configuration-reference"
+            text: View documentation
         empty:
           body: |
             <p>
@@ -337,10 +343,12 @@ dc:
             }.
           </p>
       services:
-        intro: |
-          <p>
-            The following services may receive traffic from external services through this gateway. Learn more about configuring gateways in our <a href="{CONSUL_DOCS_URL}/connect/terminating-gateway" target="_blank" rel="noopener noreferrer">step-by-step guide</a>.
-          </p>
+        intro:
+          header: Linked services
+          body: The following services may receive traffic from external services through this gateway.
+          footer:
+            text: Learn more about configuring gateways
+            link: /connect/terminating-gateway
         empty: |
           <p>
             There are no Services{items, select,
@@ -356,10 +364,12 @@ dc:
               There are no tags for this Service.
             </p>
       upstreams:
-        intro: |
-          <p>
-            Upstreams are services that may receive traffic from this gateway. If you are not using Consul DNS, please make sure your <code>Host:</code> header uses the correct domain name for the gateway to correctly proxy to its upstreams. Learn more about configuring gateways in our <a href="{CONSUL_DOCS_URL}/connect/ingress-gateways" target="_blank" rel="noopener noreferrer">documentation</a>.
-          </p>
+        intro:
+          header: Upstreams
+          body: 'Upstreams are services that may receive traffic from this gateway. If you are not using Consul DNS, please make sure your Host: header uses the correct domain name for the gateway to correctly proxy to its upstreams.'
+          footer:
+            text: Learn more about configuring gateways
+            link: /connect/ingress-gateways
         empty: |
           <p>
             This Service has no Upstreams{items, select,

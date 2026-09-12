@@ -1,0 +1,19 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+.consul-kv-toolbar {
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+
+  /* the sorter sits at the right end of the toolbar row */
+  .consul-kv-toolbar__sort {
+    flex: 0 0 auto;
+    margin-left: auto;
+
+    .hds-dropdown-toggle-button {
+      min-height: 2.25rem;
+    }
+  }
+}

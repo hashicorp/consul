@@ -26,28 +26,41 @@
     )
 
   as |Name PeeringToken|}}
-    <p>
-      Enter a token generated in the desired peer.
-    </p>
       <StateMachine
         @src={{require '/machines/validate.xstate' from="/components/consul/peer/form/generate/fieldsets"}}
       as |fsm|>
 
       <fieldset>
-        <TextInput
-          @name="Name"
-          @label="Name of peer"
-          @item={{@item}}
-          @validations={{Name}}
-          @chart={{fsm}}
-        />
-        <TextInput
-          @expanded={{true}}
-          @name="Token"
-          @item={{@item}}
-          @validations={{PeeringToken}}
-          @chart={{fsm}}
-        />
+        <Hds::Form::TextInput::Field
+          name="Name"
+          @value={{@item.Name}}
+          @isRequired={{true}}
+          @isInvalid={{if (get fsm.state.context.errors "Name") true false}}
+          {{validate @item validations=Name chart=fsm}}
+          {{on "input" (pick "target.value" (set @item "Name"))}}
+          data-test-peer-name
+          as |F|
+        >
+          <F.Label>Name of peer</F.Label>
+          <F.HelperText>{{Name.help}}</F.HelperText>
+          {{#if (get fsm.state.context.errors "Name")}}
+            <F.Error>{{get (get fsm.state.context.errors "Name") "message"}}</F.Error>
+          {{/if}}
+        </Hds::Form::TextInput::Field>
+
+        <Hds::Form::TextInput::Field
+          name="PeeringToken"
+          @value={{@item.PeeringToken}}
+          @isRequired={{true}}
+          {{validate @item validations=PeeringToken chart=fsm}}
+          {{on "input" (pick "target.value" (set @item "PeeringToken"))}}
+          data-test-peer-token
+          as |F|
+        >
+          <F.Label>Token</F.Label>
+          <F.HelperText>{{PeeringToken.help}}</F.HelperText>
+        </Hds::Form::TextInput::Field>
+
         {{yield (hash
           valid=(not (state-matches fsm.state 'error'))
         )}}

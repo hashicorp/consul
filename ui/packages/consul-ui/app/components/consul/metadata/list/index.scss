@@ -1,0 +1,39 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+.consul-metadata-list {
+  padding: 24px;
+
+  /* Two aligned columns (Key / Value) rendered as a grid so rows stay aligned
+     even when a key wraps onto multiple lines. Key column is fixed-width per
+     the design; the Value column fills the remaining space. */
+  .consul-metadata-list__grid {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    column-gap: 32px;
+    row-gap: 16px;
+    margin: 0;
+  }
+
+  .consul-metadata-list__head,
+  .consul-metadata-list__grid dt,
+  .consul-metadata-list__grid dd {
+    color: var(--token-color-foreground-strong);
+    font-size: var(--token-typography-body-300-font-size);
+    line-height: var(--token-typography-body-300-line-height);
+    /* Long keys/values wrap rather than overflow the card. */
+    word-break: break-word;
+    margin: 0;
+  }
+
+  .consul-metadata-list__head {
+    font-weight: var(--token-typography-font-weight-semibold);
+  }
+
+  .consul-metadata-list__grid dt,
+  .consul-metadata-list__grid dd {
+    font-weight: var(--token-typography-font-weight-regular);
+  }
+}

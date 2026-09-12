@@ -105,12 +105,6 @@
           </DataSource>
         {{/if}}
         <AppView>
-          <:breadcrumbs>
-            <Hds::Breadcrumb>
-              <Breadcrumbs::BackLink @text="All Services" @route="dc.services" @model={{route.params.dc}} @params={{hash peer=undefined}} />
-              <Hds::Breadcrumb::Item @text={{concat "Service (" item.Service.Service ")"}} @route="dc.services.show" data-test-back />
-            </Hds::Breadcrumb>
-          </:breadcrumbs>
           <:header>
             <h1>
               <route.Title @title={{item.Service.ID}} />

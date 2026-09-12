@@ -9,6 +9,7 @@ import ExactSearch from 'consul-ui/utils/search/exact';
 
 import intention from 'consul-ui/search/predicates/intention';
 import upstreamInstance from 'consul-ui/search/predicates/upstream-instance';
+import exposedPath from 'consul-ui/search/predicates/exposed-path';
 import serviceInstance from 'consul-ui/search/predicates/service-instance';
 import healthCheck from 'consul-ui/search/predicates/health-check';
 import acl from 'consul-ui/search/predicates/acl';
@@ -21,12 +22,15 @@ import policy from 'consul-ui/search/predicates/policy';
 import authMethod from 'consul-ui/search/predicates/auth-method';
 import nspace from 'consul-ui/search/predicates/nspace';
 import peer from 'consul-ui/search/predicates/peer';
+import peerAddress from 'consul-ui/search/predicates/peer-address';
+import session from 'consul-ui/search/predicates/session';
 
 const predicates = {
   intention: intention,
   service: service,
   ['service-instance']: serviceInstance,
   ['upstream-instance']: upstreamInstance,
+  ['exposed-path']: exposedPath,
   ['health-check']: healthCheck,
   ['auth-method']: authMethod,
   node: node,
@@ -37,6 +41,8 @@ const predicates = {
   policy: policy,
   nspace: nspace,
   peer: peer,
+  ['peer-address']: peerAddress,
+  session: session,
 };
 
 export default class SearchService extends Service {

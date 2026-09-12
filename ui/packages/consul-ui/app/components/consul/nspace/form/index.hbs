@@ -40,61 +40,50 @@
       }}
         <form {{on "submit" (fn writer.persist item)}} {{disabled readOnly}}>
 
-          <StateChart
-            @src={{state-chart "validate"}}
-            as |State Guard ChartAction dispatch state|
-          >
-
             <fieldset>
               {{#if (is "new nspace" item=item)}}
-                <TextInput
-                  @name="Name"
-                  @placeholder="Name"
-                  @item={{item}}
-                  @validations={{Name}}
-                  @chart={{hash state=state dispatch=dispatch}}
-                />
+                <Hds::Form::TextInput::Field
+                  name="Name"
+                  @value={{item.Name}}
+                  @isRequired={{true}}
+                  disabled={{readOnly}}
+                  as |F|
+                >
+                  <F.Label>Name</F.Label>
+                  <F.HelperText>{{Name.help}}</F.HelperText>
+                </Hds::Form::TextInput::Field>
               {{/if}}
-              <TextInput
-                @expanded={{true}}
-                @name="Description"
-                @label="Description (Optional)"
-                @item={{item}}
-                @validations={{Description}}
-                @chart={{hash state=state dispatch=dispatch}}
-              />
+              <Hds::Form::TextInput::Field
+                name="Description"
+                @value={{item.Description}}
+                @isOptional={{true}}
+                placeholder="Enter description here"
+                disabled={{readOnly}}
+                {{on 'input' (fn this.updateDescription item)}}
+                as |F|
+              >
+                <F.Label>Description</F.Label>
+              </Hds::Form::TextInput::Field>
             </fieldset>
             {{#if (can "use acls")}}
+              <Hds::Separator />
               <fieldset id="roles">
-                <h2>Roles</h2>
-                <p>
-                  {{#if (can "write nspace" item=item)}}
-                    By adding roles to this namespaces, you will apply them to
-                    all tokens created within this namespace.
-                  {{else}}
-                    The following roles are applied to all tokens created within
-                    this namespace.
-                  {{/if}}
-                </p>
                 <RoleSelector
                   @dc={{@dc}}
                   @nspace="default"
                   @partition={{@partition}}
                   @disabled={{readOnly}}
                   @items={{item.ACLs.RoleDefaults}}
+                  @showHeader={{true}}
+                  @descriptionText={{if
+                    (can "write nspace" item=item)
+                    "By adding roles to this namespaces, you will apply them to all tokens created within this namespace."
+                    "The following roles are applied to all tokens created within this namespace."
+                  }}
                 />
               </fieldset>
+              <Hds::Separator />
               <fieldset id="policies">
-                <h2>Policies</h2>
-                <p>
-                  {{#if (not readOnly)}}
-                    By adding policies to this namespace, you will apply them to
-                    all tokens created within this namespace.
-                  {{else}}
-                    The following policies are applied to all tokens created
-                    within this namespace.
-                  {{/if}}
-                </p>
                 <PolicySelector
                   @dc={{@dc}}
                   @nspace="default"
@@ -102,18 +91,21 @@
                   @disabled={{readOnly}}
                   @allowIdentity={{false}}
                   @items={{item.ACLs.PolicyDefaults}}
+                  @showHeader={{true}}
+                  @descriptionText={{if
+                    (not readOnly)
+                    "By adding policies to this namespace, you will apply them to all tokens created within this namespace."
+                    "The following policies are applied to all tokens created within this namespace."
+                  }}
                 />
               </fieldset>
             {{/if}}
-            <div>
+            <div class='consul-nspace-form__actions'>
               <Hds::ButtonSet>
               {{#if (and (is "new nspace" item=item) (can "create nspaces"))}}
                 <Hds::Button
                   type="submit"
-                  disabled={{or
-                      (is "pristine nspace" item=item)
-                      (state-matches state "error")
-                  }}
+                  disabled={{is "pristine nspace" item=item}}
                   @text='Save'
                 />
               {{else if (can "write nspace" item=item)}}
@@ -129,6 +121,7 @@
                   @text='Cancel'
                   {{on 'click' (fn this.onCancel item)}}
                 />
+              </Hds::ButtonSet>
 
               {{#if
                 (and
@@ -136,29 +129,43 @@
                   (can "delete nspace" item=item)
                 )
               }}
-                <ConfirmationDialog
-                  @message="Are you sure you want to delete this Namespace?"
-                >
-                  <:action as |confirm|>
-                    <Hds::Button
-                      data-test-delete
-                      @color='critical'
-                      @text='Delete'
-                      {{on "click" confirm }}
-                    />
-                  </:action>
-                  <:dialog as |execute cancel message|>
-                    <DeleteConfirmation
-                      @message={{message}}
-                      @execute={{queue execute (fn writer.delete item)}}
-                      @cancel={{cancel}}
-                    />
-                  </:dialog>
-                </ConfirmationDialog>
+                <Hds::Button
+                  data-test-delete
+                  @color='critical'
+                  @text='Delete'
+                  {{on 'click' this.confirmDelete}}
+                />
               {{/if}}
-              </Hds::ButtonSet>
             </div>
-          </StateChart>
+
+            {{#if this.isConfirmingDelete}}
+              <Hds::Modal
+                id='confirm-nspace-delete-modal'
+                @color='critical'
+                @onClose={{this.cancelDelete}}
+                as |M|
+              >
+                <M.Header @icon='alert-diamond'>Confirm delete</M.Header>
+                <M.Body>
+                  <p>Are you sure you want to delete this Namespace?</p>
+                </M.Body>
+                <M.Footer as |F|>
+                  <Hds::ButtonSet>
+                    <Hds::Button
+                      @text='Delete'
+                      @color='critical'
+                      data-test-id='confirm-action'
+                      {{on 'click' (queue (fn writer.delete item) this.cancelDelete)}}
+                    />
+                    <Hds::Button
+                      @text='Cancel'
+                      @color='secondary'
+                      {{on 'click' F.close}}
+                    />
+                  </Hds::ButtonSet>
+                </M.Footer>
+              </Hds::Modal>
+            {{/if}}
         </form>
       {{/let}}
     </:content>

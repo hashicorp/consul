@@ -1,0 +1,114 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+<AppView>
+  <:header>
+      <h1>{{or (key-name @parent.Key) 'Key / Value'}}</h1>
+      <label for="toolbar-toggle"></label>
+  </:header>
+  <:toolbar>
+{{#if (gt @items.length 0)}}
+    <Consul::Kv::Toolbar
+      @search={{@search}}
+      @onsearch={{@onsearch}}
+      @sort={{@sort}}
+      @filter={{@filters}}
+    />
+{{/if}}
+  </:toolbar>
+  <:actions>
+{{#if (can 'create kvs')}}
+  {{! both hrefs are built whichever we use, so the key is defaulted for the }}
+  {{! one that takes it -- the root has no folder segment and its own route }}
+  {{#let (or @parent.Key '/') as |parentKey|}}
+  <Hds::Button
+    @text='Create'
+    @isHrefExternal={{false}}
+    @href={{if (key-name parentKey)
+      (href-to 'dc.kv.create' parentKey)
+      (href-to 'dc.kv.root-create')
+    }}
+    data-test-create
+  />
+  {{/let}}
+{{/if}}
+  </:actions>
+  <:content>
+    {{#let (refresh-route) as |refreshRoute|}}
+    <DataWriter
+      @sink={{uri '/${partition}/${nspace}/${dc}/kv/'
+        (hash
+          partition=@partition
+          nspace=@nspace
+          dc=@dc
+        )
+      }}
+      @type="kv"
+      @label="key"
+      @ondelete={{refreshRoute}}>
+      <:content as |writer|>
+        <DataCollection
+          @type="kv"
+          @sort={{@sort.value}}
+          @filters={{@filters}}
+          @search={{@search}}
+          @items={{@items}}
+        as |collection|>
+          <collection.Collection>
+            <Consul::Kv::List
+              @items={{collection.items}}
+              @sort={{@sort.value}}
+              @delete={{writer.delete}}
+              @dc={{@dc}}
+              @nspace={{@nspace}}
+              @partition={{@partition}}
+            />
+          </collection.Collection>
+          <collection.Empty>
+            <EmptyState
+              @login={{@login}}
+            >
+              <:header>
+                <h2>
+                  {{t 'routes.dc.kv.index.empty.header'
+                    items=@items.length
+                  }}
+                </h2>
+              </:header>
+              <:body>
+                {{t 'routes.dc.kv.index.empty.body'
+                  items=@items.length
+                  canUseACLs=(can "use acls")
+                  htmlSafe=true
+                }}
+              </:body>
+              <:actions>
+                <li>
+                  <Hds::Link::Standalone
+                    @text='Documentation on K/V'
+                    @href="{{env 'CONSUL_DOCS_URL'}}/automate/kv"
+                    @icon='docs-link'
+                    @iconPosition='trailing'
+                    @size='small'
+                  />
+                </li>
+                <li>
+                  <Hds::Link::Standalone
+                    @text='Take the tutorial'
+                    @href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/kv"
+                    @icon='learn-link'
+                    @iconPosition='trailing'
+                    @size='small'
+                  />
+                </li>
+              </:actions>
+            </EmptyState>
+          </collection.Empty>
+        </DataCollection>
+      </:content>
+    </DataWriter>
+    {{/let}}
+  </:content>
+</AppView>

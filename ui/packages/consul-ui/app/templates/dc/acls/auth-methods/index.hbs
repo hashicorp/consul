@@ -69,7 +69,7 @@ as |route|>
       </:header>
       <:toolbar>
       {{#if (gt items.length 0)}}
-        <Consul::AuthMethod::SearchBar
+        <Consul::AuthMethod::Toolbar
           @search={{this.search}}
           @onsearch={{action (mut this.search) value="target.value"}}
           @sort={{sort}}

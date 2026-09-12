@@ -3,7 +3,7 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<span class="consul-acl-ruleset-badge" data-type={{this.type}} aria-label={{this.ariaLabel}} ...attributes>
+<span class="consul-acl-ruleset-badge" data-type={{this.type}} role="group" aria-label={{this.ariaLabel}} ...attributes>
   {{#if this.hasIcon}}
     <Hds::Badge
       @text={{this.label}}

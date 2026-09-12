@@ -4,77 +4,133 @@
 }}
 
 {{#if (gt @items.length 0)}}
-<ListCollection
-  class="consul-intention-permission-list{{if (not @onclick) ' readonly'}}"
-  @scroll="native"
-  @items={{@items}}
-  @showActions={{if @onclick true false}}
-  @partial={{5}}>
-  <:details as |item|>
-    <div onclick={{action (optional @onclick) item}}>
-      <Consul::Intention::Action @action={{item.Action}} @label={{capitalize (or item.Action 'App aware')}} />
-{{#if (gt item.HTTP.Methods.length 0)}}
-        <dl class="permission-methods">
-          <dt {{hds-tooltip "Methods" options=(detached-tooltip-options)}}>
-            Methods
-          </dt>
-          <dd>
-{{#each item.HTTP.Methods as |item|}}
-            {{item}}
-{{/each}}
-          </dd>
-        </dl>
-{{/if}}
-{{#if item.HTTP.Path}}
-        <dl class="permission-path">
-          <dt {{hds-tooltip item.HTTP.PathType options=(detached-tooltip-options)}}>
-            {{item.HTTP.PathType}}
-          </dt>
-          <dd>
-            {{item.HTTP.Path}}
-          </dd>
-        </dl>
-{{/if}}
-{{#each item.HTTP.Header as |item|}}
-        <dl class="permission-header">
-          <dt {{hds-tooltip "Header" options=(detached-tooltip-options)}}>
-            Header
-          </dt>
-          <dd>
-            {{item.Name}} {{route-match item}}
-          </dd>
-        </dl>
-{{/each}}
+<div class="consul-intention-permission-list{{if (not @onclick) ' readonly'}}">
+  {{#each @items as |item index|}}
+  <Hds::Card::Container
+    @level="base"
+    @hasBorder={{true}}
+    class="consul-intention-permission-card"
+    data-test-list-row
+  >
+    <div class="consul-intention-permission-card__top-row">
+      <div class="consul-intention-permission-card__action-badge">
+        <Consul::Intention::Action
+          @action={{item.Action}}
+          @label={{capitalize (or item.Action 'App aware')}}
+        />
+      </div>
+
+      {{#if item.HTTP.Path}}
+      <div class="consul-intention-permission-card__column">
+        <span class="consul-intention-permission-card__column-label">Path</span>
+        <span class="consul-intention-permission-card__column-value">
+          {{item.HTTP.PathType}}{{item.HTTP.Path}}
+        </span>
+      </div>
+      {{/if}}
+
+      {{#if (gt item.HTTP.Methods.length 0)}}
+      <div class="consul-intention-permission-card__column">
+        <span class="consul-intention-permission-card__column-label">Methods</span>
+        <span class="consul-intention-permission-card__column-value">
+          {{#each item.HTTP.Methods as |method index|}}{{method}}{{#unless (eq index (sub item.HTTP.Methods.length 1))}}, {{/unless}}{{/each}}
+        </span>
+      </div>
+      {{/if}}
+
+      {{#if @onclick}}
+      <div class="consul-intention-permission-card__actions">
+        <Hds::Button
+          @text='Edit'
+          @color='secondary'
+          @size='small'
+          @icon='edit'
+          @iconPosition='leading'
+          data-test-edit-action
+          {{on 'click' (action (optional @onclick) item)}}
+        />
+        <Hds::Button
+          @text='Delete'
+          @color='critical'
+          @size='small'
+          @icon='trash'
+          @iconPosition='leading'
+          data-test-delete-action
+          {{on 'click' (fn this.confirmDelete item)}}
+        />
+      </div>
+      {{/if}}
     </div>
-  </:details>
-  <:actions as |item index Actions|>
-    <Actions as |Action|>
-      <Action data-test-edit-action @onclick={{action (optional @onclick) item}} @close={{true}}>
-        <:label>
-          Edit
-        </:label>
-      </Action>
-      <Action data-test-delete-action @onclick={{action (optional @ondelete) item}} class="dangerous">
-        <:label>
-          Delete
-        </:label>
-        <:confirmation as |Confirmation|>
-          <Confirmation class="warning">
-            <:header>
-              Confirm delete
-            </:header>
-            <:body>
-              <p>
-                Are you sure you want to delete this permission?
-              </p>
-            </:body>
-            <:confirm as |Confirm|>
-              <Confirm>Delete</Confirm>
-            </:confirm>
-          </Confirmation>
-        </:confirmation>
-      </Action>
-    </Actions>
-  </:actions>
-</ListCollection>
+
+    {{#if (gt item.HTTP.Header.length 0)}}
+    <div class="consul-intention-permission-card__headers">
+      <span class="consul-intention-permission-card__headers-label">Headers</span>
+      <Hds::Table class="consul-intention-permission-card__headers-table">
+        <:head as |H|>
+          <H.Tr>
+            <H.Th>Header type</H.Th>
+            <H.Th>Header name</H.Th>
+            <H.Th>Header information</H.Th>
+            <H.Th>Case sensitive</H.Th>
+          </H.Tr>
+        </:head>
+        <:body as |B|>
+          {{#each item.HTTP.Header as |header|}}
+          <B.Tr>
+            <B.Td>{{route-match header}}</B.Td>
+            <B.Td>{{header.Name}}</B.Td>
+            <B.Td>
+              {{#if header.Present}}
+                —
+              {{else}}
+                {{or header.Exact header.Prefix header.Suffix header.Contains header.Regex ''}}
+              {{/if}}
+            </B.Td>
+            <B.Td>
+              {{#if (not-eq header.IgnoreCase undefined)}}
+                {{if header.IgnoreCase 'No' 'Yes'}}
+              {{else}}
+                —
+              {{/if}}
+            </B.Td>
+          </B.Tr>
+          {{/each}}
+        </:body>
+      </Hds::Table>
+    </div>
+    {{/if}}
+  </Hds::Card::Container>
+  {{/each}}
+</div>
+{{/if}}
+
+{{#if this.itemToDelete}}
+  <Hds::Modal
+    id="confirm-delete-permission-modal"
+    @color="critical"
+    @onClose={{this.cancelDelete}}
+    as |M|
+  >
+    <M.Header @icon="alert-diamond">
+      Confirm delete
+    </M.Header>
+    <M.Body>
+      <p>Are you sure you want to delete this permission?</p>
+    </M.Body>
+    <M.Footer as |F|>
+      <Hds::ButtonSet>
+        <Hds::Button
+          @text="Delete"
+          @color="critical"
+          data-test-confirm-action
+          {{on 'click' this.invokeDelete}}
+        />
+        <Hds::Button
+          @text="Cancel"
+          @color="secondary"
+          {{on 'click' F.close}}
+        />
+      </Hds::ButtonSet>
+    </M.Footer>
+  </Hds::Modal>
 {{/if}}

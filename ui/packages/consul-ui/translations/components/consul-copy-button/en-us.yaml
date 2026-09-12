@@ -2,5 +2,6 @@
 # SPDX-License-Identifier: BUSL-1.1
 
 title: Copy {name} to the clipboard
-success: Copied {name}
+copy: Copy
+success: Copied
 error: There was a problem.

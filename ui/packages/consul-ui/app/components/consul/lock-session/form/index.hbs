@@ -39,74 +39,95 @@
         />
       </:error>
       <:content as |writer|>
-        <div
-          class="definition-table"
+        {{! the trailing link renders as the info icon help links are given app wide }}
+        <h2 class="consul-lock-session-form__title">
+          Lock Session<Action
+            rel="help"
+            aria-label="Lock Session documentation"
+            @href={{concat (env 'CONSUL_DOCS_URL') '/automate/session#session-design'}}
+            @external={{true}}
+          />
+        </h2>
+
+        <Hds::Card::Container
+          class="consul-lock-session-form__card"
+          @level='base'
+          @hasBorder={{true}}
         >
-          <dl>
+          <div class="definition-table">
+            <dl>
   {{#if @item.Name}}
-            <dt>Name</dt>
-            <dd>{{@item.Name}}</dd>
+              <dt>Name</dt>
+              <dd>{{@item.Name}}</dd>
   {{/if}}
-            <dt>ID</dt>
-            <dd>{{@item.ID}}</dd>
-            <dt>Node</dt>
-            <dd>
-              <Hds::Button
-                @text={{@item.Node}}
-                @icon='git-commit'
-                @href={{href-to 'dc.nodes.show' @item.Node}}
-                @isHrefExternal={{false}}
-                @size='small'
-                @color='tertiary'
-              />
-            </dd>
-            <dt>Delay</dt>
-            <dd>{{duration-from @item.LockDelay}}</dd>
-            <dt>TTL</dt>
-            <dd>{{or @item.TTL '-'}}</dd>
-            <dt>Behavior</dt>
-            <dd>{{@item.Behavior}}</dd>
+              <dt>ID</dt>
+              <dd>{{@item.ID}}</dd>
+              <dt>Node</dt>
+              <dd>
+                <Hds::Button
+                  @text={{@item.Node}}
+                  @icon='git-commit'
+                  @href={{href-to 'dc.nodes.show' @item.Node}}
+                  @isHrefExternal={{false}}
+                  @size='small'
+                  @color='tertiary'
+                />
+              </dd>
+              <dt>Delay</dt>
+              <dd>{{duration-from @item.LockDelay}}</dd>
+              <dt>TTL</dt>
+              <dd>{{or @item.TTL '-'}}</dd>
+              <dt>Behavior</dt>
+              <dd>{{@item.Behavior}}</dd>
   {{#let @item.checks as |checks|}}
-            <dt>Health Checks</dt>
-            <dd>
+              <dt>Health Checks</dt>
+              <dd>
     {{#if (gt checks.length 0)}}
                 {{ join ', ' checks}}
     {{else}}
                 -
     {{/if}}
-            </dd>
+              </dd>
   {{/let}}
-          </dl>
-        </div>
+            </dl>
+          </div>
+
+        </Hds::Card::Container>
+
   {{#if (can 'delete session' item=@item)}}
-        <ConfirmationDialog @message="Are you sure you want to invalidate this Lock Session?">
-          <:action as |confirm|>
-            <Hds::Button
-              @text='Invalidate Session'
-              @color='critical'
-              data-test-delete
-              {{on 'click' confirm }}
-            />
-          </:action>
-          <:dialog as |execute cancel message|>
-            <p>
-              {{message}}
-            </p>
+        <div class="consul-lock-session-form__actions">
+          <Hds::Button
+            @text='Invalidate Session'
+            @color='critical'
+            data-test-delete
+            {{on 'click' this.confirmInvalidate}}
+          />
+        </div>
+
+    {{#if this.isConfirming}}
+        <Hds::Modal
+          id='confirm-invalidate-modal'
+          @color='critical'
+          @onClose={{this.cancelInvalidate}}
+          as |M|
+        >
+          <M.Header @icon='alert-diamond'>Invalidate Session</M.Header>
+          <M.Body>
+            <p>Are you sure you want to invalidate this Lock Session?</p>
+          </M.Body>
+          <M.Footer as |F|>
             <Hds::ButtonSet>
               <Hds::Button
                 @text='Confirm Invalidation'
                 @color='critical'
-                data-test-delete
-                {{on 'click' (queue execute (fn writer.delete @item))}}
+                data-test-id='confirm-action'
+                {{on 'click' (queue this.cancelInvalidate (fn writer.delete @item))}}
               />
-              <Hds::Button
-                @text='Cancel'
-                @color='secondary'
-                {{on 'click' cancel}}
-              />
+              <Hds::Button @text='Cancel' @color='secondary' {{on 'click' F.close}} />
             </Hds::ButtonSet>
-          </:dialog>
-        </ConfirmationDialog>
+          </M.Footer>
+        </Hds::Modal>
+    {{/if}}
   {{/if}}
       </:content>
     </DataWriter>

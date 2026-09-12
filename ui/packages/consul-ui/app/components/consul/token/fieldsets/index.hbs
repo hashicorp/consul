@@ -5,28 +5,93 @@
 
 <fieldset
   disabled={{if (not (can "write token" item=@item)) "disabled"}}
+  aria-label="Token details"
 >
-{{#if @create }}
-  <div class="type-toggle">
-    <label>
-      <input type="checkbox" name="Local" checked={{if @local 'checked' }} onchange={{@onChange}} />
-      <span>Restrict this token to a local datacenter?</span>
-    </label>
-    <em>Local tokens get set in the Raft store of the local DC and do not ever get transmitted to the primary DC or replicated to any other DC.</em>
-  </div>
-{{/if}}
-  <label class="type-text">
-    <span>Name</span>
-    <input type="text" name="Name" value={{@item.Name}} oninput={{@onChange}} />
-  </label>
-  <label class="type-text validate-optional">
-    <span>Description (Optional)</span>
-    <textarea name="Description" oninput={{@onChange}}>{{@item.Description}}</textarea>
-  </label>
+  {{! aria-label above (rather than a <legend>): the fields below
+      (AccessorID/Token/Scope/Name/Description) read fine on their own via
+      each field's own <label>, so a visible group heading would be
+      redundant — but the <fieldset> itself still needs an accessible name,
+      or it's announced as an unnamed group. A visually-hidden <legend>
+      would do the same job, but browsers give <legend> special fieldset-
+      border layout treatment that the usual clip-based hiding technique
+      doesn't reliably override, so aria-label sidesteps that entirely. }}
+
+  {{! Read-only fields (AccessorID, Token, Scope) — edit mode only }}
+  {{#unless @create}}
+    <Hds::Form::MaskedInput::Field
+      readonly
+      @isContentMasked={{false}}
+      @hasCopyButton={{true}}
+      @value={{@item.AccessorID}}
+      as |F|
+    >
+      <F.Label>AccessorID</F.Label>
+    </Hds::Form::MaskedInput::Field>
+
+    <Hds::Form::MaskedInput::Field
+      readonly
+      @isContentMasked={{true}}
+      @hasCopyButton={{true}}
+      @value={{@item.SecretID}}
+      as |F|
+    >
+      <F.Label>Token</F.Label>
+    </Hds::Form::MaskedInput::Field>
+
+    {{#unless (token/is-legacy @item)}}
+      <Hds::Form::TextInput::Field
+        readonly
+        @value={{if @item.Local 'local' 'global'}}
+        as |F|
+      >
+        <F.Label>Scope</F.Label>
+      </Hds::Form::TextInput::Field>
+    {{/unless}}
+  {{/unless}}
+
+  {{! Local-scope toggle — create mode only }}
+  {{#if @create}}
+    <Hds::Form::Toggle::Field
+      name="Local"
+      checked={{if @local true false}}
+      {{on "change" @onChange}}
+      as |F|
+    >
+      <F.Label>Restrict this token to a local datacenter?</F.Label>
+      <F.HelperText>
+        Local tokens get set in the Raft store of the local DC and do not ever
+        get transmitted to the primary DC or replicated to any other DC.
+      </F.HelperText>
+    </Hds::Form::Toggle::Field>
+  {{/if}}
+
+  <Hds::Form::TextInput::Field
+    @value={{@item.Name}}
+    name="Name"
+    {{on "input" @onChange}}
+    as |F|
+  >
+    <F.Label>Name</F.Label>
+  </Hds::Form::TextInput::Field>
+
+  <Hds::Form::Textarea::Field
+    @value={{@item.Description}}
+    name="Description"
+    @isOptional={{true}}
+    {{on "input" @onChange}}
+    as |F|
+  >
+    <F.Label>Description</F.Label>
+  </Hds::Form::Textarea::Field>
 </fieldset>
-<fieldset id="roles">
-  <h2>Roles</h2>
+
+<Hds::Separator />
+
+{{! aria-label rather than relying on RoleSelector's own "Roles" heading,
+    which is only rendered when @showHeader is true. }}
+<fieldset id="roles" aria-label="Roles">
   <RoleSelector
+    @showHeader={{true}}
     @disabled={{not (can "write token" item=@item)}}
     @dc={{@dc}}
     @partition={{@partition}}
@@ -34,9 +99,14 @@
     @items={{@item.Roles}}
   />
 </fieldset>
-<fieldset id="policies">
-  <h2>Policies</h2>
+
+<Hds::Separator />
+
+{{! aria-label rather than relying on PolicySelector's own "Policies"
+    heading, which is only rendered when @showHeader is true. }}
+<fieldset id="policies" aria-label="Policies">
   <PolicySelector
+    @showHeader={{true}}
     @disabled={{not (can "write token" item=@item)}}
     @dc={{@dc}}
     @partition={{@partition}}

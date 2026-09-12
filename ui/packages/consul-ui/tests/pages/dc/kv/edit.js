@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-export default function (visitable, attribute, present, submitable, deletable, cancelable) {
+export default function (visitable, attribute, present, submitable, deletable, clickable) {
   return {
     visit: visitable(['/:dc/kv/:kv/edit', '/:dc/kv/create'], function (str) {
       // this will encode the parts of the key path but means you can no longer
@@ -11,8 +11,12 @@ export default function (visitable, attribute, present, submitable, deletable, c
       return str.split('/').map(encodeURIComponent).join('/');
     }),
     ...submitable({}, 'main'),
-    ...cancelable(),
     ...deletable(),
+    // deleting a key is confirmed in a modal, which renders outside `main`
+    confirmDelete: clickable("#confirm-modal [data-test-id='confirm-action']", {
+      resetScope: true,
+      testContainer: 'body',
+    }),
     kv: {
       Key: attribute('data-test-kv-key', '[data-test-kv-key]'),
     },
@@ -20,6 +24,11 @@ export default function (visitable, attribute, present, submitable, deletable, c
       warning: present('[data-test-session-warning]'),
       ID: attribute('data-test-session', '[data-test-session]'),
       ...deletable({}, '[data-test-session]'),
+      // invalidating is confirmed in its own modal
+      confirmDelete: clickable("#confirm-invalidate-modal [data-test-id='confirm-action']", {
+        resetScope: true,
+        testContainer: 'body',
+      }),
     },
   };
 }

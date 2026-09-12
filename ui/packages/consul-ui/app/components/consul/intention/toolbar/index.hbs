@@ -1,0 +1,81 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{!
+  Intentions-index toolbar. All the Filter Bar wiring (filter groups, applied
+  tags, search, "Search across" dropdown, stay-expanded behaviour) lives in the
+  generic Consul::ListToolbar; this component only supplies the intention filter
+  config and the intention-type quick-filter segmented buttons.
+}}
+<Consul::ListToolbar
+  class="consul-intention-toolbar"
+  ...attributes
+  @filter={{@filter}}
+  @search={{@search}}
+  @onsearch={{@onsearch}}
+  @filterGroups={{this.filterGroups}}
+  @searchPlaceholder="Search"
+>
+  <:quickFilters as |qf|>
+    {{!
+      Intention-type quick filters: a segmented group of multi-select toggles,
+      mirroring (and kept in sync with) the "Intention type" multi-select group
+      inside the Filter Bar above. Each button adds or removes its value,
+      preserving the others.
+    }}
+    <Hds::SegmentedGroup class="consul-intention-toolbar__access" as |S|>
+      {{#each this.accessQuickFilters as |quick|}}
+        <S.Button
+          class="consul-intention-toolbar__access-button
+            {{if (qf.isSelected 'access' quick.value) 'is-selected'}}"
+          @text={{quick.label}}
+          @icon={{quick.icon}}
+          @color="secondary"
+          @size="medium"
+          aria-pressed="{{if (qf.isSelected 'access' quick.value) 'true' 'false'}}"
+          data-test-access-filter={{quick.value}}
+          {{on "click" (fn qf.toggleFilterValue "access" quick.value)}}
+        />
+      {{/each}}
+    </Hds::SegmentedGroup>
+
+    {{!
+      Precedence sort: the table columns already sort by Source / Permission /
+      Destination, but Precedence has no column, so it gets a dedicated sort
+      dropdown (mirroring the tokens index sorter).
+    }}
+    {{#if @sort}}
+      <Hds::Dropdown
+        class="consul-intention-toolbar__sort"
+        @listPosition="bottom-left"
+        @preserveContentInDom={{true}}
+        data-test-sort-control
+        as |dd|
+      >
+        <dd.ToggleButton
+          @text={{concat
+            (t "components.consul.intention.search-bar.sort.precedence.name")
+            ": "
+            (if
+              (eq @sort.value "Precedence:asc")
+              (t "common.sort.numeric.asc")
+              (t "common.sort.numeric.desc")
+            )
+          }}
+          @color="secondary"
+          data-test-sort-toggle
+        />
+        <dd.Interactive
+          data-test-sort-option
+          {{on "click" (fn @sort.change (hash target=(hash selected="Precedence:desc")))}}
+        >{{t "common.sort.numeric.desc"}}</dd.Interactive>
+        <dd.Interactive
+          data-test-sort-option
+          {{on "click" (fn @sort.change (hash target=(hash selected="Precedence:asc")))}}
+        >{{t "common.sort.numeric.asc"}}</dd.Interactive>
+      </Hds::Dropdown>
+    {{/if}}
+  </:quickFilters>
+</Consul::ListToolbar>

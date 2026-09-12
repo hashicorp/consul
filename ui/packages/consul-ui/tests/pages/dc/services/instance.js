@@ -12,7 +12,8 @@ export default function (
   text,
   tabs,
   upstreams,
-  healthChecks
+  healthChecks,
+  exposedPaths
 ) {
   const page = {
     visit: visitable('/:dc/services/:service/instances/:node/:id'),
@@ -24,13 +25,13 @@ export default function (
     healthChecks: healthChecks(),
     upstreams: alias('upstreamInstances.item'),
     upstreamInstances: upstreams(),
-    exposedPaths: collection('[data-test-proxy-exposed-paths] > tbody tr', {
-      combinedAddress: text('[data-test-combined-address]'),
+    exposedPaths: alias('exposedPathsTable.item'),
+    exposedPathsTable: exposedPaths(),
+    addresses: collection('[data-test-addresses] [data-test-address-card]', {
+      tag: text('[data-test-address-tag]'),
+      address: text('[data-test-address-value]'),
     }),
-    addresses: collection('.consul-tagged-addresses [data-test-tabular-row]', {
-      address: text('[data-test-address]'),
-    }),
-    metadata: collection('.metadata [data-test-tabular-row]', {}),
+    metadata: collection('.metadata [data-test-metadata-key]', {}),
   };
   page.tabs.healthChecksTab = {
     criticalSerfNotice: present('[data-test-critical-serf-notice]'),

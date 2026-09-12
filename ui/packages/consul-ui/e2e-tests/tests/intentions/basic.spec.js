@@ -149,14 +149,19 @@ test.describe('Intentions - View and List', () => {
     await intentionsPage.goto('/ui/dc1/intentions', { waitUntil: 'networkidle' });
 
     await expect(
-      intentionsPage.locator('td.source a').filter({ hasText: 'e2e-list-src' })
+      intentionsPage
+        .locator('.consul-intention-list-table__name a')
+        .filter({ hasText: 'e2e-list-src' })
     ).toBeVisible();
     await expect(
-      intentionsPage.locator('td.destination').filter({ hasText: 'e2e-list-dest' })
+      intentionsPage
+        .locator('.consul-intention-list-table__name')
+        .filter({ hasText: 'e2e-list-dest' })
     ).toBeVisible();
-    await expect(intentionRow(intentionsPage, 'e2e-list-src').locator('td.intent')).toHaveClass(
-      /intent-allow/
-    );
+    // The action is rendered as an Hds::Badge ("Allow"/"Deny") inside .consul-intention-action-badge
+    await expect(
+      intentionRow(intentionsPage, 'e2e-list-src').locator('.consul-intention-action-badge')
+    ).toContainText('Allow');
   });
 
   test('should navigate to edit page when clicking an intention', async ({
@@ -166,7 +171,10 @@ test.describe('Intentions - View and List', () => {
     await intentionApi.create('e2e-nav-src', 'e2e-nav-dest', { action: 'allow' });
     await intentionsPage.goto('/ui/dc1/intentions', { waitUntil: 'networkidle' });
 
-    await intentionsPage.locator('td.source a').filter({ hasText: 'e2e-nav-src' }).click();
+    await intentionsPage
+      .locator('.consul-intention-list-table__name a')
+      .filter({ hasText: 'e2e-nav-src' })
+      .click();
     // URL is /ui/dc1/intentions/{partition}:{ns}:{source}:{partition}:{ns}:{dest} (no /edit suffix)
     await expect(intentionsPage).toHaveURL(/\/ui\/dc1\/intentions\/[^/]+$/);
     // edit page should show source and destination
@@ -183,7 +191,10 @@ test.describe('Intentions - Edit', () => {
     await intentionsPage.goto('/ui/dc1/intentions', { waitUntil: 'networkidle' });
 
     // click the source link to open the edit form
-    await intentionsPage.locator('td.source a').filter({ hasText: 'e2e-allow-src' }).click();
+    await intentionsPage
+      .locator('.consul-intention-list-table__name a')
+      .filter({ hasText: 'e2e-allow-src' })
+      .click();
     await expect(intentionsPage).toHaveURL(/\/ui\/dc1\/intentions\/[^/]+$/);
 
     // Use the RadioCard's value-{intent} class (unique to the main form fieldset)
@@ -191,11 +202,10 @@ test.describe('Intentions - Edit', () => {
     await intentionsPage.getByRole('button', { name: 'Save' }).click();
     await expect(intentionsPage).toHaveURL(/\/ui\/dc1\/intentions$/);
 
-    // verify the list reflects the new action
-    // td.intent has class intent-deny/intent-allow (preserved in production builds)
-    await expect(intentionRow(intentionsPage, 'e2e-allow-src').locator('td.intent')).toHaveClass(
-      /intent-deny/
-    );
+    // verify the list reflects the new action via the Hds::Badge text
+    await expect(
+      intentionRow(intentionsPage, 'e2e-allow-src').locator('.consul-intention-action-badge')
+    ).toContainText('Deny');
 
     // also verify via the API
     const updated = await intentionApi.get('e2e-allow-src', 'e2e-allow-dest');
@@ -206,7 +216,10 @@ test.describe('Intentions - Edit', () => {
     await intentionApi.create('e2e-deny-src', 'e2e-deny-dest', { action: 'deny' });
     await intentionsPage.goto('/ui/dc1/intentions', { waitUntil: 'networkidle' });
 
-    await intentionsPage.locator('td.source a').filter({ hasText: 'e2e-deny-src' }).click();
+    await intentionsPage
+      .locator('.consul-intention-list-table__name a')
+      .filter({ hasText: 'e2e-deny-src' })
+      .click();
     await expect(intentionsPage).toHaveURL(/\/ui\/dc1\/intentions\/[^/]+$/);
 
     // The RadioCard adds class="value-{intent}" which is unique to the main form fieldset
@@ -214,9 +227,9 @@ test.describe('Intentions - Edit', () => {
     await intentionsPage.getByRole('button', { name: 'Save' }).click();
     await expect(intentionsPage).toHaveURL(/\/ui\/dc1\/intentions$/);
 
-    await expect(intentionRow(intentionsPage, 'e2e-deny-src').locator('td.intent')).toHaveClass(
-      /intent-allow/
-    );
+    await expect(
+      intentionRow(intentionsPage, 'e2e-deny-src').locator('.consul-intention-action-badge')
+    ).toContainText('Allow');
 
     const updated = await intentionApi.get('e2e-deny-src', 'e2e-deny-dest');
     expect(updated?.Action).toBe('allow');
@@ -229,7 +242,10 @@ test.describe('Intentions - Edit', () => {
     await intentionApi.create('e2e-cancel-src', 'e2e-cancel-dest', { action: 'allow' });
     await intentionsPage.goto('/ui/dc1/intentions', { waitUntil: 'networkidle' });
 
-    await intentionsPage.locator('td.source a').filter({ hasText: 'e2e-cancel-src' }).click();
+    await intentionsPage
+      .locator('.consul-intention-list-table__name a')
+      .filter({ hasText: 'e2e-cancel-src' })
+      .click();
     await expect(intentionsPage).toHaveURL(/\/ui\/dc1\/intentions\/[^/]+$/);
 
     // change the radio but then cancel (use value-{intent} class to avoid ambiguity)
@@ -238,9 +254,9 @@ test.describe('Intentions - Edit', () => {
     await expect(intentionsPage).toHaveURL(/\/ui\/dc1\/intentions$/);
 
     // action should remain allow
-    await expect(intentionRow(intentionsPage, 'e2e-cancel-src').locator('td.intent')).toHaveClass(
-      /intent-allow/
-    );
+    await expect(
+      intentionRow(intentionsPage, 'e2e-cancel-src').locator('.consul-intention-action-badge')
+    ).toContainText('Allow');
   });
 });
 
@@ -251,23 +267,25 @@ test.describe('Intentions - Delete', () => {
     await intentionApi.create('e2e-del-src', 'e2e-del-dest', { action: 'allow' });
     await intentionsPage.goto('/ui/dc1/intentions', { waitUntil: 'networkidle' });
 
-    // open the "More" popup menu for this specific row
-    await intentionRow(intentionsPage, 'e2e-del-src').getByText('More').click();
+    const row = intentionRow(intentionsPage, 'e2e-del-src');
 
-    // click the Delete button inside the row's dangerous menu item
-    // (.dangerous class is preserved in production builds; data-test-delete is stripped)
-    await intentionRow(intentionsPage, 'e2e-del-src')
-      .locator('.dangerous [role="menuitem"]')
-      .click();
+    // open the actions dropdown for this specific row (Hds::Dropdown ToggleIcon
+    // renders a <button aria-label="Open actions menu">)
+    await row.getByRole('button', { name: 'Open actions menu' }).click();
 
-    // the MenuItem teleports an Hds::Modal with id='confirm-modal' (real id, not data-test)
+    // click the Delete menu item (Hds::Dropdown Interactive renders a <button>Delete</button>)
+    await row.getByRole('button', { name: 'Delete' }).click();
+
+    // the delete action opens an Hds::Modal with id='confirm-modal' (real id, not data-test)
     await expect(intentionsPage.locator('#confirm-modal')).toBeVisible({ timeout: 5000 });
     // confirm button text is "Delete" (data-test-id='confirm-action' is stripped in production)
     await intentionsPage.locator('#confirm-modal').getByRole('button', { name: 'Delete' }).click();
 
     // row should disappear from the list
     await expect(
-      intentionsPage.locator('td.source a').filter({ hasText: 'e2e-del-src' })
+      intentionsPage
+        .locator('.consul-intention-list-table__name a')
+        .filter({ hasText: 'e2e-del-src' })
     ).not.toBeVisible({ timeout: 10000 });
 
     // verify via API that it is truly gone

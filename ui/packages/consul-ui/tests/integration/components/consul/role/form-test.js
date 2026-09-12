@@ -20,6 +20,8 @@ module('Integration | Component | consul/role/form', function (hooks) {
     this.set('onCreate', () => {});
     this.set('onUpdate', () => {});
     this.set('onCancel', () => {});
+    this.set('onDelete', () => {});
+    this.set('onChange', () => {});
 
     // Helper function to render component with common args
     this.renderRoleForm = async (extraArgs = {}) => {
@@ -28,9 +30,11 @@ module('Integration | Component | consul/role/form', function (hooks) {
           @form={{this.form}}
           @item={{this.item}}
           @create={{this.create}}
+          @onChange={{this.onChange}}
           @onCreate={{this.onCreate}}
           @onUpdate={{this.onUpdate}}
           @onCancel={{this.onCancel}}
+          @onDelete={{this.onDelete}}
         />
       `);
     };

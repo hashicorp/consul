@@ -52,6 +52,23 @@ ${range(env('CONSUL_EXPOSED_COUNT', 3)).map((i) => `
 `)}
             ]
           },
+          "Upstreams": [
+${range(env('CONSUL_UPSTREAM_COUNT', 3)).map((item, j) => `
+            {
+              "DestinationName": "${fake.hacker.noun()}",
+              "DestinationNamespace": "${fake.hacker.noun()}",
+              "DestinationPartition": "${fake.hacker.noun()}",
+              "DestinationType": "${fake.helpers.randomize(['service', 'prepared_query'])}",
+${fake.random.number({min: 1, max: 10}) > 5 ? `
+              "LocalBindAddress": "${fake.internet.ip()}",
+              "LocalBindPort": ${fake.random.number({min: 0, max: 65535})}
+` : `
+              "LocalBindSocketMode": "0600",
+              "LocalBindSocketPath": "/${fake.lorem.words(fake.random.number({min: 1, max: 5})).split(' ').join('/')}${fake.random.boolean() ? fake.system.fileName() : ''}"
+` }
+            }
+`)}
+          ],
           "Mode": "${env('CONSUL_TPROXY_ENABLE') ? `transparent` : fake.helpers.randomize(['', 'direct', 'transparent'])}",
           "TransparentProxy": {},
           "DestinationServiceName": "${location.pathname.slice(4)}"

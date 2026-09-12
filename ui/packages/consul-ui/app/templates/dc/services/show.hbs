@@ -113,17 +113,6 @@ as |items item dc|}}
               @error={{error}}
             />
           </:notification>
-          <:breadcrumbs>
-            <Hds::Breadcrumb>
-              <Breadcrumbs::BackLink
-                @model={{route.params.dc}}
-                @params={{hash peer=undefined}}
-                @route="dc.services"
-                @text="All Services"
-                data-test-back
-              />
-            </Hds::Breadcrumb>
-          </:breadcrumbs>
           <:header>
               <h1>
                 <route.Title @title={{item.Service.Service}} />

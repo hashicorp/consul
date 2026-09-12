@@ -22,6 +22,11 @@ ui:
   enterprisefeature: Enterprise feature
 consul:
   name: Name
+  id: ID
+  node: Node
+  address: Address
+  port: Port
+  meta: Meta
   passing: Passing
   warning: Warning
   critical: Critical
@@ -29,6 +34,10 @@ consul:
   not-registered: Not Registered
   empty: No checks
   tags: Tags
+  checkid: Check ID
+  notes: Notes
+  output: Output
+  servicetags: Service Tags
   service: Service
   gateway: Gateway
   mesh: Mesh
@@ -42,6 +51,9 @@ consul:
   service-name: Service Name
   node-name: Node Name
   accessorid: AccessorID
+  description: Description
+  role: Role
+  policy: Policy
   datacenter: Datacenter
   localbindaddress: Local Bind Address
   localbindport: Local Bind Port

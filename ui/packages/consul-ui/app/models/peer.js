@@ -24,6 +24,10 @@ export default class Peer extends Model {
   @attr('string') ID;
   @attr('string', { defaultValue: '' }) ServerExternalAddresses;
 
+  // only filled in on the "Establish peering" side, while typing the
+  // token received from the peer that generated it
+  @attr('string') PeeringToken;
+
   // only the side that establishes will hold this property
   @attr('string') PeerID;
 

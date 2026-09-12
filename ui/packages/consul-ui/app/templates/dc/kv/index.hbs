@@ -6,6 +6,9 @@
 <Route
   @name={{this.routeName}}
 as |route|>
+{{! titled from the route params rather than the fetched parent below, so it }}
+{{! can't lag a transition behind the round-trip }}
+  {{page-title (or (key-name route.params.key) 'Key / Value')}}
   <DataSource
     @src={{uri '/${partition}/${nspace}/${dc}/kv/${key}'
       (hash
@@ -85,129 +88,18 @@ as |route|>
   loader.data
 
 as |sort filters parent items|}}
-    <AppView @showBreadcrumb={{not-eq parent.Key '/'}}>
-      <:breadcrumbs>
-        <Hds::Breadcrumb>
-          <Hds::Breadcrumb::Item @text="Key / Values" @route="dc.kv" />
-    {{#each (slice 0 -2 (split parent.Key '/')) as |breadcrumb index|}}
-          <Hds::Breadcrumb::Item @text={{breadcrumb}} @route="dc.kv.folder" @model={{join '/' (append (slice 0 (add index 1) (split parent.Key '/')) '')}} />
-    {{/each}}
-        </Hds::Breadcrumb>
-      </:breadcrumbs>
-      <:header>
-          <h1>
-            {{#if (eq parent.Key '/')}}
-              <route.Title @title="Key / Value" />
-            {{else}}
-              <route.Title @title={{take 1 (drop 1 (reverse (split parent.Key '/')))}} />
-            {{/if}}
-          </h1>
-          <label for="toolbar-toggle"></label>
-      </:header>
-      <:toolbar>
-    {{#if (gt items.length 0) }}
-        <Consul::Kv::SearchBar
-          @search={{this.search}}
-          @onsearch={{action (mut this.search) value="target.value"}}
-
-          @sort={{sort}}
-
-          @filter={{filters}}
-        />
-    {{/if}}
-      </:toolbar>
-      <:actions>
-{{#if (can 'create kvs')}}
-    {{#if (and parent.Key (not-eq parent.Key '/')) }}
-      <Hds::Button
-        @text='Create'
-        @isHrefExternal={{false}}
-        @href="{{href-to 'dc.kv.create' parent.Key}}"
-        data-test-create
-      />
-    {{else}}
-      <Hds::Button
-        @text='Create'
-        @route='dc.kv.root-create'
-        data-test-create
-      />
-    {{/if}}
-{{/if}}
-      </:actions>
-      <:content>
-        {{#let (refresh-route) as |refreshRoute|}}
-        <DataWriter
-          @sink={{uri '/${partition}/${nspace}/${dc}/kv/'
-            (hash
-              partition=route.params.partition
-              nspace=route.params.nspace
-              dc=route.params.dc
-            )
-          }}
-          @type="kv"
-          @label="key"
-          @ondelete={{refreshRoute}}>
-          <:content as |writer|>
-            <DataCollection
-              @type="kv"
-              @sort={{sort.value}}
-              @filters={{filters}}
-              @search={{this.search}}
-              @items={{items}}
-            as |collection|>
-              <collection.Collection>
-                <Consul::Kv::List
-                  @items={{collection.items}}
-                  @parent={{parent}}
-                  @delete={{writer.delete}}
-                />
-              </collection.Collection>
-              <collection.Empty>
-                <EmptyState
-                  @login={{route.model.app.login.open}}
-                >
-                  <:header>
-                    <h2>
-                      {{t 'routes.dc.kv.index.empty.header'
-                        items=items.length
-                      }}
-                    </h2>
-                  </:header>
-                  <:body>
-                    {{t 'routes.dc.kv.index.empty.body'
-                      items=items.length
-                      canUseACLs=(can "use acls")
-                      htmlSafe=true
-                    }}
-                  </:body>
-                  <:actions>
-                    <li>
-                      <Hds::Link::Standalone
-                        @text='Documentation on K/V'
-                        @href="{{env 'CONSUL_DOCS_URL'}}/automate/kv"
-                        @icon='docs-link'
-                        @iconPosition='trailing'
-                        @size='small'
-                      />
-                    </li>
-                    <li>
-                      <Hds::Link::Standalone
-                        @text='Take the tutorial'
-                        @href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/kv"
-                        @icon='learn-link'
-                        @iconPosition='trailing'
-                        @size='small'
-                      />
-                    </li>
-                  </:actions>
-                </EmptyState>
-              </collection.Empty>
-            </DataCollection>
-          </:content>
-        </DataWriter>
-        {{/let}}
-      </:content>
-    </AppView>
+    <Consul::Kv::Browser
+      @dc={{route.params.dc}}
+      @nspace={{route.params.nspace}}
+      @partition={{route.params.partition}}
+      @parent={{parent}}
+      @items={{items}}
+      @sort={{sort}}
+      @filters={{filters}}
+      @search={{this.search}}
+      @onsearch={{action (mut this.search) value="target.value"}}
+      @login={{route.model.app.login.open}}
+    />
 {{/let}}
     </:loaded>
   </DataLoader>

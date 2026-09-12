@@ -1,0 +1,53 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+<Route @name={{this.routeName}} as |route|>
+  <AppView>
+    <:header>
+      <h1>
+        <route.Title @title="Add peer connection" />
+      </h1>
+    </:header>
+    <:content>
+
+      <Consul::Peer::Form
+        @params={{route.params}}
+        @onCancel={{transition-to "dc.peers.index"}}
+        @onSubmit={{this.onEstablish}}
+        as |form|
+      >
+        <form.Form as |form|>
+
+          {{#if form.Fieldsets}}
+            <form.Fieldsets />
+          {{/if}}
+          {{#if form.Actions}}
+            <form.Actions />
+          {{/if}}
+
+          {{#if form.success}}
+            {{! The token can't be viewed again once this modal is closed, so
+                closing it (there's no separate "done" action, per Figma)
+                takes the user on to the newly-created peer. The filled-in
+                fields stay visible behind the dimmed backdrop rather than
+                being replaced by this. }}
+            <Hds::Modal
+              id="copy-token-modal"
+              @onClose={{transition-to "dc.peers.show" form.item.Name}}
+              as |M|
+            >
+              <M.Header>Copy token</M.Header>
+              <M.Body>
+                <form.TokenFieldsets />
+              </M.Body>
+            </Hds::Modal>
+          {{/if}}
+
+        </form.Form>
+      </Consul::Peer::Form>
+
+    </:content>
+  </AppView>
+</Route>

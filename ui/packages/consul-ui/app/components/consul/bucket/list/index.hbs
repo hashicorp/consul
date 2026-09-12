@@ -6,8 +6,15 @@
 {{#if this.itemsToDisplay.length}}
   <dl class="consul-bucket-list">
     {{#each this.itemsToDisplay as |item|}}
-      <dt class={{item.type}} {{hds-tooltip options=(detached-tooltip-options)}}>
-        {{item.label}}
+      {{! <dt>'s only ARIA-in-HTML-permitted role override is "listitem" —
+          "group" isn't valid on it. <span> has no such restriction, so the
+          role/label/tooltip live on an inner span instead; the <dt> itself
+          keeps just the @type class the ::before icon styling above hooks
+          into, and stays at its correct "no corresponding role" default. }}
+      <dt class={{item.type}}>
+        <span role="group" tabindex="-1" aria-label={{item.label}} {{hds-tooltip options=(detached-tooltip-options)}}>
+          {{item.label}}
+        </span>
       </dt>
       <dd data-test-bucket-item={{item.type}}>
         {{item.item}}

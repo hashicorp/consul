@@ -20,46 +20,57 @@ as |group|>
     changeset=this.changeset
   )}}
 
-  <fieldset>
+  {{! A <div>, not a <fieldset>: Hds::Form::Radio::Group below already
+      renders its own <fieldset>+<legend>, so wrapping it in another
+      <fieldset> just adds an outer group with nothing to name it. The
+      @name here is "PermissionAction" rather than "Action" so these radio
+      inputs don't get grouped, by the browser or by AT, with the
+      unrelated "Action" radios on the page behind this modal. }}
+  <div>
     <div data-property="action">
-      <span class="label">
-        Should this permission allow the source connect to the destination?
-      </span>
-      <div role="radiogroup" class={{if this.changeset.error.Action ' has-error'}}>
+      <Hds::Form::Radio::Group
+        @name="PermissionAction"
+        @layout="horizontal"
+        as |G|
+      >
+        <G.Legend>Should this permission allow the source connect to the destination?</G.Legend>
         {{#each this.intents as |intent|}}
-          <label>
-            <span>{{capitalize intent}}</span>
-            <input
-              type="radio"
-              name="Action"
-              value={{intent}}
-              checked={{if (eq this.changeset.Action intent) 'checked'}}
-              onchange={{action (changeset-set this.changeset 'Action') value="target.value"}}
-            />
-          </label>
+          <G.RadioField
+            @value={{intent}}
+            checked={{eq this.changeset.Action intent}}
+            {{on "change" (action (changeset-set this.changeset 'Action') value="target.value")}}
+          as |F|>
+            <F.Label>{{capitalize intent}}</F.Label>
+          </G.RadioField>
         {{/each}}
-      </div>
+      </Hds::Form::Radio::Group>
     </div>
-  </fieldset>
+  </div>
 
-  <fieldset>
+  <Hds::Separator />
+  {{! aria-label (rather than relying on the <h2> below) so the <fieldset>
+      still has an accessible name of its own — see the same pattern in
+      consul/intention/form/fieldsets. }}
+  <fieldset aria-label="Path">
       <h2>Path</h2>
     <div>
         <group.Element
           @name="PathType"
           @type="select"
         as |el|>
-          <el.Label>
-            Path type
-          </el.Label>
           <Hds::Form::SuperSelect::Single::Field
             @options={{this.pathTypes}}
             @selected={{this.pathType}}
             @onChange={{action 'change' 'HTTP.PathType' this.changeset}}
-            @label="Path type"
-            @listboxAriaLabel="Path type options"
-            id="path-type-select"
+            {{! @id, not a bare "id=": Hds::Form::SuperSelect::Single::Field has
+                no ...attributes of its own, so a bare "id=" here is captured by
+                ...attributes further down and forwarded onto PowerSelect, whose
+                own template sets the trigger's id *before* its ...attributes —
+                and a later ...attributes always wins, blanking the trigger's id
+                and leaving the label's "for" pointing at a nonexistent one. }}
+            @id="path-type-select"
           as |F|>
+            <F.Label>Path type</F.Label>
             <F.Options>{{get this.pathLabels F.options}}</F.Options>
           </Hds::Form::SuperSelect::Single::Field>
         </group.Element>
@@ -91,71 +102,64 @@ as |group|>
     </div>
   </fieldset>
 
-  <fieldset>
+  <Hds::Separator />
+  <fieldset aria-label="Methods">
     <h2>Methods</h2>
-    <div class="type-toggle">
-      <span>All methods are applied by default unless specified</span>
-      <group.Element
-        @name="allMethods"
-      as |el|>
-        <el.Checkbox
-          checked={{if this.allMethods 'checked'}}
-          onchange={{action 'change' 'allMethods' this.changeset}}
-        />
-        <el.Label>
-          All Methods
-        </el.Label>
-      </group.Element>
-    </div>
+    <p class="methods-description">All methods are applied by default unless specified</p>
+    <Hds::Form::Toggle::Field
+      data-property="allmethods"
+      @value="allMethods"
+      checked={{this.allMethods}}
+      {{on "change" (action 'change' 'allMethods' this.changeset)}}
+    as |F|>
+      <F.Label>All methods</F.Label>
+    </Hds::Form::Toggle::Field>
 
-{{#if this.shouldShowMethods}}
-    <div class="checkbox-group" role="group">
+    {{! aria-label distinct from the outer <fieldset aria-label="Methods">
+        above — this inner role="group" needs its own accessible name too,
+        and a matching name on both would leave two same-named groups
+        nested inside one another, which AT can't tell apart. }}
+    <div class="checkbox-group" role="group" aria-label="HTTP methods">
       {{#each this.methods as |method|}}
-        <label class="type-checkbox">
-          <input
-            type="checkbox"
-            name="method"
-            value={{method}}
-            checked={{if (includes method this.changeset.HTTP.Methods) 'checked'}}
-            onchange={{action 'change' 'method' this.changeset}}
-          />
-          <span>{{method}}</span>
-        </label>
+        <Hds::Form::Checkbox::Field
+          @value={{method}}
+          checked={{or this.allMethods (includes method this.changeset.HTTP.Methods)}}
+          disabled={{this.allMethods}}
+          {{on "change" (action 'change' 'method' this.changeset)}}
+        as |F|>
+          <F.Label>{{method}}</F.Label>
+        </Hds::Form::Checkbox::Field>
       {{/each}}
     </div>
-{{/if}}
   </fieldset>
 
-  <fieldset>
+  <Hds::Separator />
+  <fieldset aria-label="Headers">
     <h2>Headers</h2>
 
-    <Consul::Intention::Permission::Header::List
-      @items={{changeset-get this.changeset 'HTTP.Header'}}
-      @ondelete={{action 'delete' 'HTTP.Header' this.changeset}}
-    as |headerList|>
+    <div class="headers-content">
+      <Consul::Intention::Permission::Header::List
+        @items={{changeset-get this.changeset 'HTTP.Header'}}
+        @ondelete={{action 'delete' 'HTTP.Header' this.changeset}}
+      />
 
-    </Consul::Intention::Permission::Header::List>
+      <Consul::Intention::Permission::Header::Form
+        @onsubmit={{action 'add' 'HTTP.Header' this.changeset}}
+      as |headerForm|>
+        <Ref @target={{this}} @name="headerForm" @value={{headerForm}} />
+      </Consul::Intention::Permission::Header::Form>
 
-    <Consul::Intention::Permission::Header::Form
-      @onsubmit={{action 'add' 'HTTP.Header' this.changeset}}
-    as |headerForm|>
-      <Ref @target={{this}} @name="headerForm" @value={{headerForm}} />
-    </Consul::Intention::Permission::Header::Form>
-
-    <Hds::ButtonSet>
       <Hds::Button
         data-test-add-header
-        @text='Add{{if (gt (get (changeset-get this.changeset 'HTTP.Header') 'length') 0) ' another' ''}} header'
-        @color='primary'
-        disabled={{if (not this.headerForm.isDirty) 'disabled'}}
-        onclick={{action this.headerForm.submit}}
-      />
-      <Hds::Button
-        @text='Cancel'
+        @text='Add another header'
+        @icon='plus'
+        @iconPosition='leading'
         @color='secondary'
-        onclick={{action this.headerForm.reset}}
+        @size='small'
+        disabled={{if (not this.headerForm.isDirty) 'disabled'}}
+        {{on 'click' (action this.headerForm.submit)}}
       />
-    </Hds::ButtonSet>
+    </div>
   </fieldset>
   </FormGroup>
 </div>

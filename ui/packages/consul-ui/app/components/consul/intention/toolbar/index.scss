@@ -1,0 +1,54 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+/* The toolbar is rendered inside the .consul-data-table__card (above the
+   table). Give it the same faint-surface background and bottom-row separator
+   that the nodes/services toolbars use so it matches their appearance. */
+.consul-intention-toolbar {
+  padding: 8px;
+  background-color: var(--token-color-surface-faint);
+
+  .consul-intention-toolbar__access {
+    flex: 0 0 auto;
+  }
+
+  /* the precedence sorter sits at the right end of the toolbar row */
+  .consul-intention-toolbar__sort {
+    flex: 0 0 auto;
+    margin-left: auto;
+
+    .hds-dropdown-toggle-button {
+      min-height: 2.25rem;
+    }
+  }
+
+  /* Colour the intention-type quick filters by their action, so they read as
+     Allow (success/green), Deny (critical/red) and App aware (neutral) rather
+     than a flat grey row. */
+  .consul-intention-toolbar__access-button[data-test-access-filter='allow'] .hds-icon {
+    color: var(--token-color-foreground-success);
+  }
+  .consul-intention-toolbar__access-button[data-test-access-filter='deny'] .hds-icon {
+    color: var(--token-color-foreground-critical);
+  }
+  .consul-intention-toolbar__access-button[data-test-access-filter='app-aware'] .hds-icon {
+    color: var(--token-color-foreground-faint);
+  }
+}
+
+/* Separator between the controls row (Filters / Search / quick-filter buttons)
+   and the applied-filters area ("No filters applied" / active filter tags).
+   Matches the nodes/services toolbar pattern. */
+.consul-intention-toolbar .hds-filter-bar__actions {
+  border-bottom: 1px solid var(--token-color-border-faint);
+  padding-bottom: 8px;
+}
+
+/* The intentions index uses the HDS Filter Bar for its toolbar, so drop the
+   default header underline above it to avoid a doubled-up separator
+   (consistent with the services / nodes index pages). */
+html[data-route='dc.intentions.index'] .app-view > header .title {
+  border-bottom: none;
+}

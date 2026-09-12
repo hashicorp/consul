@@ -18,7 +18,12 @@
   state=this.state
 )
 as |el|}}
-  {{#if (includes this.type (array 'radiogroup' 'checkbox-group' 'checkboxgroup'))}}
+  {{! 'select' is also excluded from the <label>-wrapping below: it hosts a
+      custom combobox widget (a <div role="combobox">, not a native
+      labelable element), so wrapping it in a <label> doesn't give it an
+      accessible name — the field itself is responsible for wiring up its
+      own explicit label instead. }}
+  {{#if (includes this.type (array 'radiogroup' 'checkbox-group' 'checkboxgroup' 'select'))}}
     <div
       data-property={{this.prop}}
       class="type-{{this.type}}{{if (state-matches this.state 'error') ' has-error'}}"

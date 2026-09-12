@@ -60,20 +60,16 @@ as |route|>
     />
   {{/if}}
       </:actions>
-      <:toolbar>
-      {{#if (gt items.length 0)}}
-        <Consul::Nspace::SearchBar
-          @search={{this.search}}
-          @onsearch={{action (mut this.search) value="target.value"}}
-
-          @sort={{sort}}
-
-          @filter={{filters}}
-        />
-      {{/if}}
-      </:toolbar>
       <:content>
         {{#let (refresh-route) as |refreshRoute|}}
+        {{#if (gt items.length 0)}}
+          <Consul::Nspace::Toolbar
+            @search={{this.search}}
+            @onsearch={{action (mut this.search) value="target.value"}}
+            @sort={{sort}}
+            @filter={{filters}}
+          />
+        {{/if}}
         <DataWriter
           @sink={{uri '/${partition}/${dc}/${nspace}/nspace/'
             (hash

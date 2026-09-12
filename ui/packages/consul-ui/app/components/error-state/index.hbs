@@ -15,9 +15,12 @@
     </:header>
     <:subheader>
       {{#if @error.status}}
-        <h3 data-test-status={{@error.status}}>
+        {{! not a heading: the status code is already announced by the
+          preceding <h2>'s content, so a second heading here would just
+          repeat it — see docs/a11y-audit/01-shared-chrome.md #4 }}
+        <p data-test-status={{@error.status}}>
           Error {{@error.status}}
-        </h3>
+        </p>
       {{/if}}
     </:subheader>
     <:body>
@@ -63,9 +66,12 @@
       </h2>
     </:header>
     <:subheader>
-      <h3>
+      {{! not a heading: the status code is already announced by the
+        preceding <h2>'s content, so a second heading here would just
+        repeat it — see docs/a11y-audit/01-shared-chrome.md #4 }}
+      <p>
         Error {{@error.status}}
-      </h3>
+      </p>
     </:subheader>
     <:body>
       <p>

@@ -53,21 +53,31 @@ as |route|>
     loader.data
 
   as |sort filters partition nspace dc items|}}
+  {{! The intro alert and toolbar are rendered outside DataCollection so they
+      persist when filters/search reduce the visible rows to zero. They only
+      appear when there are actual upstreams on this gateway. }}
   {{#if (gt items.length 0)}}
-      <input type="checkbox" id="toolbar-toggle" />
-      <Consul::Upstream::SearchBar
+      <Hds::Alert @type="inline" class="mb-3" as |A|>
+        <A.Title>{{t "routes.dc.services.show.upstreams.intro.header"}}</A.Title>
+        <A.Description>
+          {{t "routes.dc.services.show.upstreams.intro.body"}}
+        </A.Description>
+        <A.Link::Standalone
+          @text={{t "routes.dc.services.show.upstreams.intro.footer.text"}}
+          @href="{{concat (env 'CONSUL_DOCS_URL') (t 'routes.dc.services.show.upstreams.intro.footer.link')}}"
+          @icon="docs-link"
+          @iconPosition="trailing"
+          @size="small"
+        />
+      </Hds::Alert>
+      <Consul::Service::Toolbar
+        @upstream={{true}}
+        @sort={{sort}}
         @search={{this.search}}
         @onsearch={{action (mut this.search) value="target.value"}}
-
-        @sort={{sort}}
-
         @filter={{filters}}
-        />
-      {{/if}}
-        {{t
-          "routes.dc.services.show.upstreams.intro"
-          htmlSafe=true
-        }}
+      />
+  {{/if}}
         <DataCollection
           @type="service"
           @sort={{sort.value}}
@@ -76,13 +86,13 @@ as |route|>
           @items={{items}}
         as |collection|>
           <collection.Collection>
-            <Consul::Upstream::List
+            <Consul::Upstream::Table
               @items={{collection.items}}
               @dc={{dc}}
               @nspace={{nspace}}
               @partition={{partition}}
-            >
-            </Consul::Upstream::List>
+              @card={{true}}
+            />
           </collection.Collection>
           <collection.Empty>
             <EmptyState>
