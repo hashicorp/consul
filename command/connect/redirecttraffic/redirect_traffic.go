@@ -199,7 +199,7 @@ func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 		}
 
 		// Decode proxy's opaque config so that we can use it later to configure
-		// traffic redirection with iptables.
+		// traffic redirection with nft.
 		var trCfg trafficRedirectProxyConfig
 		if err := mapstructure.WeakDecode(svc.Proxy.Config, &trCfg); err != nil {
 			return iptables.Config{}, fmt.Errorf("failed parsing Proxy.Config: %s", err)
@@ -272,13 +272,13 @@ func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 }
 
 const (
-	synopsis = "Applies iptables rules for traffic redirection"
+	synopsis = "Applies nftables rules for traffic redirection"
 	help     = `
 Usage: consul connect redirect-traffic [options]
 
-  Applies iptables rules for inbound and outbound traffic redirection.
+  Applies nftables rules for inbound and outbound traffic redirection.
 
-  Requires that the iptables command line utility is installed.
+  Requires that the nft command line utility is installed.
 
   Examples:
 
