@@ -141,9 +141,11 @@ func (c *Cache) notifyBlockingQuery(ctx context.Context, r getOptions, correlati
 		}
 
 		if wait > 0 {
+			timer := time.NewTimer(wait)
 			select {
-			case <-time.After(wait):
+			case <-timer.C:
 			case <-ctx.Done():
+				timer.Stop()
 				return
 			}
 		}
@@ -239,10 +241,20 @@ func (c *Cache) notifyPollingQuery(ctx context.Context, r getOptions, correlatio
 			wait += lib.RandomStagger(r.Info.MaxAge / 16)
 		}
 
-		select {
-		case <-time.After(wait):
-		case <-ctx.Done():
-			return
+		if wait > 0 {
+			timer := time.NewTimer(wait)
+			select {
+			case <-timer.C:
+			case <-ctx.Done():
+				timer.Stop()
+				return
+			}
+		} else {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
 		}
 	}
 }
