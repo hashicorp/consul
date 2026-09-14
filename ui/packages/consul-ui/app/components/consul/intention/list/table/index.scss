@@ -17,13 +17,6 @@
 .consul-intention-list-table__meta-info {
   display: flex;
 
-  /* Match the services list: the Bucket::List icon needs a small gap from its
-     label, otherwise the glyph sits flush against the bucket name. */
-  .consul-bucket-list {
-    display: flex;
-    gap: 4px;
-  }
-
   .consul-intention-list-table__meta-info__peer {
     display: flex;
     align-items: center;

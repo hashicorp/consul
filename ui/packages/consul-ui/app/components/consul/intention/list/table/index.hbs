@@ -7,7 +7,6 @@
   <Consul::DataTable
     @items={{@items}}
     @columns={{this.columns}}
-    @initialSortBy="action"
     @ariaLabel="Intentions"
   >
     <:toolbar>
@@ -24,15 +23,19 @@
           </a>
         </span>
         <em class="consul-intention-list-table__meta-info">
-          <Consul::Bucket::List
-            @item={{hash
-              Namespace=item.SourceNS
-              Partition=item.SourcePartition
-              PeerName=item.SourcePeer
-            }}
-            @nspace="-"
-            @partition="-"
-          />
+          {{#if item.SourcePeer}}
+            <span class={{concat 'peer-' item.SourcePeer}}>{{item.SourcePeer}}</span>
+            {{#if (can 'use nspaces')}}
+              /
+              <span class={{concat 'nspace-' (or item.SourceNS 'default')}}>{{or item.SourceNS 'default'}}</span>
+            {{/if}}
+          {{else if (can 'use partitions')}}
+            <span class={{concat 'partition-' (or item.SourcePartition 'default')}}>{{or item.SourcePartition 'default'}}</span>
+            /
+            <span class={{concat 'nspace-' (or item.SourceNS 'default')}}>{{or item.SourceNS 'default'}}</span>
+          {{else if (can 'use nspaces')}}
+            <span class={{concat 'nspace-' (or item.SourceNS 'default')}}>{{or item.SourceNS 'default'}}</span>
+          {{/if}}
         </em>
       </B.Td>
       <B.Td data-test-intention-action={{item.Action}}>

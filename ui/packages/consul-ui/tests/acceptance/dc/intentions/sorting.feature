@@ -3,38 +3,31 @@
 Feature: dc / intentions / sorting
   Scenario: Sorting Intentions
     Given 1 datacenter model with the value "dc-1"
-    And 6 intention models from yaml
+    And 3 intention models from yaml
     ---
-    - Action: "allow"
-    - Action: "allow"
-    - Action: "deny"
-    - Action: "deny"
-    - Action: "allow"
-    - Action: "deny"
+    - SourceName: "service-B"
+    - SourceName: "service-D"
+    - SourceName: "service-A"
     ---
     When I visit the intentions page for yaml
     ---
       dc: dc-1
     ---
-    Then I see 6 intention models on the intentionList component
-    When I click action on the sort
-    Then I see action on the intentionList.intentions vertically like yaml
+    Then I see 3 intention models on the intentionList component
+    # ascending (A-Z)
+    When I click source on the sort
+    Then I see source on the intentionList.intentions vertically like yaml
     ---
-    - "deny"
-    - "deny"
-    - "deny"
-    - "allow"
-    - "allow"
-    - "allow"
+    - "service-A"
+    - "service-B"
+    - "service-D"
     ---
-    When I click action on the sort
-    Then I see action on the intentionList.intentions vertically like yaml
+    # descending (Z-A)
+    When I click source on the sort
+    Then I see source on the intentionList.intentions vertically like yaml
     ---
-    - "allow"
-    - "allow"
-    - "allow"
-    - "deny"
-    - "deny"
-    - "deny"
+    - "service-D"
+    - "service-B"
+    - "service-A"
     ---
 
