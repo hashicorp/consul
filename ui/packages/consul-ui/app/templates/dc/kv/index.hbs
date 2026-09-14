@@ -8,7 +8,7 @@
 as |route|>
 {{! titled from the route params rather than the fetched parent below, so it }}
 {{! can't lag a transition behind the round-trip }}
-  {{page-title (or (key-name route.params.key) 'Key / Value')}}
+  {{page-title (or (key-name route.params.key) 'Key/Value')}}
   <DataSource
     @src={{uri '/${partition}/${nspace}/${dc}/kv/${key}'
       (hash

@@ -43,8 +43,8 @@ as |parentKey|}}
       <Hds::Breadcrumb>
         <Hds::Breadcrumb::Item
           @text={{if (eq parentKey separator)
-            'Key/Values'
-            (concat 'Key/Values / ' (join ' / ' (slice 0 -1 (split parentKey separator))))
+            'Key/Value'
+            (concat 'Key/Value / ' (join ' / ' (slice 0 -1 (split parentKey separator))))
           }}
           @route="dc.kv"
           data-test-back
@@ -55,10 +55,10 @@ as |parentKey|}}
     <:header>
         <h1 data-test-kv-key={{item.Key}}>
 {{#if (and item.Key (not-eq item.Key parentKey))}}
-          <route.Title @title="Edit Key / Value" @render={{false}} />
+          <route.Title @title="Edit Key/Value" @render={{false}} />
           {{left-trim item.Key parentKey}}
 {{else}}
-          <route.Title @title="New Key / Value" @render={{true}} />
+          <route.Title @title="New Key/Value" @render={{true}} />
 {{/if}}
         </h1>
     </:header>
