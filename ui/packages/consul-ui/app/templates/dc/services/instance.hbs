@@ -167,14 +167,14 @@
                 (array
                   (hash
                     label='Health checks'
-                    href=(href-to 'dc.services.instance.healthchecks')
+                    route='dc.services.instance.healthchecks'
                     selected=(is-href 'dc.services.instance.healthchecks')
                   )
                   (if
                     (eq item.Service.Kind 'mesh-gateway')
                     (hash
                       label='Addresses'
-                      href=(href-to 'dc.services.instance.addresses')
+                      route='dc.services.instance.addresses'
                       selected=(is-href 'dc.services.instance.addresses')
                     )
                   )
@@ -182,7 +182,7 @@
                     this.proxy
                     (hash
                       label='Upstreams'
-                      href=(href-to 'dc.services.instance.upstreams')
+                      route='dc.services.instance.upstreams'
                       selected=(is-href 'dc.services.instance.upstreams')
                     )
                   )
@@ -190,13 +190,13 @@
                     this.proxy
                     (hash
                       label='Exposed paths'
-                      href=(href-to 'dc.services.instance.exposedpaths')
+                      route='dc.services.instance.exposedpaths'
                       selected=(is-href 'dc.services.instance.exposedpaths')
                     )
                   )
                   (hash
                     label='Tags & metadata'
-                    href=(href-to 'dc.services.instance.metadata')
+                    route='dc.services.instance.metadata'
                     selected=(is-href 'dc.services.instance.metadata')
                   )
                 )

@@ -19,8 +19,7 @@ fieldset > header,
   line-height: var(--token-typography-body-300-line-height);
 }
 %internal-button,
-%breadcrumbs li > *,
-%tab-nav {
+%breadcrumbs li > * {
   @extend %body-200-medium;
 }
 %table td p,

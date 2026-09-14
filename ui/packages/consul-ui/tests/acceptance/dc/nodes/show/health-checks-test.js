@@ -47,7 +47,7 @@ module('Acceptance | dc / nodes / show / health-checks', function (hooks) {
     await visit('node', { dc: 'dc1', node: 'node-0' }, { nspace });
 
     assert.equal(currentURL(), nspaceURL(nspace, '/dc1/nodes/node-0/health-checks'));
-    assert.dom('[data-test-tab="tab_health-checks"]').hasClass('selected');
+    assert.dom('[data-test-tab="tab_health-checks"] button').hasAttribute('aria-selected', 'true');
     assert.dom('[data-test-critical-serf-notice]').exists();
   });
 
@@ -58,7 +58,7 @@ module('Acceptance | dc / nodes / show / health-checks', function (hooks) {
     await visit('node', { dc: 'dc1', node: 'node-0' }, { nspace });
 
     assert.equal(currentURL(), nspaceURL(nspace, '/dc1/nodes/node-0/health-checks'));
-    assert.dom('[data-test-tab="tab_health-checks"]').hasClass('selected');
+    assert.dom('[data-test-tab="tab_health-checks"] button').hasAttribute('aria-selected', 'true');
     assert.dom('[data-test-critical-serf-notice]').doesNotExist();
   });
 

@@ -35,7 +35,7 @@ const seedSessions = () => {
 // for the first session row.
 const invalidateFirstSession = async (nspace) => {
   await visit('node', { dc: 'dc1', node: 'node-0' }, { nspace });
-  await click('[data-test-tab="tab_lock-sessions"] a');
+  await click('[data-test-tab="tab_lock-sessions"] button');
   await click('.consul-lock-session-table [data-test-delete]');
   await click('[data-test-confirm-delete]');
 };

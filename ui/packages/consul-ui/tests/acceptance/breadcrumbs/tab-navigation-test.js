@@ -162,7 +162,7 @@ module('Acceptance | breadcrumbs / tab-navigation', function (hooks) {
       const firstAnchorHrefBefore = ancestorHref(1);
 
       // Switch to Upstreams sub-tab.
-      const upstreamsTab = document.querySelector('[data-test-tab-nav] a[href*="upstreams"]');
+      const upstreamsTab = document.querySelector('[data-test-tab="tab_upstreams"] button');
       if (upstreamsTab) {
         await click(upstreamsTab);
 

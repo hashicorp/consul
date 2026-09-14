@@ -41,7 +41,7 @@ const seed = (sessions) => {
 // only fetches once it is active).
 const visitSessions = async (nspace) => {
   await visit('node', { dc: 'dc1', node: 'node-0' }, { nspace });
-  await click('[data-test-tab="tab_lock-sessions"] a');
+  await click('[data-test-tab="tab_lock-sessions"] button');
 };
 
 module('Acceptance | dc / nodes / sessions / filter + sort', function (hooks) {

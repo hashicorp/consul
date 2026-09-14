@@ -21,13 +21,13 @@ html[data-route^='dc.services.instance'] .app-view > header dl {
 html[data-route^='dc.services.instance'] .app-view > header dt {
   font-weight: var(--token-typography-font-weight-bold);
 }
-html[data-route^='dc.services.instance'] .tab-nav {
+html[data-route^='dc.services.instance'] .hds-tabs {
   border-top: var(--decor-border-100);
 }
 html[data-route^='dc.services.instance'] .tab-section section:not(:last-child) {
   border-bottom: var(--decor-border-100);
 }
-html[data-route^='dc.services.instance'] .tab-nav,
+html[data-route^='dc.services.instance'] .hds-tabs,
 html[data-route^='dc.services.instance'] .tab-section section:not(:last-child) {
   border-color: var(--token-color-surface-interactive-active);
 }
