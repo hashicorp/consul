@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto/private/pbcommon"
 	"github.com/hashicorp/consul/types"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // Function variables to support proto generation
@@ -130,6 +131,14 @@ func ConfigEntryToStructs(s *ConfigEntry) structs.ConfigEntry {
 		target.Name = s.Name
 
 		ExportedServicesToStructs(s.GetExportedServices(), &target)
+		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
+		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
+		return &target
+	case Kind_KindInferenceGateway:
+		var target structs.InferenceGatewayConfigEntry
+		target.Name = s.Name
+
+		InferenceGatewayToStructs(s.GetInferenceGateway(), &target)
 		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
 		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
 		return &target
@@ -259,6 +268,14 @@ func ConfigEntryFromStructs(s structs.ConfigEntry) *ConfigEntry {
 		configEntry.Kind = Kind_KindExportedServices
 		configEntry.Entry = &ConfigEntry_ExportedServices{
 			ExportedServices: &es,
+		}
+	case *structs.InferenceGatewayConfigEntry:
+		var aigw InferenceGateway
+		InferenceGatewayFromStructs(v, &aigw)
+
+		configEntry.Kind = Kind_KindInferenceGateway
+		configEntry.Entry = &ConfigEntry_InferenceGateway{
+			InferenceGateway: &aigw,
 		}
 	default:
 		panic(fmt.Sprintf("unable to convert %T to proto", s))
@@ -408,6 +425,26 @@ func int32FromPointerToInt(i *int) int32 {
 		return int32(*i)
 	}
 	return 0
+}
+
+// pointerToBoolFromBoolValue and boolValueFromPointerToBool preserve the
+// three-state nature of an optional bool across the wire. Unlike the numeric
+// helpers below, nil must NOT collapse to the zero value: InferenceGatewayMetrics
+// .Enabled defaults to ON when unset, so turning nil into false would silently
+// disable metrics rather than leave them defaulted.
+func pointerToBoolFromBoolValue(v *wrapperspb.BoolValue) *bool {
+	if v == nil {
+		return nil
+	}
+	b := v.GetValue()
+	return &b
+}
+
+func boolValueFromPointerToBool(b *bool) *wrapperspb.BoolValue {
+	if b == nil {
+		return nil
+	}
+	return wrapperspb.Bool(*b)
 }
 
 func pointerToUint32FromUint32(ui32 uint32) *uint32 {

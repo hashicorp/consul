@@ -1268,7 +1268,8 @@ func (k ServiceKind) IsProxy() bool {
 		ServiceKindMeshGateway,
 		ServiceKindTerminatingGateway,
 		ServiceKindIngressGateway,
-		ServiceKindAPIGateway:
+		ServiceKindAPIGateway,
+		ServiceKindInferenceGateway:
 		return true
 	}
 	return false
@@ -1304,6 +1305,14 @@ const (
 	// This service allows external traffic to enter the mesh based on
 	// centralized configuration.
 	ServiceKindAPIGateway ServiceKind = "api-gateway"
+
+	// ServiceKindInferenceGateway is an Inference Gateway for the Agent Gateway
+	// (Inference plane). It accepts agent (A2LLM) traffic over mesh mTLS,
+	// enforces SPIFFE identity + intentions on inbound like a terminating
+	// gateway, runs an ext_proc filter over a loopback/UDS socket to a
+	// co-located policy processor, and dispatches to LLM providers via a
+	// terminating gateway. Routing is defined in the inference-gateway config entry.
+	ServiceKindInferenceGateway ServiceKind = "inference-gateway"
 
 	// ServiceKindDestination is a Destination  for the Consul Service Mesh feature.
 	// This service allows external traffic to exit the mesh through a terminating gateway
@@ -1612,7 +1621,8 @@ func (s *NodeService) IsGateway() bool {
 	return s.Kind == ServiceKindMeshGateway ||
 		s.Kind == ServiceKindTerminatingGateway ||
 		s.Kind == ServiceKindIngressGateway ||
-		s.Kind == ServiceKindAPIGateway
+		s.Kind == ServiceKindAPIGateway ||
+		s.Kind == ServiceKindInferenceGateway
 }
 
 // Validate validates the node service configuration.
@@ -1639,6 +1649,10 @@ func (s *NodeService) Validate() error {
 
 	if s.AI != nil {
 		result = multierror.Append(fmt.Errorf("ai is ent only feature"))
+	}
+
+	if s.Kind == ServiceKindInferenceGateway {
+		result = multierror.Append(result, fmt.Errorf("inference-gateway is a consul enterprise feature"))
 	}
 
 	commonValidation := s.ValidateForAgent()

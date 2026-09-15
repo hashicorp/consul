@@ -26,6 +26,7 @@ var allConnectKind = []string{
 	string(structs.ServiceKindMeshGateway),
 	string(structs.ServiceKindTerminatingGateway),
 	string(structs.ServiceKindAPIGateway),
+	string(structs.ServiceKindInferenceGateway),
 	connectNativeInstancesTable,
 }
 
