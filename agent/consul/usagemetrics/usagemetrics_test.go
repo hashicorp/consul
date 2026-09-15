@@ -334,6 +334,14 @@ var baseCases = map[string]testCase{
 					{Name: "kind", Value: "bound-api-gateway"},
 				},
 			},
+			"consul.usage.test.state.config_entries;datacenter=dc1;kind=inference-gateway": {
+				Name:  "consul.usage.test.state.config_entries",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "datacenter", Value: "dc1"},
+					{Name: "kind", Value: "inference-gateway"},
+				},
+			},
 			"consul.usage.test.state.config_entries;datacenter=dc1;kind=file-system-certificate": {
 				Name:  "consul.usage.test.state.config_entries",
 				Value: 0,
@@ -621,6 +629,14 @@ var baseCases = map[string]testCase{
 				Labels: []metrics.Label{
 					{Name: "datacenter", Value: "dc1"},
 					{Name: "kind", Value: "bound-api-gateway"},
+				},
+			},
+			"consul.usage.test.state.config_entries;datacenter=dc1;kind=inference-gateway": {
+				Name:  "consul.usage.test.state.config_entries",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "datacenter", Value: "dc1"},
+					{Name: "kind", Value: "inference-gateway"},
 				},
 			},
 			"consul.usage.test.state.config_entries;datacenter=dc1;kind=file-system-certificate": {

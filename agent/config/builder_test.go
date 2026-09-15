@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -1053,4 +1054,35 @@ func TestBuilder_DatacenterDNSCompatibleWarning(t *testing.T) {
 			fn(t, tc)
 		})
 	}
+}
+
+// TestBuilder_serviceKindVal covers the agent-config `services { kind = ... }`
+// mapping. An unrecognized kind silently degrades to "typical" rather than
+// erroring, so a gateway kind missing from this switch would register as a plain
+// service with no proxy behaviour and no warning.
+func TestBuilder_serviceKindVal(t *testing.T) {
+	b := &builder{}
+
+	for _, kind := range []structs.ServiceKind{
+		structs.ServiceKindConnectProxy,
+		structs.ServiceKindMeshGateway,
+		structs.ServiceKindTerminatingGateway,
+		structs.ServiceKindIngressGateway,
+		structs.ServiceKindAPIGateway,
+		structs.ServiceKindInferenceGateway,
+	} {
+		t.Run(string(kind), func(t *testing.T) {
+			s := string(kind)
+			require.Equal(t, kind, b.serviceKindVal(&s))
+		})
+	}
+
+	t.Run("nil is typical", func(t *testing.T) {
+		require.Equal(t, structs.ServiceKindTypical, b.serviceKindVal(nil))
+	})
+
+	t.Run("unknown is typical", func(t *testing.T) {
+		s := "not-a-kind"
+		require.Equal(t, structs.ServiceKindTypical, b.serviceKindVal(&s))
+	})
 }

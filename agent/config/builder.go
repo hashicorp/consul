@@ -1963,6 +1963,8 @@ func (b *builder) serviceKindVal(v *string) structs.ServiceKind {
 		return structs.ServiceKindIngressGateway
 	case string(structs.ServiceKindAPIGateway):
 		return structs.ServiceKindAPIGateway
+	case string(structs.ServiceKindInferenceGateway):
+		return structs.ServiceKindInferenceGateway
 	default:
 		return structs.ServiceKindTypical
 	}

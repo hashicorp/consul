@@ -1094,6 +1094,70 @@ func HashPolicyFromStructs(t *structs.HashPolicy, s *HashPolicy) {
 	s.SourceIP = t.SourceIP
 	s.Terminal = t.Terminal
 }
+func InferenceGatewayToStructs(s *InferenceGateway, t *structs.InferenceGatewayConfigEntry) {
+	if s == nil {
+		return
+	}
+	if s.Processor != nil {
+		InferenceGatewayProcessorToStructs(s.Processor, &t.Processor)
+	}
+	if s.Failover != nil {
+		var x structs.InferenceGatewayFailover
+		InferenceGatewayFailoverToStructs(s.Failover, &x)
+		t.Failover = &x
+	}
+	t.Meta = s.Meta
+	t.Hash = s.Hash
+}
+func InferenceGatewayFromStructs(t *structs.InferenceGatewayConfigEntry, s *InferenceGateway) {
+	if s == nil {
+		return
+	}
+	{
+		var x InferenceGatewayProcessor
+		InferenceGatewayProcessorFromStructs(&t.Processor, &x)
+		s.Processor = &x
+	}
+	if t.Failover != nil {
+		var x InferenceGatewayFailover
+		InferenceGatewayFailoverFromStructs(t.Failover, &x)
+		s.Failover = &x
+	}
+	s.Meta = t.Meta
+	s.Hash = t.Hash
+}
+func InferenceGatewayFailoverToStructs(s *InferenceGatewayFailover, t *structs.InferenceGatewayFailover) {
+	if s == nil {
+		return
+	}
+	t.RetryOn = s.RetryOn
+	t.MaxTiers = int(s.MaxTiers)
+	t.PerTryTimeout = s.PerTryTimeout
+}
+func InferenceGatewayFailoverFromStructs(t *structs.InferenceGatewayFailover, s *InferenceGatewayFailover) {
+	if s == nil {
+		return
+	}
+	s.RetryOn = t.RetryOn
+	s.MaxTiers = int32(t.MaxTiers)
+	s.PerTryTimeout = t.PerTryTimeout
+}
+func InferenceGatewayProcessorToStructs(s *InferenceGatewayProcessor, t *structs.InferenceGatewayProcessor) {
+	if s == nil {
+		return
+	}
+	t.UDSPath = s.UDSPath
+	t.FailureMode = s.FailureMode
+	t.BodyModelRouting = s.BodyModelRouting
+}
+func InferenceGatewayProcessorFromStructs(t *structs.InferenceGatewayProcessor, s *InferenceGatewayProcessor) {
+	if s == nil {
+		return
+	}
+	s.UDSPath = t.UDSPath
+	s.FailureMode = t.FailureMode
+	s.BodyModelRouting = t.BodyModelRouting
+}
 func IngressGatewayToStructs(s *IngressGateway, t *structs.IngressGatewayConfigEntry) {
 	if s == nil {
 		return
