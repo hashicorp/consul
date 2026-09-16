@@ -901,11 +901,19 @@ func newGatewayMeta(gateway *structs.APIGatewayConfigEntry, bound structs.Config
 	}
 
 	// we just clear out the bound state here since we recalculate it entirely
-	// in the gateway control loop
+	// in the gateway control loop. Copy config fields from the APIGatewayListener
+	// so that BoundAPIGatewayListener is self-contained for proxycfg/xds consumers.
 	listeners := make([]structs.BoundAPIGatewayListener, 0, len(gateway.Listeners))
 	for _, listener := range gateway.Listeners {
 		listeners = append(listeners, structs.BoundAPIGatewayListener{
-			Name: listener.Name,
+			Name:                listener.Name,
+			Hostname:            listener.Hostname,
+			Port:                listener.Port,
+			Protocol:            listener.Protocol,
+			TLS:                 listener.TLS,
+			Override:            listener.Override,
+			Default:             listener.Default,
+			MaxRequestHeadersKB: listener.MaxRequestHeadersKB,
 		})
 	}
 

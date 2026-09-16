@@ -1,0 +1,3 @@
+```release-note:feature
+xds: Add an inline "virtual DNS" UDP listener (127.0.0.1:8653) that serves an in-memory FQDN-to-VIP table derived from the proxy snapshot. It advertises VIPs for explicit upstreams, intention-allowed upstreams in transparent proxy mode, and cluster peering upstreams, while skipping cross-partition VIPs, stale/unauthorized discovery chains, and empty or non-IP entries so DNS responses stay in sync with what the transparent-proxy listener will actually intercept. Add an optional "egress DNS" UDP listener (127.0.0.1:8654) that forwards queries to agent-configured DNS recursors via c-ares when recursors are present. Extend the xDS `ConfigFetcher` interface (and agent implementation) to expose DNS recursors.
+```

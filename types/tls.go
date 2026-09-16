@@ -71,6 +71,21 @@ var (
 		TLSv1_1: {},
 		TLSv1_2: {},
 	}
+
+	TLSVersionsWithConfigurableECDHCurves = map[TLSVersion]struct{}{
+		TLSVersionUnspecified: {},
+		TLSVersionAuto:        {},
+		TLSv1_2:               {},
+		TLSv1_3:               {},
+	}
+)
+
+const (
+	// EnvoyMinSupportedTLSVersion is the minimum supported TLS version for Envoy proxies.
+	EnvoyMinSupportedTLSVersion = TLSv1_2
+
+	// AgentMinSupportedTLSVersion is the minimum supported TLS version for Consul Agent RPC/HTTPS/gRPC.
+	AgentMinSupportedTLSVersion = TLSv1_2
 )
 
 func (v *TLSVersion) String() string {
@@ -228,4 +243,97 @@ func MarshalEnvoyTLSCipherSuiteStrings(cipherSuites []TLSCipherSuite) []string {
 	}
 
 	return cipherSuiteStrings
+}
+
+// TLSECDHCurve is a strongly-typed string identifier for ECDH and post-quantum KEM curves
+// accepted by Envoy and Consul agent (backed by Go crypto/tls).
+type TLSECDHCurve string
+
+const (
+	CurveX25519MLKEM768 TLSECDHCurve = "X25519MLKEM768"
+	CurveX25519         TLSECDHCurve = "X25519"
+	CurveP256           TLSECDHCurve = "P-256"
+	CurveP384           TLSECDHCurve = "P-384"
+	CurveP521           TLSECDHCurve = "P-521"
+)
+
+var (
+	// DefaultPQCECDHCurves is the curve list injected automatically for Envoy when
+	// TLSMinVersion >= TLSv1_3 is set and the operator has not provided an explicit curve list.
+	DefaultPQCECDHCurves = []string{string(CurveX25519MLKEM768), string(CurveX25519)}
+
+	// DefaultConsulAgentPQCECDHCurves is the curve list injected automatically for Consul Agent
+	// when TLSMinVersion >= TLSv1_3 is set and the operator has not provided an explicit curve list.
+	DefaultConsulAgentPQCECDHCurves = []TLSECDHCurve{CurveX25519MLKEM768, CurveX25519}
+
+	consulAgentTLSECDHCurves = map[TLSECDHCurve]struct{}{
+		CurveX25519MLKEM768: {},
+		CurveX25519:         {},
+		CurveP256:           {},
+		CurveP384:           {},
+		CurveP521:           {},
+	}
+
+	envoyECDHCurves = map[string]struct{}{
+		string(CurveX25519MLKEM768): {},
+		string(CurveX25519):         {},
+		string(CurveP256):           {},
+		string(CurveP384):           {},
+		string(CurveP521):           {},
+	}
+)
+
+func (c *TLSECDHCurve) String() string {
+	return string(*c)
+}
+
+func ValidateConsulAgentECDHCurves(curves []TLSECDHCurve) error {
+	var unmatched []string
+	for _, c := range curves {
+		if _, ok := consulAgentTLSECDHCurves[c]; !ok {
+			unmatched = append(unmatched, c.String())
+		}
+	}
+	if len(unmatched) > 0 {
+		return fmt.Errorf("no matching Consul Agent TLS curve found for %s; must be one of [%s]",
+			strings.Join(unmatched, ", "), strings.Join(SortedConsulAgentECDHCurves(), ", "))
+	}
+	return nil
+}
+
+func ValidateEnvoyECDHCurves(curves []string) error {
+	for _, c := range curves {
+		if _, ok := envoyECDHCurves[c]; !ok {
+			return fmt.Errorf("unsupported ecdh_curve %q; must be one of [%s]",
+				c, strings.Join(SortedEnvoyECDHCurves(), ", "))
+		}
+	}
+	return nil
+}
+
+func SortedEnvoyECDHCurves() []string {
+	var list []string
+	for c := range envoyECDHCurves {
+		list = append(list, c)
+	}
+	sort.Strings(list)
+	return list
+}
+
+func SortedConsulAgentECDHCurves() []string {
+	var list []string
+	for c := range consulAgentTLSECDHCurves {
+		list = append(list, string(c))
+	}
+	sort.Strings(list)
+	return list
+}
+
+// ValidateTLSVersionECDHCurvesCompat checks that the specified TLS version supports
+// specifying ECDH/KEM curves. Curves are supported for TLS 1.2 and TLS 1.3 (and TLS_AUTO).
+func ValidateTLSVersionECDHCurvesCompat(tlsMinVersion TLSVersion) error {
+	if _, ok := TLSVersionsWithConfigurableECDHCurves[tlsMinVersion]; !ok {
+		return fmt.Errorf("ecdh_curves can only be configured when tls_min_version is 'TLSv1_2' or higher, TLSMinVersion is set to %s", tlsMinVersion)
+	}
+	return nil
 }

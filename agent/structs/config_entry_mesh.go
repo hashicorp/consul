@@ -69,6 +69,10 @@ type MeshDirectionalTLSConfig struct {
 	// Define a subset of cipher suites to restrict
 	// Only applicable to connections negotiated via TLS 1.2 or earlier
 	CipherSuites []types.TLSCipherSuite `json:",omitempty" alias:"cipher_suites"`
+
+	// ECDHCurves specifies the list of ECDH/KEM curves to offer during the TLS
+	// handshake. Values must match Envoy TlsParameters.ecdh_curves identifiers.
+	ECDHCurves []string `json:",omitempty" alias:"ecdh_curves"`
 }
 
 type MeshHTTPConfig struct {
@@ -362,11 +366,40 @@ func (r *RequestNormalizationMeshConfig) GetHeadersWithUnderscoresAction() Heade
 	return r.HeadersWithUnderscoresAction
 }
 
+// validEnvoyECDHCurves defines the supported ECDH/KEM curves for TLS 1.3.
+// NOTE: If this map is updated, ensure the corresponding validCurves list
+// and Kubebuilder enum markers in github.com/hashicorp/consul-k8s/control-plane/api/v1alpha1/mesh_types.go
+// are also updated.
+var validEnvoyECDHCurves = map[string]struct{}{
+	"X25519MLKEM768": {},
+	"X25519":         {},
+	"P-256":          {},
+	"P-384":          {},
+	"P-521":          {},
+}
+
+func sortedEnvoyECDHCurves() []string {
+	return types.SortedEnvoyECDHCurves()
+}
+
 func validateMeshDirectionalTLSConfig(cfg *MeshDirectionalTLSConfig) error {
 	if cfg == nil {
 		return nil
 	}
-	return validateTLSConfig(cfg.TLSMinVersion, cfg.TLSMaxVersion, cfg.CipherSuites)
+	if err := validateTLSConfig(cfg.TLSMinVersion, cfg.TLSMaxVersion, cfg.CipherSuites); err != nil {
+		return err
+	}
+	return validateECDHCurves(cfg.TLSMinVersion, cfg.ECDHCurves)
+}
+
+func validateECDHCurves(minVersion types.TLSVersion, curves []string) error {
+	if len(curves) == 0 {
+		return nil
+	}
+	if err := types.ValidateTLSVersionECDHCurvesCompat(minVersion); err != nil {
+		return err
+	}
+	return types.ValidateEnvoyECDHCurves(curves)
 }
 
 func validateTLSConfig(

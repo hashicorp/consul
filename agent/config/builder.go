@@ -1145,6 +1145,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		RPCClientTimeout:                  b.durationVal("limits.rpc_client_timeout", c.Limits.RPCClientTimeout),
 		RPCMaxBurst:                       intVal(c.Limits.RPCMaxBurst),
 		RPCMaxConnsPerClient:              intVal(c.Limits.RPCMaxConnsPerClient),
+		RPCMaxHeaderBytes:                 intVal(c.Limits.RPCMaxHeaderBytes),
 		RPCProtocol:                       intVal(c.RPCProtocol),
 		RPCRateLimit:                      limitVal(c.Limits.RPCRate),
 		RPCConfig:                         consul.RPCConfig{EnableStreaming: boolValWithDefault(c.RPC.EnableStreaming, serverMode)},
@@ -1855,8 +1856,73 @@ func (b *builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		Proxy:             b.serviceProxyVal(v.Proxy),
 		Connect:           b.serviceConnectVal(v.Connect),
 		Locality:          b.serviceLocalityVal(v.Locality),
+		AI:                b.serviceAIVal(v.AI),
 		EnterpriseMeta:    v.ToStructs(),
 	}
+}
+
+func (b *builder) serviceAIVal(v *ServiceAI) *structs.ServiceAI {
+	if v == nil {
+		return nil
+	}
+	ai := &structs.ServiceAI{
+		Role: structs.ServiceAIRole(stringVal(v.Role)),
+	}
+	if v.InferenceModel != nil {
+		im := &structs.AIInferenceModel{
+			Protocol: stringVal(v.InferenceModel.Protocol),
+			Path:     stringVal(v.InferenceModel.Path),
+		}
+		if v.InferenceModel.Defaults != nil {
+			im.Defaults = &structs.AIModelDefaults{
+				MaxTokens:   intVal(v.InferenceModel.Defaults.MaxTokens),
+				Temperature: float64Val(v.InferenceModel.Defaults.Temperature),
+			}
+		}
+		ai.InferenceModel = im
+	}
+	if v.MCPServer != nil {
+		ms := &structs.AIMCPServer{
+			Transport:       stringVal(v.MCPServer.Transport),
+			Path:            stringVal(v.MCPServer.Path),
+			ProtocolVersion: stringVal(v.MCPServer.ProtocolVersion),
+		}
+		ai.MCPServer = ms
+	}
+	if v.Agent != nil {
+		ag := &structs.AIAgent{}
+		if v.Agent.Inference != nil {
+			ag.Inference = &structs.AIAgentInference{
+				Specialization: v.Agent.Inference.Specialization,
+				Vendor:         stringVal(v.Agent.Inference.Vendor),
+			}
+		}
+		if v.Agent.MCP != nil {
+			mcp := &structs.AIAgentMCP{
+				Port: intVal(v.Agent.MCP.Port),
+			}
+			if v.Agent.MCP.HITL != nil {
+				mcp.HITL = &structs.AIAgentMCPHITL{
+					Port:            intVal(v.Agent.MCP.HITL.Port),
+					ApprovalTimeout: stringVal(v.Agent.MCP.HITL.ApprovalTimeout),
+				}
+			}
+			ag.MCP = mcp
+		}
+		if v.Agent.RateLimits != nil {
+			ag.RateLimits = &structs.AIAgentRateLimits{
+				ToolCallsPerMinute: intVal(v.Agent.RateLimits.ToolCallsPerMinute),
+				ToolCallsPerHour:   intVal(v.Agent.RateLimits.ToolCallsPerHour),
+			}
+		}
+		if v.Agent.Interceptor != nil {
+			ag.Interceptor = &structs.AIAgentInterceptor{
+				Port: intVal(v.Agent.Interceptor.Port),
+			}
+		}
+		ai.Agent = ag
+	}
+	return ai
 }
 
 func (b *builder) serviceLocalityVal(l *Locality) *structs.Locality {
@@ -2302,6 +2368,37 @@ func (b *builder) tlsCipherSuites(name string, v *string, tlsMinVersion types.TL
 	if err != nil {
 		b.err = multierror.Append(b.err, fmt.Errorf("%s: invalid TLS cipher suites: %s", name, err))
 		return []types.TLSCipherSuite{}
+	}
+	return a
+}
+
+// tlsECDHCurves parses ECDH curves from a comma-separated string into a
+// recognized slice
+func (b *builder) tlsECDHCurves(name string, v *string, tlsMinVersion types.TLSVersion) []types.TLSECDHCurve {
+	if v == nil {
+		return nil
+	}
+
+	if err := types.ValidateTLSVersionECDHCurvesCompat(tlsMinVersion); err != nil {
+		b.err = multierror.Append(b.err, fmt.Errorf("%s: %s", name, err))
+		return nil
+	}
+
+	*v = strings.TrimSpace(*v)
+	if *v == "" {
+		return []types.TLSECDHCurve{}
+	}
+	curveStrings := strings.Split(*v, ",")
+
+	a := make([]types.TLSECDHCurve, len(curveStrings))
+	for i, curve := range curveStrings {
+		a[i] = types.TLSECDHCurve(strings.TrimSpace(curve))
+	}
+
+	err := types.ValidateConsulAgentECDHCurves(a)
+	if err != nil {
+		b.err = multierror.Append(b.err, fmt.Errorf("%s: invalid TLS curves: %s", name, err))
+		return []types.TLSECDHCurve{}
 	}
 	return a
 }
@@ -2800,6 +2897,7 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 
 	defaultTLSMinVersion := b.tlsVersion("tls.defaults.tls_min_version", t.Defaults.TLSMinVersion)
 	defaultCipherSuites := b.tlsCipherSuites("tls.defaults.tls_cipher_suites", t.Defaults.TLSCipherSuites, defaultTLSMinVersion)
+	defaultECDHCurves := b.tlsECDHCurves("tls.defaults.tls_ecdh_curves", t.Defaults.TLSECDHCurves, defaultTLSMinVersion)
 
 	mapCommon := func(name string, src TLSProtocolConfig, dst *tlsutil.ProtocolConfig) {
 		dst.CAPath = stringValWithDefault(src.CAPath, stringVal(t.Defaults.CAPath))
@@ -2834,6 +2932,25 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 			dst.CipherSuites = b.tlsCipherSuites(
 				fmt.Sprintf("tls.%s.tls_cipher_suites", name),
 				src.TLSCipherSuites,
+				dst.TLSMinVersion,
+			)
+		}
+
+		if src.TLSECDHCurves == nil {
+			if len(defaultECDHCurves) > 0 {
+				if types.ValidateTLSVersionECDHCurvesCompat(dst.TLSMinVersion) == nil {
+					dst.ECDHCurves = defaultECDHCurves
+				}
+			} else {
+				// Automatic curve injection: keep behaviour same as connect mesh
+				if err, isLessThanTLS13 := dst.TLSMinVersion.LessThan(types.TLSv1_3); err == nil && !isLessThanTLS13 {
+					dst.ECDHCurves = types.DefaultConsulAgentPQCECDHCurves
+				}
+			}
+		} else {
+			dst.ECDHCurves = b.tlsECDHCurves(
+				fmt.Sprintf("tls.%s.tls_ecdh_curves", name),
+				src.TLSECDHCurves,
 				dst.TLSMinVersion,
 			)
 		}

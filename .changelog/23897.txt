@@ -1,0 +1,11 @@
+```release-note:security
+catalog: Fixed an incorrect authorization vulnerability where a local
+ACL token with `service:write` or `node:write` could delete peer-imported catalog
+objects by supplying a non-default `PeerName` in a `Catalog.Deregister` request.
+Authorization was checked only against the local service or node name, not the peer
+origin, allowing deletion of objects in a peer-scoped catalog namespace the caller
+does not control. `Catalog.Deregister` now rejects any request whose `PeerName` is
+not the default, mirroring the existing guard on `Catalog.Register` and
+`Catalog.ListServices`. Legitimate peer-state deletion continues through the internal
+`PeeringBackend.CatalogDeregister` path.
+```

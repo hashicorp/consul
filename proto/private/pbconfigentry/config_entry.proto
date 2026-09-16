@@ -151,6 +151,7 @@ message MeshDirectionalTLSConfig {
   string TLSMaxVersion = 2;
   // mog: func-from=cipherSuitesFromStructs func-to=cipherSuitesToStructs
   repeated string CipherSuites = 3;
+  repeated string ECDHCurves = 4;
 }
 
 // mog annotation:
@@ -951,6 +952,17 @@ message BoundAPIGatewayListener {
   string Name = 1;
   repeated ResourceReference Certificates = 2;
   repeated ResourceReference Routes = 3;
+  // Fields copied from APIGatewayListener by the controller at reconcile time
+  // so that BoundAPIGatewayListener is self-contained for proxycfg/xds consumers.
+  string Hostname = 4;
+  // mog: func-to=int func-from=int32
+  int32 Port = 5;
+  // mog: func-to=apiGatewayProtocolToStructs func-from=apiGatewayProtocolFromStructs
+  APIGatewayListenerProtocol Protocol = 6;
+  APIGatewayTLSConfiguration TLS = 7;
+  APIGatewayPolicy Override = 8;
+  APIGatewayPolicy Default = 9;
+  optional uint32 MaxRequestHeadersKB = 10;
 }
 
 // mog annotation:

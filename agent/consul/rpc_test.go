@@ -419,6 +419,109 @@ func TestRPC_TLSHandshakeTimeout(t *testing.T) {
 	})
 }
 
+// TestRPC_OversizedServiceMethod is a regression test for a pre-authorization
+// memory-exhaustion vector: an mTLS-authenticated RPC client with no ACL
+// privilege could exhaust server memory by sending a MessagePack header whose
+// ServiceMethod declares a very large length. The MessagePack decoder allocates
+// a byte slice of the declared length before method lookup, rate limiting, or
+// ACL evaluation runs.
+//
+// The server now validates every length prefix in a request header against
+// RPCMaxHeaderBytes before the decoder allocates for it, rejecting oversized
+// headers and closing the connection. This test verifies that:
+//   - A normal-sized request is accepted and answered (the limit is not too
+//     tight), and the connection stays open.
+//   - A request whose ServiceMethod exceeds RPCMaxHeaderBytes is rejected and
+//     the connection is closed promptly (a real close, not a read timeout).
+func TestRPC_OversizedServiceMethod(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		// Use a short handshake timeout so a stalled read cannot keep the
+		// test waiting; the oversized header itself is rejected immediately.
+		c.RPCHandshakeTimeout = 500 * time.Millisecond
+		c.RPCMaxHeaderBytes = 512
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	addr := s1.config.RPCAdvertise
+
+	// buildHeader encodes a minimal msgpack map representing the net/rpc
+	// Request struct: {"ServiceMethod": <method>, "Seq": 1}. This is the exact
+	// wire format the server's ReadRequestHeader decodes.
+	buildHeader := func(serviceMethod string) []byte {
+		var buf bytes.Buffer
+		enc := codec.NewEncoder(&buf, structs.MsgpackHandle)
+		type rpcRequest struct {
+			ServiceMethod string
+			Seq           uint64
+		}
+		_ = enc.Encode(rpcRequest{ServiceMethod: serviceMethod, Seq: 1})
+		return buf.Bytes()
+	}
+
+	isTimeout := func(err error) bool {
+		var ne net.Error
+		return errors.As(err, &ne) && ne.Timeout()
+	}
+
+	t.Run("normal-sized method is accepted and answered", func(t *testing.T) {
+		conn, err := net.DialTimeout("tcp", addr.String(), time.Second)
+		require.NoError(t, err)
+		defer conn.Close()
+
+		// Send the RPCConsul magic byte.
+		_, err = conn.Write([]byte{byte(pool.RPCConsul)})
+		require.NoError(t, err)
+
+		// Send a normally-sized header for an unknown method plus a nil body
+		// (0xc0). The server cannot find the method, discards the body, and
+		// replies with an RPC error response — proving the header was accepted
+		// and the connection stays open.
+		hdr := buildHeader("Nonexistent.Method")
+		_, err = conn.Write(append(hdr, 0xc0))
+		require.NoError(t, err)
+
+		conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+		buf := make([]byte, 256)
+		n, err := conn.Read(buf)
+		require.NoError(t, err, "server should reply to a normal-sized header, not close the connection")
+		require.Greater(t, n, 0, "expected a response body from the server")
+	})
+
+	t.Run("oversized ServiceMethod is rejected and the connection closed", func(t *testing.T) {
+		conn, err := net.DialTimeout("tcp", addr.String(), time.Second)
+		require.NoError(t, err)
+		defer conn.Close()
+
+		// Send the RPCConsul magic byte.
+		_, err = conn.Write([]byte{byte(pool.RPCConsul)})
+		require.NoError(t, err)
+
+		// Build a header whose ServiceMethod is 1 KiB — well beyond the
+		// 512-byte RPCMaxHeaderBytes limit. The server must reject it before
+		// the decoder allocates for the declared length, then close the
+		// connection.
+		oversizedMethod := strings.Repeat("X", 1024)
+		_, _ = conn.Write(buildHeader(oversizedMethod))
+
+		// The server must close the connection promptly. Assert we observe a
+		// real close/EOF/reset and NOT a read timeout, which would mean the
+		// server left the connection open.
+		conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+		buf := make([]byte, 16)
+		_, readErr := conn.Read(buf)
+		require.Error(t, readErr, "expected the server to close the connection after an oversized header")
+		require.False(t, isTimeout(readErr),
+			"expected a prompt connection close, got a read timeout (connection left open): %v", readErr)
+	})
+}
+
 func TestRPC_PreventsTLSNesting(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

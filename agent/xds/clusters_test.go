@@ -27,11 +27,16 @@ import (
 )
 
 type mockCfgFetcher struct {
-	addressLan string
+	addressLan   string
+	dnsRecursors []string
 }
 
 func (s *mockCfgFetcher) AdvertiseAddrLAN() string {
 	return s.addressLan
+}
+
+func (s *mockCfgFetcher) DNSRecursors() []string {
+	return s.dnsRecursors
 }
 
 func uint32ptr(i uint32) *uint32 {
@@ -1197,7 +1202,9 @@ func TestClustersFromSnapshotAPIGateway_HTTP2UpstreamDefault(t *testing.T) {
 					}
 					bound.Listeners = []structs.BoundAPIGatewayListener{
 						{
-							Name: "listener",
+							Name:     "listener",
+							Protocol: listenerProtocol,
+							Port:     8080,
 							Routes: []structs.ResourceReference{
 								{Name: "http-route", Kind: structs.HTTPRoute},
 							},
