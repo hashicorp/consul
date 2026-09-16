@@ -40,7 +40,7 @@
                             "name": "x-forwarded-client-cert",
                             "stringMatch": {
                               "safeRegex": {
-                                "regex": "^[^,]+;URI=spiffe://peer1\\.domain/ap/part1/ns/default/dc/[^/]+/svc/[^/]+(?:,.*)?$"
+                                "regex": "^[^,]+;URI=spiffe://peer1\\.domain/ap/part1/ns/default/dc/[^/]+/svc/[^/]+(?:[;,].*)?$"
                               }
                             }
                           }
@@ -51,7 +51,7 @@
                               "name": "x-forwarded-client-cert",
                               "stringMatch": {
                                 "safeRegex": {
-                                  "regex": "^[^,]+;URI=spiffe://peer1\\.domain/ap/part1/ns/default/dc/[^/]+/svc/web(?:,.*)?$"
+                                  "regex": "^[^,]+;URI=spiffe://peer1\\.domain/ap/part1/ns/default/dc/[^/]+/svc/web(?:[;,].*)?$"
                                 }
                               }
                             }

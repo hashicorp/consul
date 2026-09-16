@@ -1389,3 +1389,86 @@ func TestMakeSpiffePattern_EscapesRegexMetacharacters(t *testing.T) {
 		})
 	}
 }
+
+func TestXFCCPrincipal(t *testing.T) {
+	src := rbacService{
+		ServiceName: structs.ServiceName{
+			Name: "gateway",
+		},
+		TrustDomain: "2f6cbc1e-8ff2-dd37-0d90-12156d7d2795.consul",
+		Peer:        "client",
+	}
+
+	principal := xfccPrincipal(src)
+	headerMatcher := principal.GetHeader()
+	require.NotNil(t, headerMatcher)
+	require.Equal(t, "x-forwarded-client-cert", headerMatcher.Name)
+
+	regex := headerMatcher.GetStringMatch().GetSafeRegex().Regex
+	re, err := regexp.Compile(regex)
+	require.NoError(t, err)
+
+	cases := []struct {
+		name     string
+		xfcc     string
+		expected bool
+	}{
+		{
+			name:     "standard sidecar - single hop without DNS SANs",
+			xfcc:     `By=spiffe://server.consul/gateway/mesh/dc/server;URI=spiffe://2f6cbc1e-8ff2-dd37-0d90-12156d7d2795.consul/ns/default/dc/client/svc/gateway`,
+			expected: true,
+		},
+		{
+			name:     "standard sidecar - multi-hop without DNS SANs",
+			xfcc:     `By=spiffe://server.consul/gateway/mesh/dc/server;URI=spiffe://2f6cbc1e-8ff2-dd37-0d90-12156d7d2795.consul/ns/default/dc/client/svc/gateway,By=gateway`,
+			expected: true,
+		},
+		{
+			name:     "api gateway - multi-hop with auto-registered DNS SANs",
+			xfcc:     `By=spiffe://server.consul/gateway/mesh/dc/server;Hash=abc;Subject="";URI=spiffe://2f6cbc1e-8ff2-dd37-0d90-12156d7d2795.consul/ns/default/dc/client/svc/gateway;DNS=gateway.default.svc;DNS=gateway.default.svc.cluster.local,By=spiffe://2f6cbc1e-8ff2-dd37-0d90-12156d7d2795.consul/ns/default/dc/client/svc/gateway`,
+			expected: true,
+		},
+		{
+			name:     "api gateway - single hop with auto-registered DNS SANs",
+			xfcc:     `By=spiffe://server.consul/gateway/mesh/dc/server;Hash=abc;Subject="";URI=spiffe://2f6cbc1e-8ff2-dd37-0d90-12156d7d2795.consul/ns/default/dc/client/svc/gateway;DNS=gateway.default.svc;DNS=gateway.default.svc.cluster.local`,
+			expected: true,
+		},
+		{
+			name:     "api gateway - with trailing Subject field",
+			xfcc:     `By=spiffe://server.consul/gateway/mesh/dc/server;Hash=abc;URI=spiffe://2f6cbc1e-8ff2-dd37-0d90-12156d7d2795.consul/ns/default/dc/client/svc/gateway;Subject="CN=gateway.default"`,
+			expected: true,
+		},
+		{
+			name:     "api gateway - with trailing Subject and multiple hops",
+			xfcc:     `By=spiffe://server.consul/gateway/mesh/dc/server;Hash=abc;URI=spiffe://2f6cbc1e-8ff2-dd37-0d90-12156d7d2795.consul/ns/default/dc/client/svc/gateway;Subject="CN=gateway.default",By=spiffe://server.consul/gateway/mesh/dc/server`,
+			expected: true,
+		},
+		{
+			name:     "negative: service name prefix spoofing (gateway2)",
+			xfcc:     `By=spiffe://server.consul/gateway/mesh/dc/server;URI=spiffe://2f6cbc1e-8ff2-dd37-0d90-12156d7d2795.consul/ns/default/dc/client/svc/gateway2`,
+			expected: false,
+		},
+		{
+			name:     "negative: hyphenated prefix spoofing (gateway-evil)",
+			xfcc:     `By=spiffe://server.consul/gateway/mesh/dc/server;URI=spiffe://2f6cbc1e-8ff2-dd37-0d90-12156d7d2795.consul/ns/default/dc/client/svc/gateway-evil`,
+			expected: false,
+		},
+		{
+			name:     "negative: different service",
+			xfcc:     `By=spiffe://server.consul/gateway/mesh/dc/server;URI=spiffe://2f6cbc1e-8ff2-dd37-0d90-12156d7d2795.consul/ns/default/dc/client/svc/other`,
+			expected: false,
+		},
+		{
+			name:     "negative: matched cert is in second hop not first hop",
+			xfcc:     `By=spiffe://server.consul/gateway/mesh/dc/server;URI=spiffe://2f6cbc1e-8ff2-dd37-0d90-12156d7d2795.consul/ns/default/dc/client/svc/attacker,By=spiffe://2f6cbc1e-8ff2-dd37-0d90-12156d7d2795.consul/ns/default/dc/client/svc/gateway`,
+			expected: false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			matched := re.MatchString(tc.xfcc)
+			require.Equal(t, tc.expected, matched, "expected match=%v for xfcc %q with regex %s", tc.expected, tc.xfcc, regex)
+		})
+	}
+}
