@@ -54,6 +54,36 @@ func (o *BoundAPIGatewayListener) DeepCopy() *BoundAPIGatewayListener {
 		cp.Certificates = make([]ResourceReference, len(o.Certificates))
 		copy(cp.Certificates, o.Certificates)
 	}
+	if o.TLS.Certificates != nil {
+		cp.TLS.Certificates = make([]ResourceReference, len(o.TLS.Certificates))
+		copy(cp.TLS.Certificates, o.TLS.Certificates)
+	}
+	if o.TLS.SDS != nil {
+		cp.TLS.SDS = new(GatewayTLSSDSConfig)
+		*cp.TLS.SDS = *o.TLS.SDS
+	}
+	if o.TLS.CipherSuites != nil {
+		cp.TLS.CipherSuites = make([]types.TLSCipherSuite, len(o.TLS.CipherSuites))
+		copy(cp.TLS.CipherSuites, o.TLS.CipherSuites)
+	}
+	if o.Override != nil {
+		cp.Override = new(APIGatewayPolicy)
+		*cp.Override = *o.Override
+		if o.Override.JWT != nil {
+			cp.Override.JWT = o.Override.JWT.DeepCopy()
+		}
+	}
+	if o.Default != nil {
+		cp.Default = new(APIGatewayPolicy)
+		*cp.Default = *o.Default
+		if o.Default.JWT != nil {
+			cp.Default.JWT = o.Default.JWT.DeepCopy()
+		}
+	}
+	if o.MaxRequestHeadersKB != nil {
+		cp.MaxRequestHeadersKB = new(uint32)
+		*cp.MaxRequestHeadersKB = *o.MaxRequestHeadersKB
+	}
 	return &cp
 }
 
@@ -1043,6 +1073,50 @@ func (o *NodeService) DeepCopy() *NodeService {
 		retV := o.Connect.DeepCopy()
 		cp.Connect = *retV
 	}
+	if o.AI != nil {
+		cp.AI = new(ServiceAI)
+		*cp.AI = *o.AI
+		if o.AI.InferenceModel != nil {
+			cp.AI.InferenceModel = new(AIInferenceModel)
+			*cp.AI.InferenceModel = *o.AI.InferenceModel
+			if o.AI.InferenceModel.Defaults != nil {
+				cp.AI.InferenceModel.Defaults = new(AIModelDefaults)
+				*cp.AI.InferenceModel.Defaults = *o.AI.InferenceModel.Defaults
+			}
+		}
+		if o.AI.MCPServer != nil {
+			cp.AI.MCPServer = new(AIMCPServer)
+			*cp.AI.MCPServer = *o.AI.MCPServer
+		}
+		if o.AI.Agent != nil {
+			cp.AI.Agent = new(AIAgent)
+			*cp.AI.Agent = *o.AI.Agent
+			if o.AI.Agent.Inference != nil {
+				cp.AI.Agent.Inference = new(AIAgentInference)
+				*cp.AI.Agent.Inference = *o.AI.Agent.Inference
+				if o.AI.Agent.Inference.Specialization != nil {
+					cp.AI.Agent.Inference.Specialization = make([]string, len(o.AI.Agent.Inference.Specialization))
+					copy(cp.AI.Agent.Inference.Specialization, o.AI.Agent.Inference.Specialization)
+				}
+			}
+			if o.AI.Agent.MCP != nil {
+				cp.AI.Agent.MCP = new(AIAgentMCP)
+				*cp.AI.Agent.MCP = *o.AI.Agent.MCP
+				if o.AI.Agent.MCP.HITL != nil {
+					cp.AI.Agent.MCP.HITL = new(AIAgentMCPHITL)
+					*cp.AI.Agent.MCP.HITL = *o.AI.Agent.MCP.HITL
+				}
+			}
+			if o.AI.Agent.RateLimits != nil {
+				cp.AI.Agent.RateLimits = new(AIAgentRateLimits)
+				*cp.AI.Agent.RateLimits = *o.AI.Agent.RateLimits
+			}
+			if o.AI.Agent.Interceptor != nil {
+				cp.AI.Agent.Interceptor = new(AIAgentInterceptor)
+				*cp.AI.Agent.Interceptor = *o.AI.Agent.Interceptor
+			}
+		}
+	}
 	return &cp
 }
 
@@ -1226,6 +1300,50 @@ func (o *ServiceDefinition) DeepCopy() *ServiceDefinition {
 	}
 	if o.Connect != nil {
 		cp.Connect = o.Connect.DeepCopy()
+	}
+	if o.AI != nil {
+		cp.AI = new(ServiceAI)
+		*cp.AI = *o.AI
+		if o.AI.InferenceModel != nil {
+			cp.AI.InferenceModel = new(AIInferenceModel)
+			*cp.AI.InferenceModel = *o.AI.InferenceModel
+			if o.AI.InferenceModel.Defaults != nil {
+				cp.AI.InferenceModel.Defaults = new(AIModelDefaults)
+				*cp.AI.InferenceModel.Defaults = *o.AI.InferenceModel.Defaults
+			}
+		}
+		if o.AI.MCPServer != nil {
+			cp.AI.MCPServer = new(AIMCPServer)
+			*cp.AI.MCPServer = *o.AI.MCPServer
+		}
+		if o.AI.Agent != nil {
+			cp.AI.Agent = new(AIAgent)
+			*cp.AI.Agent = *o.AI.Agent
+			if o.AI.Agent.Inference != nil {
+				cp.AI.Agent.Inference = new(AIAgentInference)
+				*cp.AI.Agent.Inference = *o.AI.Agent.Inference
+				if o.AI.Agent.Inference.Specialization != nil {
+					cp.AI.Agent.Inference.Specialization = make([]string, len(o.AI.Agent.Inference.Specialization))
+					copy(cp.AI.Agent.Inference.Specialization, o.AI.Agent.Inference.Specialization)
+				}
+			}
+			if o.AI.Agent.MCP != nil {
+				cp.AI.Agent.MCP = new(AIAgentMCP)
+				*cp.AI.Agent.MCP = *o.AI.Agent.MCP
+				if o.AI.Agent.MCP.HITL != nil {
+					cp.AI.Agent.MCP.HITL = new(AIAgentMCPHITL)
+					*cp.AI.Agent.MCP.HITL = *o.AI.Agent.MCP.HITL
+				}
+			}
+			if o.AI.Agent.RateLimits != nil {
+				cp.AI.Agent.RateLimits = new(AIAgentRateLimits)
+				*cp.AI.Agent.RateLimits = *o.AI.Agent.RateLimits
+			}
+			if o.AI.Agent.Interceptor != nil {
+				cp.AI.Agent.Interceptor = new(AIAgentInterceptor)
+				*cp.AI.Agent.Interceptor = *o.AI.Agent.Interceptor
+			}
+		}
 	}
 	return &cp
 }

@@ -487,16 +487,9 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 	cp.TCPRoutes = o.TCPRoutes.DeepCopy()
 	cp.InlineCertificates = o.InlineCertificates.DeepCopy()
 	cp.FileSystemCertificates = o.FileSystemCertificates.DeepCopy()
-	if o.Listeners != nil {
-		cp.Listeners = make(map[string]structs.APIGatewayListener, len(o.Listeners))
-		for k2, v2 := range o.Listeners {
-			var cp_Listeners_v2 structs.APIGatewayListener
-			{
-				retV := v2.DeepCopy()
-				cp_Listeners_v2 = *retV
-			}
-			cp.Listeners[k2] = cp_Listeners_v2
-		}
+	if o.LeafCertDNSSANs != nil {
+		cp.LeafCertDNSSANs = make([]string, len(o.LeafCertDNSSANs))
+		copy(cp.LeafCertDNSSANs, o.LeafCertDNSSANs)
 	}
 	if o.BoundListeners != nil {
 		cp.BoundListeners = make(map[string]structs.BoundAPIGatewayListener, len(o.BoundListeners))

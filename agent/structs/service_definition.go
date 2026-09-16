@@ -42,6 +42,12 @@ type ServiceDefinition struct {
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 
 	Connect *ServiceConnect
+
+	// AI is the inline AI role block (CAMP). It registers the service's AI
+	// semantics (inference-model, mcp-server, or ai-agent) alongside the
+	// normal service definition. Optional; nil when the service is not an AI
+	// workload.
+	AI *ServiceAI `json:",omitempty"`
 }
 
 func (t *ServiceDefinition) UnmarshalJSON(data []byte) (err error) {
@@ -83,6 +89,7 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 		EnableTagOverride: s.EnableTagOverride,
 		EnterpriseMeta:    s.EnterpriseMeta,
 		Locality:          s.Locality,
+		AI:                s.AI,
 	}
 	ns.Normalize()
 

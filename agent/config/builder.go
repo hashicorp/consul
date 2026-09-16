@@ -1145,6 +1145,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		RPCClientTimeout:                  b.durationVal("limits.rpc_client_timeout", c.Limits.RPCClientTimeout),
 		RPCMaxBurst:                       intVal(c.Limits.RPCMaxBurst),
 		RPCMaxConnsPerClient:              intVal(c.Limits.RPCMaxConnsPerClient),
+		RPCMaxHeaderBytes:                 intVal(c.Limits.RPCMaxHeaderBytes),
 		RPCProtocol:                       intVal(c.RPCProtocol),
 		RPCRateLimit:                      limitVal(c.Limits.RPCRate),
 		RPCConfig:                         consul.RPCConfig{EnableStreaming: boolValWithDefault(c.RPC.EnableStreaming, serverMode)},
@@ -1855,8 +1856,73 @@ func (b *builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		Proxy:             b.serviceProxyVal(v.Proxy),
 		Connect:           b.serviceConnectVal(v.Connect),
 		Locality:          b.serviceLocalityVal(v.Locality),
+		AI:                b.serviceAIVal(v.AI),
 		EnterpriseMeta:    v.ToStructs(),
 	}
+}
+
+func (b *builder) serviceAIVal(v *ServiceAI) *structs.ServiceAI {
+	if v == nil {
+		return nil
+	}
+	ai := &structs.ServiceAI{
+		Role: structs.ServiceAIRole(stringVal(v.Role)),
+	}
+	if v.InferenceModel != nil {
+		im := &structs.AIInferenceModel{
+			Protocol: stringVal(v.InferenceModel.Protocol),
+			Path:     stringVal(v.InferenceModel.Path),
+		}
+		if v.InferenceModel.Defaults != nil {
+			im.Defaults = &structs.AIModelDefaults{
+				MaxTokens:   intVal(v.InferenceModel.Defaults.MaxTokens),
+				Temperature: float64Val(v.InferenceModel.Defaults.Temperature),
+			}
+		}
+		ai.InferenceModel = im
+	}
+	if v.MCPServer != nil {
+		ms := &structs.AIMCPServer{
+			Transport:       stringVal(v.MCPServer.Transport),
+			Path:            stringVal(v.MCPServer.Path),
+			ProtocolVersion: stringVal(v.MCPServer.ProtocolVersion),
+		}
+		ai.MCPServer = ms
+	}
+	if v.Agent != nil {
+		ag := &structs.AIAgent{}
+		if v.Agent.Inference != nil {
+			ag.Inference = &structs.AIAgentInference{
+				Specialization: v.Agent.Inference.Specialization,
+				Vendor:         stringVal(v.Agent.Inference.Vendor),
+			}
+		}
+		if v.Agent.MCP != nil {
+			mcp := &structs.AIAgentMCP{
+				Port: intVal(v.Agent.MCP.Port),
+			}
+			if v.Agent.MCP.HITL != nil {
+				mcp.HITL = &structs.AIAgentMCPHITL{
+					Port:            intVal(v.Agent.MCP.HITL.Port),
+					ApprovalTimeout: stringVal(v.Agent.MCP.HITL.ApprovalTimeout),
+				}
+			}
+			ag.MCP = mcp
+		}
+		if v.Agent.RateLimits != nil {
+			ag.RateLimits = &structs.AIAgentRateLimits{
+				ToolCallsPerMinute: intVal(v.Agent.RateLimits.ToolCallsPerMinute),
+				ToolCallsPerHour:   intVal(v.Agent.RateLimits.ToolCallsPerHour),
+			}
+		}
+		if v.Agent.Interceptor != nil {
+			ag.Interceptor = &structs.AIAgentInterceptor{
+				Port: intVal(v.Agent.Interceptor.Port),
+			}
+		}
+		ai.Agent = ag
+	}
+	return ai
 }
 
 func (b *builder) serviceLocalityVal(l *Locality) *structs.Locality {

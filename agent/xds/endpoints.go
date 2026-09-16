@@ -784,7 +784,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 		if upstream, _ := cfgSnap.ConnectProxy.GetUpstream(uid, &cfgSnap.ProxyID.EnterpriseMeta); upstream != nil {
 			destinationPort = upstream.DestinationPort
 		}
-		mappedTargets, err := s.mapDiscoChainTargets(cfgSnap, chain, node, upstreamConfig, forMeshGateway, destinationPort)
+		mappedTargets, err := s.mapDiscoChainTargets(cfgSnap, uid, chain, node, upstreamConfig, forMeshGateway, destinationPort)
 		if err != nil {
 			return nil, err
 		}

@@ -146,7 +146,7 @@
                     "authenticated": {
                       "principalName": {
                         "safeRegex": {
-                          "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
+                          "regex": "^spiffe://test\\.consul/ns/default/dc/[^/]+/svc/web$"
                         }
                       }
                     }
