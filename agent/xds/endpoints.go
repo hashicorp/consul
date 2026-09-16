@@ -701,6 +701,8 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 	gatewayEndpoints map[string]structs.CheckServiceNodes,
 	forMeshGateway bool,
 ) ([]proto.Message, error) {
+	destinationPort := destinationPortForDiscoveryChain(cfgSnap, uid, upstream, chain)
+	chain = discoveryChainForPortQualifiedUpstream(cfgSnap, uid, upstream, chain)
 	if chain == nil {
 		if forMeshGateway {
 			return nil, fmt.Errorf("missing discovery chain for %s", uid)
@@ -763,6 +765,20 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 	if cfgSnap.Kind == structs.ServiceKindAPIGateway {
 		mgwMode = upstream.MeshGateway.Mode
 	}
+	var err error
+	resources, err = s.appendEntConfiguredChainDirectPortLoadAssignments(
+		resources,
+		uid,
+		upstream,
+		chain,
+		cfgSnap,
+		gatewayKey,
+		upstreamEndpoints,
+		gatewayEndpoints,
+	)
+	if err != nil {
+		return nil, err
+	}
 
 	// Find all resolver nodes.
 	for _, node := range chain.Nodes {
@@ -780,10 +796,6 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 		}
 		upstreamConfig := finalizeUpstreamConfig(rawUpstreamConfig, chain, node.Resolver.ConnectTimeout)
 
-		destinationPort := ""
-		if upstream, _ := cfgSnap.ConnectProxy.GetUpstream(uid, &cfgSnap.ProxyID.EnterpriseMeta); upstream != nil {
-			destinationPort = upstream.DestinationPort
-		}
 		mappedTargets, err := s.mapDiscoChainTargets(cfgSnap, uid, chain, node, upstreamConfig, forMeshGateway, destinationPort)
 		if err != nil {
 			return nil, err
@@ -834,6 +846,18 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 				s.Logger.Trace("skipping endpoint generation for invalid target group", "cluster", clusterName)
 				continue // skip the cluster if we're still populating the snapshot
 			}
+			serviceLevelChain := usesDefaultPortForConfiguredMultiportChain(cfgSnap, uid, chain, forMeshGateway, destinationPort)
+			if serviceLevelChain {
+				// Configured L7 discovery chains remain service-level in Consul 2.0.
+				// Select the declared default port for direct service endpoints while
+				// preserving the gateway network port for gateway-routed targets.
+				for _, sp := range servicePortsFromEndpoints(endpointGroup.ServiceEndpoints) {
+					if sp.Default {
+						endpointGroup.PortName = sp.Name
+						break
+					}
+				}
+			}
 
 			// For non-peer targets routed via a remote mesh gateway whose WAN address
 			// is a hostname (e.g., AWS NLB on EKS), the cluster is configured as
@@ -863,9 +887,9 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 
 			// Keep CDS/EDS parity for multiport clusters named as
 			// "<portName>.<clusterName>".
-			if (!forMeshGateway &&
+			if !serviceLevelChain && ((!forMeshGateway &&
 				cfgSnap.Kind == structs.ServiceKindConnectProxy &&
-				cfgSnap.Proxy.Mode == structs.ProxyModeTransparent) || forMeshGateway {
+				cfgSnap.Proxy.Mode == structs.ProxyModeTransparent) || forMeshGateway) {
 				var ports structs.ServicePorts
 				if forMeshGateway {
 					targetInfo := groupedTarget.Targets[0]

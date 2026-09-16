@@ -75,14 +75,9 @@ func TestDefinitionsAndDigest(t *testing.T) {
 	definitions := registry.Definitions()
 	require.NotEmpty(t, definitions)
 	require.Equal(t, "api-gateway-upstream-routing", definitions[0].Name)
-	require.Equal(t, "peering-multiport-upstreams", definitions[1].Name)
 	require.Len(t, registry.Digest(), 64)
 
 	definition, ok := registry.DefinitionForName(APIGatewayUpstreamRouting.String())
 	require.True(t, ok)
 	require.Equal(t, definitions[0], definition)
-
-	peeringDef, ok := registry.DefinitionForName(PeeringMultiportUpstreams.String())
-	require.True(t, ok)
-	require.Equal(t, definitions[1], peeringDef)
 }

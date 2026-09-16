@@ -23,6 +23,58 @@ func portBasedALPN(_ string) []string {
 	return nil
 }
 
+func usesDirectPortsAlongsideConfiguredChain(_ *proxycfg.ConfigSnapshot, _ *structs.CompiledDiscoveryChain, _ bool) bool {
+	return false
+}
+
+func usesDefaultPortForConfiguredMultiportChain(_ *proxycfg.ConfigSnapshot, _ proxycfg.UpstreamID, _ *structs.CompiledDiscoveryChain, _ bool, _ string) bool {
+	return false
+}
+
+func discoveryChainForPortQualifiedUpstream(
+	_ *proxycfg.ConfigSnapshot,
+	_ proxycfg.UpstreamID,
+	_ *structs.Upstream,
+	chain *structs.CompiledDiscoveryChain,
+) *structs.CompiledDiscoveryChain {
+	return chain
+}
+
+func destinationPortForDiscoveryChain(
+	_ *proxycfg.ConfigSnapshot,
+	_ proxycfg.UpstreamID,
+	upstream *structs.Upstream,
+	_ *structs.CompiledDiscoveryChain,
+) string {
+	if upstream == nil {
+		return ""
+	}
+	return upstream.DestinationPort
+}
+
+func (s *ResourceGenerator) appendEntConfiguredChainDirectPortClusters(
+	out []*envoy_cluster_v3.Cluster,
+	_ proxycfg.UpstreamID,
+	_ *structs.Upstream,
+	_ *structs.CompiledDiscoveryChain,
+	_ *proxycfg.ConfigSnapshot,
+) ([]*envoy_cluster_v3.Cluster, error) {
+	return out, nil
+}
+
+func (s *ResourceGenerator) appendEntConfiguredChainDirectPortLoadAssignments(
+	resources []proto.Message,
+	_ proxycfg.UpstreamID,
+	_ *structs.Upstream,
+	_ *structs.CompiledDiscoveryChain,
+	_ *proxycfg.ConfigSnapshot,
+	_ proxycfg.GatewayKey,
+	_ map[string]structs.CheckServiceNodes,
+	_ map[string]structs.CheckServiceNodes,
+) ([]proto.Message, error) {
+	return resources, nil
+}
+
 func (s *ResourceGenerator) makeProxiedAppClusters(cfgSnap *proxycfg.ConfigSnapshot, clusters []proto.Message) ([]proto.Message, error) {
 	appCluster, err := s.makeAppCluster(cfgSnap, xdscommon.LocalAppClusterName, "", cfgSnap.Proxy.LocalServicePort)
 	if err != nil {

@@ -52,7 +52,9 @@ func (s *serverPeeredUpstreams) Notify(ctx context.Context, req *structs.Partiti
 			allServices := make([]structs.PeeredServiceName, 0, len(vips))
 			serviceVIPs := make(map[string]string, len(vips))
 			for _, vip := range vips {
-				allServices = append(allServices, vip.Service)
+				if !vip.Service.IsPortSynthetic() {
+					allServices = append(allServices, vip.Service)
+				}
 				if ip, err := vip.IPWithOffset(); err == nil && ip != "" {
 					serviceVIPs[vip.Service.String()] = ip
 				}

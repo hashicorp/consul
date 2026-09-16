@@ -155,6 +155,8 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		if upstreamCfg != nil {
 			destinationPort = upstreamCfg.DestinationPort
 		}
+		clusterDestinationPort := destinationPortForDiscoveryChain(cfgSnap, uid, upstreamCfg, chain)
+		chain = discoveryChainForPortQualifiedUpstream(cfgSnap, uid, upstreamCfg, chain)
 
 		cfg := s.getAndModifyUpstreamConfigForListener(uid, upstreamCfg, chain)
 
@@ -181,7 +183,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			}
 
 			clusterName = s.getTargetClusterName(upstreamsSnapshot, chain, target.ID, false)
-			clusterName = destinationPortClusterName(clusterName, destinationPort)
+			clusterName = destinationPortClusterName(clusterName, clusterDestinationPort)
 			if clusterName == "" {
 				continue
 			}
@@ -537,17 +539,15 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			maxRequestHeadersKb: proxyCfg.MaxRequestHeadersKB,
 		}
 
-		if cfgSnap.PeeringMultiportUpstreamsEnabled {
-			if err := s.appendEntPeeredUpstreamMultiportFilterChains(
-				outboundListener,
-				cfgSnap,
-				uid,
-				clusterName,
-				filterName,
-				filterOpts,
-			); err != nil {
-				return nil, err
-			}
+		if err := s.appendEntPeeredUpstreamMultiportFilterChains(
+			outboundListener,
+			cfgSnap,
+			uid,
+			clusterName,
+			filterName,
+			filterOpts,
+		); err != nil {
+			return nil, err
 		}
 
 		filterChain, err := s.makeUpstreamFilterChain(filterOpts)
@@ -2438,16 +2438,12 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 	})
 	l.FilterChains = append(l.FilterChains, peerServerFilterChains...)
 
-	if cfgSnap.PeeringMultiportUpstreamsEnabled {
-		if err := s.appendEntGatewayOutgoingPeeringServiceMultiportFilterChains(l, name, cfgSnap); err != nil {
-			return nil, err
-		}
+	if err := s.appendEntGatewayOutgoingPeeringServiceMultiportFilterChains(l, name, cfgSnap); err != nil {
+		return nil, err
 	}
 
-	if cfgSnap.PeeringMultiportUpstreamsEnabled {
-		if err := s.appendEntMeshGatewayMultiportFilterChains(l, name, cfgSnap); err != nil {
-			return nil, err
-		}
+	if err := s.appendEntMeshGatewayMultiportFilterChains(l, name, cfgSnap); err != nil {
+		return nil, err
 	}
 
 	// This needs to get tacked on at the end as it has no

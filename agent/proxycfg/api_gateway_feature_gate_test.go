@@ -39,7 +39,7 @@ func TestHandlerAPIGateway_ComposeUpstreamRoutingEnabled_AgentlessOnly(t *testin
 	require.False(t, agentless.composeUpstreamRoutingEnabled())
 }
 
-func TestManager_RefreshFeatureGates_CatalogAPIGatewayAndPeeringKindsOnly(t *testing.T) {
+func TestManager_RefreshFeatureGates_AgentlessAPIGatewayOnly(t *testing.T) {
 	newTestState := func(source ProxySource, kind structs.ServiceKind) *state {
 		return &state{
 			source:          source,
@@ -49,23 +49,17 @@ func TestManager_RefreshFeatureGates_CatalogAPIGatewayAndPeeringKindsOnly(t *tes
 		}
 	}
 	agentlessGateway := newTestState(ProxySourceCatalog, structs.ServiceKindAPIGateway)
-	agentlessConnectProxy := newTestState(ProxySourceCatalog, structs.ServiceKindConnectProxy)
-	agentlessMeshGateway := newTestState(ProxySourceCatalog, structs.ServiceKindMeshGateway)
 	agentfulGateway := newTestState(ProxySourceLocal, structs.ServiceKindAPIGateway)
-	agentfulConnectProxy := newTestState(ProxySourceLocal, structs.ServiceKindConnectProxy)
+	agentlessSidecar := newTestState(ProxySourceCatalog, structs.ServiceKindConnectProxy)
 	m := &Manager{proxies: map[ProxyID]*state{
 		{NodeName: "catalog-gateway"}: agentlessGateway,
-		{NodeName: "catalog-sidecar"}: agentlessConnectProxy,
-		{NodeName: "catalog-meshgw"}:  agentlessMeshGateway,
 		{NodeName: "local-gateway"}:   agentfulGateway,
-		{NodeName: "local-sidecar"}:   agentfulConnectProxy,
+		{NodeName: "catalog-sidecar"}: agentlessSidecar,
 	}}
 
 	m.refreshFeatureGates()
 	require.Equal(t, featureGateWatchID, (<-agentlessGateway.ch).CorrelationID)
-	require.Equal(t, featureGateWatchID, (<-agentlessConnectProxy.ch).CorrelationID)
-	require.Equal(t, featureGateWatchID, (<-agentlessMeshGateway.ch).CorrelationID)
-	for _, unaffected := range []*state{agentfulGateway, agentfulConnectProxy} {
+	for _, unaffected := range []*state{agentfulGateway, agentlessSidecar} {
 		select {
 		case event := <-unaffected.ch:
 			t.Fatalf("unexpected invalidation event: %#v", event)
@@ -335,33 +329,4 @@ func TestWatchFeatureGates_ShutdownStopsWatcherAndRefresher(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("featureGateRefresher did not exit after close")
 	}
-}
-
-func TestHandlerState_PeeringMultiportGateDefaultsToEnabledWithoutStore(t *testing.T) {
-	h := &handlerState{}
-	require.True(t, h.peeringMultiportUpstreamsEnabled())
-}
-
-func TestHandlerState_RefreshPeeringMultiportGateFromStore(t *testing.T) {
-	store := &featuregate.Store{}
-	require.True(t, store.Publish(featuregate.Snapshot{
-		StatusIndex: 1,
-		Features: map[string]bool{
-			featuregate.PeeringMultiportUpstreams.String(): false,
-		},
-	}))
-
-	h := &handlerState{stateConfig: stateConfig{featureGate: store}}
-	snap := &ConfigSnapshot{}
-	require.False(t, h.refreshPeeringMultiportGate(snap))
-	require.False(t, snap.PeeringMultiportUpstreamsEnabled)
-
-	require.True(t, store.Publish(featuregate.Snapshot{
-		StatusIndex: 2,
-		Features: map[string]bool{
-			featuregate.PeeringMultiportUpstreams.String(): true,
-		},
-	}))
-	require.True(t, h.refreshPeeringMultiportGate(snap))
-	require.True(t, snap.PeeringMultiportUpstreamsEnabled)
 }

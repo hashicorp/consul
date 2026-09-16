@@ -1164,21 +1164,20 @@ func IngressListenerKeyFromListener(l structs.IngressListener) IngressListenerKe
 // It is meant to be point-in-time coherent and is used to deliver the current
 // config state to observers who need it to be pushed in (e.g. XDS server).
 type ConfigSnapshot struct {
-	Kind                             structs.ServiceKind
-	Service                          string
-	ServiceLocality                  *structs.Locality
-	ProxyID                          ProxyID
-	Address                          string
-	Port                             int
-	Ports                            structs.ServicePorts
-	ServiceMeta                      map[string]string
-	TaggedAddresses                  map[string]structs.ServiceAddress
-	Proxy                            structs.ConnectProxyConfig
-	Datacenter                       string
-	IntentionDefaultAllow            bool
-	PeeringMultiportUpstreamsEnabled bool
-	Locality                         GatewayKey
-	JWTProviders                     map[string]*structs.JWTProviderConfigEntry
+	Kind                  structs.ServiceKind
+	Service               string
+	ServiceLocality       *structs.Locality
+	ProxyID               ProxyID
+	Address               string
+	Port                  int
+	Ports                 structs.ServicePorts
+	ServiceMeta           map[string]string
+	TaggedAddresses       map[string]structs.ServiceAddress
+	Proxy                 structs.ConnectProxyConfig
+	Datacenter            string
+	IntentionDefaultAllow bool
+	Locality              GatewayKey
+	JWTProviders          map[string]*structs.JWTProviderConfigEntry
 
 	ServerSNIFn ServerSNIFunc
 	Roots       *structs.IndexedCARoots

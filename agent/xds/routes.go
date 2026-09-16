@@ -69,6 +69,8 @@ func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 	var resources []proto.Message
 	validateClusters := meshValidateClusters(cfgSnap)
 	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
+		upstream, _ := cfgSnap.ConnectProxy.GetUpstream(uid, &cfgSnap.ProxyID.EnterpriseMeta)
+		chain = discoveryChainForPortQualifiedUpstream(cfgSnap, uid, upstream, chain)
 		if chain.Default {
 			continue
 		}
@@ -299,11 +301,9 @@ func (s *ResourceGenerator) routesForMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 		}
 		resources = append(resources, route)
 
-		if cfgSnap.PeeringMultiportUpstreamsEnabled {
-			resources, err = s.appendEntMeshGatewayPeeredMultiportRoutes(resources, cfgSnap, svc, chain, route)
-			if err != nil {
-				return nil, err
-			}
+		resources, err = s.appendEntMeshGatewayPeeredMultiportRoutes(resources, cfgSnap, svc, chain, route)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -679,10 +679,7 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 	if !skip && upstream != nil {
 		upstreamConfigMap = upstream.Config
 	}
-	destinationPort := ""
-	if upstream != nil {
-		destinationPort = upstream.DestinationPort
-	}
+	destinationPort := destinationPortForDiscoveryChain(cfgSnap, uid, upstream, chain)
 	rawUpstreamConfig, err := structs.ParseUpstreamConfigNoDefaults(upstreamConfigMap)
 	if err != nil {
 		return nil, err

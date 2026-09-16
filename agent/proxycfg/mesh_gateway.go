@@ -203,8 +203,6 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 		return fmt.Errorf("error filling agent cache: %v", u.Err)
 	}
 
-	s.refreshPeeringMultiportGate(snap)
-
 	meshLogger := s.logger.Named(logging.MeshGateway)
 
 	switch u.CorrelationID {
@@ -670,19 +668,6 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 				}
 			}
 
-		case u.CorrelationID == featureGateWatchID:
-			enabled := s.refreshPeeringMultiportGate(snap)
-			if !enabled {
-				snap.MeshGateway.ServicePorts = make(map[structs.ServiceName][]string)
-				for peer, services := range snap.MeshGateway.PeeringServices {
-					for sn, value := range services {
-						value.Ports = nil
-						services[sn] = value
-					}
-					snap.MeshGateway.PeeringServices[peer] = services
-				}
-			}
-
 		case strings.HasPrefix(u.CorrelationID, "connect-service:"):
 			resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
 			if !ok {
@@ -694,28 +679,23 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 			if len(resp.Nodes) > 0 {
 				snap.MeshGateway.ServiceGroups[sn] = resp.Nodes
 
-				if snap.PeeringMultiportUpstreamsEnabled {
-					// Extract port names from service metadata. A non-empty health
-					// response is authoritative topology, including a transition back
-					// to a single-port registration.
-					portNames := parseServicePorts(resp.Nodes)
-					if len(portNames) > 0 {
-						snap.MeshGateway.ServicePorts[sn] = portNames
-					} else {
-						// A non-empty response is authoritative topology. If healthy
-						// instances no longer expose named ports, the service has
-						// transitioned back to single-port.
-						delete(snap.MeshGateway.ServicePorts, sn)
-					}
+				// Extract port names from service metadata. A non-empty health
+				// response is authoritative topology, including a transition back
+				// to a single-port registration.
+				portNames := parseServicePorts(resp.Nodes)
+				if len(portNames) > 0 {
+					snap.MeshGateway.ServicePorts[sn] = portNames
+				} else {
+					// A non-empty response is authoritative topology. If healthy
+					// instances no longer expose named ports, the service has
+					// transitioned back to single-port.
+					delete(snap.MeshGateway.ServicePorts, sn)
 				}
 			} else {
 				// Zero healthy nodes is a transient/health condition, not an
 				// un-export. Clear the endpoint set but preserve ServicePorts
 				// topology so the per-port chains survive restarts/mode switches.
 				delete(snap.MeshGateway.ServiceGroups, sn)
-				if !snap.PeeringMultiportUpstreamsEnabled {
-					delete(snap.MeshGateway.ServicePorts, sn)
-				}
 			}
 		case strings.HasPrefix(u.CorrelationID, "peering-connect-service:"):
 			resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
@@ -730,28 +710,12 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 			if ok {
 				sn := structs.ServiceNameFromString(snString)
 
-				if !snap.PeeringMultiportUpstreamsEnabled {
-					if _, exists := snap.MeshGateway.PeeringServices[peer]; exists {
-						value, exists := snap.MeshGateway.PeeringServices[peer][sn]
-						if exists {
-							value.Ports = nil
-							snap.MeshGateway.PeeringServices[peer][sn] = value
-						}
-					}
-					if len(resp.Nodes) == 0 {
-						break
-					}
-				}
-
 				if len(resp.Nodes) > 0 {
 					if _, ok := snap.MeshGateway.PeeringServices[peer]; !ok {
 						snap.MeshGateway.PeeringServices[peer] = make(map[structs.ServiceName]PeeringServiceValue)
 					}
 
-					portNames := []string(nil)
-					if snap.PeeringMultiportUpstreamsEnabled {
-						portNames = parseServicePorts(resp.Nodes)
-					}
+					portNames := parseServicePorts(resp.Nodes)
 					if eps := hostnameEndpoints(s.logger, GatewayKey{}, resp.Nodes); len(eps) > 0 {
 						snap.MeshGateway.PeeringServices[peer][sn] = PeeringServiceValue{
 							Nodes:  eps,

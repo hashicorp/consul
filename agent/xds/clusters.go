@@ -151,11 +151,9 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 		}
 		clusters = append(clusters, upstreamCluster)
 
-		if cfgSnap.PeeringMultiportUpstreamsEnabled {
-			clusters, err = s.appendEntPeeredMultiportClusters(clusters, cfgSnap, uid, upstreamCluster)
-			if err != nil {
-				return nil, err
-			}
+		clusters, err = s.appendEntPeeredMultiportClusters(clusters, cfgSnap, uid, upstreamCluster)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -878,11 +876,9 @@ func (s *ResourceGenerator) makeGatewayOutgoingClusterPeeringServiceClusters(cfg
 
 			clusters = append(clusters, cluster)
 
-			if cfgSnap.PeeringMultiportUpstreamsEnabled {
-				clusters, err = s.appendEntGatewayOutgoingPeeringServiceMultiportClusters(clusters, cfgSnap, serviceGroup, node)
-				if err != nil {
-					return nil, err
-				}
+			clusters, err = s.appendEntGatewayOutgoingPeeringServiceMultiportClusters(clusters, cfgSnap, serviceGroup, node)
+			if err != nil {
+				return nil, err
 			}
 		}
 	}
@@ -1617,6 +1613,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 	if chain == nil {
 		return nil, fmt.Errorf("cannot create upstream cluster without discovery chain for %s", uid)
 	}
+	chain = discoveryChainForPortQualifiedUpstream(cfgSnap, uid, upstream, chain)
 
 	if uid.Peer != "" && forMeshGateway {
 		return nil, fmt.Errorf("impossible to get a peer discovery chain in a mesh gateway")
@@ -1661,7 +1658,11 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 		}
 	}
 
-	var out []*envoy_cluster_v3.Cluster
+	out, err := s.appendEntConfiguredChainDirectPortClusters(nil, uid, upstream, chain, cfgSnap)
+	if err != nil {
+		return nil, err
+	}
+
 	for _, node := range chain.Nodes {
 		switch {
 		case node == nil:
@@ -1688,10 +1689,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			continue
 		}
 
-		destinationPort := ""
-		if upstream != nil {
-			destinationPort = upstream.DestinationPort
-		}
+		destinationPort := destinationPortForDiscoveryChain(cfgSnap, uid, upstream, chain)
 		mappedTargets, err := s.mapDiscoChainTargets(cfgSnap, uid, chain, node, upstreamConfig, forMeshGateway, destinationPort)
 		if err != nil {
 			return nil, err

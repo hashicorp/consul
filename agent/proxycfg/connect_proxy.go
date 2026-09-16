@@ -312,8 +312,6 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		return fmt.Errorf("error filling agent cache: %v", u.Err)
 	}
 
-	s.refreshPeeringMultiportGate(snap)
-
 	switch {
 	case u.CorrelationID == rootsWatchID:
 		roots, ok := u.Result.(*structs.IndexedCARoots)
@@ -363,10 +361,6 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 			return fmt.Errorf("invalid type for response %T", u.Result)
 		}
 
-		if !snap.PeeringMultiportUpstreamsEnabled {
-			snap.ConnectProxy.PeeredPortUpstreamVIPs = nil
-		}
-
 		seenUpstreams := make(map[UpstreamID]struct{})
 		for _, psn := range resp.Services {
 			uid := NewUpstreamIDFromPeeredServiceName(psn)
@@ -383,13 +377,13 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		}
 		snap.ConnectProxy.PeeredUpstreams = seenUpstreams
 
-		if snap.PeeringMultiportUpstreamsEnabled {
-			// Record the locally-assigned virtual IP for each peered upstream (including
-			// synthetic per-port entries) so that the listener generator can emit a
-			// distinct outbound filter chain per named port for multiport peered services.
-			// ServiceVIPs is intentionally decoded independently from Services: upgraded
-			// producers keep the legacy Services list base-only, while older Part A
-			// producers may still include the synthetic entries in both fields.
+		// Record the locally-assigned virtual IP for each peered upstream (including
+		// synthetic per-port entries) so that the listener generator can emit a
+		// distinct outbound filter chain per named port for multiport peered services.
+		// ServiceVIPs is intentionally decoded independently from Services: upgraded
+		// producers keep the legacy Services list base-only, while older Part A
+		// producers may still include the synthetic entries in both fields.
+		if len(resp.ServiceVIPs) > 0 {
 			peeredPortUpstreamVIPs := make(map[UpstreamID]string, len(resp.ServiceVIPs))
 			for key, vip := range resp.ServiceVIPs {
 				if vip == "" {
@@ -402,6 +396,8 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 				peeredPortUpstreamVIPs[NewUpstreamIDFromPeeredServiceName(psn)] = vip
 			}
 			snap.ConnectProxy.PeeredPortUpstreamVIPs = peeredPortUpstreamVIPs
+		} else {
+			snap.ConnectProxy.PeeredPortUpstreamVIPs = nil
 		}
 
 		//
@@ -634,11 +630,6 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		}
 		svcID := structs.ServiceIDFromString(strings.TrimPrefix(u.CorrelationID, svcChecksWatchIDPrefix))
 		snap.ConnectProxy.WatchedServiceChecks[svcID] = resp
-
-	case u.CorrelationID == featureGateWatchID:
-		if !s.refreshPeeringMultiportGate(snap) {
-			snap.ConnectProxy.PeeredPortUpstreamVIPs = nil
-		}
 
 	default:
 		return (*handlerUpstreams)(s).handleUpdateUpstreams(ctx, u, snap)

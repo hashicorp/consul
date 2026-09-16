@@ -10,15 +10,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
-	"github.com/hashicorp/consul/agent/featuregate"
 	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/structs"
 	apimod "github.com/hashicorp/consul/api"
@@ -635,13 +635,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 	type testCase struct {
 		// the state to operate on. the logger, source, cache,
 		// ctx and cancel fields will be filled in by the test
-		ns                               structs.NodeService
-		sourceDC                         string
-		peeringMultiportUpstreamsEnabled *bool
-		stages                           []verificationStage
+		ns       structs.NodeService
+		sourceDC string
+		stages   []verificationStage
 	}
-
-	boolPtr := func(v bool) *bool { return &v }
 
 	newConnectProxyCase := func(meshGatewayProxyConfigValue structs.MeshGatewayMode) testCase {
 		ns := structs.NodeService{
@@ -3881,60 +3878,6 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				},
 			},
 		},
-		"transparent-proxy-with-peers-gate-disabled": {
-			ns: structs.NodeService{
-				Kind:    structs.ServiceKindConnectProxy,
-				ID:      "api-proxy",
-				Service: "api-proxy",
-				Address: "10.0.1.1",
-				Proxy: structs.ConnectProxyConfig{
-					DestinationServiceName: "api",
-					MeshGateway:            structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeLocal},
-					Mode:                   structs.ProxyModeTransparent,
-					Upstreams: structs.Upstreams{{
-						DestinationName: "api-a",
-						DestinationPeer: "peer-a",
-					}},
-				},
-			},
-			sourceDC:                         "dc1",
-			peeringMultiportUpstreamsEnabled: boolPtr(false),
-			stages: []verificationStage{
-				{
-					requiredWatches: map[string]verifyWatchRequest{
-						peeringTrustBundlesWatchID: genVerifyTrustBundleListWatch("api"),
-						peeredUpstreamsID:          genVerifyPartitionSpecificRequest(acl.DefaultEnterpriseMeta().PartitionOrDefault(), "dc1"),
-						meshConfigEntryID:          genVerifyMeshConfigWatch("dc1"),
-						rootsWatchID:               genVerifyDCSpecificWatch("dc1"),
-						leafWatchID:                genVerifyLeafWatch("api", "dc1"),
-					},
-				},
-				{
-					events: []UpdateEvent{
-						rootWatchEvent(),
-						{CorrelationID: leafWatchID, Result: issuedCert},
-						{CorrelationID: intentionsWatchID, Result: TestIntentions()},
-						{CorrelationID: peeringTrustBundlesWatchID, Result: peerTrustBundles},
-						{
-							CorrelationID: peeredUpstreamsID,
-							Result: &structs.IndexedPeeredServiceList{
-								Services: []structs.PeeredServiceName{{ServiceName: apiA, Peer: "peer-a"}},
-								ServiceVIPs: map[string]string{
-									(structs.PeeredServiceName{ServiceName: apiA, Peer: "peer-a"}).String():     "240.0.0.1",
-									(structs.PeeredServiceName{ServiceName: apiAHTTP, Peer: "peer-a"}).String(): "240.0.0.2",
-								},
-							},
-						},
-						{CorrelationID: meshConfigEntryID, Result: &structs.ConfigEntryResponse{Entry: nil}},
-					},
-					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
-						require.True(t, snap.Valid())
-						require.False(t, snap.PeeringMultiportUpstreamsEnabled)
-						require.Empty(t, snap.ConnectProxy.PeeredPortUpstreamVIPs)
-					},
-				},
-			},
-		},
 		"connect-proxy":                      newConnectProxyCase(structs.MeshGatewayModeDefault),
 		"connect-proxy-mesh-gateway-default": newConnectProxyCaseMeshDefault(),
 		"connect-proxy-mesh-gateway-local":   newConnectProxyCase(structs.MeshGatewayModeLocal),
@@ -4305,17 +4248,6 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				},
 			}
 			wr := recordWatches(&sc)
-
-			if tc.peeringMultiportUpstreamsEnabled != nil {
-				store := &featuregate.Store{}
-				require.True(t, store.Publish(featuregate.Snapshot{
-					StatusIndex: 1,
-					Features: map[string]bool{
-						featuregate.PeeringMultiportUpstreams.String(): *tc.peeringMultiportUpstreamsEnabled,
-					},
-				}))
-				sc.featureGate = store
-			}
 
 			state, err := newState(proxyID, &tc.ns, testSource, aclToken, sc, rate.NewLimiter(rate.Inf, 0))
 
