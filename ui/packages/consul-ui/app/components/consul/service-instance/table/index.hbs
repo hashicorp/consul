@@ -72,24 +72,18 @@
 
       {{! ---- Service health ---- }}
       <B.Td>
-        <Consul::InstanceChecks
-          @type="service"
-          @items={{this.serviceChecks item}}
-        />
+        {{#let (this.serviceHealth item) as |health|}}
+          <Consul::HealthBadge
+            @status={{health.status}}
+            @count={{health.count}}
+            @total={{health.total}}
+            @passing={{health.passing}}
+            @showCount={{true}}
+            @emptyText="No service checks"
+            @tooltip="Service checks"
+          />
+        {{/let}}
       </B.Td>
-
-      {{! ---- Node health (non-node view only) ---- }}
-      {{#unless this.isNodeView}}
-        <B.Td>
-          {{#unless item.Node.Meta.synthetic-node}}
-            <Consul::InstanceChecks
-              @type="node"
-              @items={{this.nodeChecks item}}
-              data-test-node-health-checks
-            />
-          {{/unless}}
-        </B.Td>
-      {{/unless}}
 
       {{! ---- Service mesh ---- }}
       <B.Td>
@@ -109,6 +103,26 @@
               data-test-node-name
               href={{href-to "dc.nodes.show" item.Node.Node}}
             >{{item.Node.Node}}</a>
+          {{/unless}}
+        </B.Td>
+      {{/unless}}
+
+      {{! ---- Node health (non-node view only) ---- }}
+      {{#unless this.isNodeView}}
+        <B.Td>
+          {{#unless item.Node.Meta.synthetic-node}}
+            {{#let (this.nodeHealth item) as |health|}}
+              <Consul::HealthBadge
+                @status={{health.status}}
+                @count={{health.count}}
+                @total={{health.total}}
+                @passing={{health.passing}}
+                @showCount={{true}}
+                @emptyText="No node checks"
+                @tooltip="Node checks"
+                data-test-node-health-checks
+              />
+            {{/let}}
           {{/unless}}
         </B.Td>
       {{/unless}}

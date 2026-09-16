@@ -9,15 +9,52 @@
 .consul-intention-toolbar {
   padding: 8px;
   background-color: var(--token-color-surface-faint);
+  border: 1px solid var(--token-color-border-faint);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+
+  /* The intentions toolbar has more controls than the other list pages.
+     Flatten the nested action wrappers into one wrapping flex row so the
+     quick-filter/Precedence group moves to a second line as a unit whenever
+     the available content width can no longer hold every control. */
+  .hds-filter-bar__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .hds-filter-bar__actions__right,
+  .consul-list-toolbar__filter-bar .consul-list-toolbar__actions-inner {
+    display: contents;
+  }
+
+  .consul-list-toolbar__search-across {
+    flex: 0 0 auto;
+  }
+
+  .consul-list-toolbar__filter-bar .hds-filter-bar__search.hds-form-text-input {
+    flex: 0 1 420px;
+    width: 420px;
+    max-width: 420px;
+    min-width: 260px;
+  }
+
+  .consul-intention-toolbar__quick-filters {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    gap: 8px;
+    margin-left: auto;
+  }
 
   .consul-intention-toolbar__access {
     flex: 0 0 auto;
   }
 
-  /* the precedence sorter sits at the right end of the toolbar row */
   .consul-intention-toolbar__sort {
     flex: 0 0 auto;
-    margin-left: auto;
 
     .hds-dropdown-toggle-button {
       min-height: 2.25rem;
@@ -38,7 +75,7 @@
   }
 }
 
-/* Separator between the controls row (Filters / Search / quick-filter buttons)
+/* Separator between the controls rows (Filters / Search / quick-filter buttons)
    and the applied-filters area ("No filters applied" / active filter tags).
    Matches the nodes/services toolbar pattern. */
 .consul-intention-toolbar .hds-filter-bar__actions {

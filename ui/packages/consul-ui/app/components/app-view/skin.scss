@@ -6,8 +6,8 @@
 %app-view-title {
   border-bottom: var(--decor-border-100);
 }
-/* the tab nav carries its own full width rule, so the title's would double up */
-%app-view-title:has(+ .tab-nav) {
+/* HDS Tabs carry their own full-width divider, so the title's would double up. */
+%app-view-title:has(+ .hds-tabs) {
   border-bottom: none;
 }
 %app-view-content form:not(.filter-bar) fieldset {

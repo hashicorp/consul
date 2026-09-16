@@ -7,10 +7,19 @@ import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
 import { action } from '@ember/object';
 
-// Column definitions for the intentions table. Each sortable column provides a
-// `sortValue` comparator used by the generic Consul::DataTable; cell rendering
-// itself lives in the template's :row block. The trailing "Actions" column is
-// intentionally non-sortable.
+// Column definitions for the intentions table. Per the migration designs,
+// only Source and Permissions are sortable columns; Intention type,
+// Destination, and Status have no `sortKey`, so Consul::DataTable renders a
+// plain (non-interactive) header for them. The trailing "Actions" column is
+// intentionally non-sortable too.
+//
+// The Permissions column's explanatory header tooltip is added conditionally
+// (see the `columns` getter below) rather than baked into this static list,
+// so it only appears when at least one row actually has permissions to
+// explain.
+const PERMISSIONS_TOOLTIP =
+  "Permissions intercept an Intention's traffic using Layer 7 criteria, such as path prefixes and http headers.";
+
 const COLUMNS = [
   {
     label: 'Source',
@@ -19,25 +28,17 @@ const COLUMNS = [
   },
   {
     label: 'Intention type',
-    sortKey: 'action',
-    sortValue: (item) => (item.Action || 'app-aware').toLowerCase(),
   },
   {
     label: 'Destination',
-    sortKey: 'destination',
-    sortValue: (item) => (item.DestinationName || '').toLowerCase(),
   },
   {
     label: 'Permissions',
     sortKey: 'permissions',
     sortValue: (item) => item.Permissions.length,
-    tooltip:
-      "Permissions intercept an Intention's traffic using Layer 7 criteria, such as path prefixes and http headers.",
   },
   {
     label: 'Status',
-    sortKey: 'status',
-    sortValue: (item) => (item.IsManagedByCRD ? 0 : 1),
   },
   {
     label: 'Actions',
@@ -56,7 +57,19 @@ const COLUMNS = [
  * layer, and delegates row deletion to `@delete`.
  */
 export default class ConsulIntentionListTable extends Component {
-  columns = COLUMNS;
+  // Only show the Permissions header tooltip when at least one row in the
+  // current view actually has permissions — otherwise there's nothing for it
+  // to explain.
+  get columns() {
+    const hasPermissions = (this.args.items || []).some(
+      (item) => (item.Permissions?.length || 0) > 0
+    );
+    return COLUMNS.map((column) =>
+      column.label === 'Permissions' && hasPermissions
+        ? { ...column, tooltip: PERMISSIONS_TOOLTIP }
+        : column
+    );
+  }
 
   // The HDS Dropdown's Delete item opens a confirmation modal rather than
   // deleting immediately; `itemToDelete` holds the pending intention while the

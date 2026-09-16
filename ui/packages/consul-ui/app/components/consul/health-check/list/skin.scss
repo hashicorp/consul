@@ -18,8 +18,11 @@
 %healthcheck-output {
   border-radius: var(--decor-radius-100);
 }
-%healthcheck-output pre {
-  color: var(--token-color-foreground-faint);
+%healthcheck-output pre,
+%healthcheck-output pre code {
+  @extend %body-200-regular;
+
+  color: var(--token-color-foreground-primary);
 }
 %healthcheck-output {
   color: var(--token-color-foreground-strong);

@@ -7,7 +7,9 @@ import Component from '@glimmer/component';
 
 // Column definitions for the services table. Each sortable column provides a
 // `sortValue` comparator used by the generic Consul::DataTable; cell rendering
-// itself lives in the template's :row block.
+// itself lives in the template's :row block. Only Service name and Service type
+// are sortable — sorting Health, Service mesh or External source ranks rows by
+// an arbitrary internal order rather than anything meaningful to the user.
 const COLUMNS = [
   {
     label: 'Service name',
@@ -16,21 +18,9 @@ const COLUMNS = [
   },
   {
     label: 'Health',
-    sortKey: 'health',
-    sortValue: (item) => {
-      const order = { critical: 0, warning: 1, passing: 2, empty: 3, unknown: 4 };
-      return order[item.MeshStatus] ?? 5;
-    },
   },
   {
     label: 'Service mesh',
-    sortKey: 'mesh',
-    sortValue: (item) => {
-      if (item.ConnectedWithProxy && item.ConnectedWithGateway) return 0;
-      if (item.ConnectedWithProxy) return 1;
-      if (item.ConnectedWithGateway) return 2;
-      return 3;
-    },
   },
   {
     label: 'Service type',
@@ -38,9 +28,7 @@ const COLUMNS = [
     sortValue: (item) => (item.Kind || '').toLowerCase(),
   },
   {
-    label: 'External Source',
-    sortKey: 'source',
-    sortValue: (item) => (item.ExternalSources || []).join(',').toLowerCase(),
+    label: 'External source',
   },
 ];
 

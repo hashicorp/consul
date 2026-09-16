@@ -48,19 +48,20 @@
         <div class="header-col">
           <group.Element
             @name="Name"
-            @error={{changeset-get this.changeset 'error.Name'}}
+            @type="hds-field"
           as |el|>
-            <el.Label class="header-col-label">Header name</el.Label>
-            <el.Text
+            <Hds::Form::TextInput::Field
+              name="Name"
               placeholder="Enter header name"
               @value={{changeset-get this.changeset 'Name'}}
-              oninput={{action 'change' 'Name' this.changeset}}
-            />
-            <State @state={{el.state}} @matches="error">
-              <el.Error>
-                {{changeset-get this.changeset 'error.Name.validation'}}
-              </el.Error>
-            </State>
+              @isInvalid={{if (changeset-get this.changeset 'error.Name') true false}}
+              {{on "input" (action 'change' 'Name' this.changeset)}}
+            as |F|>
+              <F.Label class="header-col-label">Header name</F.Label>
+              {{#if (changeset-get this.changeset 'error.Name')}}
+                <F.Error>{{changeset-get this.changeset 'error.Name.validation'}}</F.Error>
+              {{/if}}
+            </Hds::Form::TextInput::Field>
           </group.Element>
         </div>
 
@@ -69,19 +70,20 @@
         <div class="header-col">
           <group.Element
             @name="Value"
-            @error={{changeset-get this.changeset 'error.Value'}}
+            @type="hds-field"
           as |el|>
-            <el.Label class="header-col-label">Header information</el.Label>
-            <el.Text
+            <Hds::Form::TextInput::Field
+              name="Value"
               placeholder="Enter header information"
               @value={{changeset-get this.changeset 'Value'}}
-              oninput={{action 'change' 'Value' this.changeset}}
-            />
-            <State @state={{el.state}} @matches="error">
-              <el.Error>
-                {{changeset-get this.changeset 'error.Value.validation'}}
-              </el.Error>
-            </State>
+              @isInvalid={{if (changeset-get this.changeset 'error.Value') true false}}
+              {{on "input" (action 'change' 'Value' this.changeset)}}
+            as |F|>
+              <F.Label class="header-col-label">Header information</F.Label>
+              {{#if (changeset-get this.changeset 'error.Value')}}
+                <F.Error>{{changeset-get this.changeset 'error.Value.validation'}}</F.Error>
+              {{/if}}
+            </Hds::Form::TextInput::Field>
           </group.Element>
         </div>
   {{else}}

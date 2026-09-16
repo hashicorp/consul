@@ -5,7 +5,8 @@
 
 import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
-import { hrefTo } from 'consul-ui/helpers/href-to';
+import { assert } from '@ember/debug';
+import { inject as service } from '@ember/service';
 
 /**
  * A class that encapsulates the data abstraction that we expect the TabNav to
@@ -19,12 +20,12 @@ import { hrefTo } from 'consul-ui/helpers/href-to';
  * <TabNav @items={{array
  *   (hash
  *     label="First Tab"
- *     href=(href-to "some.route")
+ *     route="some.route"
  *     selected=(is-href "some.route")
  *   )
  *   (hash
  *     label="Second Tab"
- *     href=(href-to "some.route")
+ *     route="some.other-route"
  *     selected=(is-href "some.route")
  *   )
  * }}
@@ -37,13 +38,11 @@ import { hrefTo } from 'consul-ui/helpers/href-to';
  *   // ...
  *   get tabs() {
  *    const { router } = this;
- *    const owner = getOwner(this);
  *     return [
  *       new Tab({
  *         label: 'First Tab',
  *         route: 'some.route',
- *         currentRouteName: router.currentRouteName,
- *         owner
+ *         currentRouteName: router.currentRouteName
  *        }),
  *       // ...
  *     ];
@@ -59,10 +58,9 @@ export class Tab {
   @tracked currentRouteName;
 
   constructor(opts) {
-    const { currentRouteName, route, label, tooltip, owner } = opts;
+    const { currentRouteName, route, label, tooltip } = opts;
 
     this.currentRouteName = currentRouteName;
-    this.owner = owner;
     this.route = route;
     this.label = label;
     this.tooltip = tooltip;
@@ -71,14 +69,12 @@ export class Tab {
   get selected() {
     return this.currentRouteName === this.route;
   }
-
-  get href() {
-    return hrefTo(this.owner, [this.route]);
-  }
 }
 
 function noop() {}
 export default class TabNav extends Component {
+  @service router;
+
   get onClick() {
     return this.args.onclick || noop;
   }
@@ -86,4 +82,48 @@ export default class TabNav extends Component {
   get onTabClicked() {
     return this.args.onTabClicked || noop;
   }
+
+  itemAt(index) {
+    return typeof this.args.items.objectAt === 'function'
+      ? this.args.items.objectAt(index)
+      : this.args.items[index];
+  }
+
+  get selectedTabIndex() {
+    for (let index = 0; index < this.args.items.length; index++) {
+      if (this.itemAt(index).selected) {
+        return index;
+      }
+    }
+    return 0;
+  }
+
+  get tabsKey() {
+    const keys = [];
+    for (let index = 0; index < this.args.items.length; index++) {
+      const item = this.itemAt(index);
+      keys.push(item.route || item.label);
+    }
+    return keys.join('|');
+  }
+
+  onClickTab = (event) => {
+    const tab = event.currentTarget.parentElement;
+    const tabs = tab.parentElement.querySelectorAll(':scope > .hds-tabs__tab');
+    const index = Array.from(tabs).indexOf(tab);
+    const item = this.itemAt(index);
+
+    assert('TabNav could not match the selected HDS tab to an item', index !== -1 && item);
+    assert(
+      'TabNav items require a route or an interaction callback',
+      item.route || this.args.onclick || this.args.onTabClicked
+    );
+
+    this.onClick(item.label.toUpperCase(), event);
+    this.onTabClicked(item, event);
+
+    if (item.route) {
+      this.router.transitionTo(item.route);
+    }
+  };
 }

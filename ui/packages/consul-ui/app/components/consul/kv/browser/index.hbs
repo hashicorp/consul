@@ -5,7 +5,7 @@
 
 <AppView>
   <:header>
-      <h1>{{or (key-name @parent.Key) 'Key / Value'}}</h1>
+      <h1>{{or (key-name @parent.Key) 'Key/Value'}}</h1>
       <label for="toolbar-toggle"></label>
   </:header>
   <:toolbar>
@@ -13,18 +13,22 @@
     <Consul::Kv::Toolbar
       @search={{@search}}
       @onsearch={{@onsearch}}
-      @sort={{@sort}}
       @filter={{@filters}}
     />
 {{/if}}
   </:toolbar>
   <:actions>
+{{#if (gt @items.length 0)}}
+    <Consul::Kv::Sort @sort={{@sort}} />
+{{/if}}
 {{#if (can 'create kvs')}}
   {{! both hrefs are built whichever we use, so the key is defaulted for the }}
   {{! one that takes it -- the root has no folder segment and its own route }}
   {{#let (or @parent.Key '/') as |parentKey|}}
   <Hds::Button
     @text='Create'
+    @icon='plus'
+    @iconPosition='leading'
     @isHrefExternal={{false}}
     @href={{if (key-name parentKey)
       (href-to 'dc.kv.create' parentKey)

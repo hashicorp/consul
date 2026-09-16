@@ -190,7 +190,7 @@
                   replace: true,
                 },
               },
-              breadcrumb: { label: 'Health Checks', parent: 'dc.services.show.instances' },
+              breadcrumb: { label: 'Health checks', parent: 'dc.services.show.instances' },
             },
           },
           upstreams: {
@@ -220,7 +220,7 @@
                   replace: true,
                 },
               },
-              breadcrumb: { label: 'Exposed Paths', parent: 'dc.services.show.instances' },
+              breadcrumb: { label: 'Exposed paths', parent: 'dc.services.show.instances' },
             },
           },
           addresses: {
@@ -274,7 +274,7 @@
                   replace: true,
                 },
               },
-              breadcrumb: { label: 'Health Checks', parent: 'dc.nodes.show' },
+              breadcrumb: { label: 'Health checks', parent: 'dc.nodes.show' },
             },
           },
           services: {
@@ -297,7 +297,7 @@
             },
           },
           rtt: {
-            _options: { path: '/round-trip-time', breadcrumb: { label: 'Round Trip Time', parent: 'dc.nodes.show' } },
+            _options: { path: '/round-trip-time', breadcrumb: { label: 'Round trip time', parent: 'dc.nodes.show' } },
           },
           metadata: {
             _options: { path: '/metadata', breadcrumb: { label: 'Metadata', parent: 'dc.nodes.show' } },
@@ -317,7 +317,7 @@
                   replace: true,
                 },
               },
-              breadcrumb: { label: 'Lock Sessions', parent: 'dc.nodes.show' },
+              breadcrumb: { label: 'Lock sessions', parent: 'dc.nodes.show' },
             },
           },
         },

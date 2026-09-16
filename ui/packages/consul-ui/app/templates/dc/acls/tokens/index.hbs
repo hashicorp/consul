@@ -71,6 +71,16 @@ as |route|>
   {{/if}}
       </:actions>
       <:content>
+        {{#if (token/is-legacy items)}}
+          <Hds::Alert @type='inline' class='consul-token-list__legacy-alert' as |A|>
+            <A.Title>Update</A.Title>
+            <A.Description data-test-notification-update>We have upgraded our ACL System to allow the creation of reusable policies that can be applied to tokens. Read more about the changes and how to upgrade legacy tokens.</A.Description>
+            <A.Link::Standalone @text='Learn more'
+                                @href="{{env 'CONSUL_HOME_URL'}}/consul/tutorials/archive/access-control-token-migration"
+                                @icon='docs-link'
+                                @iconPosition='trailing' />
+          </Hds::Alert>
+        {{/if}}
         {{! Toolbar is rendered outside DataCollection so it persists
             when filters/search reduce the visible rows to zero. It only
             appears when there are actual tokens in the catalog. }}
@@ -94,16 +104,6 @@ as |route|>
             </:quickFilters>
           </Consul::Token::Toolbar>
         {{/if}}
-    {{#if (token/is-legacy items)}}
-      <Hds::Alert @type='inline' class='mb-3 mt-3' as |A|>
-        <A.Title>Update</A.Title>
-        <A.Description data-test-notification-update>We have upgraded our ACL System to allow the creation of reusable policies that can be applied to tokens. Read more about the changes and how to upgrade legacy tokens.</A.Description>
-        <A.Link::Standalone @text='Learn more'
-                            @href="{{env 'CONSUL_HOME_URL'}}/consul/tutorials/archive/access-control-token-migration"
-                            @icon='docs-link'
-                            @iconPosition='trailing' />
-      </Hds::Alert>
-    {{/if}}
         <DataCollection
           @type="token"
           @sort={{sort.value}}

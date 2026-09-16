@@ -58,7 +58,7 @@ module('Acceptance | breadcrumbs / tab-navigation', function (hooks) {
 
       assert
         .dom('[data-test-breadcrumb-current]')
-        .hasText('Health Checks', 'initial last crumb is Health Checks');
+        .hasText('Health checks', 'initial last crumb is Health checks');
       assert.ok(ancestorHrefBefore, 'ancestor crumb has an href');
 
       // Switch to Lock Sessions.
@@ -66,7 +66,7 @@ module('Acceptance | breadcrumbs / tab-navigation', function (hooks) {
 
       assert
         .dom('[data-test-breadcrumb-current]')
-        .hasText('Lock Sessions', 'last crumb updated to Lock Sessions');
+        .hasText('Lock sessions', 'last crumb updated to Lock sessions');
 
       // Ancestor crumbs must be unchanged.
       const textsAfter = crumbTexts();
@@ -94,13 +94,13 @@ module('Acceptance | breadcrumbs / tab-navigation', function (hooks) {
 
       assert
         .dom('[data-test-breadcrumb-current]')
-        .hasText('Lock Sessions', 'last crumb is Lock Sessions');
+        .hasText('Lock sessions', 'last crumb is Lock sessions');
 
       await page().tabs.healthChecks();
 
       assert
         .dom('[data-test-breadcrumb-current]')
-        .hasText('Health Checks', 'last crumb updated to Health Checks');
+        .hasText('Health checks', 'last crumb updated to Health checks');
     },
     { notNamespaceable: true }
   );
@@ -154,7 +154,7 @@ module('Acceptance | breadcrumbs / tab-navigation', function (hooks) {
       // Confirm we land on Health Checks.
       assert
         .dom('[data-test-breadcrumb-current]')
-        .hasText('Health Checks', 'initial last crumb is Health Checks');
+        .hasText('Health checks', 'initial last crumb is Health checks');
 
       const ancestorCount = document.querySelectorAll(
         '[data-test-breadcrumb-item]:not([data-test-breadcrumb-current])'
@@ -162,7 +162,7 @@ module('Acceptance | breadcrumbs / tab-navigation', function (hooks) {
       const firstAnchorHrefBefore = ancestorHref(1);
 
       // Switch to Upstreams sub-tab.
-      const upstreamsTab = document.querySelector('[data-test-tab-nav] a[href*="upstreams"]');
+      const upstreamsTab = document.querySelector('[data-test-tab="tab_upstreams"] button');
       if (upstreamsTab) {
         await click(upstreamsTab);
 

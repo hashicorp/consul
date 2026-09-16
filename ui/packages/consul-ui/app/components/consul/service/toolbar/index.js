@@ -6,26 +6,17 @@
 import Component from '@glimmer/component';
 import { inject as service } from '@ember/service';
 
-const HEALTH_OPTIONS = [
-  { value: 'passing', label: 'Healthy' },
-  { value: 'warning', label: 'Warning' },
-  { value: 'critical', label: 'Not-healthy' },
-  { value: 'empty', label: 'No health checks' },
-];
+import {
+  healthOptions as buildHealthOptions,
+  healthQuickFilters as buildHealthQuickFilters,
+} from 'consul-ui/utils/health-filter-options';
+
+const HEALTH_STATUSES = ['passing', 'warning', 'critical', 'empty'];
 
 // On peer detail pages a service's health can be "unknown" (e.g. a peered
 // service with 0 instances, or a failing peer), so the Health filter offers an
 // extra option there. Mirrors the legacy service search bar's `healthStates`.
-const UNKNOWN_HEALTH_OPTION = { value: 'unknown', label: 'Unknown' };
-
-// Quick-filter health buttons shown in the segmented control next to the
-// Filter Bar. `value` maps to the same `status` filter values used by the
-// "Health" group inside the Filter Bar, so both stay in sync.
-const HEALTH_QUICK_FILTERS = [
-  { value: 'passing', label: 'Healthy', icon: 'check-circle' },
-  { value: 'warning', label: 'Warning', icon: 'alert-triangle' },
-  { value: 'critical', label: 'Not-healthy', icon: 'x-circle' },
-];
+const PEER_HEALTH_STATUSES = [...HEALTH_STATUSES, 'unknown'];
 
 const KIND_OPTIONS = [
   { value: 'service', label: 'Service' },
@@ -80,7 +71,9 @@ const SORT_LABEL_KEYS = {
 export default class ConsulServiceToolbar extends Component {
   @service intl;
 
-  healthQuickFilters = HEALTH_QUICK_FILTERS;
+  get healthQuickFilters() {
+    return buildHealthQuickFilters(this.intl);
+  }
 
   // Label shown on the linked-services sort dropdown's toggle button for the
   // currently active sort value.
@@ -118,11 +111,9 @@ export default class ConsulServiceToolbar extends Component {
 
     // On peer detail pages services can be "unknown", so offer that extra
     // Health option (matching the old search bar's peer-aware health states).
-    const healthOptions = this.args.peer
-      ? [...HEALTH_OPTIONS, UNKNOWN_HEALTH_OPTION]
-      : HEALTH_OPTIONS;
+    const statuses = this.args.peer ? PEER_HEALTH_STATUSES : HEALTH_STATUSES;
     const groups = [
-      { key: 'status', text: 'Health', options: healthOptions },
+      { key: 'status', text: 'Health', options: buildHealthOptions(this.intl, statuses) },
       { key: 'kind', text: 'Service type', options: KIND_OPTIONS },
     ];
     if ((this.args.sources || []).length) {

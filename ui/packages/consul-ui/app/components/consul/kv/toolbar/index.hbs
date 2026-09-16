@@ -3,7 +3,8 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-{{! the sort options keep the order and values of the legacy KV search bar }}
+{{! Sorting lives in Consul::Kv::Sort, up beside the Create button, so this is
+    just the stock toolbar. }}
 <Consul::ListToolbar
   class="consul-kv-toolbar"
   ...attributes
@@ -12,34 +13,4 @@
   @onsearch={{@onsearch}}
   @filterGroups={{this.filterGroups}}
   @searchPlaceholder="Search"
->
-  <:quickFilters>
-    {{#if @sort}}
-      <Hds::Dropdown
-        class="consul-kv-toolbar__sort"
-        @listPosition="bottom-right"
-        @preserveContentInDom={{true}}
-        data-test-sort-control
-        as |dd|
-      >
-        <dd.ToggleButton
-          @text={{get
-            (from-entries (array
-              (array "Key:asc" (t "common.sort.alpha.asc"))
-              (array "Key:desc" (t "common.sort.alpha.desc"))
-              (array "Kind:asc" (t "components.consul.kv.search-bar.sort.kind.asc"))
-              (array "Kind:desc" (t "components.consul.kv.search-bar.sort.kind.desc"))
-            ))
-            @sort.value
-          }}
-          @color="secondary"
-          data-test-sort-toggle
-        />
-        <dd.Interactive data-test-sort-option {{on "click" (fn @sort.change (hash target=(hash selected="Key:asc")))}}>{{t "common.sort.alpha.asc"}}</dd.Interactive>
-        <dd.Interactive data-test-sort-option {{on "click" (fn @sort.change (hash target=(hash selected="Key:desc")))}}>{{t "common.sort.alpha.desc"}}</dd.Interactive>
-        <dd.Interactive data-test-sort-option {{on "click" (fn @sort.change (hash target=(hash selected="Kind:asc")))}}>{{t "components.consul.kv.search-bar.sort.kind.asc"}}</dd.Interactive>
-        <dd.Interactive data-test-sort-option {{on "click" (fn @sort.change (hash target=(hash selected="Kind:desc")))}}>{{t "components.consul.kv.search-bar.sort.kind.desc"}}</dd.Interactive>
-      </Hds::Dropdown>
-    {{/if}}
-  </:quickFilters>
-</Consul::ListToolbar>
+/>

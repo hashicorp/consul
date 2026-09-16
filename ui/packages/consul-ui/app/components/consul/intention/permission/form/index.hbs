@@ -33,7 +33,7 @@ as |group|>
         @layout="horizontal"
         as |G|
       >
-        <G.Legend>Should this permission allow the source connect to the destination?</G.Legend>
+        <G.Legend>Should this permission allow the source to connect to the destination?</G.Legend>
         {{#each this.intents as |intent|}}
           <G.RadioField
             @value={{intent}}
@@ -78,24 +78,25 @@ as |group|>
 {{#if this.shouldShowPathField}}
         <group.Element
           @name="Path"
-          @error={{changeset-get this.changeset 'error.HTTP.Path'}}
+          @type="hds-field"
         as |el|>
-          <el.Label>
-            {{get this.pathLabels this.pathType}}
-          </el.Label>
-          <el.Text
+          <Hds::Form::TextInput::Field
+            name="Path"
             @value={{changeset-get this.changeset 'HTTP.Path'}}
-            oninput={{action 'change' 'HTTP.Path' this.changeset}}
-          />
-          <State @state={{el.state}} @matches="error">
-            <el.Error>
-              {{#if (eq (changeset-get this.changeset 'HTTP.Path') 'Regex')}}
-                Path Regex should not be blank
-              {{else}}
-                Path should begin with a '/'
-              {{/if}}
-            </el.Error>
-          </State>
+            @isInvalid={{if (changeset-get this.changeset 'error.HTTP.Path') true false}}
+            {{on "input" (action 'change' 'HTTP.Path' this.changeset)}}
+          as |F|>
+            <F.Label>{{get this.pathLabels this.pathType}}</F.Label>
+            {{#if (changeset-get this.changeset 'error.HTTP.Path')}}
+              <F.Error>
+                {{#if (eq (changeset-get this.changeset 'HTTP.Path') 'Regex')}}
+                  Path Regex should not be blank
+                {{else}}
+                  Path should begin with a '/'
+                {{/if}}
+              </F.Error>
+            {{/if}}
+          </Hds::Form::TextInput::Field>
         </group.Element>
 {{/if}}
 

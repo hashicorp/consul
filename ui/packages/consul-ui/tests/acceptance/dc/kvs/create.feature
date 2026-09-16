@@ -7,7 +7,7 @@ Feature: dc / kvs / create
       dc: datacenter
     ---
     Then the url should be /datacenter/kv/create
-    And the title should be "New Key / Value - Consul"
+    And the title should be "New Key/Value - Consul"
     And pause for 200
     Then I fill in with yaml
     ---
@@ -26,7 +26,7 @@ Feature: dc / kvs / create
       dc: datacenter
     ---
     Then the url should be /datacenter/kv/create
-    And the title should be "New Key / Value - Consul"
+    And the title should be "New Key/Value - Consul"
     Then I fill in with yaml
     ---
       additional: key-value/
@@ -50,7 +50,7 @@ Feature: dc / kvs / create
     And I click actions on the kvs
     And pause for 200
     And I click createInFolder on the kvs
-    And I see the text "New Key / Value" in "h1"
+    And I see the text "New Key/Value" in "h1"
     And I see the "[data-test-kv-key]" element
     Then I fill in with yaml
     ---
@@ -67,7 +67,7 @@ Feature: dc / kvs / create
       dc: datacenter
     ---
     Then the url should be /datacenter/kv/create
-    And the title should be "New Key / Value - Consul"
+    And the title should be "New Key/Value - Consul"
     Then I fill in with yaml
     ---
       additional: key-value/
@@ -81,6 +81,6 @@ Feature: dc / kvs / create
     And I click "[data-test-actions-menu]"
     And pause for 200
     And I click "[data-test-create-in-folder]"
-    And I see the text "New Key / Value" in "h1"
-    And I see the text "Key/Values / key-value" in "[data-test-breadcrumbs] li"
+    And I see the text "New Key/Value" in "h1"
+    And I see the text "Key/Value / key-value" in "[data-test-breadcrumbs] li"
     And I see the "[data-test-kv-key]" element

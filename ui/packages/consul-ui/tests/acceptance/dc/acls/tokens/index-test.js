@@ -137,6 +137,9 @@ module('Acceptance | dc / acls / tokens / index: ACL Token List', function (hook
 
       assert.equal(currentURL(), nspaceURL(nspace, '/dc-1/acls/tokens'));
       assert.dom('[data-test-notification-update]').exists('shows the legacy update notice');
+      assert
+        .dom('.consul-token-list__legacy-alert + .consul-token-toolbar')
+        .exists('shows the legacy update notice before the filter toolbar');
       assert.equal(page().tokens.length, 3, 'shows 3 tokens');
     }
   );

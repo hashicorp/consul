@@ -45,7 +45,7 @@
           @color='secondary'
           @size='small'
           @icon='edit'
-          @iconPosition='leading'
+          @isIconOnly={{true}}
           data-test-edit-action
           {{on 'click' (action (optional @onclick) item)}}
         />
@@ -54,7 +54,7 @@
           @color='critical'
           @size='small'
           @icon='trash'
-          @iconPosition='leading'
+          @isIconOnly={{true}}
           data-test-delete-action
           {{on 'click' (fn this.confirmDelete item)}}
         />

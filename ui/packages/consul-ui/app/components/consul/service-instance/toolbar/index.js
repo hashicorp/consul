@@ -6,21 +6,12 @@
 import Component from '@glimmer/component';
 import { inject as service } from '@ember/service';
 
-const HEALTH_OPTIONS = [
-  { value: 'passing', label: 'Healthy' },
-  { value: 'warning', label: 'Warning' },
-  { value: 'critical', label: 'Not-healthy' },
-  { value: 'empty', label: 'No health checks' },
-];
+import {
+  healthOptions as buildHealthOptions,
+  healthQuickFilters as buildHealthQuickFilters,
+} from 'consul-ui/utils/health-filter-options';
 
-// Quick-filter health buttons shown in the segmented control next to the
-// Filter Bar. `value` maps to the same `status` filter values used by the
-// "Health" group inside the Filter Bar, so both stay in sync.
-const HEALTH_QUICK_FILTERS = [
-  { value: 'passing', label: 'Healthy', icon: 'check-circle' },
-  { value: 'warning', label: 'Warning', icon: 'alert-triangle' },
-  { value: 'critical', label: 'Not-healthy', icon: 'x-circle' },
-];
+const HEALTH_STATUSES = ['passing', 'warning', 'critical', 'empty'];
 
 /**
  * Consul::ServiceInstance::Toolbar
@@ -35,7 +26,9 @@ const HEALTH_QUICK_FILTERS = [
 export default class ConsulServiceInstanceToolbar extends Component {
   @service intl;
 
-  healthQuickFilters = HEALTH_QUICK_FILTERS;
+  get healthQuickFilters() {
+    return buildHealthQuickFilters(this.intl);
+  }
 
   // Display label for an external-source value, using its brand name when one
   // exists (e.g. "kubernetes" -> "Kubernetes") and falling back to the raw
@@ -56,7 +49,13 @@ export default class ConsulServiceInstanceToolbar extends Component {
   // source is only included when there are real external sources to choose
   // from.
   get filterGroups() {
-    const groups = [{ key: 'status', text: 'Health', options: HEALTH_OPTIONS }];
+    const groups = [
+      {
+        key: 'status',
+        text: 'Health',
+        options: buildHealthOptions(this.intl, HEALTH_STATUSES),
+      },
+    ];
     if ((this.args.sources || []).length) {
       groups.push({
         key: 'source',

@@ -70,8 +70,13 @@
         <dl>
           <dt>Output</dt>
           <dd>
-              <ConsulCopyButton @value={{item.Output}} @name="output" />
               <pre><code>{{item.Output}}</code></pre>
+              <Hds::Copy::Button
+                @textToCopy={{item.Output}}
+                @text={{t 'components.consul-copy-button.title' name='output'}}
+                @isIconOnly={{true}}
+                data-test-copy-output
+              />
           </dd>
         </dl>
       </div>

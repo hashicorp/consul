@@ -23,7 +23,7 @@ import {
 // lock-sessions tab (whose DataLoader only fetches once that tab is active).
 const visitSessions = async (nspace) => {
   await visit('node', { dc: 'dc1', node: 'node-0' }, { nspace });
-  await click('[data-test-tab="tab_lock-sessions"] a');
+  await click('[data-test-tab="tab_lock-sessions"] button');
 };
 
 const cellText = (selector) =>
@@ -42,7 +42,7 @@ module('Acceptance | dc / nodes / sessions / list', function (hooks) {
     await visitSessions(nspace);
 
     assert.equal(currentURL(), nspaceURL(nspace, '/dc1/nodes/node-0/lock-sessions'));
-    assert.dom('[data-test-tab="tab_lock-sessions"]').hasClass('selected');
+    assert.dom('[data-test-tab="tab_lock-sessions"] button').hasAttribute('aria-selected', 'true');
     assert.deepEqual(
       cellText('[data-test-session-ttl]'),
       ['30s', '60m'],

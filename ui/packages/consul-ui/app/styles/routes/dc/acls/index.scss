@@ -37,6 +37,10 @@ html[data-route^='dc.acls.index'] .filter-bar [role='radiogroup'] {
   @extend %expanded-single-select;
 }
 
+html[data-route='dc.acls.tokens.index'] .consul-token-list__legacy-alert {
+  margin: 24px 0;
+}
+
 @media #{$--lt-wide-form} {
   html[data-route^='dc.acls.create'] main header .actions,
   html[data-route^='dc.acls.edit'] main header .actions {

@@ -8,8 +8,13 @@ export default function (visitable, creatable, clickable, intentions, popoverSel
     visit: visitable('/:dc/intentions'),
     intentionList: intentions(),
     sort: {
-      action: clickable(
-        '.consul-intention-list-table thead th:nth-child(2) button.hds-table__th-button--sort'
+      // "Intention type" (column 2) is no longer sortable per the migration
+      // designs — only Source (1) and Permissions (4) keep a sort button.
+      source: clickable(
+        '.consul-intention-list-table thead th:nth-child(1) button.hds-table__th-button--sort'
+      ),
+      permissions: clickable(
+        '.consul-intention-list-table thead th:nth-child(4) button.hds-table__th-button--sort'
       ),
     },
   });

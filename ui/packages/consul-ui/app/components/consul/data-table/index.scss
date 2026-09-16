@@ -179,16 +179,16 @@
     &[data-link-column='#{$i}'] .hds-table__tbody .hds-table__td:nth-child(#{$i}) {
       cursor: pointer;
 
-      /* keep the link in the default text color, but add an underline on hover
-         so it reads as clickable */
+      /* keep the link in the default text color, but underline it so it reads
+         as clickable (the HDS migration designs show link columns underlined
+         at rest, not only on hover) */
       a {
         color: var(--token-color-foreground-strong);
-        text-decoration: none;
+        text-decoration: underline;
 
         &:hover,
         &:active {
           color: var(--token-color-foreground-strong);
-          text-decoration: underline;
         }
       }
     }
