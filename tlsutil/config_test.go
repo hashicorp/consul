@@ -94,6 +94,18 @@ func TestConfigurator_IncomingConfig_Common(t *testing.T) {
 				require.Equal(t, tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384, cipherSuite)
 			})
 
+			t.Run("ECDHCurves", func(t *testing.T) {
+				cfg := ProtocolConfig{
+					ECDHCurves: []types.TLSECDHCurve{types.CurveX25519MLKEM768, types.CurveX25519},
+					CertFile:   "../test/hostname/Alice.crt",
+					KeyFile:    "../test/hostname/Alice.key",
+				}
+				c := makeConfigurator(t, tc.setupFn(cfg))
+
+				tlsConf := tc.configFn(c)
+				require.Equal(t, []tls.CurveID{tls.X25519MLKEM768, tls.X25519}, tlsConf.CurvePreferences)
+			})
+
 			t.Run("manually configured certificate is preferred over AutoTLS", func(t *testing.T) {
 				// Manually configure Alice's certifcate.
 				cfg := ProtocolConfig{

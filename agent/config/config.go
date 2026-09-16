@@ -1010,6 +1010,7 @@ type TLSProtocolConfig struct {
 	KeyFile              *string `mapstructure:"key_file" json:"key_file,omitempty"`
 	TLSMinVersion        *string `mapstructure:"tls_min_version" json:"tls_min_version,omitempty"`
 	TLSCipherSuites      *string `mapstructure:"tls_cipher_suites" json:"tls_cipher_suites,omitempty"`
+	TLSECDHCurves        *string `mapstructure:"tls_ecdh_curves" json:"tls_ecdh_curves,omitempty"`
 	VerifyIncoming       *bool   `mapstructure:"verify_incoming" json:"verify_incoming,omitempty"`
 	VerifyOutgoing       *bool   `mapstructure:"verify_outgoing" json:"verify_outgoing,omitempty"`
 	VerifyServerHostname *bool   `mapstructure:"verify_server_hostname" json:"verify_server_hostname,omitempty"`
