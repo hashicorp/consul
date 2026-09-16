@@ -115,4 +115,32 @@ module('Integration | Component | tab nav', function (hooks) {
       .dom('[data-test-tab="tab_exposed-paths"] button')
       .hasAttribute('aria-selected', 'true', 'marks the conditional tab as selected');
   });
+
+  test('it attaches the tooltip directly to the focusable tab button', async function (assert) {
+    this.set('items', [
+      { label: 'Imported Services', selected: true, tooltip: 'Services imported from peer' },
+      { label: 'Exported Services', selected: false },
+    ]);
+
+    await render(hbs`
+      <TabNav @items={{this.items}} />
+    `);
+
+    const button = this.element.querySelector('[data-test-tab="tab_imported-services"] button');
+
+    assert.ok(button._tippy, 'the tab button itself is the tippy reference/trigger element');
+    assert.strictEqual(
+      button._tippy.props.content,
+      'Services imported from peer',
+      'the tooltip content is the tab tooltip text'
+    );
+    assert
+      .dom('[data-test-tab="tab_imported-services"] span[tabindex="-1"]')
+      .doesNotExist(
+        'no nested, keyboard-unreachable tooltip trigger is rendered inside the tab button'
+      );
+    assert
+      .dom('[data-test-tab="tab_exported-services"] button')
+      .exists('tabs without a tooltip still render normally');
+  });
 });

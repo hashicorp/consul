@@ -93,6 +93,7 @@ as |route|>
             <Consul::Partition::List::Table
               @items={{collection.items}}
               @ondelete={{writer.delete}}
+              @sort={{sort}}
             >
               <:toolbar>
                 <Consul::Partition::Toolbar

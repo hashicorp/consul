@@ -63,9 +63,10 @@
                     @width={{column.width}}
                     @sortOrder={{if (eq this.sortBy column.sortKey) this.sortOrder}}
                     @onClickSort={{fn this.setSortBy column.sortKey}}
-                  >{{column.label}}{{#if column.tooltip}}<span role="group" tabindex="-1" aria-label={{column.tooltip}} {{hds-tooltip column.tooltip options=(detached-tooltip-options)}}><Hds::Icon @name="info" @size="16" @isInline={{true}} /></span>{{/if}}</H.ThSort>
+                    @tooltip={{column.tooltip}}
+                  >{{column.label}}</H.ThSort>
                 {{else}}
-                  <H.Th @align={{column.align}} @width={{column.width}}>{{column.label}}{{#if column.tooltip}}<span role="group" tabindex="-1" aria-label={{column.tooltip}} {{hds-tooltip column.tooltip options=(detached-tooltip-options)}}><Hds::Icon @name="info" @size="16" @isInline={{true}} /></span>{{/if}}</H.Th>
+                  <H.Th @align={{column.align}} @width={{column.width}} @tooltip={{column.tooltip}}>{{column.label}}</H.Th>
                 {{/if}}
               {{/each}}
             </H.Tr>
@@ -88,14 +89,27 @@
       below the card border. Rendered unless the caller opts out via
       @paginated={{false}} (e.g. a tree view). --}}
   {{#if this.paginated}}
-    <Hds::Pagination::Numbered
-      class="consul-data-table__pagination"
-      @totalItems={{this.totalItems}}
-      @currentPage={{this.page}}
-      @currentPageSize={{this.pageSize}}
-      @pageSizes={{this.pageSizes}}
-      @onPageChange={{this.onPageChange}}
-      @onPageSizeChange={{this.onPageSizeChange}}
-    />
+    {{! Hds::Pagination::Numbered only supports two modes: fully route/query-
+        param "controlled", or "uncontrolled" (it seeds its displayed active
+        page from @currentPage once, at construction, then manages it
+        internally from then on — it does not react to @currentPage changing
+        later). We're in the latter case (no routing here), so when @items
+        shrinks to fewer pages than the page the table was previously on
+        (filtering/searching/deleting), `this.page` is clamped, but without
+        this the pagination control itself would still show/highlight the
+        old, now out-of-range page. Keying on `this.page` forces Ember to
+        tear down and recreate it whenever our clamped value changes, so it
+        always re-seeds from the corrected page. }}
+    {{#each (array this.page) key="@identity" as |page|}}
+      <Hds::Pagination::Numbered
+        class="consul-data-table__pagination"
+        @totalItems={{this.totalItems}}
+        @currentPage={{page}}
+        @currentPageSize={{this.pageSize}}
+        @pageSizes={{this.pageSizes}}
+        @onPageChange={{this.onPageChange}}
+        @onPageSizeChange={{this.onPageSizeChange}}
+      />
+    {{/each}}
   {{/if}}
 </div>

@@ -41,7 +41,7 @@
   {{! Action buttons: Save + Cancel left, Delete right }}
   <div class="consul-policy-form__actions">
     <Hds::ButtonSet>
-      {{#if (and @create (can "create tokens"))}}
+      {{#if (and @create (can "create policies"))}}
         <Hds::Button
           @text="Save"
           type="submit"

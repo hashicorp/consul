@@ -24,16 +24,41 @@ const DEFAULT_PAGE_SIZES = [10, 30, 50, 100];
  * `item` and the HDS body API `B`), keeping cell rendering — links, icons,
  * tooltips, etc. — entirely up to the consuming page.
  *
+ * Sorting defaults to "uncontrolled": the table owns its own sort state
+ * (seeded from `@initialSortBy`/`@initialSortOrder`) and re-sorts `@items`
+ * itself whenever a sortable header is clicked. This is the right fit for
+ * pages with no other sort control.
+ *
+ * Some pages also expose their own sort control (e.g. a toolbar dropdown) that
+ * drives the data layer (DataCollection) to sort `@items` before they ever
+ * reach this table. If this table *also* ran its own uncontrolled sort on top
+ * of that, the two would fight over the displayed order (whichever one last
+ * changed "wins", and the other silently appears to do nothing). Passing
+ * `@sortBy`/`@sortOrder`/`@onSort` puts the table in "controlled" mode: it
+ * reflects the caller's sort state instead of tracking its own, calls
+ * `@onSort` instead of re-sorting locally when a header is clicked, and trusts
+ * `@items` to already be in the right order — making the caller's sort state
+ * the single source of truth for both controls.
+ *
  * @argument {Array} items - the rows to display.
  * @argument {Array} columns - column definitions. Each entry supports:
  *   - `label` {string} the header text.
  *   - `sortKey` {string} [optional] makes the column sortable; identifies it.
  *   - `sortValue` {(item) => comparable} [optional] custom comparator value;
- *      defaults to a case-insensitive read of `item[sortKey]`.
+ *      defaults to a case-insensitive read of `item[sortKey]`. Ignored in
+ *      controlled mode, since the table doesn't sort `@items` itself.
  *   - `align` {'left'|'center'|'right'} [optional] header/column alignment.
  * @argument {Array} [pageSizes] - page-size options; defaults to [10,30,50,100].
- * @argument {string} [initialSortBy] - sortKey to sort by initially.
+ * @argument {string} [initialSortBy] - sortKey to sort by initially. Ignored
+ *   in controlled mode.
  * @argument {'asc'|'desc'} [initialSortOrder] - initial sort direction.
+ *   Ignored in controlled mode.
+ * @argument {string} [sortBy] - controlled current sortKey; puts the table in
+ *   controlled mode together with `@onSort`.
+ * @argument {'asc'|'desc'} [sortOrder] - controlled current sort direction.
+ * @argument {(sortBy: string, sortOrder: 'asc'|'desc') => void} [onSort] -
+ *   called with the new sortKey/sortOrder when a sortable header is clicked;
+ *   presence of this argument is what puts the table in controlled mode.
  * @argument {string} [density] - HDS Table density; defaults to "medium".
  * @argument {string} [valign] - HDS Table vertical alignment; defaults "middle".
  * @argument {string} [ariaLabel] - accessible label for the table.
@@ -42,10 +67,16 @@ const DEFAULT_PAGE_SIZES = [10, 30, 50, 100];
  *   to 1 (the first column).
  */
 export default class ConsulDataTable extends Component {
-  @tracked page = 1;
+  // Backing state for `page`; kept separate from the `page` getter below so
+  // filtering/searching/deleting (which change `@items` but not this
+  // directly) can't leave it pointing past the end of the new result set.
+  @tracked _page = 1;
   @tracked pageSize;
-  @tracked sortBy;
-  @tracked sortOrder = 'asc';
+
+  // Backing state for uncontrolled mode only; ignored (and left unset) in
+  // controlled mode, where `sortBy`/`sortOrder` are read from `@args` instead.
+  @tracked _sortBy;
+  @tracked _sortOrder = 'asc';
 
   // Whether the horizontally scrollable area has hidden content to the left or
   // right of what is currently visible. Drives the edge fade indicators so the
@@ -59,10 +90,25 @@ export default class ConsulDataTable extends Component {
   constructor() {
     super(...arguments);
     this.pageSize = this.pageSizes[0];
-    this.sortBy = this.args.initialSortBy;
+    this._sortBy = this.args.initialSortBy;
     if (this.args.initialSortOrder) {
-      this.sortOrder = this.args.initialSortOrder;
+      this._sortOrder = this.args.initialSortOrder;
     }
+  }
+
+  // Controlled mode is opt-in: it's only active once the caller supplies
+  // `@onSort`, so every other existing consumer of this table keeps its
+  // current uncontrolled behaviour unchanged.
+  get isControlled() {
+    return typeof this.args.onSort === 'function';
+  }
+
+  get sortBy() {
+    return this.isControlled ? this.args.sortBy : this._sortBy;
+  }
+
+  get sortOrder() {
+    return (this.isControlled ? this.args.sortOrder : this._sortOrder) || 'asc';
   }
 
   get pageSizes() {
@@ -115,8 +161,27 @@ export default class ConsulDataTable extends Component {
     return this.args.paginated !== false;
   }
 
+  get totalPages() {
+    if (!this.paginated || !this.pageSize) {
+      return 1;
+    }
+    return Math.max(1, Math.ceil(this.totalItems / this.pageSize));
+  }
+
+  // Clamped to the current number of pages, so filtering, searching or
+  // deleting @items down to a smaller (but still non-empty) result set can
+  // never leave the table stuck on a now-out-of-range page showing no rows.
+  get page() {
+    return Math.min(this._page, this.totalPages);
+  }
+
   get sortedItems() {
     const items = this.items;
+    // In controlled mode the caller's data layer is the single source of
+    // truth for ordering (see class docs); re-sorting here would fight it.
+    if (this.isControlled) {
+      return items;
+    }
     const valueFor = this.sortValueFns[this.sortBy];
     if (!valueFor) {
       return items;
@@ -141,24 +206,27 @@ export default class ConsulDataTable extends Component {
 
   @action
   setSortBy(key) {
-    if (this.sortBy === key) {
-      this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+    if (this.isControlled) {
+      const nextOrder = this.sortBy === key && this.sortOrder === 'asc' ? 'desc' : 'asc';
+      this.args.onSort(key, nextOrder);
+    } else if (this._sortBy === key) {
+      this._sortOrder = this._sortOrder === 'asc' ? 'desc' : 'asc';
     } else {
-      this.sortBy = key;
-      this.sortOrder = 'asc';
+      this._sortBy = key;
+      this._sortOrder = 'asc';
     }
-    this.page = 1;
+    this._page = 1;
   }
 
   @action
   onPageChange(page) {
-    this.page = page;
+    this._page = page;
   }
 
   @action
   onPageSizeChange(size) {
     this.pageSize = size;
-    this.page = 1;
+    this._page = 1;
   }
 
   // Captures the scrollable element, wires up a ResizeObserver so the edge

@@ -47,6 +47,7 @@
                   @value={{item.Name}}
                   @isRequired={{true}}
                   disabled={{readOnly}}
+                  {{on 'input' (fn this.updateName item)}}
                   as |F|
                 >
                   <F.Label>Name</F.Label>

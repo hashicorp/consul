@@ -78,20 +78,11 @@
       opacity: 1;
     }
 
-    /* render the sort arrows and the header info-tooltip icon in a softer grey
-       so they don't compete with the bold header text */
-    .hds-table__th-button .hds-icon,
-    .hds-table__th span .hds-icon {
+    /* render the sort arrows and the header info-tooltip icon (both rendered
+       as `.hds-table__th-button`s by HDS) in a softer grey so they don't
+       compete with the bold header text */
+    .hds-table__th-button .hds-icon {
       color: var(--token-color-foreground-faint);
-    }
-
-    /* space the info-tooltip icon away from the header label and center it
-       against the label text */
-    .hds-table__th span .hds-icon {
-      margin-left: 4px;
-      vertical-align: middle;
-      position: relative;
-      top: -1px;
     }
 
     /* soften the sort button on hover: HDS draws a hard white box with a border

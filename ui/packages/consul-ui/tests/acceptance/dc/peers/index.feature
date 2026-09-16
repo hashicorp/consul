@@ -18,6 +18,19 @@ Feature: dc / peers / index: Peers List
     Then I see 3 peer models
 
   Scenario: Sorting peers
+    Then I see name on the peers vertically like yaml
+    ---
+    - a-peer
+    - b-peer
+    - z-peer
+    ---
+    When I click name on the sort
+    Then I see name on the peers vertically like yaml
+    ---
+    - z-peer
+    - b-peer
+    - a-peer
+    ---
     When I click name on the sort
     Then I see name on the peers vertically like yaml
     ---

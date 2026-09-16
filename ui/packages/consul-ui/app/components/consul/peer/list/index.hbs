@@ -4,13 +4,19 @@
 }}
 
 <div class="consul-peer-list" ...attributes>
-  {{! Default/initial ordering comes from the toolbar's Sort dropdown (data-layer
-      sort via DataCollection, see templates/dc/peers/index.hbs); no
-      @initialSortBy here so that upstream order isn't immediately overridden.
-      Column headers remain independently clickable for in-table sorting. }}
+  {{! Sort is driven by @sort (the same sort state templates/dc/peers/index.hbs
+      hands to Consul::Peer::Toolbar's Sort dropdown), passed through to
+      Consul::DataTable in "controlled" mode so a column-header click and a
+      toolbar selection both read/write the one shared sort state instead of
+      silently overriding one another (previously, clicking a column header
+      put the table into its own independent local sort, so later toolbar
+      selections stopped having any visible effect). }}
   <Consul::DataTable
     @items={{@items}}
     @columns={{this.columns}}
+    @sortBy={{this.sortBy}}
+    @sortOrder={{this.sortOrder}}
+    @onSort={{this.onSort}}
     @ariaLabel="Peers"
     @card={{true}}
   >

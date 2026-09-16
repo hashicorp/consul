@@ -5,7 +5,7 @@
 
 import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
-import { action } from '@ember/object';
+import { action, set } from '@ember/object';
 
 export default class ConsulPartitionForm extends Component {
   // Holds the pending item while the delete-confirmation modal is open.
@@ -19,5 +19,15 @@ export default class ConsulPartitionForm extends Component {
   @action
   cancelDelete() {
     this.isConfirmingDelete = false;
+  }
+
+  @action
+  updateName(item, event) {
+    set(item, 'Name', event.target.value);
+  }
+
+  @action
+  updateDescription(item, event) {
+    set(item, 'Description', event.target.value);
   }
 }

@@ -7,7 +7,9 @@
   <Consul::DataTable
     @items={{@items}}
     @columns={{this.columns}}
-    @initialSortBy="name"
+    @sortBy={{this.sortBy}}
+    @sortOrder={{this.sortOrder}}
+    @onSort={{this.onSort}}
     @ariaLabel="Admin partitions"
     @card={{true}}
   >

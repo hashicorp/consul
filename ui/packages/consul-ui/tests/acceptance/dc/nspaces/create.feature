@@ -27,6 +27,24 @@ Feature: dc / nspaces / create
     Then I don't see the "[data-test-role-creator]" element
     And the url should be /datacenter/namespaces/create
 
-@ignore
   Scenario: Test we can create a Namespace
-  Then ok
+    Given 1 datacenter model with the value "datacenter"
+    When I visit the nspace page for yaml
+    ---
+      dc: datacenter
+    ---
+    Then I fill in with yaml
+    ---
+      Name: namespace-name
+      Description: namespace description
+    ---
+    And I submit
+    Then a PUT request was made to "/v1/namespace/namespace-name?dc=datacenter" from yaml
+    ---
+      body:
+        Name: namespace-name
+        Description: namespace description
+    ---
+    Then the url should be /datacenter/namespaces
+    And "[data-notification]" has the "hds-toast" class
+    And "[data-notification]" has the "hds-alert--color-success" class

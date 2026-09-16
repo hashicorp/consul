@@ -63,6 +63,7 @@ as |readOnly item Name Description|}}
         name='Name'
         @value={{item.Name}}
         @isRequired={{true}}
+        {{on 'input' (fn this.updateName item)}}
         as |F|
       >
         <F.Label>Name</F.Label>
@@ -72,6 +73,7 @@ as |readOnly item Name Description|}}
     <Hds::Form::TextInput::Field
       name='Description'
       @value={{item.Description}}
+      {{on 'input' (fn this.updateDescription item)}}
       as |F|
     >
       <F.Label>Description <span class='consul-partition-form__optional'>(Optional)</span></F.Label>

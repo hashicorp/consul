@@ -39,6 +39,10 @@ export default class NspaceForm extends Component {
     set(item, 'Description', event.target.value);
   }
 
+  @action updateName(item, event) {
+    set(item, 'Name', event.target.value);
+  }
+
   @action onCancel(item) {
     const { oncancel, onsubmit } = this.args;
 
