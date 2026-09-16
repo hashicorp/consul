@@ -17,6 +17,7 @@ const (
 	TableACLAuthMethods               = "acl_auth_methods"
 	TableACLStats                     = "acl_stats"
 	TableCA                           = "ca"
+	TableDiscoveryChains              = "discovery_chains"
 	GlobalRegistryPayloadTypeSnapshot = "SNAPSHOT"
 	GlobalRegistryPayloadTypeDelta    = "DELTA"
 )
@@ -80,7 +81,11 @@ type GlobalRegistryCARecord struct {
 	// RootExpiresAt is the NotAfter of the currently active root certificate.
 	RootExpiresAt *time.Time `json:"rootExpiresAt,omitempty"`
 	// RootRotationInProgress is true when more than one root has a zero
-	// RotatedOutAt timestamp — i.e. the old root has not yet been retired.
+	// RotatedOutAt timestamp. This occurs when the previously active root was
+	// deactivated (Active=false) but has not yet had its RotatedOutAt time set,
+	// meaning it is still trusted and has not been pruned. The new active root
+	// always starts with a zero RotatedOutAt; a second zero indicates the old
+	// root is still pending retirement.
 	RootRotationInProgress bool `json:"rootRotationInProgress"`
 }
 
@@ -150,9 +155,9 @@ type GlobalRegistryNamespaceRecord struct {
 }
 
 // GlobalRegistryConfigEntryRecord is a generic, flat representation of any
-// config entry stored in tableConfigEntries.  The raw JSON of the full entry
-// is carried in RawEntry so receivers can decode the kind-specific payload
-// without requiring type-switch logic here.
+// config entry stored in tableConfigEntries. The typed config entry object is
+// carried in Obj so receivers can decode the kind-specific payload without
+// requiring type-switch logic here.
 type GlobalRegistryConfigEntryRecord struct {
 	Kind        string            `json:"kind"`
 	Name        string            `json:"name"`
