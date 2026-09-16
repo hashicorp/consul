@@ -1,0 +1,11 @@
+```release-note:bug
+api-gateway: Fix a cold-start crash where an api-gateway's Envoy proxy could
+segfault during worker startup when a route's failover upstream was rendered as
+an aggregate cluster before its endpoints were assembled. Consul now holds each
+xDS stream's first push until the gateway's discovery-chain endpoints are ready
+(per-stream, first-push only, skipped for streams Envoy resumes, and bounded by
+a 30s deadline), and renders a failover upstream as a plain EDS cluster instead
+of an aggregate whenever its member endpoints are not yet available -- restoring
+full failover automatically once they arrive. Steady-state updates are never
+withheld.
+```

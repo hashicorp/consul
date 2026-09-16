@@ -1,0 +1,20 @@
+```release-note:security
+agent: Fixed a pre-authorization memory exhaustion vulnerability where
+an mTLS-authenticated RPC client with no ACL token could terminate a Consul server by
+sending a MessagePack request header with a large declared length. The MessagePack
+decoder allocated a byte slice of the declared size before method lookup, ACL token
+validation, or the rate-limiting interceptor could run, allowing a single oversized
+header to OOM-kill the server process.
+
+Two mitigations are applied:
+
+1. Each RPC request header is now validated against RPCMaxHeaderBytes (default 512
+   bytes) before it is decoded. Every length prefix in the header is checked against
+   the limit, so an oversized value is rejected before the decoder allocates memory
+   for it, and the connection is closed before any ACL evaluation. Request bodies
+   remain unbounded by this limit.
+
+2. A per-request read deadline (reusing RPCHandshakeTimeout) is applied inside
+   handleConsulConn and handleInsecureConn so that a slow attacker trickling an
+   oversized header cannot retain a goroutine and logical heap indefinitely.
+```

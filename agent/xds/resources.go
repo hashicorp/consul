@@ -23,6 +23,14 @@ type ResourceGenerator struct {
 	IncrementalXDS bool
 
 	ProxyFeatures xdscommon.SupportedProxyFeatures
+
+	// DisableAPIGatewayFailoverGuard disables the api-gateway aggregate-cluster
+	// guard in mapDiscoChainTargets (see failover_policy.go) that rewrites a
+	// failover chain into a single plain EDS cluster when a member's endpoints
+	// are not assembled yet. It mirrors Server.DisableAPIGatewayFailoverGuard;
+	// see that field for why it exists. The zero value (false) leaves the
+	// guard enabled, which is correct for all known topologies.
+	DisableAPIGatewayFailoverGuard bool
 }
 
 func NewResourceGenerator(

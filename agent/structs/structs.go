@@ -786,6 +786,10 @@ type ServiceSpecificRequest struct {
 	// Ingress if true will only search for Ingress gateways for the given service.
 	Ingress bool
 
+	// APIGateway if true will only search for API gateways that front the given
+	// service. This powers DNS resolution of services exposed via an API gateway.
+	APIGateway bool
+
 	// MergeCentralConfig when set to true returns a service definition merged with
 	// the proxy-defaults/global and service-defaults/:service config entries.
 	// This can be used to ensure a full service definition is returned in the response
@@ -842,6 +846,7 @@ func (r *ServiceSpecificRequest) CacheInfo() cache.RequestInfo {
 		r.ServiceKind,
 		r.MergeCentralConfig,
 		r.HealthFilterType,
+		r.APIGateway,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
@@ -1100,7 +1105,10 @@ type ServiceNode struct {
 	ServiceEnableTagOverride bool
 	ServiceProxy             ConnectProxyConfig
 	ServiceConnect           ServiceConnect
-	ServiceLocality          *Locality `bexpr:"-"`
+	// ServiceAI is the inline AI role block (CAMP). Optional; nil when the
+	// service is not an AI workload.
+	ServiceAI       *ServiceAI `bexpr:"-"`
+	ServiceLocality *Locality  `bexpr:"-"`
 
 	// If not empty, PeerName represents the peer that this ServiceNode was imported from.
 	PeerName string `json:",omitempty"`
@@ -1160,6 +1168,7 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 		ServiceEnableTagOverride: s.ServiceEnableTagOverride,
 		ServiceProxy:             s.ServiceProxy,
 		ServiceConnect:           s.ServiceConnect,
+		ServiceAI:                s.ServiceAI.Clone(),
 		ServiceLocality:          s.ServiceLocality,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
@@ -1187,6 +1196,7 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 		EnableTagOverride: s.ServiceEnableTagOverride,
 		Proxy:             s.ServiceProxy,
 		Connect:           s.ServiceConnect,
+		AI:                s.ServiceAI,
 		PeerName:          s.PeerName,
 		EnterpriseMeta:    s.EnterpriseMeta,
 		Locality:          s.ServiceLocality,
@@ -1427,6 +1437,11 @@ type NodeService struct {
 	// a pointer so that we never have to nil-check this.
 	Connect ServiceConnect
 
+	// AI is the inline AI role block (CAMP). It carries the service's AI
+	// semantics (inference-model, mcp-server, or ai-agent). It is a pointer
+	// because the block is optional and most services do not have one.
+	AI *ServiceAI `json:",omitempty" bexpr:"-"`
+
 	// TODO: rename to reflect that this is used to express future intent to register.
 	// LocallyRegisteredAsSidecar is private as it is only used by a local agent
 	// state to track if the service was or will be registered from a nested sidecar_service
@@ -1620,6 +1635,10 @@ func (s *NodeService) Validate() error {
 		if s.Port == 0 && s.SocketPath == "" {
 			result = multierror.Append(result, fmt.Errorf("Port or SocketPath must be set for a %s", s.Kind))
 		}
+	}
+
+	if s.AI != nil {
+		result = multierror.Append(fmt.Errorf("ai is ent only feature"))
 	}
 
 	commonValidation := s.ValidateForAgent()
@@ -1842,6 +1861,7 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 		s.Kind != other.Kind ||
 		!reflect.DeepEqual(s.Proxy, other.Proxy) ||
 		s.Connect != other.Connect ||
+		!reflect.DeepEqual(s.AI, other.AI) ||
 		s.PeerName != other.PeerName ||
 		!s.EnterpriseMeta.IsSame(&other.EnterpriseMeta) {
 		return false
@@ -1878,6 +1898,7 @@ func (s *ServiceNode) IsSameService(other *ServiceNode) bool {
 		s.ServiceEnableTagOverride != other.ServiceEnableTagOverride ||
 		!reflect.DeepEqual(s.ServiceProxy, other.ServiceProxy) ||
 		!reflect.DeepEqual(s.ServiceConnect, other.ServiceConnect) ||
+		!reflect.DeepEqual(s.ServiceAI, other.ServiceAI) ||
 		!s.IsSame(&other.EnterpriseMeta) {
 		return false
 	}
@@ -1915,6 +1936,7 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 		ServiceEnableTagOverride: s.EnableTagOverride,
 		ServiceProxy:             s.Proxy,
 		ServiceConnect:           s.Connect,
+		ServiceAI:                s.AI,
 		ServiceLocality:          s.Locality,
 		EnterpriseMeta:           s.EnterpriseMeta,
 		PeerName:                 s.PeerName,

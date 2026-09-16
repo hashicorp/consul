@@ -109,6 +109,7 @@ type serviceLookup struct {
 	MaxRecursionLevel int
 	Connect           bool
 	Ingress           bool
+	APIGateway        bool
 	PortName          string //Only applicable for SRV records
 	acl.EnterpriseMeta
 }
@@ -382,6 +383,10 @@ func serviceNodeCanonicalDNSName(sn *structs.ServiceNode, domain string) string 
 
 func serviceIngressDNSName(service, datacenter, domain string, entMeta *acl.EnterpriseMeta) string {
 	return serviceCanonicalDNSName(service, "ingress", datacenter, domain, entMeta)
+}
+
+func serviceAPIGatewayDNSName(service, datacenter, domain string, entMeta *acl.EnterpriseMeta) string {
+	return serviceCanonicalDNSName(service, "api-gateway", datacenter, domain, entMeta)
 }
 
 // getResponseDomain returns alt-domain if it is configured and request is made with alt-domain,
@@ -790,7 +795,7 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, cfg *dnsRe
 	done := false
 	for i := len(labels) - 1; i >= 0 && !done; i-- {
 		switch labels[i] {
-		case "service", "connect", "virtual", "ingress", "node", "query", "addr":
+		case "service", "connect", "virtual", "ingress", "api-gateway", "node", "query", "addr":
 			queryParts = labels[:i]
 			querySuffixes = labels[i+1:]
 			queryKind = labels[i]
@@ -1000,6 +1005,30 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, cfg *dnsRe
 			EnterpriseMeta:    locality.EnterpriseMeta,
 		}
 		// name.ingress.consul
+		return d.handleServiceQuery(cfg, lookup, req, resp)
+
+	case "api-gateway":
+		if len(queryParts) < 1 {
+			return invalid()
+		}
+
+		locality, ok := d.parseLocality(querySuffixes, cfg)
+		if !ok {
+			return invalid()
+		}
+
+		// Peering is not currently supported for api-gateway queries, mirroring
+		// the behavior of ingress queries.
+		lookup := serviceLookup{
+			Datacenter:        locality.effectiveDatacenter(d.agent.config.Datacenter),
+			Service:           queryParts[len(queryParts)-1],
+			Connect:           false,
+			Ingress:           false,
+			APIGateway:        true,
+			MaxRecursionLevel: maxRecursionLevel,
+			EnterpriseMeta:    locality.EnterpriseMeta,
+		}
+		// name.api-gateway.consul
 		return d.handleServiceQuery(cfg, lookup, req, resp)
 
 	case "node":
@@ -1510,6 +1539,7 @@ func (d *DNSServer) lookupServiceNodes(cfg *dnsRequestConfig, lookup serviceLook
 		SamenessGroup:    lookup.SamenessGroup,
 		Connect:          lookup.Connect,
 		Ingress:          lookup.Ingress,
+		APIGateway:       lookup.APIGateway,
 		Datacenter:       lookup.Datacenter,
 		ServiceName:      lookup.Service,
 		ServiceTags:      serviceTags,
