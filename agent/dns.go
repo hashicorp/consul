@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"math/rand"
 	"net"
 	"regexp"
 	"strconv"
@@ -55,9 +56,10 @@ const (
 	// the request.
 	maxUDPDatagramSize = math.MaxUint16 - 68
 
-	localityAwareLookupModeOff      = "off"
-	localityAwareLookupModeAlways   = "always"
-	localityAwareLookupModeBalanced = "balanced"
+	localityAwareLookupModeOff          = "off"
+	localityAwareLookupModeAlways       = "always"
+	localityAwareLookupModeBalanced     = "balanced"
+	localityAwareLookupModeProportional = "proportional"
 )
 
 type dnsSOAConfig struct {
@@ -82,7 +84,7 @@ type dnsServerConfig struct {
 	Datacenter     string
 	EnableTruncate bool
 	// LocalityAwareLookup selects how service nodes are narrowed before DNS
-	// shuffling: "off", "always", or "balanced" (see dns_config docs).
+	// shuffling: "off", "always", "balanced", or "proportional" (see dns_config docs).
 	LocalityAwareLookup string
 	// Locality is this agent's configured region/zone; used when
 	// LocalityAwareLookup is not "off".
@@ -93,6 +95,9 @@ type dnsServerConfig struct {
 	// LocalityAwareLookupServiceBlocklist, when non-empty, skips locality-
 	// aware filtering for these exact DNS-normalized service names.
 	LocalityAwareLookupServiceBlocklist map[string]struct{}
+	// Rand is used by "proportional" mode to sample candidate-set sizes and
+	// members. Defaults to the concurrency-safe global math/rand source.
+	Rand                                dnsRandSource
 	MaxStale                            time.Duration
 	UseCache                            bool
 	CacheMaxAge                         time.Duration
@@ -114,6 +119,25 @@ type dnsServerConfig struct {
 	DisableCompression bool
 
 	enterpriseDNSConfig
+}
+
+// dnsRandSource is the randomness seam used by proportional locality sampling.
+// A bare *rand.Rand must not be shared across DNS request goroutines; the
+// default adapter uses the process-global math/rand functions, which are safe.
+type dnsRandSource interface {
+	Intn(n int) int
+	Float64() float64
+}
+
+// globalDNSRand adapts the concurrency-safe top-level math/rand package funcs.
+type globalDNSRand struct{}
+
+func (globalDNSRand) Intn(n int) int {
+	return rand.Intn(n)
+}
+
+func (globalDNSRand) Float64() float64 {
+	return rand.Float64()
 }
 
 type serviceLookup struct {
@@ -208,6 +232,7 @@ func getDNSServerConfig(conf *config.RuntimeConfig) (*dnsServerConfig, error) {
 		LocalityAwareLookupServiceBlocklist: serviceNameSet(
 			conf.DNSLocalityAwareLookupServiceBlocklist,
 		),
+		Rand:               globalDNSRand{},
 		MaxStale:           conf.DNSMaxStale,
 		NodeName:           conf.NodeName,
 		NodeTTL:            conf.DNSNodeTTL,
@@ -1641,7 +1666,7 @@ func (d *DNSServer) handleServiceQuery(cfg *dnsRequestConfig, lookup serviceLook
 
 	if cfg.LocalityAwareLookup != localityAwareLookupModeOff &&
 		cfg.localityAwareLookupAppliesToLookup(lookup) {
-		out.Nodes = filterCheckServiceNodesForLocalityAwareLookup(out.Nodes, cfg.Locality, cfg.LocalityAwareLookup)
+		out.Nodes = filterCheckServiceNodesForLocalityAwareLookup(out.Nodes, cfg.Locality, cfg.LocalityAwareLookup, cfg.Rand)
 	}
 
 	// Perform a random shuffle
@@ -1706,86 +1731,232 @@ func localityRegionMatches(local, remote *structs.Locality) bool {
 	return local != nil && remote != nil && local.Region != "" && remote.Region == local.Region
 }
 
-// localityServiceZonesInBalance reports whether every zone label in local's region
-// (among nodes in nodes that carry a zone) appears the same number of times as
-// local's zone. "balanced" locality-aware lookup uses this to decide whether
-// same-zone-only answers would skew traffic across uneven zone sizes and thus
-// led to uneven load distribution and eventual instability.
-func localityServiceZonesInBalance(nodes structs.CheckServiceNodes, local *structs.Locality) bool {
-	if local == nil || local.Region == "" || local.Zone == "" {
-		return true
+// localityPartition is the result of a single pass over catalog nodes that
+// groups them by how they relate to the querying agent's locality.
+type localityPartition struct {
+	// exactMatches are same-region+zone when local has a zone, or all same-
+	// region nodes when local has region only.
+	exactMatches structs.CheckServiceNodes
+	// regionMatches are all same-region nodes (including exactMatches).
+	regionMatches structs.CheckServiceNodes
+	// regionForeign are same-region nodes that are not exactMatches: other
+	// zones plus region-only nodes. Used as the spill pool for proportional;
+	// we cannot use regionMatches for that because it includes exactMatches
+	regionForeign structs.CheckServiceNodes
+	// zoneCounts counts region-matching nodes that carry a non-empty zone.
+	zoneCounts map[string]int
+}
+
+// partitionCheckServiceNodesByLocality walks nodes once and partitions them for
+// locality-aware filtering.
+func partitionCheckServiceNodesByLocality(nodes structs.CheckServiceNodes, local *structs.Locality) localityPartition {
+	p := localityPartition{
+		exactMatches:  make(structs.CheckServiceNodes, 0, len(nodes)),
+		regionMatches: make(structs.CheckServiceNodes, 0, len(nodes)),
+		regionForeign: make(structs.CheckServiceNodes, 0, len(nodes)),
+		zoneCounts:    make(map[string]int),
+	}
+	if local == nil || local.Region == "" {
+		return p
 	}
 
-	counts := make(map[string]int)
 	for _, node := range nodes {
 		remote := node.Locality()
-		if !localityRegionMatches(local, remote) || remote.Zone == "" {
+		if !localityRegionMatches(local, remote) {
 			continue
 		}
-		counts[remote.Zone]++
+		p.regionMatches = append(p.regionMatches, node)
+		if remote.Zone != "" {
+			p.zoneCounts[remote.Zone]++
+		}
+		if localityMatches(local, remote) {
+			p.exactMatches = append(p.exactMatches, node)
+			continue
+		}
+		p.regionForeign = append(p.regionForeign, node)
 	}
+	return p
+}
 
-	if len(counts) == 0 {
+// localityZoneCountsInBalance reports whether every counted zone has the same
+// instance count as localZone. "balanced" locality-aware lookup uses this to
+// decide whether same-zone-only answers would skew traffic across uneven zone
+// sizes.
+func localityZoneCountsInBalance(zoneCounts map[string]int, localZone string) bool {
+	if len(zoneCounts) == 0 {
 		return false
 	}
-
-	localCount, ok := counts[local.Zone]
+	localCount, ok := zoneCounts[localZone]
 	if !ok {
 		return false
 	}
-
-	for _, count := range counts {
+	for _, count := range zoneCounts {
 		if count != localCount {
 			return false
 		}
 	}
-
 	return true
+}
+
+// localityProportionalTarget computes the local keep-share and the discrete
+// answer lengths used to realize that share in expectation.
+//
+// keepShare = min(1, localCount*numZones/regionZonedCount) is the fraction of
+// this zone's client traffic that local instances can absorb at fair share,
+// assuming each zone in the region originates an equal share of the traffic.
+// A DNS client spreads requests over the answer list, so an answer of length
+// targetLen = localCount/keepShare yields that local share.
+// lenLow and lenHigh are floor/ceil of targetLen, and probLow is the
+// probability of choosing lenLow such that the expected local share equals
+// keepShare. When targetLen is an integer, lenLow == lenHigh and probLow is 1.
+func localityProportionalTarget(localCount int, zoneCounts map[string]int) (keepShare float64, lenLow, lenHigh int, probLow float64) {
+	if localCount <= 0 {
+		return 1, 0, 0, 1
+	}
+
+	regionZonedCount := 0
+	for _, c := range zoneCounts {
+		regionZonedCount += c
+	}
+	numZones := len(zoneCounts)
+	if regionZonedCount == 0 || numZones == 0 {
+		return 1, localCount, localCount, 1
+	}
+
+	keepShare = float64(localCount*numZones) / float64(regionZonedCount)
+	if keepShare > 1 {
+		keepShare = 1
+	}
+
+	// targetLen == max(localCount, regionZonedCount/numZones); it equals
+	// localCount when keepShare == 1.
+	targetLen := float64(localCount) / keepShare
+	lenLow = int(math.Floor(targetLen))
+	lenHigh = int(math.Ceil(targetLen))
+	if lenLow < localCount {
+		lenLow = localCount
+	}
+	if lenHigh < localCount {
+		lenHigh = localCount
+	}
+	if lenLow == lenHigh {
+		return keepShare, lenLow, lenHigh, 1
+	}
+
+	shareAtLow := float64(localCount) / float64(lenLow)
+	shareAtHigh := float64(localCount) / float64(lenHigh)
+	probLow = (keepShare - shareAtHigh) / (shareAtLow - shareAtHigh)
+	return keepShare, lenLow, lenHigh, probLow
+}
+
+// sampleIndexMask returns a bool mask of length `length` with exactly
+// min(n, length) distinct positions set (uniform via partial Fisher–Yates).
+func sampleIndexMask(length, n int, rng dnsRandSource) []bool {
+	picked := make([]bool, length)
+	if n <= 0 || length == 0 {
+		return picked
+	}
+	if n > length {
+		n = length
+	}
+	if rng == nil {
+		rng = globalDNSRand{}
+	}
+	idx := make([]int, length)
+	for i := range idx {
+		idx[i] = i
+	}
+	for i := 0; i < n; i++ {
+		j := i + rng.Intn(length-i)
+		idx[i], idx[j] = idx[j], idx[i]
+		picked[idx[i]] = true
+	}
+	return picked
+}
+
+// sampleProportionalLocalityNodes returns a candidate set whose expected local
+// share equals the proportional keep-share for the local zone. All local-zone
+// nodes are always included; foreign fill is sampled by index from
+// regionForeign. Survivors are emitted in regionMatches order so callers that
+// already order the list (prepared-query RTT sort / shuffle) keep that order.
+// Service DNS still shuffles after the filter.
+func sampleProportionalLocalityNodes(local *structs.Locality, exactMatches, regionForeign, regionMatches structs.CheckServiceNodes, zoneCounts map[string]int, rng dnsRandSource) structs.CheckServiceNodes {
+	localCount := len(exactMatches)
+	if localCount == 0 {
+		return nil
+	}
+	if rng == nil {
+		rng = globalDNSRand{}
+	}
+
+	_, lenLow, lenHigh, probLow := localityProportionalTarget(localCount, zoneCounts)
+	answerLen := lenLow
+	if lenLow != lenHigh && rng.Float64() >= probLow {
+		answerLen = lenHigh
+	}
+
+	need := 0
+	if answerLen > localCount {
+		need = answerLen - localCount
+	}
+	picked := sampleIndexMask(len(regionForeign), need, rng)
+
+	out := make(structs.CheckServiceNodes, 0, answerLen)
+	fi := 0
+	for _, n := range regionMatches {
+		if localityMatches(local, n.Locality()) {
+			out = append(out, n)
+			continue
+		}
+		if fi < len(picked) && picked[fi] {
+			out = append(out, n)
+		}
+		fi++
+	}
+	return out
 }
 
 // filterCheckServiceNodesForLocalityAwareLookup narrows catalog nodes for DNS
 // using the querying agent's locality and mode. Missing local region returns a
 // shallow clone of nodes unchanged. "always" prefers same region and zone;
 // "balanced" falls back to region-wide nodes when zone populations in the
-// region are uneven and exact zone matches exist.
-func filterCheckServiceNodesForLocalityAwareLookup(nodes structs.CheckServiceNodes, local *structs.Locality, mode string) structs.CheckServiceNodes {
+// region are uneven and exact zone matches exist; "proportional" keeps a
+// capacity-proportional local share and spills the remainder into the region.
+// rng may be nil, in which case the global math/rand source is used.
+func filterCheckServiceNodesForLocalityAwareLookup(nodes structs.CheckServiceNodes, local *structs.Locality, mode string, rng dnsRandSource) structs.CheckServiceNodes {
 	if local == nil || local.Region == "" {
 		return nodes.ShallowClone()
 	}
 
-	exactMatches := make(structs.CheckServiceNodes, 0, len(nodes))
-	regionMatches := make(structs.CheckServiceNodes, 0, len(nodes))
-	for _, node := range nodes {
-		remote := node.Locality()
-		if localityRegionMatches(local, remote) {
-			regionMatches = append(regionMatches, node)
-		}
-		if localityMatches(local, remote) {
-			exactMatches = append(exactMatches, node)
-		}
-	}
+	p := partitionCheckServiceNodesByLocality(nodes, local)
 
-	if len(exactMatches) > 0 {
+	if len(p.exactMatches) > 0 {
 		switch mode {
 		case localityAwareLookupModeAlways:
-			return exactMatches
+			return p.exactMatches
 		case localityAwareLookupModeBalanced:
-			if localityServiceZonesInBalance(nodes, local) {
-				return exactMatches
+			if local.Zone == "" || localityZoneCountsInBalance(p.zoneCounts, local.Zone) {
+				return p.exactMatches
 			}
 			// fall through to region / full-set fallback below
+		case localityAwareLookupModeProportional:
+			if local.Zone == "" {
+				// Region-only local locality cannot compute a zone keep-share.
+				return p.exactMatches
+			}
+			return sampleProportionalLocalityNodes(local, p.exactMatches, p.regionForeign, p.regionMatches, p.zoneCounts, rng)
 		default:
 			// Config validation rejects unknown modes; treat like always for safety.
-			return exactMatches
+			return p.exactMatches
 		}
-		if len(regionMatches) > 0 {
-			return regionMatches
+		if len(p.regionMatches) > 0 {
+			return p.regionMatches
 		}
 		return nodes.ShallowClone()
 	}
 
-	if len(regionMatches) > 0 {
-		return regionMatches
+	if len(p.regionMatches) > 0 {
+		return p.regionMatches
 	}
 
 	return nodes.ShallowClone()
@@ -1870,7 +2041,7 @@ func (d *DNSServer) handlePreparedQuery(cfg *dnsRequestConfig, datacenter, query
 	// locality-aware filtering to its resolved service candidates.
 	if cfg.LocalityAwareLookup != localityAwareLookupModeOff &&
 		cfg.localityAwareLookupAppliesTo(out.Service) {
-		out.Nodes = filterCheckServiceNodesForLocalityAwareLookup(out.Nodes, cfg.Locality, cfg.LocalityAwareLookup)
+		out.Nodes = filterCheckServiceNodesForLocalityAwareLookup(out.Nodes, cfg.Locality, cfg.LocalityAwareLookup, cfg.Rand)
 	}
 
 	// Add various responses depending on the request.

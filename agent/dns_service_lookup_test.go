@@ -880,6 +880,218 @@ func TestDNS_ServiceLookupLocalityAwareLookupBalancedFallsBackToSameRegionWhenZo
 	require.Equal(t, []string{"127.0.0.61", "127.0.0.62"}, ips)
 }
 
+// TestDNS_ServiceLookupLocalityAwareLookupProportionalKeepsLocalWhenAboveAverage
+// checks "proportional" mode: a zone with at least the mean instance count stays
+// fully local (A=2, B=1 → zone A answers only A instances).
+func TestDNS_ServiceLookupLocalityAwareLookupProportionalKeepsLocalWhenAboveAverage(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	a := NewTestAgent(t, `
+		locality {
+			region = "eu-west"
+			zone = "1"
+		}
+		dns_config {
+			locality_aware_lookup = "proportional"
+		}
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	register := func(nodeName, address, zone string) {
+		t.Helper()
+
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       nodeName,
+			Address:    address,
+			Service: &structs.NodeService{
+				ID:      nodeName + "-db",
+				Service: "db",
+				Port:    12345,
+				Locality: &structs.Locality{
+					Region: "eu-west",
+					Zone:   zone,
+				},
+			},
+		}
+
+		var out struct{}
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
+	}
+
+	register("zone-1-a", "127.0.0.71", "1")
+	register("zone-1-b", "127.0.0.72", "1")
+	register("zone-2", "127.0.0.73", "2")
+
+	m := new(dns.Msg)
+	m.SetQuestion("db.service.consul.", dns.TypeA)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	require.NoError(t, err)
+	require.Len(t, in.Answer, 2)
+
+	ips := []string{
+		in.Answer[0].(*dns.A).A.String(),
+		in.Answer[1].(*dns.A).A.String(),
+	}
+	sort.Strings(ips)
+	require.Equal(t, []string{"127.0.0.71", "127.0.0.72"}, ips)
+}
+
+// TestDNS_ServiceLookupLocalityAwareLookupProportionalSpillsFromBelowAverage
+// checks "proportional" mode from the under-provisioned zone (A=2, B=1 → zone B):
+// every answer includes the local instance, and answers are either local-only or
+// local plus one foreign instance.
+func TestDNS_ServiceLookupLocalityAwareLookupProportionalSpillsFromBelowAverage(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	a := NewTestAgent(t, `
+		locality {
+			region = "eu-west"
+			zone = "2"
+		}
+		dns_config {
+			locality_aware_lookup = "proportional"
+		}
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	register := func(nodeName, address, zone string) {
+		t.Helper()
+
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       nodeName,
+			Address:    address,
+			Service: &structs.NodeService{
+				ID:      nodeName + "-db",
+				Service: "db",
+				Port:    12345,
+				Locality: &structs.Locality{
+					Region: "eu-west",
+					Zone:   zone,
+				},
+			},
+		}
+
+		var out struct{}
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
+	}
+
+	register("zone-1-a", "127.0.0.81", "1")
+	register("zone-1-b", "127.0.0.82", "1")
+	register("zone-2", "127.0.0.83", "2")
+
+	c := new(dns.Client)
+	sawLocalOnly := false
+	sawSpill := false
+	foreign := map[string]bool{"127.0.0.81": true, "127.0.0.82": true}
+
+	for i := 0; i < 50; i++ {
+		m := new(dns.Msg)
+		m.SetQuestion("db.service.consul.", dns.TypeA)
+		in, _, err := c.Exchange(m, a.DNSAddr())
+		require.NoError(t, err)
+		require.GreaterOrEqual(t, len(in.Answer), 1)
+		require.LessOrEqual(t, len(in.Answer), 2)
+
+		ips := make([]string, 0, len(in.Answer))
+		for _, rr := range in.Answer {
+			ips = append(ips, rr.(*dns.A).A.String())
+		}
+		require.Contains(t, ips, "127.0.0.83")
+
+		switch len(ips) {
+		case 1:
+			sawLocalOnly = true
+			require.Equal(t, []string{"127.0.0.83"}, ips)
+		case 2:
+			sawSpill = true
+			for _, ip := range ips {
+				if ip == "127.0.0.83" {
+					continue
+				}
+				require.True(t, foreign[ip], "unexpected foreign IP %s", ip)
+			}
+		}
+	}
+
+	require.True(t, sawLocalOnly, "expected some local-only answers")
+	require.True(t, sawSpill, "expected some spill answers with a foreign instance")
+}
+
+// TestDNS_ServiceLookupLocalityAwareLookupProportionalFallsBackToSameRegionWhenZoneIsUnset
+// checks "proportional" mode for the same region / zone-unset service locality pattern
+// as TestDNS_ServiceLookupLocalityAwareLookupFallsBackToSameRegionWhenZoneIsUnset.
+func TestDNS_ServiceLookupLocalityAwareLookupProportionalFallsBackToSameRegionWhenZoneIsUnset(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	a := NewTestAgent(t, `
+		locality {
+			region = "eu-west"
+			zone = "1"
+		}
+		dns_config {
+			locality_aware_lookup = "proportional"
+		}
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	register := func(nodeName, address, region string, zone *string) {
+		t.Helper()
+
+		locality := &structs.Locality{Region: region}
+		if zone != nil {
+			locality.Zone = *zone
+		}
+
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       nodeName,
+			Address:    address,
+			Service: &structs.NodeService{
+				ID:       nodeName + "-db",
+				Service:  "db",
+				Port:     12345,
+				Locality: locality,
+			},
+		}
+
+		var out struct{}
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
+	}
+
+	remoteZone := "2"
+	register("same-region-unset-zone", "127.0.0.91", "eu-west", nil)
+	register("same-region-other-zone", "127.0.0.92", "eu-west", &remoteZone)
+	register("other-region", "127.0.0.93", "us-east", nil)
+
+	m := new(dns.Msg)
+	m.SetQuestion("db.service.consul.", dns.TypeA)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	require.NoError(t, err)
+	require.Len(t, in.Answer, 2)
+
+	ips := []string{
+		in.Answer[0].(*dns.A).A.String(),
+		in.Answer[1].(*dns.A).A.String(),
+	}
+	sort.Strings(ips)
+	require.Equal(t, []string{"127.0.0.91", "127.0.0.92"}, ips)
+}
+
 // TestDNS_ServiceAddressWithTagLookup tests some specific cases that Nomad would exercise,
 // Like registering a service w/o a Node. https://github.com/hashicorp/nomad/blob/1174019676ff3d65b39323eb0c7234fb1e09b80c/command/agent/consul/service_client.go#L1366-L1381
 // Errors with this were reported in https://github.com/hashicorp/consul/issues/21325#issuecomment-2166845574

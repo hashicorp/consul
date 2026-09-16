@@ -7,9 +7,9 @@ DNS-focused local deployer topology for manual testing. The layout is defined in
 ```mermaid
 flowchart TB
   subgraph services["Services (topologyServices)"]
-    svc1["service1 :8080<br/>5 per DC"]
+    svc1["service1 :8080"]
     svc2["service2 :9080<br/>4 in dc2 only"]
-    svc3["service3 :10080<br/>4 per DC"]
+    svc3["service3 :10080<br/>4 in dc1/dc2"]
   end
 
   subgraph dc1["dc1 · region-a · always · blocklist service3"]
@@ -62,8 +62,33 @@ flowchart TB
     end
   end
 
+  subgraph dc3["dc3 · region-c · proportional"]
+    subgraph z_c1["zone-c1 · 3× service1"]
+      subgraph z_c1_srv["servers"]
+        dc3s1["dc3-server1"]
+        dc3s2["dc3-server2"]
+      end
+      subgraph z_c1_cli["clients"]
+        dc3c1["dc3-client1<br/>query"]
+        dc3c2["dc3-client2<br/>service1"]
+        dc3c3["dc3-client3<br/>service1"]
+        dc3c4["dc3-client4<br/>service1"]
+      end
+    end
+    subgraph z_c2["zone-c2 · 1× service1"]
+      subgraph z_c2_srv["servers"]
+        dc3s3["dc3-server3"]
+      end
+      subgraph z_c2_cli["clients"]
+        dc3c5["dc3-client5<br/>query"]
+        dc3c6["dc3-client6<br/>service1"]
+      end
+    end
+  end
+
   dc1c2 & dc1c3 & dc1c4 & dc1c6 & dc1c7 --> svc1
   dc2c2 & dc2c3 & dc2c4 & dc2c6 & dc2c7 --> svc1
+  dc3c2 & dc3c3 & dc3c4 & dc3c6 --> svc1
   dc2c2 & dc2c3 & dc2c6 & dc2c7 --> svc2
   dc1c2 & dc1c3 & dc1c6 & dc1c7 --> svc3
   dc2c2 & dc2c3 & dc2c6 & dc2c7 --> svc3
@@ -73,9 +98,9 @@ flowchart TB
   classDef workload fill:#e8f5e9,stroke:#2e7d32
   classDef service fill:#f3e5f5,stroke:#7b1fa2
 
-  class dc1s1,dc1s2,dc1s3,dc2s1,dc2s2,dc2s3 server
-  class dc1c1,dc1c5,dc2c1,dc2c5 query
-  class dc1c2,dc1c3,dc1c4,dc1c6,dc1c7,dc2c2,dc2c3,dc2c4,dc2c6,dc2c7 workload
+  class dc1s1,dc1s2,dc1s3,dc2s1,dc2s2,dc2s3,dc3s1,dc3s2,dc3s3 server
+  class dc1c1,dc1c5,dc2c1,dc2c5,dc3c1,dc3c5 query
+  class dc1c2,dc1c3,dc1c4,dc1c6,dc1c7,dc2c2,dc2c3,dc2c4,dc2c6,dc2c7,dc3c2,dc3c3,dc3c4,dc3c6 workload
   class svc1,svc2,svc3 service
 ```
 
@@ -99,10 +124,13 @@ flowchart TB
         - In `dc2` (`balanced` mode):
             - For unevenly distributed services like `service1`, lookups may return instances from the entire datacenter.
             - Evenly distributed services like `service2` will return only zone-local results.
+        - In `dc3` (`proportional` mode):
+            - Skewed `service1` (`3` / `1`): above-average zones stay fully local; below-average zones always include local instances and spill a capacity-proportional fraction of answers into the rest of the region.
     - `service3`:
         - This service is evenly distributed and serves as a test probe.
         - In `dc1`, it is **blocklisted**, and in `dc2`, it is **not included** in the allowlist.
         - As a result, DNS for `service3` ignores zone-locality and returns instances from all zones.
+        - In `dc3` there are no `service3` workloads.
 
 ### Clusters (`clusterSpec`)
 
@@ -110,6 +138,7 @@ flowchart TB
 |---------|------------|--------|-------|------------------------|---------------|
 | `dc1` | `dc1` | `region-a` | `zone-a1`, `zone-a2` | `always` | blocklist `service3` |
 | `dc2` | `dc2` | `region-b` | `zone-b1`, `zone-b2` | `balanced` | allowlist `service1`, `service2` |
+| `dc3` | `dc3` | `region-c` | `zone-c1`, `zone-c2` | `proportional` | all services |
 
 ### `dc1` nodes (`nodeSpec`)
 
@@ -141,6 +170,20 @@ flowchart TB
 | `dc2-client6` | client | `zone-b2` | `service1`, `service2`, `service3` |
 | `dc2-client7` | client | `zone-b2` | `service1`, `service2`, `service3` |
 
+### `dc3` nodes (`nodeSpec`)
+
+| Node | Role | Zone | Workloads |
+|------|------|------|-----------|
+| `dc3-server1` | server | `zone-c1` | — |
+| `dc3-server2` | server | `zone-c1` | — |
+| `dc3-server3` | server | `zone-c2` | — |
+| `dc3-client1` | client | `zone-c1` | — |
+| `dc3-client2` | client | `zone-c1` | `service1` |
+| `dc3-client3` | client | `zone-c1` | `service1` |
+| `dc3-client4` | client | `zone-c1` | `service1` |
+| `dc3-client5` | client | `zone-c2` | — |
+| `dc3-client6` | client | `zone-c2` | `service1` |
+
 ### Agent config (`buildNode` / `localityConfig`)
 
 All agents use image `consul:local` (the dev image adds `bind-tools` so `dig` is available in agent containers).
@@ -152,7 +195,7 @@ Every server and client gets:
 
 Client agents only also get:
 
-- `dns_config { locality_aware_lookup = "<cluster LocalityAwareLookup>: off|always|balanced" }`
+- `dns_config { locality_aware_lookup = "<cluster LocalityAwareLookup>: off|always|balanced|proportional" }`
 - `dc1`: `locality_aware_lookup_service_blocklist = ["service3"]`
 - `dc2`: `locality_aware_lookup_service_allowlist = ["service1", "service2"]`
 
@@ -167,13 +210,13 @@ To add workloads, set `nodeSpec.Workloads` in `newTopologySpec()` (for example `
 
 Launch waits for passing registrations for every service with workloads (`waitForPassingServices`), then `assertDNSLocalityAwareLookup` runs service DNS `dig` lookups from every query client (clients with no `Workloads`):
 
-| Service | `dc1` (`always`) | `dc2` (`balanced`) |
-|---------|------------------|---------------------|
-| `service1` | zone-local (`3` / `2` per zone) | uneven (`3` / `2`) → may return whole datacenter |
-| `service2` | empty (no workloads) | even (`2` / `2`) → zone-local |
-| `service3` | blocklisted → all zones (`2` / `2`) | not allowlisted → all zones (`2` / `2`) |
+| Service | `dc1` (`always`) | `dc2` (`balanced`) | `dc3` (`proportional`) |
+|---------|------------------|---------------------|-------------------------|
+| `service1` | zone-local (`3` / `2` per zone) | uneven (`3` / `2`) → may return whole datacenter | skewed (`3` / `1`): zone-c1 fully local; zone-c2 always includes local and may spill |
+| `service2` | empty (no workloads) | even (`2` / `2`) → zone-local | empty (no workloads) |
+| `service3` | blocklisted → all zones (`2` / `2`) | not allowlisted → all zones (`2` / `2`) | empty (no workloads) |
 
-Query clients: `dc1-client1`, `dc1-client5`, `dc2-client1`, `dc2-client5`.
+Query clients: `dc1-client1`, `dc1-client5`, `dc2-client1`, `dc2-client5`, `dc3-client1`, `dc3-client5`.
 
 ## Run and inspect
 
@@ -196,4 +239,4 @@ docker exec <zone-local-client-container> dig @127.0.0.1 -p 8600 service2.servic
 docker exec <zone-local-client-container> dig @127.0.0.1 -p 8600 service3.service.consul A +short
 ```
 
-Run lookups from a client in each zone (`zone-a1`, `zone-a2`, `zone-b1`, `zone-b2`) to compare behavior: `service1` is zone-local in `dc1` but may be datacenter-wide in `dc2`; `service2` is empty in `dc1` and zone-local in `dc2`; `service3` is datacenter-wide in both clusters because their service lists exclude it from locality filtering.
+Run lookups from a client in each zone (`zone-a1`, `zone-a2`, `zone-b1`, `zone-b2`, `zone-c1`, `zone-c2`) to compare behavior: `service1` is zone-local in `dc1`, may be datacenter-wide in `dc2`, and is proportionally local/spill in `dc3`; `service2` is empty in `dc1`/`dc3` and zone-local in `dc2`; `service3` is datacenter-wide in `dc1`/`dc2` because their service lists exclude it from locality filtering.

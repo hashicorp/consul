@@ -196,9 +196,9 @@ type RuntimeConfig struct {
 	// DNSLocalityAwareLookup controls DNS locality-aware lookup: candidate
 	// selection for service and prepared-query DNS responses when the local
 	// agent and service instances have Consul locality populated. Supported
-	// values are "off", "always", and "balanced".
+	// values are "off", "always", "balanced", and "proportional".
 	//
-	// hcl: dns_config { locality_aware_lookup = ("off"|"always"|"balanced") }
+	// hcl: dns_config { locality_aware_lookup = ("off"|"always"|"balanced"|"proportional") }
 	DNSLocalityAwareLookup string
 
 	// DNSLocalityAwareLookupServiceAllowlist, when non-empty, limits locality-

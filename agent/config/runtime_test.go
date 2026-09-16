@@ -2362,6 +2362,22 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 	run(t, testCase{
+		desc: "dns locality_aware_lookup is proportional when configured",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`{
+				"dns_config": { "locality_aware_lookup": "proportional" }
+			}`},
+		hcl: []string{`
+				dns_config = { locality_aware_lookup = "proportional" }
+			`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.DNSLocalityAwareLookup = "proportional"
+		},
+	})
+	run(t, testCase{
 		desc: "dns locality_aware_lookup_service_allowlist when configured",
 		args: []string{
 			`-data-dir=` + dataDir,

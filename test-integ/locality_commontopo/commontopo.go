@@ -160,6 +160,44 @@ func newTopologySpec() topologySpec {
 					},
 				},
 			},
+			"dc3": {
+				Name:                "dc3",
+				Datacenter:          "dc3",
+				Region:              "region-c",
+				Zones:               []string{"zone-c1", "zone-c2"},
+				LocalityAwareLookup: "proportional",
+				Nodes: []nodeSpec{
+					{Name: "dc3-server1", Role: "server", Zone: "zone-c1"},
+					{Name: "dc3-server2", Role: "server", Zone: "zone-c1"},
+					{Name: "dc3-server3", Role: "server", Zone: "zone-c2"},
+					{Name: "dc3-client1", Role: "client", Zone: "zone-c1"},
+					{
+						Name:      "dc3-client2",
+						Role:      "client",
+						Zone:      "zone-c1",
+						Workloads: []serviceSpec{service1},
+					},
+					{
+						Name:      "dc3-client3",
+						Role:      "client",
+						Zone:      "zone-c1",
+						Workloads: []serviceSpec{service1},
+					},
+					{
+						Name:      "dc3-client4",
+						Role:      "client",
+						Zone:      "zone-c1",
+						Workloads: []serviceSpec{service1},
+					},
+					{Name: "dc3-client5", Role: "client", Zone: "zone-c2"},
+					{
+						Name:      "dc3-client6",
+						Role:      "client",
+						Zone:      "zone-c2",
+						Workloads: []serviceSpec{service1},
+					},
+				},
+			},
 		},
 	}
 }
@@ -201,7 +239,7 @@ type nodeSpec struct {
 }
 
 // NewCommonTopo builds the static deployer topology for locality-aware DNS
-// integration tests (two datacenters, regions, zones, and Fortio workloads).
+// integration tests (three datacenters covering always/balanced/proportional modes).
 func NewCommonTopo(t *testing.T) *commonTopo {
 	t.Helper()
 

@@ -479,7 +479,7 @@ func TestFilterCheckServiceNodesForLocalityAwareLookup(t *testing.T) {
 			originalNames := checkServiceNodeNames(tc.nodes)
 			originalWasNil := tc.nodes == nil
 
-			got := filterCheckServiceNodesForLocalityAwareLookup(tc.nodes, tc.local, tc.mode)
+			got := filterCheckServiceNodesForLocalityAwareLookup(tc.nodes, tc.local, tc.mode, nil)
 
 			require.Equal(t, tc.wantNames, checkServiceNodeNames(got))
 			require.Equal(t, originalNames, checkServiceNodeNames(tc.nodes))
@@ -490,6 +490,300 @@ func TestFilterCheckServiceNodesForLocalityAwareLookup(t *testing.T) {
 			}
 		})
 	}
+}
+
+// stubDNSRand returns fixed Float64/Intn sequences for deterministic proportional tests.
+type stubDNSRand struct {
+	float64Val float64
+	intnSeq    []int
+	intnIdx    int
+}
+
+func (s *stubDNSRand) Float64() float64 {
+	return s.float64Val
+}
+
+func (s *stubDNSRand) Intn(n int) int {
+	if n <= 0 {
+		return 0
+	}
+	if s.intnIdx < len(s.intnSeq) {
+		v := s.intnSeq[s.intnIdx]
+		s.intnIdx++
+		return v % n
+	}
+	return 0
+}
+
+func TestLocalityProportionalTarget(t *testing.T) {
+	tests := []struct {
+		name       string
+		localCount int
+		zoneCounts map[string]int
+		wantKeepShare float64
+		wantLow       int
+		wantHigh      int
+		wantProb      float64
+	}{
+		{
+			name:          "A=2 B=1 local B",
+			localCount:    1,
+			zoneCounts:    map[string]int{"A": 2, "B": 1},
+			wantKeepShare: 2.0 / 3.0,
+			wantLow:       1,
+			wantHigh:      2,
+			wantProb:      1.0 / 3.0,
+		},
+		{
+			name:          "A=2 B=1 local A",
+			localCount:    2,
+			zoneCounts:    map[string]int{"A": 2, "B": 1},
+			wantKeepShare: 1,
+			wantLow:       2,
+			wantHigh:      2,
+			wantProb:      1,
+		},
+		{
+			name:          "A=4 B=1 local B",
+			localCount:    1,
+			zoneCounts:    map[string]int{"A": 4, "B": 1},
+			wantKeepShare: 0.4,
+			wantLow:       2,
+			wantHigh:      3,
+			wantProb:      0.4,
+		},
+		{
+			name:          "A=3 B=2 local B",
+			localCount:    2,
+			zoneCounts:    map[string]int{"A": 3, "B": 2},
+			wantKeepShare: 0.8,
+			wantLow:       2,
+			wantHigh:      3,
+			wantProb:      0.4,
+		},
+		{
+			name:          "A=2 B=2 C=1 local C",
+			localCount:    1,
+			zoneCounts:    map[string]int{"A": 2, "B": 2, "C": 1},
+			wantKeepShare: 0.6,
+			wantLow:       1,
+			wantHigh:      2,
+			wantProb:      0.2,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			keepShare, low, high, prob := localityProportionalTarget(tc.localCount, tc.zoneCounts)
+			require.InDelta(t, tc.wantKeepShare, keepShare, 1e-9)
+			require.Equal(t, tc.wantLow, low)
+			require.Equal(t, tc.wantHigh, high)
+			require.InDelta(t, tc.wantProb, prob, 1e-9)
+		})
+	}
+}
+
+func TestFilterCheckServiceNodesForLocalityAwareLookupProportional(t *testing.T) {
+	makeNode := func(name string, zone string) structs.CheckServiceNode {
+		return structs.CheckServiceNode{
+			Node: &structs.Node{Node: name},
+			Service: &structs.NodeService{
+				ID:      name,
+				Service: "db",
+				Locality: &structs.Locality{
+					Region: "eu-west",
+					Zone:   zone,
+				},
+			},
+		}
+	}
+
+	nodesAB := structs.CheckServiceNodes{
+		makeNode("A1", "A"),
+		makeNode("A2", "A"),
+		makeNode("B1", "B"),
+	}
+
+	t.Run("above-average zone returns only local", func(t *testing.T) {
+		got := filterCheckServiceNodesForLocalityAwareLookup(
+			nodesAB,
+			&structs.Locality{Region: "eu-west", Zone: "A"},
+			localityAwareLookupModeProportional,
+			&stubDNSRand{},
+		)
+		require.ElementsMatch(t, []string{"A1", "A2"}, checkServiceNodeNames(got))
+	})
+
+	t.Run("below-average zone local-only length when Float64 picks low", func(t *testing.T) {
+		// q=1/3; Float64=0 chooses L=1 → only B1
+		got := filterCheckServiceNodesForLocalityAwareLookup(
+			nodesAB,
+			&structs.Locality{Region: "eu-west", Zone: "B"},
+			localityAwareLookupModeProportional,
+			&stubDNSRand{float64Val: 0},
+		)
+		require.ElementsMatch(t, []string{"B1"}, checkServiceNodeNames(got))
+	})
+
+	t.Run("below-average zone spills when Float64 picks high", func(t *testing.T) {
+		// q=1/3; Float64=0.5 chooses L=2 → B1 + one A
+		got := filterCheckServiceNodesForLocalityAwareLookup(
+			nodesAB,
+			&structs.Locality{Region: "eu-west", Zone: "B"},
+			localityAwareLookupModeProportional,
+			&stubDNSRand{float64Val: 0.5, intnSeq: []int{0, 0, 0, 0, 0, 0}},
+		)
+		names := checkServiceNodeNames(got)
+		require.Len(t, names, 2)
+		require.Contains(t, names, "B1")
+		require.True(t, containsString(names, "A1") || containsString(names, "A2"))
+	})
+
+	t.Run("preserves incoming regionMatches order", func(t *testing.T) {
+		// Input order puts B between the A nodes. L=2 with foreign sample
+		// index 1 keeps A2, so survivors emit as [B1, A2] — not local-first
+		// rebuild and not reshuffled.
+		nodes := structs.CheckServiceNodes{
+			makeNode("A1", "A"),
+			makeNode("B1", "B"),
+			makeNode("A2", "A"),
+		}
+		got := filterCheckServiceNodesForLocalityAwareLookup(
+			nodes,
+			&structs.Locality{Region: "eu-west", Zone: "B"},
+			localityAwareLookupModeProportional,
+			&stubDNSRand{float64Val: 0.5, intnSeq: []int{1}},
+		)
+		require.Equal(t, []string{"B1", "A2"}, checkServiceNodeNames(got))
+	})
+
+	t.Run("region-only local returns all region matches", func(t *testing.T) {
+		got := filterCheckServiceNodesForLocalityAwareLookup(
+			nodesAB,
+			&structs.Locality{Region: "eu-west"},
+			localityAwareLookupModeProportional,
+			&stubDNSRand{},
+		)
+		require.ElementsMatch(t, []string{"A1", "A2", "B1"}, checkServiceNodeNames(got))
+	})
+
+	t.Run("no local zone matches falls back to region", func(t *testing.T) {
+		got := filterCheckServiceNodesForLocalityAwareLookup(
+			nodesAB,
+			&structs.Locality{Region: "eu-west", Zone: "C"},
+			localityAwareLookupModeProportional,
+			&stubDNSRand{},
+		)
+		require.ElementsMatch(t, []string{"A1", "A2", "B1"}, checkServiceNodeNames(got))
+	})
+}
+
+func containsString(ss []string, want string) bool {
+	for _, s := range ss {
+		if s == want {
+			return true
+		}
+	}
+	return false
+}
+
+func TestSampleProportionalLocalityNodesStatistical(t *testing.T) {
+	makeNode := func(name, zone string) structs.CheckServiceNode {
+		return structs.CheckServiceNode{
+			Node: &structs.Node{Node: name},
+			Service: &structs.NodeService{
+				ID:       name,
+				Service:  "db",
+				Locality: &structs.Locality{Region: "eu-west", Zone: zone},
+			},
+		}
+	}
+
+	const trials = 100000
+	tolerance := 0.02
+
+	t.Run("A=2 B=1 from B", func(t *testing.T) {
+		nodes := structs.CheckServiceNodes{
+			makeNode("A1", "A"),
+			makeNode("A2", "A"),
+			makeNode("B1", "B"),
+		}
+		local := &structs.Locality{Region: "eu-west", Zone: "B"}
+		rng := rand.New(rand.NewSource(42))
+
+		shareSum := 0.0
+		headCounts := map[string]int{}
+		for i := 0; i < trials; i++ {
+			got := filterCheckServiceNodesForLocalityAwareLookup(nodes, local, localityAwareLookupModeProportional, rng)
+			require.NotEmpty(t, got)
+			localIn := 0
+			for _, n := range got {
+				if n.Node.Node == "B1" {
+					localIn++
+				}
+			}
+			shareSum += float64(localIn) / float64(len(got))
+			// Head-of-list share is a service-DNS property after Shuffle().
+			got.Shuffle()
+			headCounts[got[0].Node.Node]++
+		}
+
+		wantKeepShare := 2.0 / 3.0
+		require.InDelta(t, wantKeepShare, shareSum/float64(trials), tolerance)
+		require.InDelta(t, wantKeepShare, float64(headCounts["B1"])/float64(trials), tolerance)
+		// Remaining 1/3 of B traffic splits across A1 and A2 for first-record clients.
+		require.InDelta(t, (1-wantKeepShare)/2, float64(headCounts["A1"])/float64(trials), tolerance)
+		require.InDelta(t, (1-wantKeepShare)/2, float64(headCounts["A2"])/float64(trials), tolerance)
+	})
+
+	t.Run("A=2 B=2 C=1 from C", func(t *testing.T) {
+		nodes := structs.CheckServiceNodes{
+			makeNode("A1", "A"),
+			makeNode("A2", "A"),
+			makeNode("B1", "B"),
+			makeNode("B2", "B"),
+			makeNode("C1", "C"),
+		}
+		local := &structs.Locality{Region: "eu-west", Zone: "C"}
+		rng := rand.New(rand.NewSource(7))
+
+		shareSum := 0.0
+		headLocal := 0
+		for i := 0; i < trials; i++ {
+			got := filterCheckServiceNodesForLocalityAwareLookup(nodes, local, localityAwareLookupModeProportional, rng)
+			require.NotEmpty(t, got)
+			localIn := 0
+			for _, n := range got {
+				if n.Node.Node == "C1" {
+					localIn++
+				}
+			}
+			shareSum += float64(localIn) / float64(len(got))
+			got.Shuffle()
+			if got[0].Node.Node == "C1" {
+				headLocal++
+			}
+		}
+
+		wantKeepShare := 0.6
+		require.InDelta(t, wantKeepShare, shareSum/float64(trials), tolerance)
+		require.InDelta(t, wantKeepShare, float64(headLocal)/float64(trials), tolerance)
+	})
+
+	t.Run("A=2 B=1 from A stays fully local", func(t *testing.T) {
+		nodes := structs.CheckServiceNodes{
+			makeNode("A1", "A"),
+			makeNode("A2", "A"),
+			makeNode("B1", "B"),
+		}
+		local := &structs.Locality{Region: "eu-west", Zone: "A"}
+		rng := rand.New(rand.NewSource(99))
+
+		for i := 0; i < 1000; i++ {
+			got := filterCheckServiceNodesForLocalityAwareLookup(nodes, local, localityAwareLookupModeProportional, rng)
+			require.ElementsMatch(t, []string{"A1", "A2"}, checkServiceNodeNames(got))
+		}
+	})
 }
 
 func TestLocalityAwareLookupAppliesTo(t *testing.T) {

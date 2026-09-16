@@ -114,6 +114,12 @@ func assertDNSLocalityAwareLookup(t *testing.T, ct *commonTopo) {
 						svc.Name, cluster.Name, queryZone, cluster.LocalityAwareLookup)
 
 					require.NotEmpty(r, gotIPs, "expected A record answers for %s via %s", svc.Name, queryNode.Name)
+
+					if cluster.LocalityAwareLookup == "proportional" && localityAwareLookupAppliesToService(cluster, svc.Name) {
+						assertProportionalDNSIPs(r, entries, queryZone, gotIPs)
+						return
+					}
+
 					require.ElementsMatch(r, expectedIPs, gotIPs,
 						"DNS answers for %s in %s via %s (zone=%s, mode=%q)",
 						svc.Name, cluster.Name, queryNode.Name, queryZone, cluster.LocalityAwareLookup)
@@ -123,7 +129,7 @@ func assertDNSLocalityAwareLookup(t *testing.T, ct *commonTopo) {
 	}
 }
 
-// serviceZonesInBalance mirrors agent/dns.go localityServiceZonesInBalance for the
+// serviceZonesInBalance mirrors agent/dns.go localityZoneCountsInBalance for the
 // passing health catalog entries in a cluster region.
 func serviceZonesInBalance(entries []*api.ServiceEntry, region, queryZone string) bool {
 	if queryZone == "" {
@@ -178,9 +184,71 @@ func expectedDNSIPsForQuery(cluster clusterSpec, service string, entries []*api.
 			return ipsFromServiceEntries(entries, queryZone)
 		}
 		return ipsFromServiceEntries(entries, "")
+	case "proportional":
+		// Proportional answers vary per query; callers that need a non-empty
+		// readiness gate can use the local zone set (always included when present).
+		local := ipsFromServiceEntries(entries, queryZone)
+		if len(local) > 0 {
+			return local
+		}
+		return ipsFromServiceEntries(entries, "")
 	default:
 		return ipsFromServiceEntries(entries, queryZone)
 	}
+}
+
+// assertProportionalDNSIPs checks invariants of a single proportional-mode DNS
+// answer: every local-zone IP is present, every answer IP is in-region, and the
+// answer length is between the local count and the ceil of mean instances/zone.
+func assertProportionalDNSIPs(t require.TestingT, entries []*api.ServiceEntry, queryZone string, gotIPs []string) {
+	localIPs := ipsFromServiceEntries(entries, queryZone)
+	regionIPs := ipsFromServiceEntries(entries, "")
+	require.NotEmpty(t, localIPs, "proportional mode expects local-zone instances for %s", queryZone)
+
+	gotSet := map[string]struct{}{}
+	for _, ip := range gotIPs {
+		gotSet[ip] = struct{}{}
+	}
+	regionSet := map[string]struct{}{}
+	for _, ip := range regionIPs {
+		regionSet[ip] = struct{}{}
+	}
+
+	for _, ip := range localIPs {
+		_, ok := gotSet[ip]
+		require.True(t, ok, "proportional answer missing local IP %s (got %v)", ip, gotIPs)
+	}
+	for _, ip := range gotIPs {
+		_, ok := regionSet[ip]
+		require.True(t, ok, "proportional answer includes out-of-region IP %s", ip)
+	}
+
+	n := len(localIPs)
+	N := len(regionIPs)
+	// zone count from entries
+	zones := map[string]struct{}{}
+	for _, entry := range entries {
+		if entry.Node == nil || entry.Node.Locality == nil || entry.Node.Locality.Zone == "" {
+			continue
+		}
+		zones[entry.Node.Locality.Zone] = struct{}{}
+	}
+	K := len(zones)
+	require.Greater(t, K, 0)
+
+	maxLen := n
+	if K > 0 {
+		// ceil(N/K)
+		ceilMean := (N + K - 1) / K
+		if ceilMean > maxLen {
+			maxLen = ceilMean
+		}
+	}
+	if maxLen > N {
+		maxLen = N
+	}
+	require.GreaterOrEqual(t, len(gotIPs), n)
+	require.LessOrEqual(t, len(gotIPs), maxLen)
 }
 
 // localityAwareLookupAppliesToService mirrors dnsServerConfig.localityAwareLookupAppliesTo.
