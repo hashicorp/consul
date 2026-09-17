@@ -1,0 +1,3 @@
+```release-note:bug
+agent: Fix a regression where a background-refreshed cache entry (for example `/v1/health/service/:service?cached`) could get permanently stuck serving stale data with a frozen `X-Consul-Index`. The background refresh for a cache key was bound to the context of whichever request happened to start it, so that client disconnecting stopped the refresh while leaving the entry valid, causing all later requests to be served from the frozen entry.
+```
