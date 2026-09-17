@@ -157,8 +157,8 @@ func (c *cmd) bearerTokenLogin() int {
 		return 1
 	}
 
-	// When the auth method has IdP (front-channel) logout enabled, the login
-	// response carries the provider's RP-initiated logout URL. Persist it next
+	// When the auth method has IdP (RP-Initiated) logout enabled, the login
+	// response carries the provider's RP-Initiated logout URL. Persist it next
 	// to the token sink so `consul logout` can terminate the IdP session. This
 	// is a no-op when the field is empty (e.g. IdP logout disabled or the auth
 	// method type does not support it).
@@ -172,7 +172,7 @@ func (c *cmd) writeToSink(tok *api.ACLToken) error {
 	return file.WriteAtomicWithPerms(c.tokenSinkFile, payload, 0o755, 0o600)
 }
 
-// writeLogoutSinkFromToken persists the provider's RP-initiated logout URL
+// writeLogoutSinkFromToken persists the provider's RP-Initiated logout URL
 // (returned by the OIDC login callback when IdP logout is enabled) alongside
 // the token sink file with owner-only permissions. It is a no-op when the auth
 // method did not return a logout URL or when no token sink file is configured.

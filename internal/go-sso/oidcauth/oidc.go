@@ -77,7 +77,7 @@ func (a *Authenticator) ClaimsFromAuthCode(ctx context.Context, stateParam, code
 // ClaimsFromAuthCodeWithIDToken behaves exactly like ClaimsFromAuthCode but
 // additionally returns the raw OIDC id_token string obtained during the code
 // exchange. Callers may persist this value to later supply it as the
-// id_token_hint parameter for RP-initiated (front-channel) logout at the
+// id_token_hint parameter for RP-Initiated logout at the
 // provider's end_session_endpoint.
 //
 // Requires the authenticator's config type be set to 'oidc'.
@@ -133,7 +133,7 @@ func (a *Authenticator) claimsFromAuthCode(ctx context.Context, stateParam, code
 	idToken := tokens.IDToken()
 
 	// Capture the raw id_token string so callers can later use it as an
-	// id_token_hint for RP-initiated (front-channel) logout. Note: we must
+	// id_token_hint for RP-Initiated logout. Note: we must
 	// use an explicit string() conversion here because IDToken.String() and
 	// IDToken.MarshalJSON() deliberately redact the value.
 	rawIDToken := string(idToken)
@@ -193,7 +193,7 @@ func (a *Authenticator) claimsFromAuthCode(ctx context.Context, stateParam, code
 	return c, state.payload, rawIDToken, nil
 }
 
-// GetEndSessionEndpoint returns the provider's RP-initiated logout endpoint
+// GetEndSessionEndpoint returns the provider's RP-Initiated logout endpoint
 // (end_session_endpoint) as advertised in its OIDC discovery document, or an
 // empty string if the provider does not advertise one. The discovery document
 // is already fetched and cached by the underlying provider during

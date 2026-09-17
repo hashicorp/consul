@@ -495,6 +495,14 @@ func TestConfigValidate(t *testing.T) {
 			},
 			expectErr: "must not be set for type",
 		},
+		"incompatible with IDPLogout": {
+			config: Config{
+				Type:                 TypeJWT,
+				JWTValidationPubKeys: []string{testJWTPubKey},
+				IDPLogout:            true,
+			},
+			expectErr: "must not be set for type",
+		},
 		"too many methods (discovery + jwks)": {
 			config: Config{
 				Type:                TypeJWT,
