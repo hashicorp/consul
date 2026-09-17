@@ -51,7 +51,17 @@ export default class AuthDialog extends Component {
     // wasn't an SSO login).
     const idpLogoutURL = get(this, 'previousToken.IDPLogoutURL');
     if (typeof idpLogoutURL === 'string' && idpLogoutURL !== '') {
-      window.open(idpLogoutURL, '_blank', 'noopener,noreferrer');
+      // Only open well-formed http(s) URLs so an unexpected scheme (e.g.
+      // javascript:) injected upstream can never be handed to window.open.
+      let scheme;
+      try {
+        scheme = new URL(idpLogoutURL).protocol;
+      } catch (e) {
+        scheme = null;
+      }
+      if (scheme === 'http:' || scheme === 'https:') {
+        window.open(idpLogoutURL, '_blank', 'noopener,noreferrer');
+      }
     }
     this.previousToken = null;
     this.args.onchange({ data: null, type: 'logout' });

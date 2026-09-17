@@ -42,8 +42,8 @@ export default class TokenSource extends Component {
           // Namespace: typeof this.Namespace !== 'undefined' ? this.Namespace : undefined
         },
         // Carry the IdP (RP-Initiated) logout URL through so auth-dialog can
-        // open it in a new tab when the user clicks logout, mirroring what
-        // `consul logout` does on the CLI.
+        // open it in a new tab when the user clicks logout. (On the CLI,
+        // `consul logout` prints this same URL for the user to open.)
         ...(typeof this.IDPLogoutURL === 'string' && this.IDPLogoutURL !== ''
           ? { IDPLogoutURL: this.IDPLogoutURL }
           : {}),
