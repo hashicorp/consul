@@ -121,6 +121,24 @@ func TestAPI_PreparedQuery(t *testing.T) {
 		t.Fatalf("bad datacenter: %v", results)
 	}
 
+	// Explain by ID.
+	explainResults, _, err := query.Explain(def.ID, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if explainResults.Query.Name != def.Name || explainResults.Query.Service.Service != "redis" {
+		t.Fatalf("bad: %v", explainResults)
+	}
+
+	// Explain by name.
+	explainResults, _, err = query.Explain("my-query", nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if explainResults.Query.ID != def.ID || explainResults.Query.Service.Service != "redis" {
+		t.Fatalf("bad: %v", explainResults)
+	}
+
 	// Add new node with failing health check.
 	reg2 := reg
 	reg2.Node = "failingnode"
