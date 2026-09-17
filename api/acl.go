@@ -74,10 +74,12 @@ type ACLToken struct {
 	AuthMethodNamespace string `json:",omitempty"`
 
 	// IDPLogoutURL is a response-only field returned by the OIDC login callback
-	// when the auth method has IdP (RP-Initiated) logout enabled. It contains
-	// the provider's RP-Initiated logout URL (its end_session_endpoint with an
-	// id_token_hint) that the client opens in a browser during `consul logout`
-	// to terminate the IdP session. It is never persisted server-side.
+	// when the IdP advertises an end_session_endpoint in its discovery
+	// document. It contains the provider's RP-Initiated logout URL (its
+	// end_session_endpoint with an id_token_hint) that the client uses during
+	// `consul logout` to terminate the IdP session: the CLI prints it for the
+	// user to open, and the UI opens it in a new tab. It is never persisted
+	// server-side.
 	IDPLogoutURL string `json:",omitempty"`
 }
 

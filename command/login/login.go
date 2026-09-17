@@ -173,9 +173,10 @@ func (c *cmd) writeToSink(tok *api.ACLToken) error {
 }
 
 // writeLogoutSinkFromToken persists the provider's RP-Initiated logout URL
-// (returned by the OIDC login callback when IdP logout is enabled) alongside
-// the token sink file with owner-only permissions. It is a no-op when the auth
-// method did not return a logout URL or when no token sink file is configured.
+// (returned by the OIDC login callback when the IdP advertises an
+// end_session_endpoint) alongside the token sink file with owner-only
+// permissions. It is a no-op when the auth method did not return a logout URL
+// or when no token sink file is configured.
 func (c *cmd) writeLogoutSinkFromToken(tok *api.ACLToken) {
 	if c.tokenSinkFile == "" {
 		return
