@@ -116,16 +116,6 @@ type Config struct {
 	// Valid only if Type=oidc
 	VerboseOIDCLogging bool
 
-	// IDPLogout, when true, enables OIDC RP-Initiated logout: after `consul
-	// logout` destroys the Consul token, the client is given the provider's
-	// logout URL (its end_session_endpoint with an id_token_hint) so the user
-	// can also terminate the identity provider session. This is opt-in and
-	// disabled by default; it additionally requires the provider to advertise
-	// an end_session_endpoint in its discovery document.
-	//
-	// Valid only if Type=oidc
-	IDPLogout bool
-
 	// OIDCPostLogoutRedirectURIs is the list of allowed post_logout_redirect_uri
 	// values that the provider may redirect the user back to after an
 	// RP-Initiated logout. When empty no post_logout_redirect_uri is sent and
@@ -303,8 +293,6 @@ func (c *Config) Validate() error {
 			return fmt.Errorf("'AllowedRedirectURIs' must not be set for type %q", c.Type)
 		case c.VerboseOIDCLogging:
 			return fmt.Errorf("'VerboseOIDCLogging' must not be set for type %q", c.Type)
-		case c.IDPLogout:
-			return fmt.Errorf("'IDPLogout' must not be set for type %q", c.Type)
 		case len(c.OIDCPostLogoutRedirectURIs) != 0:
 			return fmt.Errorf("'OIDCPostLogoutRedirectURIs' must not be set for type %q", c.Type)
 		}
