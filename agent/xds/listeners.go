@@ -3211,18 +3211,28 @@ var tlsVersionsWithConfigurableCipherSuites = map[types.TLSVersion]struct{}{
 	types.TLSv1_2: {},
 }
 
+var defaultPQCECDHCurves = types.DefaultPQCECDHCurves
+
 func makeTLSParametersFromProxyTLSConfig(tlsConf *structs.MeshDirectionalTLSConfig) *envoy_tls_v3.TlsParameters {
 	if tlsConf == nil {
 		return &envoy_tls_v3.TlsParameters{}
 	}
 
-	return makeTLSParametersFromTLSConfig(tlsConf.TLSMinVersion, tlsConf.TLSMaxVersion, tlsConf.CipherSuites)
+	curves := tlsConf.ECDHCurves
+	if len(curves) == 0 {
+		if err, isLessThanTLS13 := tlsConf.TLSMinVersion.LessThan(types.TLSv1_3); err == nil && !isLessThanTLS13 {
+			curves = defaultPQCECDHCurves
+		}
+	}
+
+	return makeTLSParametersFromTLSConfig(tlsConf.TLSMinVersion, tlsConf.TLSMaxVersion, tlsConf.CipherSuites, curves)
 }
 
 func makeTLSParametersFromTLSConfig(
 	tlsMinVersion types.TLSVersion,
 	tlsMaxVersion types.TLSVersion,
 	cipherSuites []types.TLSCipherSuite,
+	ecdhCurves []string,
 ) *envoy_tls_v3.TlsParameters {
 	tlsParams := envoy_tls_v3.TlsParameters{}
 
@@ -3238,6 +3248,10 @@ func makeTLSParametersFromTLSConfig(
 	}
 	if len(cipherSuites) != 0 {
 		tlsParams.CipherSuites = types.MarshalEnvoyTLSCipherSuiteStrings(cipherSuites)
+	}
+
+	if len(ecdhCurves) > 0 {
+		tlsParams.EcdhCurves = append([]string(nil), ecdhCurves...)
 	}
 
 	return &tlsParams

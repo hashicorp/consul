@@ -2372,6 +2372,37 @@ func (b *builder) tlsCipherSuites(name string, v *string, tlsMinVersion types.TL
 	return a
 }
 
+// tlsECDHCurves parses ECDH curves from a comma-separated string into a
+// recognized slice
+func (b *builder) tlsECDHCurves(name string, v *string, tlsMinVersion types.TLSVersion) []types.TLSECDHCurve {
+	if v == nil {
+		return nil
+	}
+
+	if err := types.ValidateTLSVersionECDHCurvesCompat(tlsMinVersion); err != nil {
+		b.err = multierror.Append(b.err, fmt.Errorf("%s: %s", name, err))
+		return nil
+	}
+
+	*v = strings.TrimSpace(*v)
+	if *v == "" {
+		return []types.TLSECDHCurve{}
+	}
+	curveStrings := strings.Split(*v, ",")
+
+	a := make([]types.TLSECDHCurve, len(curveStrings))
+	for i, curve := range curveStrings {
+		a[i] = types.TLSECDHCurve(strings.TrimSpace(curve))
+	}
+
+	err := types.ValidateConsulAgentECDHCurves(a)
+	if err != nil {
+		b.err = multierror.Append(b.err, fmt.Errorf("%s: invalid TLS curves: %s", name, err))
+		return []types.TLSECDHCurve{}
+	}
+	return a
+}
+
 func (b *builder) nodeName(v *string) string {
 	nodeName := stringVal(v)
 	if nodeName == "" {
@@ -2866,6 +2897,7 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 
 	defaultTLSMinVersion := b.tlsVersion("tls.defaults.tls_min_version", t.Defaults.TLSMinVersion)
 	defaultCipherSuites := b.tlsCipherSuites("tls.defaults.tls_cipher_suites", t.Defaults.TLSCipherSuites, defaultTLSMinVersion)
+	defaultECDHCurves := b.tlsECDHCurves("tls.defaults.tls_ecdh_curves", t.Defaults.TLSECDHCurves, defaultTLSMinVersion)
 
 	mapCommon := func(name string, src TLSProtocolConfig, dst *tlsutil.ProtocolConfig) {
 		dst.CAPath = stringValWithDefault(src.CAPath, stringVal(t.Defaults.CAPath))
@@ -2900,6 +2932,25 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 			dst.CipherSuites = b.tlsCipherSuites(
 				fmt.Sprintf("tls.%s.tls_cipher_suites", name),
 				src.TLSCipherSuites,
+				dst.TLSMinVersion,
+			)
+		}
+
+		if src.TLSECDHCurves == nil {
+			if len(defaultECDHCurves) > 0 {
+				if types.ValidateTLSVersionECDHCurvesCompat(dst.TLSMinVersion) == nil {
+					dst.ECDHCurves = defaultECDHCurves
+				}
+			} else {
+				// Automatic curve injection: keep behaviour same as connect mesh
+				if err, isLessThanTLS13 := dst.TLSMinVersion.LessThan(types.TLSv1_3); err == nil && !isLessThanTLS13 {
+					dst.ECDHCurves = types.DefaultConsulAgentPQCECDHCurves
+				}
+			}
+		} else {
+			dst.ECDHCurves = b.tlsECDHCurves(
+				fmt.Sprintf("tls.%s.tls_ecdh_curves", name),
+				src.TLSECDHCurves,
 				dst.TLSMinVersion,
 			)
 		}

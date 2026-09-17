@@ -5726,6 +5726,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.TLS.HTTPS.CAPath = "default_ca_path"
 			rt.TLS.HTTPS.CertFile = "https_cert_file"
 			rt.TLS.HTTPS.TLSMinVersion = "TLSv1_3"
+			rt.TLS.HTTPS.ECDHCurves = types.DefaultConsulAgentPQCECDHCurves
 			rt.TLS.HTTPS.VerifyIncoming = true
 
 			rt.TLS.GRPC.CAFile = "default_ca_file"
@@ -7147,6 +7148,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				CertFile:       "1yrhPlMk",
 				KeyFile:        "1bHapOkL",
 				TLSMinVersion:  types.TLSv1_3,
+				ECDHCurves:     types.DefaultConsulAgentPQCECDHCurves,
 				VerifyOutgoing: true,
 			},
 			NodeName:                "otlLxGaI",
