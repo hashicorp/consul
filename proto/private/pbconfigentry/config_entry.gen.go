@@ -223,6 +223,23 @@ func BoundAPIGatewayListenerToStructs(s *BoundAPIGatewayListener, t *structs.Bou
 			}
 		}
 	}
+	t.Hostname = s.Hostname
+	t.Port = int(s.Port)
+	t.Protocol = apiGatewayProtocolToStructs(s.Protocol)
+	if s.TLS != nil {
+		APIGatewayTLSConfigurationToStructs(s.TLS, &t.TLS)
+	}
+	if s.Override != nil {
+		var x structs.APIGatewayPolicy
+		APIGatewayPolicyToStructs(s.Override, &x)
+		t.Override = &x
+	}
+	if s.Default != nil {
+		var x structs.APIGatewayPolicy
+		APIGatewayPolicyToStructs(s.Default, &x)
+		t.Default = &x
+	}
+	t.MaxRequestHeadersKB = s.MaxRequestHeadersKB
 }
 func BoundAPIGatewayListenerFromStructs(t *structs.BoundAPIGatewayListener, s *BoundAPIGatewayListener) {
 	if s == nil {
@@ -249,6 +266,25 @@ func BoundAPIGatewayListenerFromStructs(t *structs.BoundAPIGatewayListener, s *B
 			}
 		}
 	}
+	s.Hostname = t.Hostname
+	s.Port = int32(t.Port)
+	s.Protocol = apiGatewayProtocolFromStructs(t.Protocol)
+	{
+		var x APIGatewayTLSConfiguration
+		APIGatewayTLSConfigurationFromStructs(&t.TLS, &x)
+		s.TLS = &x
+	}
+	if t.Override != nil {
+		var x APIGatewayPolicy
+		APIGatewayPolicyFromStructs(t.Override, &x)
+		s.Override = &x
+	}
+	if t.Default != nil {
+		var x APIGatewayPolicy
+		APIGatewayPolicyFromStructs(t.Default, &x)
+		s.Default = &x
+	}
+	s.MaxRequestHeadersKB = t.MaxRequestHeadersKB
 }
 func ConditionToStructs(s *Condition, t *structs.Condition) {
 	if s == nil {
@@ -1955,6 +1991,7 @@ func MeshDirectionalTLSConfigToStructs(s *MeshDirectionalTLSConfig, t *structs.M
 	t.TLSMinVersion = tlsVersionToStructs(s.TLSMinVersion)
 	t.TLSMaxVersion = tlsVersionToStructs(s.TLSMaxVersion)
 	t.CipherSuites = cipherSuitesToStructs(s.CipherSuites)
+	t.ECDHCurves = s.ECDHCurves
 }
 func MeshDirectionalTLSConfigFromStructs(t *structs.MeshDirectionalTLSConfig, s *MeshDirectionalTLSConfig) {
 	if s == nil {
@@ -1963,6 +2000,7 @@ func MeshDirectionalTLSConfigFromStructs(t *structs.MeshDirectionalTLSConfig, s 
 	s.TLSMinVersion = tlsVersionFromStructs(t.TLSMinVersion)
 	s.TLSMaxVersion = tlsVersionFromStructs(t.TLSMaxVersion)
 	s.CipherSuites = cipherSuitesFromStructs(t.CipherSuites)
+	s.ECDHCurves = t.ECDHCurves
 }
 func MeshGatewayConfigToStructs(s *MeshGatewayConfig, t *structs.MeshGatewayConfig) {
 	if s == nil {
@@ -2947,6 +2985,11 @@ func UpstreamLimitsToStructs(s *UpstreamLimits, t *structs.UpstreamLimits) {
 	t.MaxConnections = pointerToIntFromInt32(s.MaxConnections)
 	t.MaxPendingRequests = pointerToIntFromInt32(s.MaxPendingRequests)
 	t.MaxConcurrentRequests = pointerToIntFromInt32(s.MaxConcurrentRequests)
+	if s.PassiveHealthCheck != nil {
+		var x structs.PassiveHealthCheck
+		PassiveHealthCheckToStructs(s.PassiveHealthCheck, &x)
+		t.PassiveHealthCheck = &x
+	}
 }
 func UpstreamLimitsFromStructs(t *structs.UpstreamLimits, s *UpstreamLimits) {
 	if s == nil {
@@ -2955,4 +2998,9 @@ func UpstreamLimitsFromStructs(t *structs.UpstreamLimits, s *UpstreamLimits) {
 	s.MaxConnections = int32FromPointerToInt(t.MaxConnections)
 	s.MaxPendingRequests = int32FromPointerToInt(t.MaxPendingRequests)
 	s.MaxConcurrentRequests = int32FromPointerToInt(t.MaxConcurrentRequests)
+	if t.PassiveHealthCheck != nil {
+		var x PassiveHealthCheck
+		PassiveHealthCheckFromStructs(t.PassiveHealthCheck, &x)
+		s.PassiveHealthCheck = &x
+	}
 }

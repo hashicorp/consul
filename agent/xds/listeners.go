@@ -742,6 +742,37 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		resources = append(resources, l)
 	}
 
+	// Configure the inline virtual DNS listener. When enabled, this builds a
+	// dns_filter listener with an inline FQDN->VIP table from catalog data and
+	// binds it on 127.0.0.1:8653. It is part of the LDS resources so it is
+	// recomputed and re-pushed whenever upstream VIPs change.
+	dnsListener, err := s.makeInlineDNSListener(cfgSnap)
+	if err != nil {
+		return nil, err
+	}
+	if dnsListener != nil {
+		resources = append(resources, dnsListener)
+	}
+
+	// Configure the egress recursor DNS listener. When recursors are configured,
+	// this builds a dns_filter listener that forwards non-Consul queries to the
+	// configured upstream recursors via the c-ares resolver and binds it on
+	// 127.0.0.1:8654. It is part of the LDS resources so it is recomputed and
+	// re-pushed whenever the recursor configuration changes.
+	var dnsRecursors []string
+	if s.CfgFetcher != nil {
+		dnsRecursors = s.CfgFetcher.DNSRecursors()
+	}
+	if len(dnsRecursors) > 0 {
+		egressDNSListener, err := s.makeEgressDNSListener(dnsRecursors)
+		if err != nil {
+			return nil, err
+		}
+		if egressDNSListener != nil {
+			resources = append(resources, egressDNSListener)
+		}
+	}
+
 	return resources, nil
 }
 
@@ -2707,7 +2738,7 @@ func makeListenerFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, err
 		fallthrough
 	default:
 		if opts.useRDS {
-			return nil, fmt.Errorf("RDS is not compatible with the tcp proxy filter")
+			return nil, fmt.Errorf("RDS is not compatible with the tcp proxy filter (protocol=%q filterName=%q cluster=%q)", opts.protocol, opts.filterName, opts.cluster)
 		} else if opts.cluster == "" {
 			return nil, fmt.Errorf("cluster name is required for a tcp proxy filter")
 		}
@@ -3180,18 +3211,28 @@ var tlsVersionsWithConfigurableCipherSuites = map[types.TLSVersion]struct{}{
 	types.TLSv1_2: {},
 }
 
+var defaultPQCECDHCurves = types.DefaultPQCECDHCurves
+
 func makeTLSParametersFromProxyTLSConfig(tlsConf *structs.MeshDirectionalTLSConfig) *envoy_tls_v3.TlsParameters {
 	if tlsConf == nil {
 		return &envoy_tls_v3.TlsParameters{}
 	}
 
-	return makeTLSParametersFromTLSConfig(tlsConf.TLSMinVersion, tlsConf.TLSMaxVersion, tlsConf.CipherSuites)
+	curves := tlsConf.ECDHCurves
+	if len(curves) == 0 {
+		if err, isLessThanTLS13 := tlsConf.TLSMinVersion.LessThan(types.TLSv1_3); err == nil && !isLessThanTLS13 {
+			curves = defaultPQCECDHCurves
+		}
+	}
+
+	return makeTLSParametersFromTLSConfig(tlsConf.TLSMinVersion, tlsConf.TLSMaxVersion, tlsConf.CipherSuites, curves)
 }
 
 func makeTLSParametersFromTLSConfig(
 	tlsMinVersion types.TLSVersion,
 	tlsMaxVersion types.TLSVersion,
 	cipherSuites []types.TLSCipherSuite,
+	ecdhCurves []string,
 ) *envoy_tls_v3.TlsParameters {
 	tlsParams := envoy_tls_v3.TlsParameters{}
 
@@ -3207,6 +3248,10 @@ func makeTLSParametersFromTLSConfig(
 	}
 	if len(cipherSuites) != 0 {
 		tlsParams.CipherSuites = types.MarshalEnvoyTLSCipherSuiteStrings(cipherSuites)
+	}
+
+	if len(ecdhCurves) > 0 {
+		tlsParams.EcdhCurves = append([]string(nil), ecdhCurves...)
 	}
 
 	return &tlsParams

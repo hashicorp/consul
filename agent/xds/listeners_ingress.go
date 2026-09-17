@@ -392,7 +392,7 @@ func makeSDSOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
 }
 
 func makeTLSParametersFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig) *envoy_tls_v3.TlsParameters {
-	return makeTLSParametersFromTLSConfig(tlsCfg.TLSMinVersion, tlsCfg.TLSMaxVersion, tlsCfg.CipherSuites)
+	return makeTLSParametersFromTLSConfig(tlsCfg.TLSMinVersion, tlsCfg.TLSMaxVersion, tlsCfg.CipherSuites, nil)
 }
 
 func makeFileSystemTLSContextFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig, cert *structs.FileSystemCertificateConfigEntry) *envoy_tls_v3.CommonTlsContext {

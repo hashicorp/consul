@@ -26,8 +26,6 @@ import (
 	"github.com/hashicorp/yamux"
 	"google.golang.org/grpc"
 
-	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/blockingquery"
 	"github.com/hashicorp/consul/agent/consul/rate"
@@ -425,7 +423,9 @@ func (s *Server) handleMultiplexV2(conn net.Conn) {
 // handleConsulConn is used to service a single Consul RPC connection
 func (s *Server) handleConsulConn(conn net.Conn) {
 	defer conn.Close()
-	rpcCodec := msgpackrpc.NewCodecFromHandle(true, true, conn, structs.MsgpackHandle)
+
+	rpcCodec := newBoundedHeaderCodec(conn, structs.MsgpackHandle, int(s.rpcMaxHeaderBytes.Load()))
+
 	for {
 		select {
 		case <-s.shutdownCh:
@@ -433,7 +433,24 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 		default:
 		}
 
-		if err := s.rpcServer.ServeRequest(rpcCodec); err != nil {
+		// Apply a per-request read deadline so that a slow attacker
+		// trickling an oversized header cannot hold a goroutine and
+		// retain logical heap indefinitely. We reuse RPCHandshakeTimeout
+		// as a reasonable bound; if it is not set we skip the deadline.
+		if s.config.RPCHandshakeTimeout > 0 {
+			conn.SetReadDeadline(time.Now().Add(s.config.RPCHandshakeTimeout))
+		}
+
+		err := s.rpcServer.ServeRequest(rpcCodec)
+
+		// Clear the deadline regardless of outcome so long-running
+		// blocking queries (which are handled further up the stack) are
+		// not cut off.
+		if s.config.RPCHandshakeTimeout > 0 {
+			conn.SetReadDeadline(time.Time{})
+		}
+
+		if err != nil {
 			//EOF or closed are not considered as errors.
 			if err == io.EOF || strings.Contains(err.Error(), "closed") {
 				return
@@ -458,7 +475,9 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 // handleInsecureConsulConn is used to service a single Consul INSECURERPC connection
 func (s *Server) handleInsecureConn(conn net.Conn) {
 	defer conn.Close()
-	rpcCodec := msgpackrpc.NewCodecFromHandle(true, true, conn, structs.MsgpackHandle)
+
+	rpcCodec := newBoundedHeaderCodec(conn, structs.MsgpackHandle, int(s.rpcMaxHeaderBytes.Load()))
+
 	for {
 		select {
 		case <-s.shutdownCh:
@@ -466,7 +485,17 @@ func (s *Server) handleInsecureConn(conn net.Conn) {
 		default:
 		}
 
-		if err := s.insecureRPCServer.ServeRequest(rpcCodec); err != nil {
+		if s.config.RPCHandshakeTimeout > 0 {
+			conn.SetReadDeadline(time.Now().Add(s.config.RPCHandshakeTimeout))
+		}
+
+		err := s.insecureRPCServer.ServeRequest(rpcCodec)
+
+		if s.config.RPCHandshakeTimeout > 0 {
+			conn.SetReadDeadline(time.Time{})
+		}
+
+		if err != nil {
 			if err != io.EOF && !strings.Contains(err.Error(), "closed") {
 				s.rpcLogger().Error("INSECURERPC error",
 					"conn", logConn(conn),

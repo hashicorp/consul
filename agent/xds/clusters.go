@@ -27,6 +27,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-metrics"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/netutil"
@@ -1098,10 +1099,19 @@ func mergedAPIGatewayUpstreamConfig(configMap map[string]interface{}, limits *st
 	cfg, err := structs.ParseUpstreamConfigNoDefaults(configMap)
 	if err != nil {
 		merged["limits"] = limits
+		if limits.PassiveHealthCheck != nil {
+			merged["passive_health_check"] = limits.PassiveHealthCheck
+		}
 		return merged
 	}
 
 	cfg.Limits = limits
+	// Surface the passive health check at the top level of the upstream config so
+	// that makeUpstreamClustersForDiscoveryChain maps it into Envoy outlier
+	// detection (it reads cfg.PassiveHealthCheck, not cfg.Limits.PassiveHealthCheck).
+	if limits.PassiveHealthCheck != nil {
+		cfg.PassiveHealthCheck = limits.PassiveHealthCheck
+	}
 	cfg.MergeInto(merged)
 	return merged
 }
@@ -1118,7 +1128,19 @@ func mergeAPIGatewayUpstreamLimits(existing, incoming *structs.UpstreamLimits) *
 		MaxConnections:        mergeAPIGatewayLimitValue(existing.MaxConnections, incoming.MaxConnections),
 		MaxPendingRequests:    mergeAPIGatewayLimitValue(existing.MaxPendingRequests, incoming.MaxPendingRequests),
 		MaxConcurrentRequests: mergeAPIGatewayLimitValue(existing.MaxConcurrentRequests, incoming.MaxConcurrentRequests),
+		PassiveHealthCheck:    mergeAPIGatewayPassiveHealthCheck(existing.PassiveHealthCheck, incoming.PassiveHealthCheck),
 	}
+}
+
+// mergeAPIGatewayPassiveHealthCheck merges two passive health check configs.
+// Unlike the numeric limits there is no "more restrictive" value to prefer, so
+// the first non-nil config (existing before incoming) wins to keep the result
+// deterministic across listeners fronting the same service.
+func mergeAPIGatewayPassiveHealthCheck(existing, incoming *structs.PassiveHealthCheck) *structs.PassiveHealthCheck {
+	if existing != nil {
+		return existing.Clone()
+	}
+	return incoming.Clone()
 }
 
 func mergeAPIGatewayLimitValue(existing, incoming *int) *int {
@@ -1173,6 +1195,7 @@ func normalizeAPIGatewayUpstreamLimits(limits *structs.UpstreamLimits) *structs.
 		MaxConnections:        positiveIntPointerCopy(limits.MaxConnections),
 		MaxPendingRequests:    positiveIntPointerCopy(limits.MaxPendingRequests),
 		MaxConcurrentRequests: positiveIntPointerCopy(limits.MaxConcurrentRequests),
+		PassiveHealthCheck:    limits.PassiveHealthCheck.Clone(),
 	}
 }
 
@@ -1652,9 +1675,18 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 		if upstream != nil {
 			destinationPort = upstream.DestinationPort
 		}
-		mappedTargets, err := s.mapDiscoChainTargets(cfgSnap, chain, node, upstreamConfig, forMeshGateway, destinationPort)
+		mappedTargets, err := s.mapDiscoChainTargets(cfgSnap, uid, chain, node, upstreamConfig, forMeshGateway, destinationPort)
 		if err != nil {
 			return nil, err
+		}
+
+		// The api-gateway aggregate guard degraded a failover chain to a single
+		// plain EDS cluster because a member's endpoints were not assembled yet.
+		// This is the crash-averting event operators want to trend/alert on, so
+		// emit it from the CDS path only -- mapDiscoChainTargets also runs in EDS
+		// and RDS generation, and counting it there would inflate the metric.
+		if mappedTargets.degraded {
+			metrics.IncrCounter([]string{"xds", "server", "apiGatewayFailoverDegraded"}, 1)
 		}
 
 		targetGroups, err := mappedTargets.groupedTargets()
@@ -1663,7 +1695,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 		}
 
 		var failoverClusterNames []string
-		if mappedTargets.failover {
+		if mappedTargets.failover && len(targetGroups) > 0 {
 			for _, targetGroup := range targetGroups {
 				failoverClusterNames = append(failoverClusterNames, targetGroup.ClusterName)
 			}
@@ -1689,6 +1721,15 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			}
 
 			out = append(out, c)
+		} else if mappedTargets.failover {
+			// Every target was dropped while mapping (reachable when each is a
+			// peered target whose peering metadata has not resolved yet).
+			// Emitting the aggregate anyway would hand Envoy a cluster with an
+			// empty member list, which is the same unpopulated-member shape
+			// that faults during worker startup. Omitting the cluster entirely
+			// yields a 503 NC that self-heals on the next snapshot instead.
+			s.Logger.Warn("skipping aggregate cluster because it has no member clusters",
+				"cluster", mappedTargets.baseClusterName)
 		}
 
 		// Construct the target clusters.

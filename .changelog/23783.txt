@@ -1,0 +1,4 @@
+```release-note:feature
+api-gateway: add `PassiveHealthCheck` to gateway-level default upstream limits and route service-level limit overrides, so passive health checking (Envoy outlier detection) can be configured for services routed through an API gateway.
+```
+
