@@ -4,6 +4,9 @@
 package config
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
 	"sort"
 	"testing"
 	"time"
@@ -15,8 +18,21 @@ import (
 )
 
 func TestLoad_DeprecatedConfig(t *testing.T) {
+	// ca_file/cert_file/key_file must exist on disk now that config
+	// validation checks those paths, so use real files/dirs instead of
+	// the placeholder names this test previously asserted against.
+	tlsFixtureDir := t.TempDir()
+	caFile := filepath.Join(tlsFixtureDir, "some-ca-file")
+	require.NoError(t, os.WriteFile(caFile, []byte("test"), 0600))
+	caPath := filepath.Join(tlsFixtureDir, "some-ca-path")
+	require.NoError(t, os.MkdirAll(caPath, 0755))
+	certFile := filepath.Join(tlsFixtureDir, "some-cert-file")
+	require.NoError(t, os.WriteFile(certFile, []byte("test"), 0600))
+	keyFile := filepath.Join(tlsFixtureDir, "some-key-file")
+	require.NoError(t, os.WriteFile(keyFile, []byte("test"), 0600))
+
 	opts := LoadOpts{
-		HCL: []string{`
+		HCL: []string{fmt.Sprintf(`
 data_dir = "/foo"
 
 acl_datacenter = "dcone"
@@ -32,10 +48,10 @@ acl_down_policy = "async-cache"
 acl_ttl = "3h"
 acl_enable_key_list_policy = true
 
-ca_file = "some-ca-file"
-ca_path = "some-ca-path"
-cert_file = "some-cert-file"
-key_file = "some-key-file"
+ca_file = %q
+ca_path = %q
+cert_file = %q
+key_file = %q
 tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA"
 tls_min_version = "tls11"
 verify_incoming = true
@@ -48,7 +64,7 @@ tls_prefer_server_cipher_suites = true
 raft_boltdb {
 	NoFreelistSync = true
 }
-`},
+`, caFile, caPath, certFile, keyFile)},
 	}
 	patchLoadOptsShims(&opts)
 	result, err := Load(opts)
@@ -95,10 +111,10 @@ raft_boltdb {
 	require.Equal(t, true, rt.ACLEnableKeyListPolicy)
 
 	for _, l := range []tlsutil.ProtocolConfig{rt.TLS.InternalRPC, rt.TLS.GRPC, rt.TLS.HTTPS} {
-		require.Equal(t, "some-ca-file", l.CAFile)
-		require.Equal(t, "some-ca-path", l.CAPath)
-		require.Equal(t, "some-cert-file", l.CertFile)
-		require.Equal(t, "some-key-file", l.KeyFile)
+		require.Equal(t, caFile, l.CAFile)
+		require.Equal(t, caPath, l.CAPath)
+		require.Equal(t, certFile, l.CertFile)
+		require.Equal(t, keyFile, l.KeyFile)
 		require.Equal(t, types.TLSVersion("TLSv1_1"), l.TLSMinVersion)
 		require.Equal(t, []types.TLSCipherSuite{types.TLSCipherSuite("TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA")}, l.CipherSuites)
 	}
