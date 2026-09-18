@@ -56,6 +56,9 @@ func (s *serverPeeredUpstreams) Notify(ctx context.Context, req *structs.Partiti
 
 			return index, &structs.IndexedPeeredServiceList{
 				Services: result,
+				// ServiceVIPs carries per-port virtual IPs for multiport peering,
+				// which is an enterprise-only feature. CE never populates it.
+				ServiceVIPs: nil,
 				QueryMeta: structs.QueryMeta{
 					Index:   index,
 					Backend: structs.QueryBackendBlocking,
