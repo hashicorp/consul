@@ -1,0 +1,43 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+<Hds::Button
+  @text="Cancel"
+  @color="secondary"
+  type="button"
+  data-test-cancel
+  {{on "click" this.click}}
+  ...attributes
+/>
+
+{{#if this.confirming}}
+  <Hds::Modal
+    id="discard-peer-form-modal"
+    @color="warning"
+    @onClose={{this.keepEditing}}
+    as |M|
+  >
+    <M.Header @icon="alert-triangle">Discard unsaved changes?</M.Header>
+    <M.Body>
+      <p>You'll lose the information you've entered on this page.</p>
+    </M.Body>
+    <M.Footer as |F|>
+      <Hds::ButtonSet>
+        <Hds::Button
+          @text="Discard"
+          @color="critical"
+          data-test-confirm-discard
+          {{on "click" this.confirm}}
+        />
+        <Hds::Button
+          @text="Keep editing"
+          @color="secondary"
+          data-test-keep-editing
+          {{on "click" F.close}}
+        />
+      </Hds::ButtonSet>
+    </M.Footer>
+  </Hds::Modal>
+{{/if}}

@@ -4,44 +4,57 @@
 }}
 
 {{#if (gt @items.length 0)}}
-<ListCollection
-  class="consul-intention-permission-header-list"
-  @items={{@items}}
-  @scroll="native"
-  @cellHeight={{42}}>
-  <:details as |item|>
-    <dl>
-      <dt {{hds-tooltip "Header" options=(detached-tooltip-options)}}>
-        Header
-      </dt>
-      <dd>
-        {{item.Name}} {{route-match item}}
-      </dd>
-    </dl>
-  </:details>
-  <:actions as |item index Actions|>
-    <Actions as |Action|>
-      <Action data-test-delete-action @onclick={{action @ondelete item}} class="dangerous">
-        <:label>
-          Delete
-        </:label>
-        <:confirmation as |Confirmation|>
-          <Confirmation class="warning">
-            <:header>
-              Confirm delete
-            </:header>
-            <:body>
-              <p>
-                Are you sure you want to delete this header?
-              </p>
-            </:body>
-            <:confirm as |Confirm|>
-              <Confirm>Delete</Confirm>
-            </:confirm>
-          </Confirmation>
-        </:confirmation>
-      </Action>
-    </Actions>
-  </:actions>
-</ListCollection>
+<ul class="consul-intention-permission-header-list">
+  {{#each @items as |item|}}
+  <li data-test-list-row>
+    <div class="header-row">
+      <div class="header-col">
+        <span class="header-col-label">Header type</span>
+        <div class="header-type-display">
+          <span>{{route-match item}}</span>
+        </div>
+      </div>
+      <div class="header-col">
+        <span class="header-col-label">Header name</span>
+        <div class="header-name-display">
+          <span>{{item.Name}}</span>
+        </div>
+      </div>
+      <div class="header-col">
+        <span class="header-col-label">Header information</span>
+        <div class="header-value-display">
+          {{#if item.Present}}
+            <span>—</span>
+          {{else}}
+            <span>{{or item.Exact item.Prefix item.Suffix item.Contains item.Regex ''}}</span>
+          {{/if}}
+        </div>
+      </div>
+      <div class="header-col header-col--action">
+        <Hds::Button
+          @icon='trash'
+          @isIconOnly={{true}}
+          @color='secondary'
+          @size='small'
+          @text='Delete header'
+          data-test-delete-action
+          {{on 'click' (fn @ondelete item)}}
+        />
+      </div>
+    </div>
+    {{#if (not-eq item.IgnoreCase undefined)}}
+      {{#if item.IgnoreCase}}
+      <div class="header-case-display">
+        <Hds::Form::Checkbox::Field
+          checked={{true}}
+          disabled={{true}}
+        as |F|>
+          <F.Label>Case sensitive</F.Label>
+        </Hds::Form::Checkbox::Field>
+      </div>
+      {{/if}}
+    {{/if}}
+  </li>
+  {{/each}}
+</ul>
 {{/if}}

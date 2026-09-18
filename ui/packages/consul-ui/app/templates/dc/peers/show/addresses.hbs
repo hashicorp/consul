@@ -4,42 +4,61 @@
 }}
 
 <Route @name={{this.routeName}} as |route|>
-  {{#if (gt route.model.items.length 0)}}
-    <Consul::Peer::Address::List @items={{route.model.items}} />
-  {{else}}
-    <EmptyState @login={{route.model.app.login.open}} data-test-addresses-empty>
-      <:header>
-        <h2>
-          {{t "routes.dc.peers.show.addresses.empty.header"}}
-        </h2>
-      </:header>
-      <:body>
-        {{t "routes.dc.peers.show.addresses.empty.body" htmlSafe=true}}
-      </:body>
-      <:actions>
-        <li>
-          <Hds::Link::Standalone
-            @text='Documentation on Peers'
-            @href="{{env
-              'CONSUL_DOCS_URL'
-            }}/connect/cluster-peering"
-            @icon='docs-link'
-            @iconPosition='trailing'
-            @size='small'
+  <DataCollection
+    @type="peer-address"
+    @search={{this.search}}
+    @items={{route.model.items}}
+    as |collection|
+  >
+    <collection.Collection>
+      <Consul::Peer::Address::List @items={{collection.items}}>
+        <:toolbar>
+          <Consul::Peer::Address::Toolbar
+            @search={{this.search}}
+            @onsearch={{action (mut this.search) value="target.value"}}
           />
-        </li>
-        <li>
-          <Hds::Link::Standalone
-            @text='Take the tutorial'
-            @href="{{env
-              'CONSUL_DOCS_URL'
-            }}/connect/cluster-peering/create-manage-peering"
-            @icon='learn-link'
-            @iconPosition='trailing'
-            @size='small'
-          />
-        </li>
-      </:actions>
-    </EmptyState>
-  {{/if}}
+        </:toolbar>
+      </Consul::Peer::Address::List>
+    </collection.Collection>
+    <collection.Empty>
+      <EmptyState @login={{route.model.app.login.open}} data-test-addresses-empty>
+        <:header>
+          <h2>
+            {{t "routes.dc.peers.show.addresses.empty.header"}}
+          </h2>
+        </:header>
+        <:body>
+          {{t
+            "routes.dc.peers.show.addresses.empty.body"
+            items=route.model.items.length
+            htmlSafe=true
+          }}
+        </:body>
+        <:actions>
+          <li>
+            <Hds::Link::Standalone
+              @text='Documentation on Peers'
+              @href="{{env
+                'CONSUL_DOCS_URL'
+              }}/connect/cluster-peering"
+              @icon='docs-link'
+              @iconPosition='trailing'
+              @size='small'
+            />
+          </li>
+          <li>
+            <Hds::Link::Standalone
+              @text='Take the tutorial'
+              @href="{{env
+                'CONSUL_DOCS_URL'
+              }}/connect/cluster-peering/create-manage-peering"
+              @icon='learn-link'
+              @iconPosition='trailing'
+              @size='small'
+            />
+          </li>
+        </:actions>
+      </EmptyState>
+    </collection.Empty>
+  </DataCollection>
 </Route>

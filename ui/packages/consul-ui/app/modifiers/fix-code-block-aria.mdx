@@ -1,6 +1,6 @@
 # fix-code-block-aria
 
-Fixes ARIA accessibility issues in HDS CodeBlock components by adding `role="region"` to `<pre>` elements that have `aria-labelledby` but no role attribute.
+Fixes ARIA accessibility issues in HDS CodeBlock components: adds `role="region"` to `<pre>` elements that have `aria-labelledby` but no role attribute, and takes the `<pre>` out of the tab order.
 
 ## Problem
 
@@ -11,6 +11,17 @@ HDS CodeBlock renders invalid ARIA markup:
   <code>console.log('hello');</code>
 </pre>
 ```
+
+Fixing only the missing role isn't enough, though: HDS's `<pre>` always carries
+`tabindex="0"` too, and IBM Equal Access separately requires any *tabbable*
+element's role to be a widget role (button, tab, textbox, …) — `region` is a
+landmark role, not a widget role, so `role="region"` on a still-tabbable `<pre>`
+trades one violation for another ("the tabbable element's role 'region' is not
+a widget role"). There's no ARIA widget role that fits read-only scrollable
+text, so the `<pre>` also gets `tabindex="-1"`, taking it out of the tab order
+— IBM's own first suggested remedy for a non-interactive tabbable element.
+`role="region"` stays; it's fine on a non-tabbable element, just not a
+tabbable one.
 
 ## Usage
 
@@ -30,8 +41,8 @@ Apply to a parent element containing CodeBlock components:
 
 ## How it works
 
-- Automatically adds `role="region"` to fix ARIA violations
-- Only affects `<pre>` elements with `aria-labelledby` and no existing role
+- Adds `role="region"` to `<pre>` elements with `aria-labelledby` and no existing role
+- Sets `tabindex="-1"` on the CodeBlock `<pre>` so it's no longer a tabbable element with a non-widget role
 - Uses MutationObserver to handle dynamically added content
 
 **Temporary workaround** - remove when HDS is updated to include proper ARIA roles.

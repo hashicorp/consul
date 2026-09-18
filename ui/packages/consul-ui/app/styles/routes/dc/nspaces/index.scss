@@ -1,0 +1,27 @@
+/**
+ * Copyright IBM Corp. 2024, 2026
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+/* The namespace create/edit form uses HDS::Separator for section dividers, so
+   the legacy `app-view` rules that draw a border-bottom under the page title
+   and under every fieldset would produce duplicate/unwanted lines.
+   The margin-bottom that the global rule added for spacing between the last
+   fieldset and the action buttons is restored explicitly below. */
+html[data-route='dc.nspaces.edit'],
+html[data-route='dc.nspaces.create'] {
+  .app-view .title {
+    border-bottom: none;
+  }
+
+  .app-view form:not(.filter-bar) fieldset {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0;
+  }
+
+  /* Restore spacing above the action buttons (Save / Cancel / Delete) */
+  .app-view form:not(.filter-bar) fieldset:last-of-type {
+    margin-bottom: 2em;
+  }
+}
