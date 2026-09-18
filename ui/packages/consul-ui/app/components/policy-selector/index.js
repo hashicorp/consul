@@ -17,6 +17,17 @@ export default ChildSelectorComponent.extend({
   type: 'policy',
   allowIdentity: true,
   classNames: ['policy-selector'],
+  confirmRemove: function (item, removeFn) {
+    set(this, 'policyToRemove', { item, removeFn });
+  },
+  cancelRemove: function () {
+    set(this, 'policyToRemove', null);
+  },
+  invokeRemove: function () {
+    const { item, removeFn } = this.policyToRemove;
+    removeFn(item, this.items);
+    set(this, 'policyToRemove', null);
+  },
   init: function () {
     this._super(...arguments);
     const source = this.source;

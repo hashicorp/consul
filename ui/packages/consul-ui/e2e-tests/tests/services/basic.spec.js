@@ -60,8 +60,8 @@ test.describe('Services - Basic Tests', () => {
 
       // Navigate to service instances from instances tab
       const firstInstanceLink = servicesPage.page
-        .locator('.consul-service-instance-list li')
-        .nth(1)
+        .locator('.consul-service-instance-table tbody tr')
+        .first()
         .locator('a')
         .first();
       await expect(firstInstanceLink).toBeVisible();

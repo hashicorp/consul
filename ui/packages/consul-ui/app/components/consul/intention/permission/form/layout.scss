@@ -3,28 +3,105 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
+// Shared header-row grid — columns: [type] [name] [info] [40px trash icon]
+// align-items: start keeps labels flush at the top across all cells.
+// Error messages expand a cell downward without shifting siblings.
+%header-row-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 40px;
+  gap: 12px;
+  align-items: start;
+}
+
 .consul-intention-permission-form {
+  // Section headings sit directly below the Hds::Separator — only bottom margin needed
   h2 {
-    padding-top: 1.4em;
-    margin-top: 0.2em;
-    margin-bottom: 0.6em;
+    margin-top: 16px;
+    margin-bottom: 12px;
   }
   .consul-intention-permission-header-form {
-    margin-top: 10px;
-  }
-  fieldset:nth-child(2) > div,
-  .consul-intention-permission-header-form fieldset > div {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    grid-gap: 12px;
-  }
-  fieldset:nth-child(2) > div label:last-child {
-    grid-column: span 2;
+    margin-top: 0;
   }
   .ember-basic-dropdown-trigger {
     padding: 5px;
   }
+  // Method checkboxes — always-visible wrap grid
   .checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    margin-top: 8px;
+  }
+  // Flex column container for the full headers section content
+  .headers-content {
+    display: flex;
     flex-direction: column;
+    gap: 0;
+
+    // Space before "Add another header" button — sits 12px below the last row border
+    // align-self: flex-start prevents the button from stretching to full flex width
+    > .hds-button {
+      margin-top: 12px;
+      align-self: flex-start;
+    }
+  }
+}
+
+// Shared header row — used by both saved list rows and the entry form
+.consul-intention-permission-header-form,
+.consul-intention-permission-header-list {
+  .header-row {
+    @extend %header-row-grid;
+  }
+
+  // Each column cell: label on top, input on bottom
+  .header-col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  // Shared column label typography (matches HDS body-100 semibold)
+  .header-col-label {
+    font-size: var(--token-typography-body-100-font-size);
+    font-weight: var(--token-typography-font-weight-semibold);
+    line-height: var(--token-typography-body-100-line-height);
+    color: var(--token-color-foreground-strong);
+    white-space: nowrap;
+  }
+
+  // Spacer col when value field is hidden — keeps trash in col 4
+  .header-col--spacer {
+    visibility: hidden;
+  }
+
+  // Action col (column 4 for the trash button): flex-column matching the other
+  // header-col cells so the button sits beside the inputs, not beside the labels.
+  // An invisible label spacer of the same line-height pushes the button down.
+  .header-col--action {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    &::before {
+      content: '';
+      display: block;
+      height: var(--token-typography-body-100-line-height, 20px);
+      flex-shrink: 0;
+    }
+  }
+
+  // "Case sensitive" checkbox sits below the row, indented to align with inputs
+  .header-case-display {
+    margin-top: 8px;
+  }
+}
+
+// Entry form row: styled as a "saved row" — same border-bottom + 12px padding
+.consul-intention-permission-header-form {
+  fieldset {
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--token-color-border-primary);
   }
 }
