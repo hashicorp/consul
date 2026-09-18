@@ -1,0 +1,162 @@
+// Copyright IBM Corp. 2024, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package api
+
+// InferenceGatewayConfigEntry is the routing policy for one or more inference gateways
+// (kind = "inference-gateway"). It binds the gateway's ext_proc filter to a
+// co-located policy processor and describes how A2LLM requests are matched and
+// routed to model upstreams.
+type InferenceGatewayConfigEntry struct {
+	// Kind must be "inference-gateway".
+	Kind string
+
+	// Name of the config entry.
+	Name string
+
+	// Processor binds the gateway's ext_proc filter to the co-located policy
+	// processor over a loopback/UDS socket.
+	Processor InferenceGatewayProcessor
+
+	// Failover tunes cross-provider failover for capability pools (a capability
+	// with two or more discovered members). It governs only HOW Envoy fails a
+	// request over across a pool's priority tiers; WHICH models serve a capability
+	// and in what order comes from the catalog (each model's `capabilities` set and
+	// `priority_<capability>` meta), gated by intentions.
+	Failover *InferenceGatewayFailover `json:",omitempty"`
+
+	// PII configures per-detector PII detection and redaction. Consul stores and
+	// returns it verbatim; only the co-located processor reads it.
+	PII *InferenceGatewayPII `json:",omitempty"`
+
+	// AuditLevel is the processor's audit verbosity: full | sampling | off.
+	AuditLevel string `json:",omitempty" alias:"audit_level"`
+
+	// Observability configures the processor's telemetry pillars. Consul stores and
+	// returns it; the processor reads it and builds its own exporters.
+	Observability *InferenceGatewayObservability `json:",omitempty"`
+
+	// Partition is the partition the config entry is associated with.
+	// Partitioning is a Consul Enterprise feature.
+	Partition string `json:",omitempty"`
+
+	// Namespace is the namespace the config entry is associated with.
+	// Namespacing is a Consul Enterprise feature.
+	Namespace string `json:",omitempty"`
+
+	Meta map[string]string `json:",omitempty"`
+
+	// CreateIndex is the Raft index this entry was created at.
+	CreateIndex uint64
+
+	// ModifyIndex is used for Check-And-Set operations.
+	ModifyIndex uint64
+}
+
+// InferenceGatewayProcessor configures the ext_proc binding to the policy processor.
+type InferenceGatewayProcessor struct {
+	UDSPath     string `json:",omitempty" alias:"uds_path"`
+	FailureMode string `json:",omitempty" alias:"failure_mode"`
+
+	// BodyModelRouting routes on the request body's model instead of a
+	// caller-supplied capability header. Consul renders the matching per-model route.
+	BodyModelRouting bool `json:",omitempty" alias:"body_model_routing"`
+}
+
+// InferenceGatewayFailover is the gateway-wide cross-provider failover behavior applied to
+// any capability pool (a capability with two or more discovered members). Membership
+// and per-tier order are NOT here — they come from the catalog (each model's
+// capabilities set + priority_<capability> meta). An omitted block uses defaults.
+type InferenceGatewayFailover struct {
+	RetryOn       []string `json:",omitempty" alias:"retry_on"`
+	MaxTiers      int      `json:",omitempty" alias:"max_tiers"`
+	PerTryTimeout string   `json:",omitempty" alias:"per_try_timeout"`
+}
+
+// InferenceGatewayPII configures per-detector PII detection and redaction for the
+// processor. Consul stores and returns these fields verbatim.
+type InferenceGatewayPII struct {
+	Scope               string                        `json:",omitempty"`
+	DefaultAction       string                        `json:",omitempty" alias:"default_action"`
+	StreamHoldbackBytes int                           `json:",omitempty" alias:"stream_holdback_bytes"`
+	Mask                *InferenceGatewayPIIMask      `json:",omitempty"`
+	Detectors           []InferenceGatewayPIIDetector `json:",omitempty"`
+}
+
+// InferenceGatewayPIIMask parameterizes the "mask" redaction action.
+type InferenceGatewayPIIMask struct {
+	Char     string `json:",omitempty"`
+	KeepLast int    `json:",omitempty" alias:"keep_last"`
+}
+
+// InferenceGatewayPIIDetector is one PII rule: a named built-in or a custom Regex, with
+// an Action that overrides PII.DefaultAction.
+type InferenceGatewayPIIDetector struct {
+	Name   string `json:",omitempty"`
+	Regex  string `json:",omitempty"`
+	Action string `json:",omitempty"`
+}
+
+// InferenceGatewayObservability configures the processor's audit, metrics, and
+// tracing pillars. Each is independent and best-effort: a bad sink degrades that
+// pillar, it never changes a request's outcome.
+type InferenceGatewayObservability struct {
+	Audit   *InferenceGatewayAudit   `json:",omitempty"`
+	Metrics *InferenceGatewayMetrics `json:",omitempty"`
+	Tracing *InferenceGatewayTracing `json:",omitempty"`
+}
+
+// InferenceGatewayAudit configures the compliance audit trail.
+type InferenceGatewayAudit struct {
+	Level      string                     `json:",omitempty"`
+	SampleRate float64                    `json:",omitempty" alias:"sample_rate"`
+	Sink       *InferenceGatewayAuditSink `json:",omitempty"`
+}
+
+// InferenceGatewayAuditSink is the audit destination.
+type InferenceGatewayAuditSink struct {
+	Type              string `json:",omitempty"`
+	Format            string `json:",omitempty"`
+	Path              string `json:",omitempty"`
+	DeliveryGuarantee string `json:",omitempty" alias:"delivery_guarantee"`
+	RotateDuration    string `json:",omitempty" alias:"rotate_duration"`
+	RotateBytes       int    `json:",omitempty" alias:"rotate_bytes"`
+	RotateMaxFiles    int    `json:",omitempty" alias:"rotate_max_files"`
+}
+
+// InferenceGatewayMetrics configures OTel metrics export. Enabled is a pointer so an
+// unset field stays distinguishable from an explicit false: metrics default to on.
+type InferenceGatewayMetrics struct {
+	Enabled       *bool                              `json:",omitempty"`
+	Prometheus    *InferenceGatewayMetricsPrometheus `json:",omitempty"`
+	OTLP          *InferenceGatewayOTLPExport        `json:",omitempty"`
+	SemconvSchema string                             `json:",omitempty" alias:"semconv_schema"`
+	CustomLabels  []string                           `json:",omitempty" alias:"custom_labels"`
+}
+
+// InferenceGatewayMetricsPrometheus configures the processor's scrape endpoint.
+type InferenceGatewayMetricsPrometheus struct {
+	Port int    `json:",omitempty"`
+	Path string `json:",omitempty"`
+}
+
+// InferenceGatewayTracing configures OTel tracing. Off by default.
+type InferenceGatewayTracing struct {
+	Enabled     bool                        `json:",omitempty"`
+	OTLP        *InferenceGatewayOTLPExport `json:",omitempty"`
+	SampleRatio float64                     `json:",omitempty" alias:"sample_ratio"`
+}
+
+// InferenceGatewayOTLPExport is a shared OTLP exporter target.
+type InferenceGatewayOTLPExport struct {
+	Endpoint string `json:",omitempty"`
+	Insecure bool   `json:",omitempty"`
+}
+
+func (e *InferenceGatewayConfigEntry) GetKind() string            { return e.Kind }
+func (e *InferenceGatewayConfigEntry) GetName() string            { return e.Name }
+func (e *InferenceGatewayConfigEntry) GetPartition() string       { return e.Partition }
+func (e *InferenceGatewayConfigEntry) GetNamespace() string       { return e.Namespace }
+func (e *InferenceGatewayConfigEntry) GetMeta() map[string]string { return e.Meta }
+func (e *InferenceGatewayConfigEntry) GetCreateIndex() uint64     { return e.CreateIndex }
+func (e *InferenceGatewayConfigEntry) GetModifyIndex() uint64     { return e.ModifyIndex }

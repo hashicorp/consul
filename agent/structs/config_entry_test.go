@@ -2639,6 +2639,100 @@ func TestDecodeConfigEntry(t *testing.T) {
 			},
 		},
 		{
+			// The inference-gateway entry is written by operators as HCL, so the
+			// snake_case aliases on every multi-word field must decode. Unknown keys
+			// are an error (validateUnusedKeys), so a missing alias fails this test.
+			name: "inference-gateway",
+			snake: `
+				kind = "inference-gateway"
+				name = "travel-inference-gateway"
+				meta {
+					"foo" = "bar"
+				}
+				processor {
+					uds_path = "/run/consul/ext_proc.sock"
+					failure_mode = "open"
+				}
+				failover {
+					retry_on = ["401", "5xx"]
+					max_tiers = 2
+					per_try_timeout = "30s"
+				}
+				audit_level = "full"
+				pii {
+					scope = "both"
+					default_action = "placeholder"
+					stream_holdback_bytes = 128
+					mask {
+						char = "*"
+						keep_last = 4
+					}
+					detectors = [
+						{
+							name = "ssn"
+							action = "block"
+						},
+					]
+				}
+			`,
+			camel: `
+				Kind = "inference-gateway"
+				Name = "travel-inference-gateway"
+				Meta {
+					"foo" = "bar"
+				}
+				Processor {
+					UDSPath = "/run/consul/ext_proc.sock"
+					FailureMode = "open"
+				}
+				Failover {
+					RetryOn = ["401", "5xx"]
+					MaxTiers = 2
+					PerTryTimeout = "30s"
+				}
+				AuditLevel = "full"
+				PII {
+					Scope = "both"
+					DefaultAction = "placeholder"
+					StreamHoldbackBytes = 128
+					Mask {
+						Char = "*"
+						KeepLast = 4
+					}
+					Detectors = [
+						{
+							Name = "ssn"
+							Action = "block"
+						},
+					]
+				}
+			`,
+			expect: &InferenceGatewayConfigEntry{
+				Kind: "inference-gateway",
+				Name: "travel-inference-gateway",
+				Meta: map[string]string{"foo": "bar"},
+				Processor: InferenceGatewayProcessor{
+					UDSPath:     "/run/consul/ext_proc.sock",
+					FailureMode: "open",
+				},
+				Failover: &InferenceGatewayFailover{
+					RetryOn:       []string{"401", "5xx"},
+					MaxTiers:      2,
+					PerTryTimeout: "30s",
+				},
+				AuditLevel: "full",
+				PII: &InferenceGatewayPII{
+					Scope:               "both",
+					DefaultAction:       "placeholder",
+					StreamHoldbackBytes: 128,
+					Mask:                &InferenceGatewayPIIMask{Char: "*", KeepLast: 4},
+					Detectors: []InferenceGatewayPIIDetector{
+						{Name: "ssn", Action: "block"},
+					},
+				},
+			},
+		},
+		{
 			name: "exported-services",
 			snake: `
 				kind = "exported-services"

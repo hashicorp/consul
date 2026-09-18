@@ -76,6 +76,7 @@ enum Kind {
   KindJWTProvider = 12;
   KindExportedServices = 13;
   KindFileSystemCertificate = 14;
+  KindInferenceGateway = 15;
 }
 
 message ConfigEntry {
@@ -100,6 +101,7 @@ message ConfigEntry {
     JWTProvider JWTProvider = 16;
     ExportedServices ExportedServices = 17;
     FileSystemCertificate FileSystemCertificate = 18;
+    InferenceGateway InferenceGateway = 19;
   }
 }
 
@@ -1509,4 +1511,54 @@ message ExportedServicesConsumer {
   string Partition = 1;
   string Peer = 2;
   string SamenessGroup = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.InferenceGatewayConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Name,Kind,RaftIndex,EnterpriseMeta,PII,AuditLevel,Observability
+message InferenceGateway {
+  reserved 2, 3;
+  reserved "ApplyTo", "Routing";
+
+  // This message carries the RENDERED fields of
+  // structs.InferenceGatewayConfigEntry - everything proxycfg needs when a
+  // server-managed proxy receives the entry over the pbsubscribe stream rather
+  // than reading it from the local state store.
+  //
+  // The STORED fields (PII, AuditLevel, Observability) are deliberately absent, see
+  // ignore-fields above: nothing in proxycfg or xDS reads them, and the
+  // co-located policy processor fetches them straight from the config-entry HTTP
+  // API. A field that a control-plane component starts reading must be added
+  // here; TestInferenceGateway_ProtoRoundTrip fails until it is.
+
+  InferenceGatewayProcessor Processor = 1;
+  map<string, string> Meta = 4;
+  uint64 Hash = 5;
+  InferenceGatewayFailover Failover = 8;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.InferenceGatewayProcessor
+// output=config_entry.gen.go
+// name=Structs
+message InferenceGatewayProcessor {
+  string UDSPath = 1;
+  string FailureMode = 2;
+  bool BodyModelRouting = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.InferenceGatewayFailover
+// output=config_entry.gen.go
+// name=Structs
+message InferenceGatewayFailover {
+  repeated string RetryOn = 1;
+  // mog: func-to=int func-from=int32
+  int32 MaxTiers = 2;
+  string PerTryTimeout = 3;
 }
