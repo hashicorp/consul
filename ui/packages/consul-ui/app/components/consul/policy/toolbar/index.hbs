@@ -1,0 +1,44 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{!
+  Policies-index toolbar. All the Filter Bar wiring (filter groups, applied
+  tags, search, "Search across" dropdown, stay-expanded behaviour) lives in the
+  generic Consul::ListToolbar; this component only supplies the Datacenter and
+  Type filter config and the Name sort dropdown.
+}}
+<Consul::ListToolbar
+  class="consul-policy-toolbar"
+  ...attributes
+  @filter={{@filter}}
+  @search={{@search}}
+  @onsearch={{@onsearch}}
+  @filterGroups={{this.filterGroups}}
+  @searchPlaceholder="Search"
+>
+  <:quickFilters>
+    {{!
+      Name sort: the policies list has no sortable columns, so sorting is offered
+      through this dropdown (mirroring the tokens index sorter).
+    }}
+    {{#if @sort}}
+      <Hds::Dropdown
+        class="consul-policy-toolbar__sort"
+        @listPosition="bottom-right"
+        @preserveContentInDom={{true}}
+        data-test-sort-control
+        as |dd|
+      >
+        <dd.ToggleButton
+          @text={{if (eq @sort.value "Name:asc") (t "common.sort.alpha.asc") (t "common.sort.alpha.desc")}}
+          @color="secondary"
+          data-test-sort-toggle
+        />
+        <dd.Interactive data-test-sort-option {{on "click" (fn @sort.change (hash target=(hash selected="Name:asc")))}}>{{t "common.sort.alpha.asc"}}</dd.Interactive>
+        <dd.Interactive data-test-sort-option {{on "click" (fn @sort.change (hash target=(hash selected="Name:desc")))}}>{{t "common.sort.alpha.desc"}}</dd.Interactive>
+      </Hds::Dropdown>
+    {{/if}}
+  </:quickFilters>
+</Consul::ListToolbar>

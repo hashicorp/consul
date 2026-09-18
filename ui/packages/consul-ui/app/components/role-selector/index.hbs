@@ -3,189 +3,169 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<ModalDialog
-  class="role-selector"
-  data-test-role-form
-  id="new-role"
-  @onclose={{action (mut this.state) "role"}}
-  @aria={{hash
-    label=(if (eq this.state 'role') 'New Role' 'New Policy')
-  }}
->
-  <:default as |modal|>
-      <Ref @target={{this}} @name="modal" @value={{modal}} />
-  </:default>
-  <:header>
-{{#if (eq this.state 'role')}}
-    <h2>New Role</h2>
-{{else}}
-    <h2>New Policy</h2>
-{{/if}}
-  </:header>
-  <:body>
+<div class='role-selector'>
+  {{#if @showHeader}}
+    <div class='consul-token-section-header'>
+      <div class='role-selector__header-text'>
+        <Hds::Text::Display @size='300' @tag='h2'>Roles</Hds::Text::Display>
+        {{#if @descriptionText}}
+          <Hds::Text::Body @size='200' @tag='p'>{{@descriptionText}}</Hds::Text::Body>
+        {{/if}}
+      </div>
+      {{#if (not @disabled)}}
+        <Hds::Button
+          @text='Create new role'
+          @size='large'
+          @color='tertiary'
+          @icon='plus'
+          type='button'
+          aria-controls={{if this.isCreatingRole 'new-role'}}
+          aria-expanded={{if this.isCreatingRole 'true' 'false'}}
+          disabled={{this.isCreatingRole}}
+          data-test-role-create
+          {{on 'click' (action this.openRoleForm)}}
+        />
+      {{/if}}
+    </div>
+  {{/if}}
 
-  <input id="{{this.name}}_state_role" type="radio" name="{{this.name}}[state]" value="role" checked={{if (eq this.state 'role') 'checked'}} onchange={{action 'change'}} />
-    <RoleForm
-      @form={{this.form}}
-      @dc={{@dc}}
-      @nspace={{@nspace}}
-      @partition={{@partition}}
+  {{#if this.isCreatingRole}}
+    <div
+      id='new-role'
+      class='role-selector__creator'
+      data-test-role-creator
+      data-test-role-form
+      {{did-insert (action this.focusRoleForm)}}
     >
-      <:policy>
+      <RoleForm @form={{this.form}} @dc={{@dc}} @nspace={{@nspace}} @partition={{@partition}}>
+        <:policy>
+          <PolicySelector
+            @showHeader={{true}}
+            @title='Role policies'
+            @modalId='new-role-policy'
+            @formName='role[policy]'
+            @dc={{@dc}}
+            @partition={{@partition}}
+            @nspace={{@nspace}}
+            @items={{this.item.Policies}}
+          />
+        </:policy>
+      </RoleForm>
 
-        <PolicySelector
-          @source={{this.source}}
-          @dc={{@dc}}
-          @partition={{@partition}}
-          @nspace={{@nspace}}
-          @items={{this.item.Policies}}
-        >
-          <:trigger>
-            <Hds::Button
-              @text='Create new policy'
-              @size='small'
-              @color='tertiary'
-              @icon='plus'
-              class='type-dialog'
-              data-test-create-policy
-              {{action 'triggerStateCheckboxChange'}}
-            />
-          </:trigger>
-        </PolicySelector>
-
-      </:policy>
-    </RoleForm>
-
-    <input id="{{this.name}}_state_policy" type="radio" name="{{this.name}}[state]" value="policy" checked={{if (eq this.state 'policy') 'checked'}} onchange={{action 'change'}} />
-    <PolicyForm
-      data-test-policy-form
-      @name="role[policy]"
-      @form={{this.policyForm}}
-      @dc={{@dc}}
-      @nspace={{@nspace}}
-      @partition={{@partition}}
-    />
-
-  </:body>
-  <:actions as |close|>
-
-    <Hds::ButtonSet>
-      {{#if (eq this.state 'role')}}
+      <Hds::ButtonSet>
         <Hds::Button
           type='submit'
           @text='Create and apply'
           @isLoading={{this.item.isSaving}}
-          onclick={{perform this.save this.item @items (queue (action close) (action 'reset'))}}
-          disabled={{if (or this.item.isSaving this.item.isPristine this.item.isInvalid) 'disabled'}}
+          disabled={{or
+            this.item.isSaving
+            this.item.isPristine
+            this.item.isInvalid
+            (eq this.item.Name '')
+          }}
+          data-test-role-submit
+          {{on 'click' (action this.saveRole @items)}}
         />
         <Hds::Button
           @text='Cancel'
           type='reset'
           @color='secondary'
-          disabled={{if this.item.isSaving 'disabled'}}
-          {{on 'click' (action (queue (action close) (action 'reset')))}}
+          disabled={{this.item.isSaving}}
+          data-test-role-cancel
+          {{on 'click' (action this.closeRoleForm)}}
         />
+      </Hds::ButtonSet>
+    </div>
+  {{/if}}
 
-      {{else}}
-        <Hds::Button
-          type='submit'
-          @text='Create and apply'
-          @isLoading={{this.policy.isSaving}}
-          {{action 'dispatch' 'save' (array this.policy this.item.Policies (action (mut this.state) 'role'))}}
-          disabled={{if (or this.policy.isSaving this.policy.isPristine this.policy.isInvalid) 'disabled'}}
-        />
-        <Hds::Button
-          @text='Cancel'
-          type='reset'
-          @color='secondary'
-          disabled={{if this.policy.isSaving 'disabled'}}
-          {{on 'click' (action (mut this.state) 'role')}}
-        />
-      {{/if}}
-    </Hds::ButtonSet>
-  </:actions>
-</ModalDialog>
-
-<ChildSelector
-  @disabled={{@disabled}}
-  @repo={{this.repo}}
-  @dc={{@dc}}
-  @partition={{@partition}}
-  @nspace={{@nspace}}
-  @type="role"
-  @placeholder="Search for role"
-  @items={{@items}}
->
-  <:label>
-    Apply an existing role
-  </:label>
-  <:create>
-    <Hds::Button
-      @text='Create new role'
-      @size='small'
-      @color='tertiary'
-      @icon='plus'
-      class='type-dialog'
-      data-test-role-create
-      {{on "click" (optional this.modal.open)}}
-    />
-  </:create>
-  <:option as |option|>
-    {{option.Name}}
-  </:option>
-  <:set as |remove|>
-    <TabularCollection
-        data-test-roles
-        @rows={{5}}
-        @items={{sort-by 'CreateTime:desc' 'Name:asc' @items}}
-    >
-      <:header>
-        <th>Name</th>
-        <th>Description</th>
-      </:header>
-      <:row as |item index|>
-        <td>
-          <a href={{href-to 'dc.acls.roles.edit' item.ID}}>{{item.Name}}</a>
-        </td>
-        <td>
-          {{item.Description}}
-        </td>
-      </:row>
-      <:actions as |item index change checked|>
-        <PopoverMenu @expanded={{if (eq checked index) true false}} @onchange={{action change index}} @keyboardAccess={{true}}>
-          <:trigger>
-            More
-          </:trigger>
-          <:menu as |components confirm keypressClick|>
-              <components.MenuItem @href={{href-to 'dc.acls.roles.edit' item.ID}}>
-                <:label>
-                  {{#if (can "edit role" item=item)}}
-                    Edit
-                  {{else}}
-                    View
+  <ChildSelector
+    @disabled={{@disabled}}
+    @repo={{this.repo}}
+    @dc={{@dc}}
+    @partition={{@partition}}
+    @nspace={{@nspace}}
+    @type='role'
+    @placeholder='Search for role'
+    @items={{@items}}
+  >
+    <:label>
+      Apply an existing role
+    </:label>
+    <:option as |option|>
+      {{option.Name}}
+    </:option>
+    <:set as |remove|>
+      <Hds::Table data-test-roles>
+        <:head as |H|>
+          <H.Tr>
+            <H.Th>Role name</H.Th>
+            <H.Th>Role description</H.Th>
+            <H.Th @align='right'>Actions</H.Th>
+          </H.Tr>
+        </:head>
+        <:body as |B|>
+          {{#each (sort-by 'CreateTime:desc' 'Name:asc' @items) as |item index|}}
+            <B.Tr data-test-tabular-row>
+              <B.Td>
+                <a href={{href-to 'dc.acls.roles.edit' item.ID}}>{{item.Name}}</a>
+              </B.Td>
+              <B.Td>{{item.Description}}</B.Td>
+              <B.Td @align='right'>
+                <Hds::Dropdown @listPosition='bottom-right' as |dd|>
+                  <dd.ToggleIcon
+                    @icon='more-horizontal'
+                    @text='Open actions menu'
+                    @hasChevron={{false}}
+                    @size='small'
+                    data-test-role-actions
+                  />
+                  <dd.Interactive
+                    @icon={{if (can 'edit role' item=item) 'edit' 'eye'}}
+                    @href={{href-to 'dc.acls.roles.edit' item.ID}}
+                    data-test-edit
+                  >
+                    {{if (can 'edit role' item=item) 'Edit' 'View'}}
+                  </dd.Interactive>
+                  {{#if (not @disabled)}}
+                    <dd.Separator />
+                    <dd.Interactive
+                      @color='critical'
+                      @icon='trash'
+                      data-test-delete
+                      {{on 'click' (action this.confirmRemove item remove)}}
+                    >Remove</dd.Interactive>
                   {{/if}}
-                </:label>
-              </components.MenuItem>
+                </Hds::Dropdown>
+              </B.Td>
+            </B.Tr>
+          {{/each}}
+        </:body>
+      </Hds::Table>
 
-            {{#if (not @disabled)}}
-              <components.MenuItem class="dangerous" @onclick={{fn remove item @items}} data-test-delete>
-                <:label>
-                  Remove
-                </:label>
-                <:confirmHeader>
-                  Confirm Remove
-                </:confirmHeader>
-                <:confirmBody>
-                  Are you sure you want to remove this role?
-                </:confirmBody>
-                <:confirmFooter as |Params|>
-                  <Params.button @text='Remove' {{on 'click' Params.confirmAction}} />
-                </:confirmFooter>
-              </components.MenuItem>
-            {{/if}}
-          </:menu>
-        </PopoverMenu>
-      </:actions>
-    </TabularCollection>
-  </:set>
-</ChildSelector>
+      {{#if this.roleToRemove}}
+        <Hds::Modal
+          id='confirm-remove-role-modal'
+          @color='critical'
+          @onClose={{action this.cancelRemove}}
+          as |M|
+        >
+          <M.Header @icon='alert-diamond'>Confirm remove</M.Header>
+          <M.Body>
+            <p>Are you sure you want to remove this role?</p>
+          </M.Body>
+          <M.Footer as |F|>
+            <Hds::ButtonSet>
+              <Hds::Button
+                @text='Remove'
+                @color='critical'
+                data-test-id='confirm-action'
+                {{on 'click' (action this.invokeRemove)}}
+              />
+              <Hds::Button @text='Cancel' @color='secondary' {{on 'click' F.close}} />
+            </Hds::ButtonSet>
+          </M.Footer>
+        </Hds::Modal>
+      {{/if}}
+    </:set>
+  </ChildSelector>
+</div>

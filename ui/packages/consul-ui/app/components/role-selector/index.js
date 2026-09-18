@@ -6,9 +6,7 @@
 import ChildSelectorComponent from '../child-selector/index';
 import { inject as service } from '@ember/service';
 import { set } from '@ember/object';
-import { alias } from '@ember/object/computed';
-
-import { CallableEventSource as EventSource } from 'consul-ui/utils/dom/event-source';
+import { scheduleOnce } from '@ember/runloop';
 
 export default ChildSelectorComponent.extend({
   repo: service('repository/role'),
@@ -16,45 +14,40 @@ export default ChildSelectorComponent.extend({
   name: 'role',
   type: 'role',
   classNames: ['role-selector'],
-  state: 'role',
-  // You have to alias data.
-  // If you just set it, it loses its reference?
-  policy: alias('policyForm.data'),
-  init: function () {
-    this._super(...arguments);
-    set(this, 'policyForm', this.formContainer.form('policy'));
-    this.source = new EventSource();
+  isCreatingRole: false,
+  confirmRemove: function (item, removeFn) {
+    set(this, 'roleToRemove', { item, removeFn });
   },
-  actions: {
-    reset: function (e) {
-      this._super(...arguments);
-      this.policyForm.clear({ Datacenter: this.dc });
-    },
-    dispatch: function (type, data) {
-      this.source.dispatchEvent({ type: type, data: data });
-    },
-    change: function () {
-      const event = this.dom.normalizeEvent(...arguments);
-      const target = event.target;
-      switch (target.name) {
-        case 'role[state]':
-          set(this, 'state', target.value);
-          if (target.value === 'policy') {
-            const codeEditor = document.querySelector('[aria-label="role[policy][Rules]"]');
-            if (codeEditor) {
-              codeEditor.innerHTML = '';
-            }
-          }
-          break;
-        default:
-          this._super(...arguments);
-      }
-    },
-    triggerStateCheckboxChange() {
-      //Triggers click event on checkbox
-      //The function has to be added to change the logic from <label for=''> to Hds::Button
-      let element = document.getElementById(`${this.name}_state_policy`);
-      element && element.dispatchEvent(new Event('change'));
-    },
+  cancelRemove: function () {
+    set(this, 'roleToRemove', null);
+  },
+  invokeRemove: function () {
+    const { item, removeFn } = this.roleToRemove;
+    removeFn(item, this.items);
+    set(this, 'roleToRemove', null);
+  },
+  openRoleForm: function (event) {
+    event?.preventDefault();
+    set(this, 'roleCreateTrigger', event?.currentTarget);
+    set(this, 'isCreatingRole', true);
+  },
+  closeRoleForm: function (event) {
+    event?.preventDefault();
+    const trigger = this.roleCreateTrigger;
+    this.form.clear({
+      Datacenter: this.dc,
+      Namespace: this.nspace,
+      Partition: this.partition,
+    });
+    set(this, 'isCreatingRole', false);
+    set(this, 'roleCreateTrigger', null);
+    scheduleOnce('afterRender', trigger, 'focus');
+  },
+  saveRole: function (items, event) {
+    event?.preventDefault();
+    this.save.perform(this.item, items, () => this.closeRoleForm());
+  },
+  focusRoleForm: function (element) {
+    element.querySelector('input')?.focus();
   },
 });
