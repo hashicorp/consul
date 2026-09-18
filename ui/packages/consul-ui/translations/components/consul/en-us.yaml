@@ -28,10 +28,6 @@ service:
     kind: Service Type
     in-mesh: In service mesh
     not-in-mesh: Not in service mesh
-upstream:
-  search-bar:
-    instance:
-      name: Type
 service-instance:
   search-bar:
     sort:

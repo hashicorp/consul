@@ -1,0 +1,16 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{! Sorting lives in Consul::Kv::Sort, up beside the Create button, so this is
+    just the stock toolbar. }}
+<Consul::ListToolbar
+  class="consul-kv-toolbar"
+  ...attributes
+  @filter={{@filter}}
+  @search={{@search}}
+  @onsearch={{@onsearch}}
+  @filterGroups={{this.filterGroups}}
+  @searchPlaceholder="Search"
+/>

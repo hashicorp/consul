@@ -14,6 +14,10 @@ module('Integration | Component | app', function (hooks) {
   test('it renders the app shell containers in the expected order', async function (assert) {
     await render(hbs`
       <App>
+        <:header>
+          <div data-test-header>Header</div>
+        </:header>
+
         <:sideNav>
           <div data-test-side-nav>Side nav</div>
         </:sideNav>
@@ -29,10 +33,10 @@ module('Integration | Component | app', function (hooks) {
     `);
 
     assert.dom('.app > .app-shell').exists();
+    assert.dom('.app-shell > .hds-app-frame__header').exists();
     assert.dom('.app-shell > .hds-app-frame__modals .modal-layer').exists();
     assert.dom('.app-shell > .hds-app-frame__modals + main#hds-main.app-shell__main').exists();
     assert.dom('main#hds-main.app-shell__main').exists();
-    assert.dom('.app-shell > .hds-app-frame__header').doesNotExist();
     assert.dom('.app-shell > .hds-app-frame__footer').doesNotExist();
   });
 

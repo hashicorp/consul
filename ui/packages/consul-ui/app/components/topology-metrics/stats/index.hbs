@@ -24,7 +24,7 @@
 <div ...attributes class="topology-metrics-stats" data-test-topology-metrics-stats>
   {{#if this.hasLoaded }}
     {{#each this.stats as |stat|}}
-    <dl {{hds-tooltip
+    <dl role="group" tabindex="-1" aria-label={{concat stat.value ' ' stat.label}} {{hds-tooltip
       stat.desc
       options=(detached-tooltip-options
         allowHTML=true
