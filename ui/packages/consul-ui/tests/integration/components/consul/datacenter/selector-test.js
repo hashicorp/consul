@@ -11,6 +11,16 @@ import { render } from '@ember/test-helpers';
 module('Integration | Component | consul datacenter selector', function (hooks) {
   setupRenderingTest(hooks);
 
+  hooks.beforeEach(function () {
+    // The nav-selector uses @preserveContentInDom so dc items (with href-to)
+    // are always rendered. Stub router:main so hrefTo helper can compute a URL.
+    const router = this.owner.lookup('router:main');
+    if (router && (typeof router.location === 'string' || !router.location.hrefTo)) {
+      // Replace the location with a stub object that has a hrefTo method
+      router.location = { hrefTo: () => '#' };
+    }
+  });
+
   test('it does not display a dropdown when only one dc is available', async function (assert) {
     const dcs = [
       {

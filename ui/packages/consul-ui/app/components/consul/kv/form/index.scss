@@ -3,9 +3,45 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-.consul-kv-value-editor {
-	.hds-code-editor__editor {
-		max-height: 80vh;
-		overflow: auto;
-	}
+/* HDS fields bring no outer spacing, so the Code toggle would otherwise sit
+   right against the input. */
+.consul-kv-form__key {
+  margin-bottom: 16px;
+}
+
+/* The legacy `.type-text` bottom margin stacks with the fieldset's own and
+   pushes the buttons away from the value; the tag and ancestor outrank it. */
+.app-shell__main label.consul-kv-form__value {
+  margin-bottom: 0;
+}
+
+.consul-kv-form__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.consul-kv-form__editor {
+  /* the title is an <h2>, so app-wide heading typography lands on it and makes
+     the editor's header far taller than HDS intends */
+  .hds-code-editor__title {
+    font-size: 0.875rem;
+    line-height: 1.43;
+  }
+
+  /* the title is now shorter than the copy button, so it needs centring
+     against it rather than HDS's top alignment */
+  .hds-code-editor__header {
+    align-items: center;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  /* the editor grows with its value, up to the point where scrolling it beats
+     pushing the form's buttons off screen */
+  .hds-code-editor__editor {
+    max-height: 80vh;
+    overflow: auto;
+  }
 }

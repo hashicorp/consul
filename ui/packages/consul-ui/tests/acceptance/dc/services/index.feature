@@ -104,9 +104,9 @@ Feature: dc / services / index: List Services
     Then I see 3 service models
     And I see kind on the services like yaml
     ---
-    - ingress-gateway
-    - terminating-gateway
-    - api-gateway
+    - Ingress gateway
+    - Terminating gateway
+    - API gateway
     ---
   Scenario: View a Service in mesh
     Given 1 datacenter model with the value "dc-1"

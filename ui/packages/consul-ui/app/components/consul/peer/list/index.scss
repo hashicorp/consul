@@ -3,9 +3,40 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-.peers__list__peer-detail {
-  display: flex;
-  align-content: center;
-  gap: 18px;
+.consul-peer-list {
+  margin-top: 16px;
+
+  .hds-table__th {
+    white-space: nowrap;
+  }
+
+  /* Let the Name column absorb the surplus width so the rest collapse to
+     their content width rather than sharing it evenly. */
+  .hds-table__th:nth-child(1),
+  .hds-table__td:nth-child(1) {
+    width: 100%;
+  }
+
+  /* Truncate long names; the full value is in a tooltip (see index.hbs).
+     Table auto-layout sizes columns from unbreakable content width and
+     ignores overflow/min-width, so truncating needs a concrete cap. */
+  .hds-table__td:nth-child(1) > * {
+    display: inline-block;
+    max-width: 480px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+
+  /* Shrink the trailing Actions column to fit just the menu button. */
+  .hds-table__th:last-child,
+  .hds-table__td:last-child {
+    width: 1%;
+    white-space: nowrap;
+  }
 }
 
+.consul-peer-list__actions {
+  display: inline-flex;
+}

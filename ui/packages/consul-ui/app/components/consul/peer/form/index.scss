@@ -5,16 +5,69 @@
 
 .consul-peer-form {
   & {
-    width: 416px;
+    /* Fills the page's full content column, instead of the old 416px modal
+       width this form used before it moved out of a dialog. */
+    width: 100%;
+    /* Tabs -> form content gap, per Figma. */
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
   }
   nav {
     margin-bottom: 20px;
   }
 }
 
+.consul-peer-form-generate,
+.consul-peer-form-initiate {
+  /* Fields -> footer (Cancel/submit) gap, per Figma's Stepper::List ->
+     Footer spacing. The error alert (when present) shares this gap too. */
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+}
+
+.consul-peer-form-generate-fieldsets {
+  /* Name / Server address(es) are two separate <fieldset>s (each field has
+     its own validation state machine); this is the gap between them. */
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.consul-peer-form-initiate-fieldsets fieldset {
+  /* Name / Token share one <fieldset>, so the gap goes on its contents. */
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.consul-peer-form-generate-fieldsets,
+.consul-peer-form-initiate-fieldsets {
+  /* Figma's field labels carry no "Required"/"(Optional)" badge (the
+     legend that would normally explain them is hidden in the design too),
+     so hide the ones Hds::Form::TextInput::Field renders by default. The
+     @isRequired/@isOptional args stay put so the underlying <input required>
+     and aria semantics are unaffected. */
+  .hds-form-indicator {
+    display: none;
+  }
+}
+
+.consul-peer-form-generate,
+.consul-peer-form-initiate {
+  /* Cancel / Generate token / Add peer sit right-aligned, per Figma's
+     Footer (Hds::ButtonSet defaults to flex-start). */
+  .hds-button-set {
+    justify-content: flex-end;
+  }
+}
+
 .consul-peer-form-generate {
   & {
-    width: 416px;
+    width: 100%;
     min-height: 200px;
   }
   ol {

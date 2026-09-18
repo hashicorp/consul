@@ -45,5 +45,12 @@ export default function (
     ...submitable(),
     ...cancelable(),
     ...deletable(),
+    // The delete confirmation button renders inside an Hds::Modal which is
+    // portalled outside <main>, so we must override confirmDelete to target
+    // the modal's confirm button directly.
+    confirmDelete: clickable('#confirm-modal [data-test-confirm-delete]', {
+      resetScope: true,
+      testContainer: 'body',
+    }),
   };
 }
