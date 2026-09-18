@@ -7,6 +7,9 @@ import (
 	"context"
 	"errors"
 
+	"github.com/hashicorp/go-metrics"
+	"github.com/hashicorp/go-metrics/prometheus"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -14,6 +17,19 @@ import (
 	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 )
+
+// StatsCounters registers the submatview-specific counters with the agent's
+// telemetry system (see agent/setup.go).
+var StatsCounters = []prometheus.CounterDefinition{
+	{
+		Name: []string{"submatview", "acl_not_found", "tolerated"},
+		Help: "Increments each time a transient \"ACL not found\" error for a local materialized-view subscription is tolerated instead of evicting it.",
+	},
+	{
+		Name: []string{"submatview", "acl_not_found", "terminated"},
+		Help: "Increments when a local materialized-view subscription is evicted after repeated \"ACL not found\" errors.",
+	},
+}
 
 // LocalMaterializer is a materializer for a stream of events
 // and manages the local subscription to the event publisher
@@ -24,6 +40,11 @@ type LocalMaterializer struct {
 	handler     eventHandler
 
 	mat *materializer
+
+	// consecutiveACLNotFound tracks how many "ACL not found" errors this
+	// subscription has reported in a row. Only ever touched from within Run's
+	// single goroutine.
+	consecutiveACLNotFound int
 }
 
 type LocalMaterializerDeps struct {
@@ -69,6 +90,18 @@ func (m *LocalMaterializer) Run(ctx context.Context) {
 		if ctx.Err() != nil {
 			return
 		}
+
+		if acl.IsErrNotFound(err) {
+			m.consecutiveACLNotFound++
+			if m.consecutiveACLNotFound < acl.MaxConsecutiveNotFoundTolerance {
+				metrics.IncrCounter([]string{"submatview", "acl_not_found", "tolerated"}, 1)
+			} else {
+				metrics.IncrCounter([]string{"submatview", "acl_not_found", "terminated"}, 1)
+			}
+		} else {
+			m.consecutiveACLNotFound = 0
+		}
+
 		if m.isTerminalError(err) {
 			return
 		}
@@ -84,9 +117,13 @@ func (m *LocalMaterializer) Run(ctx context.Context) {
 // isTerminalError determines whether the given error cannot be recovered from
 // and should cause the materializer to halt and be evicted from the view store.
 //
-// This roughly matches the logic in agent/proxycfg-glue.newUpdateEvent.
+// An "ACL not found" error is only terminal once it has occurred
+// acl.MaxConsecutiveNotFoundTolerance times in a row for this subscription -
+// a Raft follower that is momentarily behind on replication can transiently
+// report a valid token as missing. This roughly matches the logic in
+// agent/proxycfg-glue.newUpdateEvent and agent/proxycfg/state.go.
 func (m *LocalMaterializer) isTerminalError(err error) bool {
-	return acl.IsErrNotFound(err)
+	return acl.IsErrNotFound(err) && m.consecutiveACLNotFound >= acl.MaxConsecutiveNotFoundTolerance
 }
 
 // subscribeOnce opens a new subscription to a local backend and runs
