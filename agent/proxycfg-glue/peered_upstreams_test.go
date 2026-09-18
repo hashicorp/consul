@@ -6,7 +6,6 @@ package proxycfgglue
 import (
 	"context"
 	"fmt"
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -19,15 +18,8 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
-var mockAgentBindAddrOnce sync.Once
-
-func setupMockAgentBindAddr() {
-	mockAgentBindAddrOnce.Do(func() {
-		netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
-	})
-}
-
 func registerService(t *testing.T, index uint64, peerName, serviceName, nodeName string, store *state.Store) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	require.NoError(t, store.EnsureRegistration(index, &structs.RegisterRequest{
 		Node:           nodeName,
 		Service:        &structs.NodeService{Service: serviceName, ID: serviceName},
@@ -50,8 +42,6 @@ func registerService(t *testing.T, index uint64, peerName, serviceName, nodeName
 }
 
 func TestServerPeeredUpstreams(t *testing.T) {
-	setupMockAgentBindAddr()
-
 	const (
 		index    uint64 = 123
 		nodeName        = "node-1"
@@ -95,8 +85,6 @@ func TestServerPeeredUpstreams(t *testing.T) {
 }
 
 func TestServerPeeredUpstreams_ACLEnforcement(t *testing.T) {
-	setupMockAgentBindAddr()
-
 	const (
 		index    uint64 = 123
 		nodeName        = "node-1"

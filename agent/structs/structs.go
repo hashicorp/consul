@@ -2541,13 +2541,6 @@ func PeeredServiceNameFromString(input string) (PeeredServiceName, bool) {
 	}, true
 }
 
-// IsPortSynthetic returns true if the service name represents a synthetic
-// per-port VIP entry of the form "<portName>.<baseServiceName>".
-func (psn PeeredServiceName) IsPortSynthetic() bool {
-	i := strings.IndexByte(psn.ServiceName.Name, '.')
-	return i > 0 && i < len(psn.ServiceName.Name)-1
-}
-
 type ServiceNameWithSamenessGroup struct {
 	SamenessGroup string
 	ServiceName

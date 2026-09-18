@@ -3452,37 +3452,3 @@ func TestPeeredServiceNameFromString(t *testing.T) {
 		require.False(t, ok, input)
 	}
 }
-
-func TestPeeredServiceName_IsPortSynthetic(t *testing.T) {
-	tests := []struct {
-		name     string
-		psn      PeeredServiceName
-		expected bool
-	}{
-		{
-			name:     "base service",
-			psn:      PeeredServiceName{ServiceName: NewServiceName("web", nil), Peer: "peer-a"},
-			expected: false,
-		},
-		{
-			name:     "port synthetic service",
-			psn:      PeeredServiceName{ServiceName: NewServiceName("http.web", nil), Peer: "peer-a"},
-			expected: true,
-		},
-		{
-			name:     "leading dot",
-			psn:      PeeredServiceName{ServiceName: NewServiceName(".web", nil), Peer: "peer-a"},
-			expected: false,
-		},
-		{
-			name:     "trailing dot",
-			psn:      PeeredServiceName{ServiceName: NewServiceName("web.", nil), Peer: "peer-a"},
-			expected: false,
-		},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			require.Equal(t, tc.expected, tc.psn.IsPortSynthetic())
-		})
-	}
-}

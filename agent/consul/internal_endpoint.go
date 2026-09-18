@@ -751,19 +751,14 @@ func (m *Internal) PeeredUpstreams(args *structs.PartitionSpecificRequest, reply
 				return err
 			}
 
-			allServices := make([]structs.PeeredServiceName, 0, len(vips))
-			serviceVIPs := make(map[string]string, len(vips))
+			result := make([]structs.PeeredServiceName, 0, len(vips))
 			for _, vip := range vips {
-				if !vip.Service.IsPortSynthetic() {
-					allServices = append(allServices, vip.Service)
-				}
-				if ip, err := vip.IPWithOffset(); err == nil && ip != "" {
-					serviceVIPs[vip.Service.String()] = ip
-				}
+				result = append(result, vip.Service)
 			}
-			result := allServices
 
-			reply.Index, reply.Services, reply.ServiceVIPs = index, result, serviceVIPs
+			// ServiceVIPs carries per-port virtual IPs for multiport peering,
+			// which is an enterprise-only feature. CE never populates it.
+			reply.Index, reply.Services, reply.ServiceVIPs = index, result, nil
 			return nil
 		})
 }

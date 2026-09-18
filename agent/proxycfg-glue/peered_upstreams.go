@@ -49,21 +49,16 @@ func (s *serverPeeredUpstreams) Notify(ctx context.Context, req *structs.Partiti
 				return 0, nil, err
 			}
 
-			allServices := make([]structs.PeeredServiceName, 0, len(vips))
-			serviceVIPs := make(map[string]string, len(vips))
+			result := make([]structs.PeeredServiceName, 0, len(vips))
 			for _, vip := range vips {
-				if !vip.Service.IsPortSynthetic() {
-					allServices = append(allServices, vip.Service)
-				}
-				if ip, err := vip.IPWithOffset(); err == nil && ip != "" {
-					serviceVIPs[vip.Service.String()] = ip
-				}
+				result = append(result, vip.Service)
 			}
-			result := allServices
 
 			return index, &structs.IndexedPeeredServiceList{
-				Services:    result,
-				ServiceVIPs: serviceVIPs,
+				Services: result,
+				// ServiceVIPs carries per-port virtual IPs for multiport peering,
+				// which is an enterprise-only feature. CE never populates it.
+				ServiceVIPs: nil,
 				QueryMeta: structs.QueryMeta{
 					Index:   index,
 					Backend: structs.QueryBackendBlocking,
