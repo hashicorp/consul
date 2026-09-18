@@ -730,21 +730,24 @@ type SOA struct {
 }
 
 type DNS struct {
-	AllowStale         *bool             `mapstructure:"allow_stale"`
-	ARecordLimit       *int              `mapstructure:"a_record_limit"`
-	DisableCompression *bool             `mapstructure:"disable_compression"`
-	EnableTruncate     *bool             `mapstructure:"enable_truncate"`
-	MaxStale           *string           `mapstructure:"max_stale"`
-	NodeTTL            *string           `mapstructure:"node_ttl"`
-	OnlyPassing        *bool             `mapstructure:"only_passing"`
-	RecursorStrategy   *string           `mapstructure:"recursor_strategy"`
-	RecursorTimeout    *string           `mapstructure:"recursor_timeout"`
-	ServiceTTL         map[string]string `mapstructure:"service_ttl"`
-	UDPAnswerLimit     *int              `mapstructure:"udp_answer_limit"`
-	NodeMetaTXT        *bool             `mapstructure:"enable_additional_node_meta_txt"`
-	SOA                *SOA              `mapstructure:"soa"`
-	UseCache           *bool             `mapstructure:"use_cache"`
-	CacheMaxAge        *string           `mapstructure:"cache_max_age"`
+	AllowStale                          *bool             `mapstructure:"allow_stale"`
+	ARecordLimit                        *int              `mapstructure:"a_record_limit"`
+	LocalityAwareLookup                 *string           `mapstructure:"locality_aware_lookup"`
+	LocalityAwareLookupServiceAllowlist []string          `mapstructure:"locality_aware_lookup_service_allowlist"`
+	LocalityAwareLookupServiceBlocklist []string          `mapstructure:"locality_aware_lookup_service_blocklist"`
+	DisableCompression                  *bool             `mapstructure:"disable_compression"`
+	EnableTruncate                      *bool             `mapstructure:"enable_truncate"`
+	MaxStale                            *string           `mapstructure:"max_stale"`
+	NodeTTL                             *string           `mapstructure:"node_ttl"`
+	OnlyPassing                         *bool             `mapstructure:"only_passing"`
+	RecursorStrategy                    *string           `mapstructure:"recursor_strategy"`
+	RecursorTimeout                     *string           `mapstructure:"recursor_timeout"`
+	ServiceTTL                          map[string]string `mapstructure:"service_ttl"`
+	UDPAnswerLimit                      *int              `mapstructure:"udp_answer_limit"`
+	NodeMetaTXT                         *bool             `mapstructure:"enable_additional_node_meta_txt"`
+	SOA                                 *SOA              `mapstructure:"soa"`
+	UseCache                            *bool             `mapstructure:"use_cache"`
+	CacheMaxAge                         *string           `mapstructure:"cache_max_age"`
 
 	// Enterprise Only
 	PreferNamespace *bool `mapstructure:"prefer_namespace"`
