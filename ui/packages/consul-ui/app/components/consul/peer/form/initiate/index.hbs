@@ -28,11 +28,15 @@
         <form id={{id}} {{on "submit" (fn writer.persist @item)}}>
           {{yield
             (hash
+              item=@item
               Fieldsets=(component
                 "consul/peer/form/initiate/fieldsets" item=@item
               )
               Actions=(component
-                "consul/peer/form/initiate/actions" item=@item id=id
+                "consul/peer/form/initiate/actions"
+                item=@item
+                id=id
+                onCancel=@onCancel
               )
             )
           }}

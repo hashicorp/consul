@@ -6,7 +6,7 @@
 export default (collection, text) =>
   (scope = '.consul-health-check-list') => {
     return collection(`${scope} li`, {
-      name: text('header h2'),
+      name: text('.health-check-output__name'),
       type: text('[data-health-check-type]'),
       exposed: text('[data-test-exposed]'),
     });
