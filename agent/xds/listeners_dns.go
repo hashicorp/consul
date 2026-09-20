@@ -18,10 +18,8 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/xds/naming"
 )
 
 const (
@@ -163,7 +161,7 @@ func makeVirtualDNSDomains(cfgSnap *proxycfg.ConfigSnapshot) []*envoy_dns_table_
 		if nodes, ok := cfgSnap.ConnectProxy.PeerUpstreamEndpoints.Get(uid); ok {
 			// Upstreams reached through a peer are never terminating gateways, so no
 			// gateway VIP tag applies here.
-			for _, addr := range virtualIPsForNodes(cfgSnap, nodes, "") {
+			for _, addr := range virtualIPsForNodes(nodes, "") {
 				addEntry(fqdn, addr)
 			}
 		}
@@ -217,14 +215,11 @@ func virtualIPsForChain(cfgSnap *proxycfg.ConfigSnapshot, uid proxycfg.UpstreamI
 		for _, ip := range chain.AutoVirtualIPs {
 			uniqueAddrs[ip] = struct{}{}
 		}
-		for _, ip := range chain.ManualVirtualIPs {
-			uniqueAddrs[ip] = struct{}{}
-		}
 	}
 
 	nodes := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[uid][chain.ID()]
 	gatewayVIPTag := structs.ServiceGatewayVirtualIPTag(chain.CompoundServiceName())
-	for _, addr := range virtualIPsForNodes(cfgSnap, nodes, gatewayVIPTag) {
+	for _, addr := range virtualIPsForNodes(nodes, gatewayVIPTag) {
 		uniqueAddrs[addr] = struct{}{}
 	}
 
@@ -241,7 +236,7 @@ func virtualIPsForChain(cfgSnap *proxycfg.ConfigSnapshot, uid proxycfg.UpstreamI
 // gatewayVIPTag is the terminating-gateway-specific tagged-address key for the
 // upstream (from structs.ServiceGatewayVirtualIPTag); pass "" when the upstream
 // cannot be served by a terminating gateway (e.g. peer upstreams).
-func virtualIPsForNodes(cfgSnap *proxycfg.ConfigSnapshot, nodes structs.CheckServiceNodes, gatewayVIPTag string) []string {
+func virtualIPsForNodes(nodes structs.CheckServiceNodes, gatewayVIPTag string) []string {
 	uniqueAddrs := make(map[string]struct{})
 	for _, e := range nodes {
 		// Terminating gateways advertise the upstream's VIP under a gateway-specific
@@ -258,14 +253,6 @@ func virtualIPsForNodes(cfgSnap *proxycfg.ConfigSnapshot, nodes structs.CheckSer
 
 		if vip := e.Service.TaggedAddresses[structs.TaggedAddressVirtualIP]; vip.Address != "" {
 			uniqueAddrs[vip.Address] = struct{}{}
-		}
-
-		// The virtualIPTag is used by consul-k8s to store the ClusterIP for a service.
-		// For services imported from a peer, the partition will be equal in all cases.
-		if acl.EqualPartitions(e.Node.PartitionOrDefault(), cfgSnap.ProxyID.PartitionOrDefault()) {
-			if vip := e.Service.TaggedAddresses[naming.VirtualIPTag]; vip.Address != "" {
-				uniqueAddrs[vip.Address] = struct{}{}
-			}
 		}
 	}
 
