@@ -28,7 +28,7 @@ as |grouped|}}
       }}
       ...attributes
     >
-      <dt {{hds-tooltip (concat (capitalize @type) " Checks") options=(detached-tooltip-options)}}>
+      <dt role="group" tabindex="-1" aria-label={{concat (capitalize @type) " Checks"}} {{hds-tooltip (concat (capitalize @type) " Checks") options=(detached-tooltip-options)}}>
         {{capitalize @type}} Checks
       </dt>
       {{#let

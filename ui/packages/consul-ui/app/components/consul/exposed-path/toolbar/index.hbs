@@ -1,0 +1,54 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{!
+  Service-instance Exposed Paths-tab toolbar. All the Filter Bar wiring lives
+  in the generic Consul::ListToolbar. This tab has no categorical filter
+  groups and no "Search across" scope (a single free-text search box is all
+  the Figma design calls for), so @filter/@filterGroups are left unset — the
+  Filters dropdown and "Search across" dropdown simply don't render. Sort is
+  independently available per-column via the table's clickable headers; the
+  dropdown below just sets the initial/default order (matching the Figma
+  "A to Z" toolbar control).
+}}
+<Consul::ListToolbar
+  class="consul-exposed-path-toolbar"
+  ...attributes
+  @search={{@search}}
+  @onsearch={{@onsearch}}
+  @searchPlaceholder={{t "common.search.search"}}
+>
+  <:quickFilters>
+{{#if @sort}}
+    <Hds::Dropdown
+      class="consul-exposed-path-toolbar__sort"
+      @listPosition="bottom-right"
+      @preserveContentInDom={{true}}
+      data-test-sort-control
+      as |dd|
+    >
+      <dd.ToggleButton
+        @text={{get
+          (from-entries (array
+            (array "Path:asc" (t "common.sort.alpha.asc"))
+            (array "Path:desc" (t "common.sort.alpha.desc"))
+          ))
+          @sort.value
+        }}
+        @color="secondary"
+        data-test-sort-toggle
+      />
+      <dd.Interactive
+        data-test-sort-option="Path:asc"
+        {{on "click" (fn @sort.change (hash target=(hash selected="Path:asc")))}}
+      >{{t "common.sort.alpha.asc"}}</dd.Interactive>
+      <dd.Interactive
+        data-test-sort-option="Path:desc"
+        {{on "click" (fn @sort.change (hash target=(hash selected="Path:desc")))}}
+      >{{t "common.sort.alpha.desc"}}</dd.Interactive>
+    </Hds::Dropdown>
+{{/if}}
+  </:quickFilters>
+</Consul::ListToolbar>

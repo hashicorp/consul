@@ -8,6 +8,13 @@ a[rel*='external']::after {
   @extend %with-exit-icon, %as-pseudo;
   margin-left: 8px;
 }
+/* Dropdown menu items that navigate are anchors, and `%table td a`'s legacy
+   `display: block` outranks the flex layout HDS gives them -- without this an
+   item's icon stacks above its label instead of sitting beside it. */
+.app-shell__main .hds-dropdown-list-item--variant-interactive > a {
+  display: flex;
+  align-items: center;
+}
 %main-content label a[rel*='help'] {
   color: var(--token-color-foreground-faint);
 }

@@ -20,6 +20,17 @@ export default class UriHelper extends Helper {
   }
 
   compute([template, vars]) {
-    return this.data.uri(render(template, vars));
+    const str = render(template, vars);
+    // `data.uri()` mints a new wrapper object per call, and DataSource/
+    // DataLoader watch `@src` with `{{did-update-helper}}`, which fires on any
+    // invalidation rather than on an actual change. Returning a stable
+    // instance keeps an unchanged URI from reading as an update -- for
+    // DataLoader that meant re-dispatching `LOAD` and tearing down everything
+    // yielded to `:loaded`.
+    if (this._str !== str) {
+      this._str = str;
+      this._uri = this.data.uri(str);
+    }
+    return this._uri;
   }
 }
