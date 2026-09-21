@@ -143,11 +143,6 @@ func (n *nftablesExecutor) ApplyRules(_ string) error {
 		return fmt.Errorf("nft binary not found: %w", err)
 	}
 
-	//cleanup of any legacy iptables rules from a previous Consul version.
-	if err := flushLegacyIPTablesRules(n.cfg.NetNS); err != nil {
-		return fmt.Errorf("failed to remove legacy iptables rules: %w", err)
-	}
-
 	script := strings.Join(n.lines, "\n")
 
 	var cmd *exec.Cmd
@@ -165,8 +160,20 @@ func (n *nftablesExecutor) ApplyRules(_ string) error {
 	cmd.Stdout = &out
 	cmd.Stderr = &out
 	if err := cmd.Run(); err != nil {
+		// The native nftables rules failed to apply. Any pre-existing legacy
+		// iptables rules are left untouched (cleanup only runs below, after
+		// a successful install), so traffic keeps flowing through them
+		// instead of being left with no interception at all.
 		return fmt.Errorf("failed to apply nftables rules: %w, output: %s", err, out.String())
 	}
+
+	// The new nftables rules are active. Only now attempt to remove any
+	// legacy iptables/ip6tables rules from a previous install — never
+	// before the new rules are confirmed working.
+	if err := flushLegacyIPTablesRules(n.cfg.NetNS); err != nil {
+		return fmt.Errorf("nftables rules applied successfully, but failed to remove legacy iptables rules: %w", err)
+	}
+
 	return nil
 }
 
