@@ -203,7 +203,7 @@ func makeVirtualDNSDomains(cfgSnap *proxycfg.ConfigSnapshot) []*envoy_dns_table_
 // intercepting filter chain (silent bypass) or omit a VIP the tproxy matches.
 //
 // The set is the union of:
-//   - the chain's auto-assigned and manually-configured virtual IPs, but only
+//   - the chain's auto-assigned virtual IPs, but only
 //     when the chain is in the proxy's own partition (the tproxy listener only
 //     intercepts these for same-partition upstreams); and
 //   - the virtual IP of the upstream service itself, identified by the chain's
@@ -213,6 +213,9 @@ func virtualIPsForChain(cfgSnap *proxycfg.ConfigSnapshot, uid proxycfg.UpstreamI
 
 	if chain.Partition == cfgSnap.ProxyID.PartitionOrDefault() {
 		for _, ip := range chain.AutoVirtualIPs {
+			uniqueAddrs[ip] = struct{}{}
+		}
+		for _, ip := range chain.ManualVirtualIPs {
 			uniqueAddrs[ip] = struct{}{}
 		}
 	}
