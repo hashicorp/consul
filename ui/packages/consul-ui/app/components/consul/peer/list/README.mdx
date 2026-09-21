@@ -1,11 +1,12 @@
 # Consul::Peer::List
 
-A presentational component for rendering Consul Peers
+A presentational component for rendering Consul cluster peerings
 
 ```hbs
 <DataSource @src={{uri '/partition/default/dc-1/peers'}} as |source|>
   <Consul::Peer::List
     @items={{source.data}}
+    @onedit={{noop}}
     @ondelete={{noop}}
   />
 </DataSource>
@@ -17,10 +18,12 @@ A presentational component for rendering Consul Peers
 | Argument/Attribute | Type | Default | Description |
 | --- | --- | --- | --- |
 | `items` | `array` |  | An array of Peers |
+| `onedit` | `function` |  | An action to execute when the `Regenerate token` action is clicked |
 | `ondelete` | `function` |  | An action to execute when the `Delete` action is clicked |
 
 ## See
 
+- [Component Source Code](./index.js)
 - [Template Source Code](./index.hbs)
 
 ---

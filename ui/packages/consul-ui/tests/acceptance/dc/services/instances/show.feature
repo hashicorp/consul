@@ -77,8 +77,8 @@ Feature: dc / services / instances / show: Show Service Instance
     And I see healthChecksIsSelected on the tabs
     And I see 6 healthCheck models
 
-    When I click tags&Meta on the tabs
-    And I see tags&MetaIsSelected on the tabs
+    When I click tags&Metadata on the tabs
+    And I see tags&MetadataIsSelected on the tabs
 
     Then I see the text "Tag1" in "[data-test-tags] span:nth-child(1)"
     Then I see the text "Tag2" in "[data-test-tags] span:nth-child(2)"

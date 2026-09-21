@@ -34,7 +34,7 @@ module('Acceptance | components / kv-filter', function (hooks) {
         await visit('kvs', { dc: 'dc-1' }, { nspace });
         assert.equal(currentURL(), nspaceURL(nspace, '/dc-1/kv'));
 
-        await fillIn('[name="s"]', text);
+        await fillIn('.hds-filter-bar__search', text);
 
         // mirrors `I see 1 kv model with the name "<Text>"`
         const matching = [...page().kvs].filter((item) => item.isVisible && item.name === text);
