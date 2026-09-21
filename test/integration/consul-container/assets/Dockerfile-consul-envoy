@@ -1,28 +1,26 @@
-# Copyright IBM Corp. 2024, 2026
-# SPDX-License-Identifier: BUSL-1.1
-
-ARG CONSUL_DATAPLANE_IMAGE
+# Note these args have to be before the first FROM
 ARG CONSUL_IMAGE
+ARG ENVOY_VERSION
 
-# Docker doesn't support expansion in COPY --copy, so we need to create an intermediate image.
 FROM ${CONSUL_IMAGE} as consul
 
-FROM ${CONSUL_DATAPLANE_IMAGE} as consuldataplane
+FROM docker.mirror.hashicorp.services/envoyproxy/envoy:v${ENVOY_VERSION}
 
-USER root
-
-# On Mac M1s when TProxy is enabled, consul-dataplane containers spawned from this image
+# On Mac M1s when TProxy is enabled, envoy containers spawned from this image
 # (only used in consul-container integration tests) may fail to apply nftables rules.
 # This is because the nf_tables kernel module is not available under Docker Desktop's
 # Linux VM on Apple Silicon. TProxy tests on Mac M1s will fail locally but pass in CI.
-RUN microdnf install -y nftables sudo nc \
- 	&& usermod -a -G wheel consul-dataplane \
- 	&& echo 'consul-dataplane ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+#
+# Install nftables and sudo, needed for tproxy.
+RUN apt update -y \
+	&& apt install -y nftables sudo curl dnsutils \
+	&& adduser envoy sudo \
+	&& echo 'envoy ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+COPY tproxy-startup.sh /bin/tproxy-startup.sh
+RUN chmod +x /bin/tproxy-startup.sh \
+	&& chown envoy:envoy /bin/tproxy-startup.sh
 
 COPY --from=consul /bin/consul /bin/consul
 
-COPY tproxy-startup.sh /bin/tproxy-startup.sh
-RUN chmod +x /bin/tproxy-startup.sh && chown root:root /bin/tproxy-startup.sh
-
-USER 100
-
+USER envoy
