@@ -1204,10 +1204,9 @@ func TestSetup_PortRangeNormalization(t *testing.T) {
 	}
 }
 
-// TestSetup_IPv4Only_NoIPv6Intercept verifies that when dualStack=false, IPv6-return
-// rules are prepended to both base chains so non-loopback IPv6 traffic is not
-// intercepted — matching the old iptables behaviour where ip6tables was never invoked.
-func TestSetup_IPv4Only_NoIPv6Intercept(t *testing.T) {
+// TestSetup_IPv4Only_IPv6EarlyReturnRulesPresent verifies that when dualStack=false,
+// IPv6 early-return rules are added to both base chains so IPv6 is not intercepted.
+func TestSetup_IPv4Only_IPv6EarlyReturnRulesPresent(t *testing.T) {
 	cfg := Config{
 		ProxyUserID:      "123",
 		ProxyInboundPort: 20000,
@@ -1217,15 +1216,17 @@ func TestSetup_IPv4Only_NoIPv6Intercept(t *testing.T) {
 	require.NoError(t, SetupWithAdditionalRules(cfg, nil, false))
 
 	rules := cfg.NftablesProvider.Rules()
+	// The presence of these return rules is what PREVENTS IPv6 interception.
 	require.Contains(t, rules,
 		"nft add rule inet consul_tproxy CONSUL_NAT_OUTPUT meta nfproto ipv6 return")
 	require.Contains(t, rules,
 		"nft add rule inet consul_tproxy CONSUL_NAT_PREROUTING meta nfproto ipv6 return")
 }
 
-// TestSetup_DualStack_HasNoIPv6EarlyReturn verifies that when dualStack=true,
-// the IPv6-return rules are NOT added — IPv6 traffic must be intercepted.
-func TestSetup_DualStack_HasNoIPv6EarlyReturn(t *testing.T) {
+// TestSetup_DualStack_NoIPv6EarlyReturn verifies that when dualStack=true,
+// no "meta nfproto ipv6 return" rules are added, so IPv6 traffic passes through
+// and is intercepted by the proxy as intended.
+func TestSetup_DualStack_NoIPv6EarlyReturn(t *testing.T) {
 	cfg := Config{
 		ProxyUserID:      "123",
 		ProxyInboundPort: 20000,
