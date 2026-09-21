@@ -1164,6 +1164,10 @@ func TestNormalizePortRange(t *testing.T) {
 		{"8080:9000", "8080-9000"},
 		{"1000:2000", "1000-2000"},
 		{"0:65535", "0-65535"},
+		// open-ended ranges — iptables' omitted-bound semantics preserved
+		{":19000", "0-19000"},
+		{"18000:", "18000-65535"},
+		{":", "0-65535"},
 		// already dash-separated — unchanged
 		{"8080-9000", "8080-9000"},
 		// empty string — unchanged

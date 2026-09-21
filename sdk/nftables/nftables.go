@@ -341,10 +341,26 @@ func SetupWithAdditionalRulesIPv6(_ Config, _ AdditionalRulesFn, _ bool) error {
 	return nil
 }
 
-// normalizePortRange converts an iptables-style port range ("8080:9000") to
-// the nftables format ("8080-9000"). Single ports are returned unchanged.
+// normalizePortRange converts an iptables-style port specification to the
+// nftables format. Bounded ranges use a dash instead of a colon
+// ("8080:9000" -> "8080-9000"). iptables allows either endpoint of a range to
+// be omitted, defaulting to the full port space on that side ("1024:" means
+// 1024-65535, ":1024" means 0-1024); nftables has no equivalent open-ended
+// range syntax, so omitted endpoints are expanded explicitly here. Single
+// ports and already-dash-separated ranges are returned unchanged.
 func normalizePortRange(port string) string {
-	return strings.ReplaceAll(port, ":", "-")
+	idx := strings.IndexByte(port, ':')
+	if idx < 0 {
+		return port
+	}
+	lo, hi := port[:idx], port[idx+1:]
+	if lo == "" {
+		lo = "0"
+	}
+	if hi == "" {
+		hi = "65535"
+	}
+	return lo + "-" + hi
 }
 
 // ipFamilyKeyword returns "ip" for IPv4 addresses/CIDRs and "ip6" for IPv6.
