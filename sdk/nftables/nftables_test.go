@@ -36,6 +36,8 @@ func TestSetup_IPv4(t *testing.T) {
 				"nft add chain inet consul_tproxy CONSUL_DNS_REDIRECT",
 				"nft add chain inet consul_tproxy CONSUL_NAT_OUTPUT { type nat hook output priority -100 ; }",
 				"nft add chain inet consul_tproxy CONSUL_NAT_PREROUTING { type nat hook prerouting priority -100 ; }",
+				"nft add rule inet consul_tproxy CONSUL_NAT_OUTPUT meta nfproto ipv6 return",
+				"nft add rule inet consul_tproxy CONSUL_NAT_PREROUTING meta nfproto ipv6 return",
 				"nft add rule inet consul_tproxy CONSUL_PROXY_REDIRECT meta l4proto tcp redirect to :15001",
 				"nft add rule inet consul_tproxy CONSUL_NAT_OUTPUT meta l4proto tcp jump CONSUL_PROXY_OUTPUT",
 				"nft add rule inet consul_tproxy CONSUL_PROXY_OUTPUT skuid 123 return",
@@ -67,6 +69,8 @@ func TestSetup_IPv4(t *testing.T) {
 				"nft add chain inet consul_tproxy CONSUL_DNS_REDIRECT",
 				"nft add chain inet consul_tproxy CONSUL_NAT_OUTPUT { type nat hook output priority -100 ; }",
 				"nft add chain inet consul_tproxy CONSUL_NAT_PREROUTING { type nat hook prerouting priority -100 ; }",
+				"nft add rule inet consul_tproxy CONSUL_NAT_OUTPUT meta nfproto ipv6 return",
+				"nft add rule inet consul_tproxy CONSUL_NAT_PREROUTING meta nfproto ipv6 return",
 				"nft add rule inet consul_tproxy CONSUL_PROXY_REDIRECT meta l4proto tcp redirect to :15001",
 				"nft add rule inet consul_tproxy CONSUL_DNS_REDIRECT udp dport 53 dnat ip to 10.0.34.16",
 				"nft add rule inet consul_tproxy CONSUL_DNS_REDIRECT tcp dport 53 dnat ip to 10.0.34.16",
@@ -102,6 +106,8 @@ func TestSetup_IPv4(t *testing.T) {
 				"nft add chain inet consul_tproxy CONSUL_DNS_REDIRECT",
 				"nft add chain inet consul_tproxy CONSUL_NAT_OUTPUT { type nat hook output priority -100 ; }",
 				"nft add chain inet consul_tproxy CONSUL_NAT_PREROUTING { type nat hook prerouting priority -100 ; }",
+				"nft add rule inet consul_tproxy CONSUL_NAT_OUTPUT meta nfproto ipv6 return",
+				"nft add rule inet consul_tproxy CONSUL_NAT_PREROUTING meta nfproto ipv6 return",
 				"nft add rule inet consul_tproxy CONSUL_PROXY_REDIRECT meta l4proto tcp redirect to :15001",
 				"nft add rule inet consul_tproxy CONSUL_DNS_REDIRECT ip daddr 127.0.0.1 udp dport 53 dnat to 127.0.0.1:8600",
 				"nft add rule inet consul_tproxy CONSUL_DNS_REDIRECT ip daddr 127.0.0.1 tcp dport 53 dnat to 127.0.0.1:8600",
@@ -138,6 +144,8 @@ func TestSetup_IPv4(t *testing.T) {
 				"nft add chain inet consul_tproxy CONSUL_DNS_REDIRECT",
 				"nft add chain inet consul_tproxy CONSUL_NAT_OUTPUT { type nat hook output priority -100 ; }",
 				"nft add chain inet consul_tproxy CONSUL_NAT_PREROUTING { type nat hook prerouting priority -100 ; }",
+				"nft add rule inet consul_tproxy CONSUL_NAT_OUTPUT meta nfproto ipv6 return",
+				"nft add rule inet consul_tproxy CONSUL_NAT_PREROUTING meta nfproto ipv6 return",
 				"nft add rule inet consul_tproxy CONSUL_PROXY_REDIRECT meta l4proto tcp redirect to :15001",
 				"nft add rule inet consul_tproxy CONSUL_DNS_REDIRECT ip daddr 10.0.34.16 udp dport 53 dnat to 10.0.34.16:8600",
 				"nft add rule inet consul_tproxy CONSUL_DNS_REDIRECT ip daddr 10.0.34.16 tcp dport 53 dnat to 10.0.34.16:8600",
@@ -173,6 +181,8 @@ func TestSetup_IPv4(t *testing.T) {
 				"nft add chain inet consul_tproxy CONSUL_DNS_REDIRECT",
 				"nft add chain inet consul_tproxy CONSUL_NAT_OUTPUT { type nat hook output priority -100 ; }",
 				"nft add chain inet consul_tproxy CONSUL_NAT_PREROUTING { type nat hook prerouting priority -100 ; }",
+				"nft add rule inet consul_tproxy CONSUL_NAT_OUTPUT meta nfproto ipv6 return",
+				"nft add rule inet consul_tproxy CONSUL_NAT_PREROUTING meta nfproto ipv6 return",
 				"nft add rule inet consul_tproxy CONSUL_PROXY_REDIRECT meta l4proto tcp redirect to :21000",
 				"nft add rule inet consul_tproxy CONSUL_NAT_OUTPUT meta l4proto tcp jump CONSUL_PROXY_OUTPUT",
 				"nft add rule inet consul_tproxy CONSUL_PROXY_OUTPUT skuid 123 return",
@@ -205,6 +215,8 @@ func TestSetup_IPv4(t *testing.T) {
 				"nft add chain inet consul_tproxy CONSUL_DNS_REDIRECT",
 				"nft add chain inet consul_tproxy CONSUL_NAT_OUTPUT { type nat hook output priority -100 ; }",
 				"nft add chain inet consul_tproxy CONSUL_NAT_PREROUTING { type nat hook prerouting priority -100 ; }",
+				"nft add rule inet consul_tproxy CONSUL_NAT_OUTPUT meta nfproto ipv6 return",
+				"nft add rule inet consul_tproxy CONSUL_NAT_PREROUTING meta nfproto ipv6 return",
 				"nft add rule inet consul_tproxy CONSUL_PROXY_REDIRECT meta l4proto tcp redirect to :21000",
 				"nft add rule inet consul_tproxy CONSUL_NAT_OUTPUT meta l4proto tcp jump CONSUL_PROXY_OUTPUT",
 				"nft add rule inet consul_tproxy CONSUL_PROXY_OUTPUT skuid 123 return",
@@ -239,6 +251,8 @@ func TestSetup_IPv4(t *testing.T) {
 				"nft add chain inet consul_tproxy CONSUL_DNS_REDIRECT",
 				"nft add chain inet consul_tproxy CONSUL_NAT_OUTPUT { type nat hook output priority -100 ; }",
 				"nft add chain inet consul_tproxy CONSUL_NAT_PREROUTING { type nat hook prerouting priority -100 ; }",
+				"nft add rule inet consul_tproxy CONSUL_NAT_OUTPUT meta nfproto ipv6 return",
+				"nft add rule inet consul_tproxy CONSUL_NAT_PREROUTING meta nfproto ipv6 return",
 				"nft add rule inet consul_tproxy CONSUL_PROXY_REDIRECT meta l4proto tcp redirect to :21000",
 				"nft add rule inet consul_tproxy CONSUL_NAT_OUTPUT meta l4proto tcp jump CONSUL_PROXY_OUTPUT",
 				"nft add rule inet consul_tproxy CONSUL_PROXY_OUTPUT skuid 123 return",
@@ -273,6 +287,8 @@ func TestSetup_IPv4(t *testing.T) {
 				"nft add chain inet consul_tproxy CONSUL_DNS_REDIRECT",
 				"nft add chain inet consul_tproxy CONSUL_NAT_OUTPUT { type nat hook output priority -100 ; }",
 				"nft add chain inet consul_tproxy CONSUL_NAT_PREROUTING { type nat hook prerouting priority -100 ; }",
+				"nft add rule inet consul_tproxy CONSUL_NAT_OUTPUT meta nfproto ipv6 return",
+				"nft add rule inet consul_tproxy CONSUL_NAT_PREROUTING meta nfproto ipv6 return",
 				"nft add rule inet consul_tproxy CONSUL_PROXY_REDIRECT meta l4proto tcp redirect to :21000",
 				"nft add rule inet consul_tproxy CONSUL_NAT_OUTPUT meta l4proto tcp jump CONSUL_PROXY_OUTPUT",
 				"nft add rule inet consul_tproxy CONSUL_PROXY_OUTPUT skuid 123 return",
@@ -307,6 +323,8 @@ func TestSetup_IPv4(t *testing.T) {
 				"nft add chain inet consul_tproxy CONSUL_DNS_REDIRECT",
 				"nft add chain inet consul_tproxy CONSUL_NAT_OUTPUT { type nat hook output priority -100 ; }",
 				"nft add chain inet consul_tproxy CONSUL_NAT_PREROUTING { type nat hook prerouting priority -100 ; }",
+				"nft add rule inet consul_tproxy CONSUL_NAT_OUTPUT meta nfproto ipv6 return",
+				"nft add rule inet consul_tproxy CONSUL_NAT_PREROUTING meta nfproto ipv6 return",
 				"nft add rule inet consul_tproxy CONSUL_PROXY_REDIRECT meta l4proto tcp redirect to :21000",
 				"nft add rule inet consul_tproxy CONSUL_NAT_OUTPUT meta l4proto tcp jump CONSUL_PROXY_OUTPUT",
 				"nft add rule inet consul_tproxy CONSUL_PROXY_OUTPUT skuid 123 return",
@@ -344,6 +362,8 @@ func TestSetup_IPv4(t *testing.T) {
 				"nft add chain inet consul_tproxy CONSUL_DNS_REDIRECT",
 				"nft add chain inet consul_tproxy CONSUL_NAT_OUTPUT { type nat hook output priority -100 ; }",
 				"nft add chain inet consul_tproxy CONSUL_NAT_PREROUTING { type nat hook prerouting priority -100 ; }",
+				"nft add rule inet consul_tproxy CONSUL_NAT_OUTPUT meta nfproto ipv6 return",
+				"nft add rule inet consul_tproxy CONSUL_NAT_PREROUTING meta nfproto ipv6 return",
 				"nft add rule inet consul_tproxy CONSUL_PROXY_REDIRECT meta l4proto tcp redirect to :21000",
 				"nft add rule inet consul_tproxy CONSUL_NAT_OUTPUT meta l4proto tcp jump CONSUL_PROXY_OUTPUT",
 				"nft add rule inet consul_tproxy CONSUL_PROXY_OUTPUT skuid 123 return",
@@ -1181,5 +1201,42 @@ func TestSetup_PortRangeNormalization(t *testing.T) {
 	for _, r := range rules {
 		require.NotContains(t, r, "8080:9000", "colon range must be normalised to dash")
 		require.NotContains(t, r, "1000:2000", "colon range must be normalised to dash")
+	}
+}
+
+// TestSetup_IPv4Only_NoIPv6Intercept verifies that when dualStack=false, IPv6-return
+// rules are prepended to both base chains so non-loopback IPv6 traffic is not
+// intercepted — matching the old iptables behaviour where ip6tables was never invoked.
+func TestSetup_IPv4Only_NoIPv6Intercept(t *testing.T) {
+	cfg := Config{
+		ProxyUserID:      "123",
+		ProxyInboundPort: 20000,
+		NftablesProvider: &fakeNftablesProvider{},
+	}
+
+	require.NoError(t, SetupWithAdditionalRules(cfg, nil, false))
+
+	rules := cfg.NftablesProvider.Rules()
+	require.Contains(t, rules,
+		"nft add rule inet consul_tproxy CONSUL_NAT_OUTPUT meta nfproto ipv6 return")
+	require.Contains(t, rules,
+		"nft add rule inet consul_tproxy CONSUL_NAT_PREROUTING meta nfproto ipv6 return")
+}
+
+// TestSetup_DualStack_HasNoIPv6EarlyReturn verifies that when dualStack=true,
+// the IPv6-return rules are NOT added — IPv6 traffic must be intercepted.
+func TestSetup_DualStack_HasNoIPv6EarlyReturn(t *testing.T) {
+	cfg := Config{
+		ProxyUserID:      "123",
+		ProxyInboundPort: 20000,
+		NftablesProvider: &fakeNftablesProvider{},
+	}
+
+	require.NoError(t, SetupWithAdditionalRules(cfg, nil, true))
+
+	rules := cfg.NftablesProvider.Rules()
+	for _, r := range rules {
+		require.NotContains(t, r, "nfproto ipv6 return",
+			"dual-stack mode must not add IPv6 early-return rules")
 	}
 }

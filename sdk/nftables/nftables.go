@@ -200,6 +200,16 @@ func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn, d
 	cfg.NftablesProvider.AddRule("nft", "add", "chain", "inet", tproxyTable, consulNATPreRoutingChain,
 		"{ type nat hook prerouting priority -100 ; }")
 
+	// The inet family intercepts both IPv4 and IPv6. When dual-stack is disabled,
+	// preserve IPv4-only behaviour by returning IPv6 packets immediately — matching
+	// the old iptables behaviour where ip6tables was never invoked.
+	if !dualStack {
+		for _, chain := range []string{consulNATOutputChain, consulNATPreRoutingChain} {
+			cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", tproxyTable, chain,
+				"meta", "nfproto", "ipv6", "return")
+		}
+	}
+
 	// Configure outbound rules.
 	{
 		// Redirect all TCP traffic hitting PROXY_REDIRECT chain to Envoy's outbound listener.
