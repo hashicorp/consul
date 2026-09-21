@@ -26,6 +26,94 @@ func (n *nftablesExecutor) AddRule(_ string, args ...string) {
 	n.lines = append(n.lines, strings.Join(args, " "))
 }
 
+// flushLegacyIPTablesRules removes Consul-managed iptables/ip6tables rules and
+// chains left over from a previous installation to prevent double-NAT and broken connectivity.
+// It is a no-op when no legacy chains are detected. All errors are ignored.
+func flushLegacyIPTablesRules(netNS string) {
+	consulChains := []string{
+		"CONSUL_PROXY_INBOUND",
+		"CONSUL_PROXY_IN_REDIRECT",
+		"CONSUL_PROXY_OUTPUT",
+		"CONSUL_PROXY_REDIRECT",
+		"CONSUL_DNS_REDIRECT",
+	}
+
+	for _, pair := range []struct{ save, tables string }{
+		{"iptables-save", "iptables"},
+		{"ip6tables-save", "ip6tables"},
+	} {
+		if _, err := exec.LookPath(pair.save); err != nil {
+			continue
+		}
+		if _, err := exec.LookPath(pair.tables); err != nil {
+			continue
+		}
+
+		// Dump the nat table. If none of the Consul chain names appear, skip
+		// entirely — zero extra forks in the normal (no legacy rules) case.
+		out, err := runOutput(netNS, pair.save, "-t", "nat")
+		if err != nil || !containsAny(string(out), consulChains) {
+			continue
+		}
+
+		// Legacy rules detected. Walk the dump and delete every rule that
+		// jumps to a Consul chain from a built-in chain, then flush/delete
+		// the Consul chains themselves.
+		for _, line := range strings.Split(string(out), "\n") {
+			// Lines like: -A OUTPUT -p tcp -j CONSUL_PROXY_OUTPUT
+			if !strings.HasPrefix(line, "-A ") {
+				continue
+			}
+			for _, chain := range consulChains {
+				if strings.Contains(line, "-j "+chain) {
+					// Convert "-A" to "-D" to delete the exact rule.
+					delArgs := strings.Fields(strings.Replace(line, "-A ", "-D ", 1))
+					runSilent(netNS, pair.tables, append([]string{"-t", "nat"}, delArgs...)...)
+				}
+			}
+		}
+
+		for _, chain := range consulChains {
+			runSilent(netNS, pair.tables, "-t", "nat", "-F", chain)
+			runSilent(netNS, pair.tables, "-t", "nat", "-X", chain)
+		}
+	}
+}
+
+// containsAny reports whether s contains any of the given substrings.
+func containsAny(s string, subs []string) bool {
+	for _, sub := range subs {
+		if strings.Contains(s, sub) {
+			return true
+		}
+	}
+	return false
+}
+
+// runOutput runs a command and returns its combined output.
+func runOutput(netNS, bin string, args ...string) ([]byte, error) {
+	var cmd *exec.Cmd
+	if netNS != "" {
+		nsArgs := append([]string{fmt.Sprintf("--net=%s", netNS), "--", bin}, args...)
+		cmd = exec.Command("nsenter", nsArgs...)
+	} else {
+		cmd = exec.Command(bin, args...)
+	}
+	return cmd.Output()
+}
+
+// runSilent executes a command, silently ignoring errors — for best-effort cleanup.
+func runSilent(netNS, bin string, args ...string) {
+	var cmd *exec.Cmd
+	if netNS != "" {
+		nsArgs := append([]string{fmt.Sprintf("--net=%s", netNS), "--", bin}, args...)
+		cmd = exec.Command("nsenter", nsArgs...)
+	} else {
+		cmd = exec.Command(bin, args...)
+	}
+	_ = cmd.Run()
+}
+
 // ApplyRules builds a script from all collected lines and pipes it atomically to
 // `nft -f -` (or `nsenter --net=<ns> -- nft -f -` when a network namespace is
 // configured).  The command argument is unused; nft is always the binary.
@@ -33,6 +121,9 @@ func (n *nftablesExecutor) ApplyRules(_ string) error {
 	if _, err := exec.LookPath("nft"); err != nil {
 		return fmt.Errorf("nft binary not found: %w", err)
 	}
+
+	//cleanup of any legacy iptables rules from a previous Consul version.
+	flushLegacyIPTablesRules(n.cfg.NetNS)
 
 	script := strings.Join(n.lines, "\n")
 
