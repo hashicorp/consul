@@ -33,6 +33,13 @@ const (
 	// consulNATPreRoutingChain is the nftables base chain hooked into the prerouting path.
 	consulNATPreRoutingChain = "CONSUL_NAT_PREROUTING"
 
+	// tproxyTable is the nftables table used for all Consul-managed traffic
+	// redirection rules. A dedicated name (rather than the generic "nat") is
+	// used to avoid colliding with tables created by other tools on the same
+	// host, and to make Consul-managed rules easy to identify via
+	// `nft list ruleset`.
+	tproxyTable = "consul_tproxy"
+
 	DefaultTProxyOutboundPort = 15001
 )
 
@@ -169,26 +176,26 @@ func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn, d
 		cfg.ProxyOutboundPort = DefaultTProxyOutboundPort
 	}
 
-	// Create the inet nat table. The inet family processes both IPv4 and IPv6.
-	cfg.NftablesProvider.AddRule("nft", "add", "table", "inet", "nat")
+	// Create the inet table. The inet family processes both IPv4 and IPv6.
+	cfg.NftablesProvider.AddRule("nft", "add", "table", "inet", tproxyTable)
 
 	// Create regular (non-hook) chains used for traffic redirection.
 	chains := []string{ProxyInboundChain, ProxyInboundRedirectChain, ProxyOutputChain, ProxyOutputRedirectChain, DNSChain}
 	for _, chain := range chains {
-		cfg.NftablesProvider.AddRule("nft", "add", "chain", "inet", "nat", chain)
+		cfg.NftablesProvider.AddRule("nft", "add", "chain", "inet", tproxyTable, chain)
 	}
 
 	// Create base chains that hook into the kernel packet-processing pipeline,
 	// replacing the traditional PREROUTING and OUTPUT entry points.
-	cfg.NftablesProvider.AddRule("nft", "add", "chain", "inet", "nat", consulNATOutputChain,
+	cfg.NftablesProvider.AddRule("nft", "add", "chain", "inet", tproxyTable, consulNATOutputChain,
 		"{ type nat hook output priority -100 ; }")
-	cfg.NftablesProvider.AddRule("nft", "add", "chain", "inet", "nat", consulNATPreRoutingChain,
+	cfg.NftablesProvider.AddRule("nft", "add", "chain", "inet", tproxyTable, consulNATPreRoutingChain,
 		"{ type nat hook prerouting priority -100 ; }")
 
 	// Configure outbound rules.
 	{
 		// Redirect all TCP traffic hitting PROXY_REDIRECT chain to Envoy's outbound listener.
-		cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", "nat", ProxyOutputRedirectChain,
+		cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", tproxyTable, ProxyOutputRedirectChain,
 			"meta", "l4proto", "tcp", "redirect", "to", ":"+strconv.Itoa(cfg.ProxyOutboundPort))
 
 		// DNS redirection rules. With the inet family these cover both IPv4 and IPv6;
@@ -198,15 +205,15 @@ func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn, d
 			// alongside the destination address to identify the protocol family.
 			dnsIPKw := ipFamilyKeyword(cfg.ConsulDNSIP)
 			// Direct all DNS traffic in the DNS chain to the Consul DNS Service IP.
-			cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", "nat", DNSChain,
+			cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", tproxyTable, DNSChain,
 				"udp", "dport", "53", "dnat", dnsIPKw, "to", cfg.ConsulDNSIP)
-			cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", "nat", DNSChain,
+			cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", tproxyTable, DNSChain,
 				"tcp", "dport", "53", "dnat", dnsIPKw, "to", cfg.ConsulDNSIP)
 
 			// Jump outbound port-53 traffic into the DNS chain.
-			cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", "nat", consulNATOutputChain,
+			cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", tproxyTable, consulNATOutputChain,
 				"udp", "dport", "53", "jump", DNSChain)
-			cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", "nat", consulNATOutputChain,
+			cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", tproxyTable, consulNATOutputChain,
 				"tcp", "dport", "53", "jump", DNSChain)
 		} else if cfg.ConsulDNSPort != 0 {
 			// Build the list of DNS IPs to write rules for.
@@ -232,50 +239,50 @@ func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn, d
 				consulDNSHostPort := net.JoinHostPort(consulDNSIP, strconv.Itoa(cfg.ConsulDNSPort))
 
 				// Direct DNS traffic destined for the Consul DNS IP to the right port.
-				cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", "nat", DNSChain,
+				cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", tproxyTable, DNSChain,
 					dnsIPKw, "daddr", consulDNSIP, "udp", "dport", "53", "dnat", "to", consulDNSHostPort)
-				cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", "nat", DNSChain,
+				cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", tproxyTable, DNSChain,
 					dnsIPKw, "daddr", consulDNSIP, "tcp", "dport", "53", "dnat", "to", consulDNSHostPort)
 
 				// Jump outbound port-53 traffic destined for the Consul DNS IP into the DNS chain.
-				cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", "nat", consulNATOutputChain,
+				cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", tproxyTable, consulNATOutputChain,
 					dnsIPKw, "daddr", consulDNSIP, "udp", "dport", "53", "jump", DNSChain)
-				cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", "nat", consulNATOutputChain,
+				cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", tproxyTable, consulNATOutputChain,
 					dnsIPKw, "daddr", consulDNSIP, "tcp", "dport", "53", "jump", DNSChain)
 			}
 		}
 
 		// Jump all outbound TCP traffic from the output hook into PROXY_OUTPUT.
-		cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", "nat", consulNATOutputChain,
+		cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", tproxyTable, consulNATOutputChain,
 			"meta", "l4proto", "tcp", "jump", ProxyOutputChain)
 
 		// Don't redirect the proxy's own traffic back to itself.
-		cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", "nat", ProxyOutputChain,
+		cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", tproxyTable, ProxyOutputChain,
 			"skuid", cfg.ProxyUserID, "return")
 
 		// Skip localhost traffic (IPv4 and IPv6) — it doesn't need proxy routing.
-		cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", "nat", ProxyOutputChain,
+		cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", tproxyTable, ProxyOutputChain,
 			"ip", "daddr", "127.0.0.1/32", "return")
-		cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", "nat", ProxyOutputChain,
+		cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", tproxyTable, ProxyOutputChain,
 			"ip6", "daddr", "::1/128", "return")
 
 		// Redirect all remaining outbound traffic to Envoy.
-		cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", "nat", ProxyOutputChain,
+		cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", tproxyTable, ProxyOutputChain,
 			"jump", ProxyOutputRedirectChain)
 
 		// insert (prepend) rules so they take precedence over the defaults above.
 		for _, outboundPort := range cfg.ExcludeOutboundPorts {
-			cfg.NftablesProvider.AddRule("nft", "insert", "rule", "inet", "nat", ProxyOutputChain,
+			cfg.NftablesProvider.AddRule("nft", "insert", "rule", "inet", tproxyTable, ProxyOutputChain,
 				"tcp", "dport", outboundPort, "return")
 		}
 
 		for _, outboundCIDR := range cfg.ExcludeOutboundCIDRs {
-			cfg.NftablesProvider.AddRule("nft", "insert", "rule", "inet", "nat", ProxyOutputChain,
+			cfg.NftablesProvider.AddRule("nft", "insert", "rule", "inet", tproxyTable, ProxyOutputChain,
 				ipFamilyKeyword(outboundCIDR), "daddr", outboundCIDR, "return")
 		}
 
 		for _, uid := range cfg.ExcludeUIDs {
-			cfg.NftablesProvider.AddRule("nft", "insert", "rule", "inet", "nat", ProxyOutputChain,
+			cfg.NftablesProvider.AddRule("nft", "insert", "rule", "inet", tproxyTable, ProxyOutputChain,
 				"skuid", uid, "return")
 		}
 	}
@@ -283,19 +290,19 @@ func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn, d
 	// Configure inbound rules.
 	{
 		// Redirect all TCP traffic in PROXY_IN_REDIRECT to Envoy's inbound listener.
-		cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", "nat", ProxyInboundRedirectChain,
+		cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", tproxyTable, ProxyInboundRedirectChain,
 			"meta", "l4proto", "tcp", "redirect", "to", ":"+strconv.Itoa(cfg.ProxyInboundPort))
 
 		// Jump inbound TCP traffic from the prerouting hook into PROXY_INBOUND.
-		cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", "nat", consulNATPreRoutingChain,
+		cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", tproxyTable, consulNATPreRoutingChain,
 			"meta", "l4proto", "tcp", "jump", ProxyInboundChain)
 
 		// Redirect remaining inbound traffic to Envoy.
-		cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", "nat", ProxyInboundChain,
+		cfg.NftablesProvider.AddRule("nft", "add", "rule", "inet", tproxyTable, ProxyInboundChain,
 			"meta", "l4proto", "tcp", "jump", ProxyInboundRedirectChain)
 
 		for _, inboundPort := range cfg.ExcludeInboundPorts {
-			cfg.NftablesProvider.AddRule("nft", "insert", "rule", "inet", "nat", ProxyInboundChain,
+			cfg.NftablesProvider.AddRule("nft", "insert", "rule", "inet", tproxyTable, ProxyInboundChain,
 				"tcp", "dport", inboundPort, "return")
 		}
 	}
