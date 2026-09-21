@@ -7,6 +7,7 @@ package nftables
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -26,10 +27,12 @@ func (n *nftablesExecutor) AddRule(_ string, args ...string) {
 	n.lines = append(n.lines, strings.Join(args, " "))
 }
 
-// flushLegacyIPTablesRules removes Consul-managed iptables/ip6tables rules and
-// chains left over from a previous installation to prevent double-NAT and broken connectivity.
-// It is a no-op when no legacy chains are detected. All errors are ignored.
-func flushLegacyIPTablesRules(netNS string) {
+// flushLegacyIPTablesRules deletes Consul-managed iptables/ip6tables rules and
+// chains left behind by a previous (pre-nftables) installation, preventing
+// double-NAT or inconsistent redirection alongside the new nftables rules. It
+// is a no-op when no legacy Consul chains are detected, and returns an error
+// aggregating every failed deletion rather than ignoring cleanup failures.
+func flushLegacyIPTablesRules(netNS string) error {
 	consulChains := []string{
 		"CONSUL_PROXY_INBOUND",
 		"CONSUL_PROXY_IN_REDIRECT",
@@ -37,6 +40,8 @@ func flushLegacyIPTablesRules(netNS string) {
 		"CONSUL_PROXY_REDIRECT",
 		"CONSUL_DNS_REDIRECT",
 	}
+
+	var errs []error
 
 	for _, pair := range []struct{ save, tables string }{
 		{"iptables-save", "iptables"},
@@ -58,7 +63,8 @@ func flushLegacyIPTablesRules(netNS string) {
 
 		// Legacy rules detected. Walk the dump and delete every rule that
 		// jumps to a Consul chain from a built-in chain, then flush/delete
-		// the Consul chains themselves.
+		// the Consul chains themselves. Failures are collected rather than
+		// ignored, so the caller learns cleanup was incomplete.
 		for _, line := range strings.Split(string(out), "\n") {
 			// Lines like: -A OUTPUT -p tcp -j CONSUL_PROXY_OUTPUT
 			if !strings.HasPrefix(line, "-A ") {
@@ -68,16 +74,25 @@ func flushLegacyIPTablesRules(netNS string) {
 				if strings.Contains(line, "-j "+chain) {
 					// Convert "-A" to "-D" to delete the exact rule.
 					delArgs := strings.Fields(strings.Replace(line, "-A ", "-D ", 1))
-					runSilent(netNS, pair.tables, append([]string{"-t", "nat"}, delArgs...)...)
+					if err := run(netNS, pair.tables, append([]string{"-t", "nat"}, delArgs...)...); err != nil {
+						errs = append(errs, fmt.Errorf("%s -D %s: %w", pair.tables, chain, err))
+					}
 				}
 			}
 		}
 
 		for _, chain := range consulChains {
-			runSilent(netNS, pair.tables, "-t", "nat", "-F", chain)
-			runSilent(netNS, pair.tables, "-t", "nat", "-X", chain)
+			if err := run(netNS, pair.tables, "-t", "nat", "-F", chain); err != nil {
+				errs = append(errs, fmt.Errorf("%s -F %s: %w", pair.tables, chain, err))
+				continue
+			}
+			if err := run(netNS, pair.tables, "-t", "nat", "-X", chain); err != nil {
+				errs = append(errs, fmt.Errorf("%s -X %s: %w", pair.tables, chain, err))
+			}
 		}
 	}
+
+	return errors.Join(errs...)
 }
 
 // containsAny reports whether s contains any of the given substrings.
@@ -102,8 +117,8 @@ func runOutput(netNS, bin string, args ...string) ([]byte, error) {
 	return cmd.Output()
 }
 
-// runSilent executes a command, silently ignoring errors — for best-effort cleanup.
-func runSilent(netNS, bin string, args ...string) {
+// run executes a command and returns an error (including captured output) if it fails.
+func run(netNS, bin string, args ...string) error {
 	var cmd *exec.Cmd
 	if netNS != "" {
 		nsArgs := append([]string{fmt.Sprintf("--net=%s", netNS), "--", bin}, args...)
@@ -111,7 +126,13 @@ func runSilent(netNS, bin string, args ...string) {
 	} else {
 		cmd = exec.Command(bin, args...)
 	}
-	_ = cmd.Run()
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("%w, output: %s", err, out.String())
+	}
+	return nil
 }
 
 // ApplyRules builds a script from all collected lines and pipes it atomically to
@@ -123,7 +144,9 @@ func (n *nftablesExecutor) ApplyRules(_ string) error {
 	}
 
 	//cleanup of any legacy iptables rules from a previous Consul version.
-	flushLegacyIPTablesRules(n.cfg.NetNS)
+	if err := flushLegacyIPTablesRules(n.cfg.NetNS); err != nil {
+		return fmt.Errorf("failed to remove legacy iptables rules: %w", err)
+	}
 
 	script := strings.Join(n.lines, "\n")
 
