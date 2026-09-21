@@ -177,6 +177,14 @@ func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn, d
 	}
 
 	// Create the inet table. The inet family processes both IPv4 and IPv6.
+	//
+	// "add rule" always appends, unlike "add table"/"add chain" which are
+	// no-ops if already present. So on a retried Setup (e.g. CNI ADD retry),
+	// we force-reset the table first: add (ensure it exists, since delete
+	// errors otherwise), delete (wipes it and all chains/rules), add (recreate
+	// empty) before repopulating below.
+	cfg.NftablesProvider.AddRule("nft", "add", "table", "inet", tproxyTable)
+	cfg.NftablesProvider.AddRule("nft", "delete", "table", "inet", tproxyTable)
 	cfg.NftablesProvider.AddRule("nft", "add", "table", "inet", tproxyTable)
 
 	// Create regular (non-hook) chains used for traffic redirection.

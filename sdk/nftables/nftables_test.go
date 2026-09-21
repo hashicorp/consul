@@ -27,6 +27,8 @@ func TestSetup_IPv4(t *testing.T) {
 			nil,
 			[]string{
 				"nft add table inet consul_tproxy",
+				"nft delete table inet consul_tproxy",
+				"nft add table inet consul_tproxy",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_INBOUND",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_IN_REDIRECT",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_OUTPUT",
@@ -55,6 +57,8 @@ func TestSetup_IPv4(t *testing.T) {
 			},
 			nil,
 			[]string{
+				"nft add table inet consul_tproxy",
+				"nft delete table inet consul_tproxy",
 				"nft add table inet consul_tproxy",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_INBOUND",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_IN_REDIRECT",
@@ -88,6 +92,8 @@ func TestSetup_IPv4(t *testing.T) {
 			},
 			nil,
 			[]string{
+				"nft add table inet consul_tproxy",
+				"nft delete table inet consul_tproxy",
 				"nft add table inet consul_tproxy",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_INBOUND",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_IN_REDIRECT",
@@ -123,6 +129,8 @@ func TestSetup_IPv4(t *testing.T) {
 			nil,
 			[]string{
 				"nft add table inet consul_tproxy",
+				"nft delete table inet consul_tproxy",
+				"nft add table inet consul_tproxy",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_INBOUND",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_IN_REDIRECT",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_OUTPUT",
@@ -156,6 +164,8 @@ func TestSetup_IPv4(t *testing.T) {
 			nil,
 			[]string{
 				"nft add table inet consul_tproxy",
+				"nft delete table inet consul_tproxy",
+				"nft add table inet consul_tproxy",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_INBOUND",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_IN_REDIRECT",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_OUTPUT",
@@ -185,6 +195,8 @@ func TestSetup_IPv4(t *testing.T) {
 			},
 			nil,
 			[]string{
+				"nft add table inet consul_tproxy",
+				"nft delete table inet consul_tproxy",
 				"nft add table inet consul_tproxy",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_INBOUND",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_IN_REDIRECT",
@@ -218,6 +230,8 @@ func TestSetup_IPv4(t *testing.T) {
 			nil,
 			[]string{
 				"nft add table inet consul_tproxy",
+				"nft delete table inet consul_tproxy",
+				"nft add table inet consul_tproxy",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_INBOUND",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_IN_REDIRECT",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_OUTPUT",
@@ -250,6 +264,8 @@ func TestSetup_IPv4(t *testing.T) {
 			nil,
 			[]string{
 				"nft add table inet consul_tproxy",
+				"nft delete table inet consul_tproxy",
+				"nft add table inet consul_tproxy",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_INBOUND",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_IN_REDIRECT",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_OUTPUT",
@@ -281,6 +297,8 @@ func TestSetup_IPv4(t *testing.T) {
 			},
 			nil,
 			[]string{
+				"nft add table inet consul_tproxy",
+				"nft delete table inet consul_tproxy",
 				"nft add table inet consul_tproxy",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_INBOUND",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_IN_REDIRECT",
@@ -316,6 +334,8 @@ func TestSetup_IPv4(t *testing.T) {
 				{"nft", "add", "rule", "inet", "consul_tproxy", "CONSUL_NAT_PREROUTING", "ip", "saddr", "192.0.2.0/24", "accept"},
 			},
 			[]string{
+				"nft add table inet consul_tproxy",
+				"nft delete table inet consul_tproxy",
 				"nft add table inet consul_tproxy",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_INBOUND",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_IN_REDIRECT",
@@ -376,6 +396,8 @@ func TestSetup_IPv4_Dualstack(t *testing.T) {
 			nil,
 			[]string{
 				"nft add table inet consul_tproxy",
+				"nft delete table inet consul_tproxy",
+				"nft add table inet consul_tproxy",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_INBOUND",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_IN_REDIRECT",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_OUTPUT",
@@ -405,6 +427,8 @@ func TestSetup_IPv4_Dualstack(t *testing.T) {
 			},
 			nil,
 			[]string{
+				"nft add table inet consul_tproxy",
+				"nft delete table inet consul_tproxy",
 				"nft add table inet consul_tproxy",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_INBOUND",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_IN_REDIRECT",
@@ -443,6 +467,8 @@ func TestSetup_IPv4_Dualstack(t *testing.T) {
 			},
 			nil,
 			[]string{
+				"nft add table inet consul_tproxy",
+				"nft delete table inet consul_tproxy",
 				"nft add table inet consul_tproxy",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_INBOUND",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_IN_REDIRECT",
@@ -485,6 +511,8 @@ func TestSetup_IPv4_Dualstack(t *testing.T) {
 			nil,
 			[]string{
 				"nft add table inet consul_tproxy",
+				"nft delete table inet consul_tproxy",
+				"nft add table inet consul_tproxy",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_INBOUND",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_IN_REDIRECT",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_OUTPUT",
@@ -518,6 +546,8 @@ func TestSetup_IPv4_Dualstack(t *testing.T) {
 			nil,
 			[]string{
 				"nft add table inet consul_tproxy",
+				"nft delete table inet consul_tproxy",
+				"nft add table inet consul_tproxy",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_INBOUND",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_IN_REDIRECT",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_OUTPUT",
@@ -547,6 +577,8 @@ func TestSetup_IPv4_Dualstack(t *testing.T) {
 			},
 			nil,
 			[]string{
+				"nft add table inet consul_tproxy",
+				"nft delete table inet consul_tproxy",
 				"nft add table inet consul_tproxy",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_INBOUND",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_IN_REDIRECT",
@@ -579,6 +611,8 @@ func TestSetup_IPv4_Dualstack(t *testing.T) {
 			},
 			nil,
 			[]string{
+				"nft add table inet consul_tproxy",
+				"nft delete table inet consul_tproxy",
 				"nft add table inet consul_tproxy",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_INBOUND",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_IN_REDIRECT",
@@ -613,6 +647,8 @@ func TestSetup_IPv4_Dualstack(t *testing.T) {
 			nil,
 			[]string{
 				"nft add table inet consul_tproxy",
+				"nft delete table inet consul_tproxy",
+				"nft add table inet consul_tproxy",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_INBOUND",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_IN_REDIRECT",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_OUTPUT",
@@ -644,6 +680,8 @@ func TestSetup_IPv4_Dualstack(t *testing.T) {
 			},
 			nil,
 			[]string{
+				"nft add table inet consul_tproxy",
+				"nft delete table inet consul_tproxy",
 				"nft add table inet consul_tproxy",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_INBOUND",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_IN_REDIRECT",
@@ -679,6 +717,8 @@ func TestSetup_IPv4_Dualstack(t *testing.T) {
 				{"nft", "add", "rule", "inet", "consul_tproxy", "CONSUL_NAT_PREROUTING", "ip", "saddr", "192.0.2.0/24", "accept"},
 			},
 			[]string{
+				"nft add table inet consul_tproxy",
+				"nft delete table inet consul_tproxy",
 				"nft add table inet consul_tproxy",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_INBOUND",
 				"nft add chain inet consul_tproxy CONSUL_PROXY_IN_REDIRECT",
