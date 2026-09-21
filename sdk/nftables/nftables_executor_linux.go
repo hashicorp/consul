@@ -62,22 +62,23 @@ func flushLegacyIPTablesRules(netNS string) error {
 		}
 
 		// Legacy rules detected. Walk the dump and delete every rule that
-		// jumps to a Consul chain from a built-in chain, then flush/delete
-		// the Consul chains themselves. Failures are collected rather than
-		// ignored, so the caller learns cleanup was incomplete.
+		// jumps to a Consul-owned chain from another chain (built-in or
+		// custom), then flush/delete the Consul chains themselves. Failures
+		// are collected rather than ignored, so the caller learns cleanup
+		// was incomplete.
 		for _, line := range strings.Split(string(out), "\n") {
 			// Lines like: -A OUTPUT -p tcp -j CONSUL_PROXY_OUTPUT
 			if !strings.HasPrefix(line, "-A ") {
 				continue
 			}
-			for _, chain := range consulChains {
-				if strings.Contains(line, "-j "+chain) {
-					// Convert "-A" to "-D" to delete the exact rule.
-					delArgs := strings.Fields(strings.Replace(line, "-A ", "-D ", 1))
-					if err := run(netNS, pair.tables, append([]string{"-t", "nat"}, delArgs...)...); err != nil {
-						errs = append(errs, fmt.Errorf("%s -D %s: %w", pair.tables, chain, err))
-					}
-				}
+			target := jumpTarget(strings.Fields(line))
+			if target == "" || !isOwnedChain(target, consulChains) {
+				continue
+			}
+			// Convert "-A" to "-D" to delete the exact rule.
+			delArgs := strings.Fields(strings.Replace(line, "-A ", "-D ", 1))
+			if err := run(netNS, pair.tables, append([]string{"-t", "nat"}, delArgs...)...); err != nil {
+				errs = append(errs, fmt.Errorf("%s -D (jump to %s): %w", pair.tables, target, err))
 			}
 		}
 
@@ -93,6 +94,31 @@ func flushLegacyIPTablesRules(netNS string) error {
 	}
 
 	return errors.Join(errs...)
+}
+
+// jumpTarget returns the chain name a rule jumps to (the argument following
+// "-j" or "--jump"), or "" if the rule has no jump target.
+func jumpTarget(fields []string) string {
+	for i, f := range fields {
+		if (f == "-j" || f == "--jump") && i+1 < len(fields) {
+			return fields[i+1]
+		}
+	}
+	return ""
+}
+
+// isOwnedChain reports whether target is exactly one of the given chain
+// names. Callers must use exact equality rather than substring matching: a
+// chain named e.g. "CONSUL_PROXY_OUTPUT_CUSTOM" is not owned by Consul even
+// though "CONSUL_PROXY_OUTPUT" is a prefix of its name, and deleting jumps to
+// it would remove an administrator-managed rule Consul never created.
+func isOwnedChain(target string, chains []string) bool {
+	for _, c := range chains {
+		if target == c {
+			return true
+		}
+	}
+	return false
 }
 
 // containsAny reports whether s contains any of the given substrings.
