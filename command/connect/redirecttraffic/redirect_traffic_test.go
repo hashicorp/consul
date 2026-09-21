@@ -4,6 +4,7 @@
 package redirecttraffic
 
 import (
+	"fmt"
 	"sort"
 	"testing"
 
@@ -21,6 +22,11 @@ func TestRun_FlagValidation(t *testing.T) {
 		args     []string
 		expError string
 	}{
+		{
+			"invalid flag",
+			[]string{"-unknown-flag=x"},
+			"Failed to parse args:",
+		},
 		{
 			"-proxy-uid is missing",
 			nil,
@@ -59,6 +65,54 @@ func TestRun_FlagValidation(t *testing.T) {
 		})
 	}
 
+}
+
+// TestRun_Errors covers Run() paths after flag validation.
+func TestRun_Errors(t *testing.T) {
+	cases := []struct {
+		name     string
+		setupCmd func(c *cmd)
+		expCode  int
+		expError string
+	}{
+		{
+			name: "generateConfigFromFlags error",
+			setupCmd: func(c *cmd) {
+				c.proxyUID = "1234"
+				c.proxyID = "test-proxy-id"
+				// unreachable client causes Agent().Service() to fail
+				client, err := api.NewClient(&api.Config{Address: "not-reachable"})
+				if err == nil {
+					c.client = client
+				}
+			},
+			expCode:  1,
+			expError: "Failed to create configuration to apply traffic redirection rules:",
+		},
+		{
+			name: "IsDualStack error",
+			setupCmd: func(c *cmd) {
+				c.proxyUID = "1234"
+				c.proxyInboundPort = 20000
+				// unreachable agent causes Agent().Self() to fail
+				_ = c.flags.Parse([]string{"-http-addr=127.0.0.1:19999"})
+			},
+			expCode:  1,
+			expError: "error determining if agent is running in dual-stack mode:",
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			ui := cli.NewMockUi()
+			cmd := New(ui)
+			c.setupCmd(cmd)
+
+			code := cmd.Run(nil)
+			require.Equal(t, c.expCode, code)
+			require.Contains(t, ui.ErrorWriter.String(), c.expError)
+		})
+	}
 }
 
 func TestGenerateConfigFromFlags(t *testing.T) {
@@ -831,3 +885,47 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 		})
 	}
 }
+
+
+// TestNftablesSetup_ErrorAndSuccess unit-tests the nftables.Setup call used by
+// Run() at lines 125-132 using a fake provider to avoid requiring a real nft binary.
+func TestNftablesSetup_ErrorAndSuccess(t *testing.T) {
+	validCfg := nftables.Config{
+		ProxyUserID:      "1234",
+		ProxyInboundPort: 20000,
+	}
+
+	t.Run("Setup error propagated", func(t *testing.T) {
+		cfg := validCfg
+		cfg.NftablesProvider = &errorNftablesProvider{}
+		err := nftables.Setup(cfg, false)
+		require.EqualError(t, err, "fake apply error")
+	})
+
+	t.Run("Setup success", func(t *testing.T) {
+		cfg := validCfg
+		cfg.NftablesProvider = &successNftablesProvider{}
+		err := nftables.Setup(cfg, false)
+		require.NoError(t, err)
+	})
+}
+
+// errorNftablesProvider is a fake Provider whose ApplyRules always returns an error.
+type errorNftablesProvider struct{ rules []string }
+
+func (f *errorNftablesProvider) AddRule(name string, args ...string) {
+	f.rules = append(f.rules, name)
+}
+func (f *errorNftablesProvider) ApplyRules(_ string) error { return fmt.Errorf("fake apply error") }
+func (f *errorNftablesProvider) Rules() []string           { return f.rules }
+func (f *errorNftablesProvider) ClearAllRules()            { f.rules = nil }
+
+// successNftablesProvider is a fake Provider whose ApplyRules always returns nil.
+type successNftablesProvider struct{ rules []string }
+
+func (f *successNftablesProvider) AddRule(name string, args ...string) {
+	f.rules = append(f.rules, name)
+}
+func (f *successNftablesProvider) ApplyRules(_ string) error { return nil }
+func (f *successNftablesProvider) Rules() []string           { return f.rules }
+func (f *successNftablesProvider) ClearAllRules()            { f.rules = nil }

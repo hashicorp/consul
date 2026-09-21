@@ -922,3 +922,210 @@ func (f *fakeNftablesProvider) Rules() []string {
 func (f *fakeNftablesProvider) ClearAllRules() {
 	f.rules = nil
 }
+
+// TestIpFamilyKeyword covers ipFamilyKeyword for plain IPs, CIDRs, and edge cases.
+func TestIpFamilyKeyword(t *testing.T) {
+	cases := []struct {
+		input    string
+		expected string
+	}{
+		// Plain IPv4
+		{"1.2.3.4", "ip"},
+		{"127.0.0.1", "ip"},
+		{"0.0.0.0", "ip"},
+		// IPv4 CIDR
+		{"10.0.0.0/8", "ip"},
+		{"2.2.2.2/24", "ip"},
+		// Plain IPv6
+		{"::1", "ip6"},
+		{"2001:db8::1", "ip6"},
+		{"2406:da1a:23:5e05:e1c6::5", "ip6"},
+		// IPv6 CIDR
+		{"2406:da1a:23:5e05:e1c6::ffff/24", "ip6"},
+		{"fe80::/10", "ip6"},
+		// Unparseable/empty — falls back to ip6 (default branch)
+		{"not-an-ip", "ip6"},
+		{"", "ip6"},
+	}
+
+	for _, c := range cases {
+		t.Run(c.input, func(t *testing.T) {
+			require.Equal(t, c.expected, ipFamilyKeyword(c.input))
+		})
+	}
+}
+
+// TestSetupWithAdditionalRulesIPv6_IsNoop verifies the backward-compat stub is a no-op.
+func TestSetupWithAdditionalRulesIPv6_IsNoop(t *testing.T) {
+	cfg := Config{
+		ProxyUserID:      "123",
+		ProxyInboundPort: 20000,
+		NftablesProvider: &fakeNftablesProvider{},
+	}
+	err := SetupWithAdditionalRulesIPv6(cfg, nil, true)
+	require.NoError(t, err)
+	require.Empty(t, cfg.NftablesProvider.Rules(),
+		"SetupWithAdditionalRulesIPv6 must be a no-op: inet family covers IPv6")
+
+	err = SetupWithAdditionalRulesIPv6(cfg, nil, false)
+	require.NoError(t, err)
+	require.Empty(t, cfg.NftablesProvider.Rules())
+}
+
+// TestSetup_DelegatesToSetupWithAdditionalRules verifies Setup produces the same rules as SetupWithAdditionalRules.
+func TestSetup_DelegatesToSetupWithAdditionalRules(t *testing.T) {
+	cfgA := Config{
+		ProxyUserID:       "42",
+		ProxyInboundPort:  20000,
+		ProxyOutboundPort: 21000,
+		NftablesProvider:  &fakeNftablesProvider{},
+	}
+	cfgB := Config{
+		ProxyUserID:       "42",
+		ProxyInboundPort:  20000,
+		ProxyOutboundPort: 21000,
+		NftablesProvider:  &fakeNftablesProvider{},
+	}
+
+	require.NoError(t, Setup(cfgA, false))
+	require.NoError(t, SetupWithAdditionalRules(cfgB, nil, false))
+	require.Equal(t, cfgB.NftablesProvider.Rules(), cfgA.NftablesProvider.Rules())
+}
+
+// TestSetup_ReturnsVerifyDualStackConfigError verifies Setup propagates verifyDualStackConfig errors.
+func TestSetup_ReturnsVerifyDualStackConfigError(t *testing.T) {
+	cases := []struct {
+		name      string
+		cfg       Config
+		dualStack bool
+		expErr    string
+	}{
+		{
+			name: "dualStack=true with IPv4 DNS IP",
+			cfg: Config{
+				ProxyUserID:      "1",
+				ProxyInboundPort: 20000,
+				ConsulDNSIP:      "192.168.1.1",
+				NftablesProvider: &fakeNftablesProvider{},
+			},
+			dualStack: true,
+			expErr:    "for dual stack ipv6 consulDNSIP required",
+		},
+		{
+			name: "dualStack=false with IPv6 DNS IP",
+			cfg: Config{
+				ProxyUserID:      "1",
+				ProxyInboundPort: 20000,
+				ConsulDNSIP:      "2001:db8::1",
+				NftablesProvider: &fakeNftablesProvider{},
+			},
+			dualStack: false,
+			expErr:    "for non dual stack setup ipv4 consulDNSIP required",
+		},
+		{
+			name: "invalid DNS IP",
+			cfg: Config{
+				ProxyUserID:      "1",
+				ProxyInboundPort: 20000,
+				ConsulDNSIP:      "bad-ip",
+				NftablesProvider: &fakeNftablesProvider{},
+			},
+			dualStack: false,
+			expErr:    "unable to parse consulDNSIP",
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			err := Setup(c.cfg, c.dualStack)
+			require.EqualError(t, err, c.expErr)
+			require.Empty(t, c.cfg.NftablesProvider.Rules())
+		})
+	}
+}
+
+// TestSetup_IPv4_Dualstack_IPv6DNSRedirect verifies DNS DNAT uses ip6 keyword for an IPv6 ConsulDNSIP.
+func TestSetup_IPv4_Dualstack_IPv6DNSRedirect(t *testing.T) {
+	cfg := Config{
+		ProxyUserID:      "123",
+		ProxyInboundPort: 20000,
+		ConsulDNSIP:      "2001:db8::68",
+		NftablesProvider: &fakeNftablesProvider{},
+	}
+
+	err := SetupWithAdditionalRules(cfg, nil, true)
+	require.NoError(t, err)
+
+	rules := cfg.NftablesProvider.Rules()
+	require.Contains(t, rules,
+		"nft add rule inet consul_tproxy CONSUL_DNS_REDIRECT udp dport 53 dnat ip6 to 2001:db8::68")
+	require.Contains(t, rules,
+		"nft add rule inet consul_tproxy CONSUL_DNS_REDIRECT tcp dport 53 dnat ip6 to 2001:db8::68")
+	require.Contains(t, rules,
+		"nft add rule inet consul_tproxy CONSUL_NAT_OUTPUT udp dport 53 jump CONSUL_DNS_REDIRECT")
+	require.Contains(t, rules,
+		"nft add rule inet consul_tproxy CONSUL_NAT_OUTPUT tcp dport 53 jump CONSUL_DNS_REDIRECT")
+}
+
+// TestSetup_CombinedExclusions verifies all four exclusion types work together.
+func TestSetup_CombinedExclusions(t *testing.T) {
+	cfg := Config{
+		ProxyUserID:          "123",
+		ProxyInboundPort:     20000,
+		ProxyOutboundPort:    21000,
+		ExcludeInboundPorts:  []string{"8080"},
+		ExcludeOutboundPorts: []string{"9090"},
+		ExcludeOutboundCIDRs: []string{"10.10.0.0/16"},
+		ExcludeUIDs:          []string{"999"},
+		NftablesProvider:     &fakeNftablesProvider{},
+	}
+
+	err := SetupWithAdditionalRules(cfg, nil, false)
+	require.NoError(t, err)
+
+	rules := cfg.NftablesProvider.Rules()
+	require.Contains(t, rules, "nft insert rule inet consul_tproxy CONSUL_PROXY_INBOUND tcp dport 8080 return")
+	require.Contains(t, rules, "nft insert rule inet consul_tproxy CONSUL_PROXY_OUTPUT tcp dport 9090 return")
+	require.Contains(t, rules, "nft insert rule inet consul_tproxy CONSUL_PROXY_OUTPUT ip daddr 10.10.0.0/16 return")
+	require.Contains(t, rules, "nft insert rule inet consul_tproxy CONSUL_PROXY_OUTPUT skuid 999 return")
+}
+
+// TestSetup_NilProviderUsesDefaultExecutor ensures a nil provider is assigned without panicking.
+func TestSetup_NilProviderUsesDefaultExecutor(t *testing.T) {
+	cfg := Config{
+		ProxyUserID: "", // invalid — error returned before nft is exec'd
+	}
+	err := SetupWithAdditionalRules(cfg, nil, false)
+	require.EqualError(t, err, "ProxyUserID is required to set up traffic redirection")
+}
+
+// TestSetup_ReapplyClearsRules ensures a second call clears and repopulates rather than appending.
+func TestSetup_ReapplyClearsRules(t *testing.T) {
+	provider := &fakeNftablesProvider{}
+	cfg := Config{
+		ProxyUserID:      "1",
+		ProxyInboundPort: 20000,
+		NftablesProvider: provider,
+	}
+
+	require.NoError(t, SetupWithAdditionalRules(cfg, nil, false))
+	firstCount := len(provider.Rules())
+	require.Greater(t, firstCount, 0)
+
+	require.NoError(t, SetupWithAdditionalRules(cfg, nil, false))
+	require.Equal(t, firstCount, len(provider.Rules()), "second call must not double-accumulate rules")
+}
+
+// TestSetup_DefaultOutboundPort verifies ProxyOutboundPort=0 falls back to DefaultTProxyOutboundPort (15001).
+func TestSetup_DefaultOutboundPort(t *testing.T) {
+	cfg := Config{
+		ProxyUserID:      "1",
+		ProxyInboundPort: 20000,
+		NftablesProvider: &fakeNftablesProvider{},
+	}
+
+	require.NoError(t, SetupWithAdditionalRules(cfg, nil, false))
+
+	require.Contains(t, cfg.NftablesProvider.Rules(),
+		"nft add rule inet consul_tproxy CONSUL_PROXY_REDIRECT meta l4proto tcp redirect to :15001")
+}
