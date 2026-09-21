@@ -886,7 +886,6 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 	}
 }
 
-
 // TestNftablesSetup_ErrorAndSuccess unit-tests the nftables.Setup call used by
 // Run() at lines 125-132 using a fake provider to avoid requiring a real nft binary.
 func TestNftablesSetup_ErrorAndSuccess(t *testing.T) {

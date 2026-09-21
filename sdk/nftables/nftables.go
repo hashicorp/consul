@@ -281,7 +281,7 @@ func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn, d
 		// insert (prepend) rules so they take precedence over the defaults above.
 		for _, outboundPort := range cfg.ExcludeOutboundPorts {
 			cfg.NftablesProvider.AddRule("nft", "insert", "rule", "inet", tproxyTable, ProxyOutputChain,
-				"tcp", "dport", outboundPort, "return")
+				"tcp", "dport", normalizePortRange(outboundPort), "return")
 		}
 
 		for _, outboundCIDR := range cfg.ExcludeOutboundCIDRs {
@@ -311,7 +311,7 @@ func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn, d
 
 		for _, inboundPort := range cfg.ExcludeInboundPorts {
 			cfg.NftablesProvider.AddRule("nft", "insert", "rule", "inet", tproxyTable, ProxyInboundChain,
-				"tcp", "dport", inboundPort, "return")
+				"tcp", "dport", normalizePortRange(inboundPort), "return")
 		}
 	}
 
@@ -329,6 +329,12 @@ func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn, d
 // for migrated from iptables to nftables.
 func SetupWithAdditionalRulesIPv6(_ Config, _ AdditionalRulesFn, _ bool) error {
 	return nil
+}
+
+// normalizePortRange converts an iptables-style port range ("8080:9000") to
+// the nftables format ("8080-9000"). Single ports are returned unchanged.
+func normalizePortRange(port string) string {
+	return strings.ReplaceAll(port, ":", "-")
 }
 
 // ipFamilyKeyword returns "ip" for IPv4 addresses/CIDRs and "ip6" for IPv6.

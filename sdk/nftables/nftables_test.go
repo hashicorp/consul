@@ -1129,3 +1129,57 @@ func TestSetup_DefaultOutboundPort(t *testing.T) {
 	require.Contains(t, cfg.NftablesProvider.Rules(),
 		"nft add rule inet consul_tproxy CONSUL_PROXY_REDIRECT meta l4proto tcp redirect to :15001")
 }
+
+// TestNormalizePortRange covers normalizePortRange for single ports, ranges, and edge cases.
+func TestNormalizePortRange(t *testing.T) {
+	cases := []struct {
+		input    string
+		expected string
+	}{
+		// single ports — unchanged
+		{"8080", "8080"},
+		{"22", "22"},
+		{"0", "0"},
+		// iptables colon-range → nftables dash-range
+		{"8080:9000", "8080-9000"},
+		{"1000:2000", "1000-2000"},
+		{"0:65535", "0-65535"},
+		// already dash-separated — unchanged
+		{"8080-9000", "8080-9000"},
+		// empty string — unchanged
+		{"", ""},
+	}
+	for _, c := range cases {
+		t.Run(c.input, func(t *testing.T) {
+			require.Equal(t, c.expected, normalizePortRange(c.input))
+		})
+	}
+}
+
+// TestSetup_PortRangeNormalization verifies that iptables-style port ranges
+// ("8080:9000") in ExcludeInboundPorts and ExcludeOutboundPorts are
+// normalised to nftables syntax ("8080-9000") in the generated rules.
+func TestSetup_PortRangeNormalization(t *testing.T) {
+	cfg := Config{
+		ProxyUserID:          "123",
+		ProxyInboundPort:     20000,
+		ProxyOutboundPort:    21000,
+		ExcludeInboundPorts:  []string{"8080:9000"},
+		ExcludeOutboundPorts: []string{"1000:2000"},
+		NftablesProvider:     &fakeNftablesProvider{},
+	}
+
+	require.NoError(t, SetupWithAdditionalRules(cfg, nil, false))
+
+	rules := cfg.NftablesProvider.Rules()
+	// Colon ranges must be converted to dash ranges.
+	require.Contains(t, rules,
+		"nft insert rule inet consul_tproxy CONSUL_PROXY_INBOUND tcp dport 8080-9000 return")
+	require.Contains(t, rules,
+		"nft insert rule inet consul_tproxy CONSUL_PROXY_OUTPUT tcp dport 1000-2000 return")
+	// Colon syntax must not appear in any rule.
+	for _, r := range rules {
+		require.NotContains(t, r, "8080:9000", "colon range must be normalised to dash")
+		require.NotContains(t, r, "1000:2000", "colon range must be normalised to dash")
+	}
+}
