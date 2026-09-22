@@ -43,14 +43,21 @@ func flushLegacyIPTablesRules(netNS string) error {
 
 	var errs []error
 
-	for _, pair := range []struct{ save, tables string }{
-		{"iptables-save", "iptables"},
-		{"ip6tables-save", "ip6tables"},
+	for _, pair := range []struct{ save, tables, nftFamily string }{
+		{"iptables-save", "iptables", "ip"},
+		{"ip6tables-save", "ip6tables", "ip6"},
 	} {
-		if _, err := exec.LookPath(pair.save); err != nil {
-			continue
-		}
-		if _, err := exec.LookPath(pair.tables); err != nil {
+		_, saveErr := exec.LookPath(pair.save)
+		_, toolErr := exec.LookPath(pair.tables)
+		if saveErr != nil || toolErr != nil {
+			// Tool unavailable doesn't mean no legacy rules: on most modern
+			// distros "iptables" is a compatibility shim (iptables-nft)
+			// that stores rules as nftables objects in "ip"/"ip6", which
+			// `nft` can still see. Fall back to that instead of assuming
+			// the namespace is clean.
+			if err := flushIPTablesWithNftShim(netNS, pair.nftFamily, consulChains); err != nil {
+				errs = append(errs, fmt.Errorf("legacy iptables tools unavailable, nft fallback (%s family): %w", pair.nftFamily, err))
+			}
 			continue
 		}
 
@@ -59,6 +66,9 @@ func flushLegacyIPTablesRules(netNS string) error {
 		// own "CONSUL_PROXY_OUTPUT_CUSTOM") must not be treated as a match.
 		out, err := runOutput(netNS, pair.save, "-t", "nat")
 		if err != nil {
+			// A real failure, not "no rules found" -- must not be treated
+			// as clean, since we don't actually know.
+			errs = append(errs, fmt.Errorf("%s -t nat: %w", pair.save, err))
 			continue
 		}
 		existing := declaredChains(string(out), consulChains)
@@ -66,11 +76,10 @@ func flushLegacyIPTablesRules(netNS string) error {
 			continue
 		}
 
-		// Legacy rules detected. Delete every rule that jumps to a
-		// Consul-owned chain, then flush/delete only the chains confirmed
-		// present. Re-deriving `existing` on each call also makes a
-		// partially-cleaned install retryable — already-removed chains are
-		// simply absent and skipped.
+		// Legacy rules detected. Delete every jump into a Consul-owned
+		// chain, then flush/delete only chains confirmed present. Chains
+		// already removed by a prior attempt are simply absent from
+		// `existing`, making a partial cleanup retryable.
 		for _, line := range strings.Split(string(out), "\n") {
 			// Lines like: -A OUTPUT -p tcp -j CONSUL_PROXY_OUTPUT
 			if !strings.HasPrefix(line, "-A ") {
@@ -99,6 +108,130 @@ func flushLegacyIPTablesRules(netNS string) error {
 	}
 
 	return errors.Join(errs...)
+}
+
+// flushIPTablesWithNftShim is the fallback used when iptables/ip6tables are
+// unavailable. Most modern distros implement "iptables" via iptables-nft, a
+// shim that stores its rules as nftables objects in the "ip"/"ip6" families
+// -- still visible and removable via `nft` even without the tool itself.
+func flushIPTablesWithNftShim(netNS, family string, candidates []string) error {
+	out, err := runOutput(netNS, "nft", "-a", "list", "ruleset")
+	if err != nil {
+		return fmt.Errorf("nft -a list ruleset: %w", err)
+	}
+
+	chains, jumps := parseNftLegacyTable(string(out), family, candidates)
+	if len(chains) == 0 {
+		return nil
+	}
+
+	var errs []error
+	for _, j := range jumps {
+		if err := run(netNS, "nft", "delete", "rule", family, "nat", j.chain, "handle", j.handle); err != nil {
+			errs = append(errs, fmt.Errorf("nft delete rule %s nat %s handle %s (jump to %s): %w", family, j.chain, j.handle, j.target, err))
+		}
+	}
+
+	for _, chain := range chains {
+		if err := run(netNS, "nft", "flush", "chain", family, "nat", chain); err != nil {
+			errs = append(errs, fmt.Errorf("nft flush chain %s nat %s: %w", family, chain, err))
+			continue
+		}
+		if err := run(netNS, "nft", "delete", "chain", family, "nat", chain); err != nil {
+			errs = append(errs, fmt.Errorf("nft delete chain %s nat %s: %w", family, chain, err))
+		}
+	}
+
+	return errors.Join(errs...)
+}
+
+// nftRuleRef identifies a rule inside a legacy nft-backed table that jumps to
+// a Consul-owned chain, so it can be deleted (by handle) before that chain is
+// removed.
+type nftRuleRef struct {
+	chain  string // the chain containing this rule
+	handle string // this rule's handle, from a trailing "# handle N" comment
+	target string // the Consul chain this rule jumps/gotos to
+}
+
+// parseNftLegacyTable scans `nft -a list ruleset` output, scoped strictly to
+// "table <family> nat { ... }", for candidate chains declared there and any
+// rule jumping/going to one. A chain in this package's own "inet
+// consul_tproxy" table is never matched, even with the same name.
+func parseNftLegacyTable(dump, family string, candidates []string) (chains []string, jumps []nftRuleRef) {
+	wantHeader := "table " + family + " nat "
+	inTable := false
+	depth := 0
+	curChain := ""
+	declared := make(map[string]bool)
+
+	isCandidate := func(name string) bool {
+		for _, c := range candidates {
+			if name == c {
+				return true
+			}
+		}
+		return false
+	}
+
+	for _, raw := range strings.Split(dump, "\n") {
+		line := strings.TrimSpace(raw)
+
+		if !inTable {
+			if strings.HasPrefix(line, wantHeader) && strings.Contains(line, "{") {
+				inTable = true
+				depth = 1
+			}
+			continue
+		}
+
+		if depth == 1 && strings.HasPrefix(line, "chain ") {
+			if fields := strings.Fields(line); len(fields) >= 2 {
+				curChain = fields[1]
+				if isCandidate(curChain) {
+					declared[curChain] = true
+				}
+			}
+		}
+
+		if depth >= 2 && curChain != "" {
+			fields := strings.Fields(line)
+			for i, f := range fields {
+				if (f == "jump" || f == "goto") && i+1 < len(fields) && isCandidate(fields[i+1]) {
+					if h := ruleHandle(fields); h != "" {
+						jumps = append(jumps, nftRuleRef{chain: curChain, handle: h, target: fields[i+1]})
+					}
+				}
+			}
+		}
+
+		depth += strings.Count(line, "{") - strings.Count(line, "}")
+		switch {
+		case depth <= 0:
+			inTable = false
+			curChain = ""
+		case depth == 1:
+			curChain = ""
+		}
+	}
+
+	for _, c := range candidates {
+		if declared[c] {
+			chains = append(chains, c)
+		}
+	}
+	return chains, jumps
+}
+
+// ruleHandle returns the numeric handle from a rule line's trailing
+// "# handle N" comment (as produced by `nft -a`), or "" if absent.
+func ruleHandle(fields []string) string {
+	for i, f := range fields {
+		if f == "handle" && i+1 < len(fields) {
+			return fields[i+1]
+		}
+	}
+	return ""
 }
 
 // declaredChains parses an iptables-save dump and returns the subset of
@@ -153,7 +286,9 @@ func isOwnedChain(target string, chains []string) bool {
 	return false
 }
 
-// runOutput runs a command and returns its combined output.
+// runOutput runs a command and returns its stdout. On failure, the returned
+// error wraps the captured stderr, so a failed inspection carries an
+// actionable diagnostic message instead of a bare exit status.
 func runOutput(netNS, bin string, args ...string) ([]byte, error) {
 	var cmd *exec.Cmd
 	if netNS != "" {
@@ -162,7 +297,15 @@ func runOutput(netNS, bin string, args ...string) ([]byte, error) {
 	} else {
 		cmd = exec.Command(bin, args...)
 	}
-	return cmd.Output()
+
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("%w, output: %s", err, stderr.String())
+	}
+	return out, nil
 }
 
 // run executes a command and returns an error (including captured output) if it fails.
