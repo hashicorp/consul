@@ -4,6 +4,7 @@
 package xds
 
 import (
+	"fmt"
 	"testing"
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -13,6 +14,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -246,6 +248,56 @@ func TestMakeInlineDNSListenerNoDomains(t *testing.T) {
 	msg, err := s.makeInlineDNSListener(&proxycfg.ConfigSnapshot{})
 	require.NoError(t, err)
 	require.Nil(t, msg)
+}
+
+// TestListenersFromSnapshotConnectProxy_LocalizedDNSGating verifies that the
+// inline virtual DNS listener and the egress recursor DNS listener are only
+// added to the connect-proxy LDS resources when the featuregate.LocalizedDNS
+// feature is enabled on the snapshot, regardless of whether there is virtual
+// IP or recursor data available.
+func TestListenersFromSnapshotConnectProxy_LocalizedDNSGating(t *testing.T) {
+	origGetAgentBindAddrFunc := netutil.GetAgentBindAddrFunc
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+	defer func() { netutil.GetAgentBindAddrFunc = origGetAgentBindAddrFunc }()
+
+	listenerNames := func(t *testing.T, s *ResourceGenerator, snap *proxycfg.ConfigSnapshot) []string {
+		t.Helper()
+		resources, err := s.listenersFromSnapshotConnectProxy(snap)
+		require.NoError(t, err)
+
+		var names []string
+		for _, res := range resources {
+			l, ok := res.(*envoy_listener_v3.Listener)
+			require.True(t, ok)
+			names = append(names, l.Name)
+		}
+		return names
+	}
+
+	for _, enabled := range []bool{true, false} {
+		t.Run(fmt.Sprintf("enabled=%v", enabled), func(t *testing.T) {
+			snap := proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, nil)
+			snap.LocalizedDNSEnabled = enabled
+
+			s := &ResourceGenerator{
+				Logger: hclog.NewNullLogger(),
+				CfgFetcher: &mockCfgFetcher{
+					dnsRecursors: []string{"8.8.8.8"},
+				},
+			}
+
+			names := listenerNames(t, s, snap)
+			if enabled {
+				require.Contains(t, names, fmt.Sprintf("%s:%s:%d", virtualDNSListenerName, loopbackListenerAddress, virtualDNSListenerPort))
+				require.Contains(t, names, fmt.Sprintf("%s:%s:%d", egressDNSListenerName, loopbackListenerAddress, egressDNSListenerPort))
+			} else {
+				for _, name := range names {
+					require.NotContains(t, name, virtualDNSListenerName)
+					require.NotContains(t, name, egressDNSListenerName)
+				}
+			}
+		})
+	}
 }
 
 func TestMakeVirtualDNSDomains_Multiport(t *testing.T) {

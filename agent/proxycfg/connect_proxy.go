@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/agent/featuregate"
 	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
@@ -337,6 +338,14 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		}
 		snap.ConnectProxy.Intentions = resp
 		snap.ConnectProxy.IntentionsSet = true
+
+	case u.CorrelationID == featureGateWatchID:
+		enabled := s.featureGate != nil && s.featureGate.Enabled(featuregate.LocalizedDNS)
+		if snap.LocalizedDNSEnabled == enabled {
+			return nil
+		}
+		s.logger.Debug("feature-gate changed: updating LocalizedDNS listener state", "localized_dns_enabled", enabled)
+		snap.LocalizedDNSEnabled = enabled
 
 	case u.CorrelationID == jwtProviderID:
 		resp, ok := u.Result.(*structs.IndexedConfigEntries)
