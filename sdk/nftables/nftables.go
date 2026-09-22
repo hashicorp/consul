@@ -290,8 +290,12 @@ func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn, d
 
 		// insert (prepend) rules so they take precedence over the defaults above.
 		for _, outboundPort := range cfg.ExcludeOutboundPorts {
+			normalizedPort, err := normalizePortRange(outboundPort)
+			if err != nil {
+				return fmt.Errorf("ExcludeOutboundPorts: %w", err)
+			}
 			cfg.NftablesProvider.AddRule("nft", "insert", "rule", "inet", tproxyTable, ProxyOutputChain,
-				"tcp", "dport", normalizePortRange(outboundPort), "return")
+				"tcp", "dport", normalizedPort, "return")
 		}
 
 		for _, outboundCIDR := range cfg.ExcludeOutboundCIDRs {
@@ -320,8 +324,12 @@ func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn, d
 			"meta", "l4proto", "tcp", "jump", ProxyInboundRedirectChain)
 
 		for _, inboundPort := range cfg.ExcludeInboundPorts {
+			normalizedPort, err := normalizePortRange(inboundPort)
+			if err != nil {
+				return fmt.Errorf("ExcludeInboundPorts: %w", err)
+			}
 			cfg.NftablesProvider.AddRule("nft", "insert", "rule", "inet", tproxyTable, ProxyInboundChain,
-				"tcp", "dport", normalizePortRange(inboundPort), "return")
+				"tcp", "dport", normalizedPort, "return")
 		}
 	}
 
@@ -341,26 +349,61 @@ func SetupWithAdditionalRulesIPv6(_ Config, _ AdditionalRulesFn, _ bool) error {
 	return nil
 }
 
-// normalizePortRange converts an iptables-style port specification to the
-// nftables format. Bounded ranges use a dash instead of a colon
-// ("8080:9000" -> "8080-9000"). iptables allows either endpoint of a range to
-// be omitted, defaulting to the full port space on that side ("1024:" means
-// 1024-65535, ":1024" means 0-1024); nftables has no equivalent open-ended
-// range syntax, so omitted endpoints are expanded explicitly here. Single
-// ports and already-dash-separated ranges are returned unchanged.
-func normalizePortRange(port string) string {
-	idx := strings.IndexByte(port, ':')
-	if idx < 0 {
-		return port
+// normalizePortRange converts an iptables-style port spec to nftables format:
+// colon ranges become dash ranges ("8080:9000" -> "8080-9000"), and an
+// open-ended range with an omitted endpoint defaults to the full port space
+// ("1024:" -> "1024-65535"). Unlike iptables, service names (e.g. "http") are
+// not resolved — every endpoint must be numeric (0-65535), and invalid input
+// returns an error.
+func normalizePortRange(port string) (string, error) {
+	if idx := strings.IndexByte(port, ':'); idx >= 0 {
+		lo, hi := port[:idx], port[idx+1:]
+		if lo == "" {
+			lo = "0"
+		}
+		if hi == "" {
+			hi = "65535"
+		}
+		if err := validatePortNumber(lo); err != nil {
+			return "", fmt.Errorf("invalid port range %q: %w", port, err)
+		}
+		if err := validatePortNumber(hi); err != nil {
+			return "", fmt.Errorf("invalid port range %q: %w", port, err)
+		}
+		return lo + "-" + hi, nil
 	}
-	lo, hi := port[:idx], port[idx+1:]
-	if lo == "" {
-		lo = "0"
+
+	if idx := strings.IndexByte(port, '-'); idx >= 0 {
+		lo, hi := port[:idx], port[idx+1:]
+		if err := validatePortNumber(lo); err != nil {
+			return "", fmt.Errorf("invalid port range %q: %w", port, err)
+		}
+		if err := validatePortNumber(hi); err != nil {
+			return "", fmt.Errorf("invalid port range %q: %w", port, err)
+		}
+		return port, nil
 	}
-	if hi == "" {
-		hi = "65535"
+
+	if err := validatePortNumber(port); err != nil {
+		return "", fmt.Errorf("invalid port %q: %w", port, err)
 	}
-	return lo + "-" + hi
+	return port, nil
+}
+
+// validatePortNumber returns an error unless s is a decimal port number in
+// 0-65535. Service names like "http" are rejected, not resolved.
+func validatePortNumber(s string) error {
+	if s == "" {
+		return errors.New("port value must not be empty")
+	}
+	n, err := strconv.Atoi(s)
+	if err != nil {
+		return fmt.Errorf("port must be numeric, got %q", s)
+	}
+	if n < 0 || n > 65535 {
+		return fmt.Errorf("port %d out of range (0-65535)", n)
+	}
+	return nil
 }
 
 // ipFamilyKeyword returns "ip" for IPv4 addresses/CIDRs and "ip6" for IPv6.

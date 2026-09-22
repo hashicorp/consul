@@ -1170,12 +1170,38 @@ func TestNormalizePortRange(t *testing.T) {
 		{":", "0-65535"},
 		// already dash-separated — unchanged
 		{"8080-9000", "8080-9000"},
-		// empty string — unchanged
-		{"", ""},
 	}
 	for _, c := range cases {
 		t.Run(c.input, func(t *testing.T) {
-			require.Equal(t, c.expected, normalizePortRange(c.input))
+			got, err := normalizePortRange(c.input)
+			require.NoError(t, err)
+			require.Equal(t, c.expected, got)
+		})
+	}
+}
+
+// TestNormalizePortRange_InvalidInput covers inputs normalizePortRange must
+// reject: service names (iptables resolves these via /etc/services, but this
+// package no longer uses iptables and does not replicate that lookup),
+// non-numeric values, out-of-range numbers, and empty endpoints.
+func TestNormalizePortRange_InvalidInput(t *testing.T) {
+	cases := []string{
+		"",             // empty
+		"http",         // service name, not numeric
+		"http:https",   // service-name range
+		"http:",        // service-name lower bound
+		":https",       // service-name upper bound
+		"not-a-port",   // non-numeric
+		"8080:not-num", // non-numeric upper bound
+		"-1",           // negative
+		"70000",        // above 65535
+		"8080-",        // dash range with empty upper bound
+		"-9000",        // dash range with empty lower bound
+	}
+	for _, input := range cases {
+		t.Run(input, func(t *testing.T) {
+			_, err := normalizePortRange(input)
+			require.Error(t, err)
 		})
 	}
 }
