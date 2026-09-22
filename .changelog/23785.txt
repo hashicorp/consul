@@ -1,0 +1,7 @@
+```release-note:breaking-change
+sdk: Replaced the `iptables` package with a new `nftables` package for transparent proxy traffic redirection. Traffic redirection now requires the `nft` binary and a Linux kernel with stateful NAT support in `nftables` `inet` family chains, available upstream starting with Linux kernel version 5.2 (some distributions backport this support onto an earlier nominal kernel version, for example RHEL 8+, kernel 4.18+, and its derivatives). There is no automatic fallback to `iptables`/`ip6tables`, so hosts without this kernel support will fail to set up transparent proxy redirection.
+```
+
+```release-note:breaking-change
+cli: Migrated the `consul connect redirect-traffic` command from `iptables`/`ip6tables` to `nftables` (`nft`). The command now uses the `sdk/nftables` package, which applies rules atomically using the `inet` address family, covering both IPv4 and IPv6 in a single pass.
+```
