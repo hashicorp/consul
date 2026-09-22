@@ -756,7 +756,9 @@ func (m *Internal) PeeredUpstreams(args *structs.PartitionSpecificRequest, reply
 				result = append(result, vip.Service)
 			}
 
-			reply.Index, reply.Services = index, result
+			// ServiceVIPs carries per-port virtual IPs for multiport peering,
+			// which is an enterprise-only feature. CE never populates it.
+			reply.Index, reply.Services, reply.ServiceVIPs = index, result, nil
 			return nil
 		})
 }

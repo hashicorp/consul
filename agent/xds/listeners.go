@@ -155,6 +155,8 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		if upstreamCfg != nil {
 			destinationPort = upstreamCfg.DestinationPort
 		}
+		clusterDestinationPort := destinationPortForDiscoveryChain(cfgSnap, uid, upstreamCfg, chain)
+		chain = discoveryChainForPortQualifiedUpstream(cfgSnap, uid, upstreamCfg, chain)
 
 		cfg := s.getAndModifyUpstreamConfigForListener(uid, upstreamCfg, chain)
 
@@ -181,7 +183,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			}
 
 			clusterName = s.getTargetClusterName(upstreamsSnapshot, chain, target.ID, false)
-			clusterName = destinationPortClusterName(clusterName, destinationPort)
+			clusterName = destinationPortClusterName(clusterName, clusterDestinationPort)
 			if clusterName == "" {
 				continue
 			}
@@ -276,6 +278,8 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			endpoints,
 			clusterName,
 			filterName,
+			chain,
+			cfgSnap.Roots.TrustDomain,
 			filterChainOpts{
 				accessLogs:          &cfgSnap.Proxy.AccessLogs,
 				routeName:           uid.EnvoyID(),
@@ -518,20 +522,35 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		// Below we create a filter chain per upstream, rather than a listener per upstream
 		// as we do for explicit upstreams above.
 
-		filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
-			accessLogs:  &cfgSnap.Proxy.AccessLogs,
-			routeName:   uid.EnvoyID(),
-			clusterName: clusterName,
-			filterName: fmt.Sprintf("%s.%s.%s",
-				uid.Name,
-				uid.NamespaceOrDefault(),
-				uid.Peer),
+		filterName := fmt.Sprintf("%s.%s.%s",
+			uid.Name,
+			uid.NamespaceOrDefault(),
+			uid.Peer)
+
+		filterOpts := filterChainOpts{
+			accessLogs:          &cfgSnap.Proxy.AccessLogs,
+			routeName:           uid.EnvoyID(),
+			clusterName:         clusterName,
+			filterName:          filterName,
 			protocol:            cfg.Protocol,
 			useRDS:              false,
 			statPrefix:          "upstream_peered.",
 			tracing:             tracing,
 			maxRequestHeadersKb: proxyCfg.MaxRequestHeadersKB,
-		})
+		}
+
+		if err := s.appendEntPeeredUpstreamMultiportFilterChains(
+			outboundListener,
+			cfgSnap,
+			uid,
+			clusterName,
+			filterName,
+			filterOpts,
+		); err != nil {
+			return nil, err
+		}
+
+		filterChain, err := s.makeUpstreamFilterChain(filterOpts)
 		if err != nil {
 			return nil, err
 		}
@@ -2243,14 +2262,14 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 		peerNames := cfgSnap.MeshGateway.ExportedServicesWithPeers[svc]
 		chain := cfgSnap.MeshGateway.DiscoveryChain[svc]
 
-		filterChain, err := s.makeMeshGatewayPeerFilterChain(cfgSnap, svc, peerNames, chain)
+		filterChains, err := s.makeMeshGatewayPeerFilterChains(cfgSnap, svc, peerNames, chain)
 		if err != nil {
 			return nil, err
-		} else if filterChain == nil {
+		} else if len(filterChains) == 0 {
 			continue
 		}
 
-		l.FilterChains = append(l.FilterChains, filterChain)
+		l.FilterChains = append(l.FilterChains, filterChains...)
 	}
 
 	// We need 1 Filter Chain per remote cluster
@@ -2419,6 +2438,14 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 	})
 	l.FilterChains = append(l.FilterChains, peerServerFilterChains...)
 
+	if err := s.appendEntGatewayOutgoingPeeringServiceMultiportFilterChains(l, name, cfgSnap); err != nil {
+		return nil, err
+	}
+
+	if err := s.appendEntMeshGatewayMultiportFilterChains(l, name, cfgSnap); err != nil {
+		return nil, err
+	}
+
 	// This needs to get tacked on at the end as it has no
 	// matching and will act as a catch all
 	l.FilterChains = append(l.FilterChains, sniClusterChain)
@@ -2432,6 +2459,26 @@ func (s *ResourceGenerator) makeMeshGatewayPeerFilterChain(
 	peerNames []string,
 	chain *structs.CompiledDiscoveryChain,
 ) (*envoy_listener_v3.FilterChain, error) {
+	filterChains, err := s.makeMeshGatewayPeerFilterChains(cfgSnap, svc, peerNames, chain)
+	if err != nil || len(filterChains) == 0 {
+		return nil, err
+	}
+	// The base chain is always last; enterprise per-port chains are prepended.
+	return filterChains[len(filterChains)-1], nil
+}
+
+// makeMeshGatewayPeerFilterChains returns the filter chains a mesh gateway uses
+// to terminate traffic for a service exported to peers.
+//
+// In CE this returns either nil (not ready) or exactly the one filter chain
+// that makeMeshGatewayPeerFilterChain used to return, unchanged. Enterprise may
+// prepend one additional chain per named port.
+func (s *ResourceGenerator) makeMeshGatewayPeerFilterChains(
+	cfgSnap *proxycfg.ConfigSnapshot,
+	svc structs.ServiceName,
+	peerNames []string,
+	chain *structs.CompiledDiscoveryChain,
+) ([]*envoy_listener_v3.FilterChain, error) {
 	var (
 		useHTTPFilter = structs.IsProtocolHTTPLike(chain.Protocol)
 		// RDS, Envoy's Route Discovery Service, is only used for HTTP services.
@@ -2515,6 +2562,7 @@ func (s *ResourceGenerator) makeMeshGatewayPeerFilterChain(
 		ServerNames: peeredServerNames,
 	}
 
+	var peeredTransportSocket *envoy_core_v3.TransportSocket
 	if useHTTPFilter {
 		// We only terminate TLS if we're doing an L7 proxy.
 		var peerBundles []*pbpeering.PeeringTrustBundle
@@ -2524,14 +2572,31 @@ func (s *ResourceGenerator) makeMeshGatewayPeerFilterChain(
 			}
 		}
 
-		peeredTransportSocket, err := createDownstreamTransportSocketForConnectTLS(cfgSnap, cfgSnap.GetProxyConfig(s.Logger), peerBundles)
+		peeredTransportSocket, err = createDownstreamTransportSocketForConnectTLS(cfgSnap, cfgSnap.GetProxyConfig(s.Logger), peerBundles)
 		if err != nil {
 			return nil, err
 		}
 		filterChain.TransportSocket = peeredTransportSocket
 	}
 
-	return filterChain, nil
+	// Enterprise multiport exports prepend one more specific filter chain per
+	// named port. This returns nil in CE, leaving the result identical to the
+	// single chain built above.
+	perPortFilterChains, err := s.appendEntPeeredMultiportFilterChains(
+		cfgSnap,
+		svc,
+		peeredServerNames,
+		filterName,
+		chain,
+		useHTTPFilter,
+		peeredTransportSocket,
+		maxRequestHeadersKb,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return append(perPortFilterChains, filterChain), nil
 }
 
 type filterChainOpts struct {
