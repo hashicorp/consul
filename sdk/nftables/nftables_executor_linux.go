@@ -54,25 +54,30 @@ func flushLegacyIPTablesRules(netNS string) error {
 			continue
 		}
 
-		// Dump the nat table. If none of the Consul chain names appear, skip
-		// entirely — zero extra forks in the normal (no legacy rules) case.
+		// Dump the nat table and derive which Consul chains actually exist.
+		// A chain that only shares a name prefix (e.g. an administrator's
+		// own "CONSUL_PROXY_OUTPUT_CUSTOM") must not be treated as a match.
 		out, err := runOutput(netNS, pair.save, "-t", "nat")
-		if err != nil || !containsAny(string(out), consulChains) {
+		if err != nil {
+			continue
+		}
+		existing := declaredChains(string(out), consulChains)
+		if len(existing) == 0 {
 			continue
 		}
 
-		// Legacy rules detected. Walk the dump and delete every rule that
-		// jumps to a Consul-owned chain from another chain (built-in or
-		// custom), then flush/delete the Consul chains themselves. Failures
-		// are collected rather than ignored, so the caller learns cleanup
-		// was incomplete.
+		// Legacy rules detected. Delete every rule that jumps to a
+		// Consul-owned chain, then flush/delete only the chains confirmed
+		// present. Re-deriving `existing` on each call also makes a
+		// partially-cleaned install retryable — already-removed chains are
+		// simply absent and skipped.
 		for _, line := range strings.Split(string(out), "\n") {
 			// Lines like: -A OUTPUT -p tcp -j CONSUL_PROXY_OUTPUT
 			if !strings.HasPrefix(line, "-A ") {
 				continue
 			}
 			target := jumpTarget(strings.Fields(line))
-			if target == "" || !isOwnedChain(target, consulChains) {
+			if target == "" || !isOwnedChain(target, existing) {
 				continue
 			}
 			// Convert "-A" to "-D" to delete the exact rule.
@@ -82,7 +87,7 @@ func flushLegacyIPTablesRules(netNS string) error {
 			}
 		}
 
-		for _, chain := range consulChains {
+		for _, chain := range existing {
 			if err := run(netNS, pair.tables, "-t", "nat", "-F", chain); err != nil {
 				errs = append(errs, fmt.Errorf("%s -F %s: %w", pair.tables, chain, err))
 				continue
@@ -94,6 +99,33 @@ func flushLegacyIPTablesRules(netNS string) error {
 	}
 
 	return errors.Join(errs...)
+}
+
+// declaredChains parses an iptables-save dump and returns the subset of
+// candidates actually declared as chains (lines of the form
+// ":ChainName POLICY [packets:bytes]"). Matching is exact, so
+// "CONSUL_PROXY_OUTPUT_CUSTOM" is never mistaken for "CONSUL_PROXY_OUTPUT".
+func declaredChains(dump string, candidates []string) []string {
+	declared := make(map[string]bool)
+	for _, line := range strings.Split(dump, "\n") {
+		line = strings.TrimSpace(line)
+		if !strings.HasPrefix(line, ":") {
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) == 0 {
+			continue
+		}
+		declared[strings.TrimPrefix(fields[0], ":")] = true
+	}
+
+	var existing []string
+	for _, c := range candidates {
+		if declared[c] {
+			existing = append(existing, c)
+		}
+	}
+	return existing
 }
 
 // jumpTarget returns the chain name a rule jumps to (the argument following
@@ -115,16 +147,6 @@ func jumpTarget(fields []string) string {
 func isOwnedChain(target string, chains []string) bool {
 	for _, c := range chains {
 		if target == c {
-			return true
-		}
-	}
-	return false
-}
-
-// containsAny reports whether s contains any of the given substrings.
-func containsAny(s string, subs []string) bool {
-	for _, sub := range subs {
-		if strings.Contains(s, sub) {
 			return true
 		}
 	}
