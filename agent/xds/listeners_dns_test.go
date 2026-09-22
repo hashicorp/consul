@@ -29,10 +29,10 @@ func TestMakeVirtualDNSDomains(t *testing.T) {
 		got[d.Name] = d.GetEndpoint().GetAddressList().GetAddress()
 	}
 
-	// The "google" upstream advertises both the consul-k8s "virtual" ClusterIP
-	// (10.0.0.1) and the Consul-allocated virtual IP (240.0.0.1). Both are
-	// collected and sorted for stable output.
-	require.Equal(t, []string{"10.0.0.1", "240.0.0.1"}, got["google.virtual.default.ns.default.ap.dc1.dc.consul"])
+	// The "google" upstream advertises the Consul-allocated virtual IP
+	// (240.0.0.1). The consul-k8s "virtual" ClusterIP tag is intentionally
+	// not advertised (see virtualIPsForNodes).
+	require.Equal(t, []string{"240.0.0.1"}, got["google.virtual.default.ns.default.ap.dc1.dc.consul"])
 
 	// Domains are sorted by FQDN to keep LDS output stable.
 	for i := 1; i < len(domains); i++ {
