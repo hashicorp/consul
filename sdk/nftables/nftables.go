@@ -62,11 +62,14 @@ type Config struct {
 	ProxyOutboundPort int
 
 	// ExcludeInboundPorts is the list of ports that should be excluded
-	// from inbound traffic redirection.
+	// from inbound traffic redirection. Each entry may be a numeric port
+	// ("8080"), a range ("8080:9000"), or a TCP service name resolved via
+	// /etc/services ("ssh"), matching iptables' --dport syntax.
 	ExcludeInboundPorts []string
 
 	// ExcludeOutboundPorts is the list of ports that should be excluded
-	// from outbound traffic redirection.
+	// from outbound traffic redirection. Accepts the same formats as
+	// ExcludeInboundPorts.
 	ExcludeOutboundPorts []string
 
 	// ExcludeOutboundCIDRs is the list of IP CIDRs that should be excluded
@@ -349,49 +352,69 @@ func SetupWithAdditionalRulesIPv6(_ Config, _ AdditionalRulesFn, _ bool) error {
 	return nil
 }
 
-// normalizePortRange converts an iptables-style port spec to nftables format:
-// colon ranges become dash ranges ("8080:9000" -> "8080-9000"), and an
-// open-ended range with an omitted endpoint defaults to the full port space
-// ("1024:" -> "1024-65535"). Unlike iptables, service names (e.g. "http") are
-// not resolved — every endpoint must be numeric (0-65535), and invalid input
-// returns an error.
+// normalizePortRange converts an iptables-style port spec to nftables format.
+// Colon ranges become dash ranges ("8080:9000" -> "8080-9000"), with an
+// omitted endpoint defaulting to the full port space ("1024:" -> "1024-65535").
+// Like iptables, any port or range endpoint may also be a TCP service name
+// (e.g. "ssh", or "http:https" for a range) -- nft has no such lookup, so
+// these are resolved to numeric ports via /etc/services beforehand.
 func normalizePortRange(port string) (string, error) {
 	if idx := strings.IndexByte(port, ':'); idx >= 0 {
 		lo, hi := port[:idx], port[idx+1:]
-		if lo == "" {
-			lo = "0"
+		loNum, hiNum := "0", "65535"
+		var err error
+		if lo != "" {
+			if loNum, err = resolvePort(lo); err != nil {
+				return "", fmt.Errorf("invalid port range %q: %w", port, err)
+			}
 		}
-		if hi == "" {
-			hi = "65535"
+		if hi != "" {
+			if hiNum, err = resolvePort(hi); err != nil {
+				return "", fmt.Errorf("invalid port range %q: %w", port, err)
+			}
 		}
-		if err := validatePortNumber(lo); err != nil {
-			return "", fmt.Errorf("invalid port range %q: %w", port, err)
-		}
-		if err := validatePortNumber(hi); err != nil {
-			return "", fmt.Errorf("invalid port range %q: %w", port, err)
-		}
-		return lo + "-" + hi, nil
+		return loNum + "-" + hiNum, nil
 	}
 
 	if idx := strings.IndexByte(port, '-'); idx >= 0 {
 		lo, hi := port[:idx], port[idx+1:]
-		if err := validatePortNumber(lo); err != nil {
+		loNum, err := resolvePort(lo)
+		if err != nil {
 			return "", fmt.Errorf("invalid port range %q: %w", port, err)
 		}
-		if err := validatePortNumber(hi); err != nil {
+		hiNum, err := resolvePort(hi)
+		if err != nil {
 			return "", fmt.Errorf("invalid port range %q: %w", port, err)
 		}
-		return port, nil
+		return loNum + "-" + hiNum, nil
 	}
 
-	if err := validatePortNumber(port); err != nil {
+	resolved, err := resolvePort(port)
+	if err != nil {
 		return "", fmt.Errorf("invalid port %q: %w", port, err)
 	}
-	return port, nil
+	return resolved, nil
+}
+
+// resolvePort returns the numeric port for s: numeric input is used as-is,
+// and non-numeric input is resolved as a TCP service name via /etc/services
+// (e.g. "ssh" -> "22"), matching iptables' --dport semantics.
+func resolvePort(s string) (string, error) {
+	if s == "" {
+		return "", errors.New("port value must not be empty")
+	}
+	if err := validatePortNumber(s); err == nil {
+		return s, nil
+	}
+	port, err := net.LookupPort("tcp", s)
+	if err != nil {
+		return "", fmt.Errorf("port must be numeric or a resolvable TCP service name, got %q", s)
+	}
+	return strconv.Itoa(port), nil
 }
 
 // validatePortNumber returns an error unless s is a decimal port number in
-// 0-65535. Service names like "http" are rejected, not resolved.
+// 0-65535.
 func validatePortNumber(s string) error {
 	if s == "" {
 		return errors.New("port value must not be empty")

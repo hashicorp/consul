@@ -67,9 +67,11 @@ func (c *cmd) init() {
 	c.flags.IntVar(&c.proxyOutboundPort, "proxy-outbound-port", nftables.DefaultTProxyOutboundPort,
 		"The outbound port that the proxy is listening on. When not provided, 15001 is used by default.")
 	c.flags.Var((*flags.AppendSliceValue)(&c.excludeInboundPorts), "exclude-inbound-port",
-		"Inbound port to exclude from traffic redirection. May be provided multiple times.")
+		"Inbound port to exclude from traffic redirection: a number, range (8080:9000), or service name (ssh). "+
+			"May be provided multiple times.")
 	c.flags.Var((*flags.AppendSliceValue)(&c.excludeOutboundPorts), "exclude-outbound-port",
-		"Outbound port to exclude from traffic redirection. May be provided multiple times.")
+		"Outbound port to exclude from traffic redirection: a number, range (8080:9000), or service name (ssh). "+
+			"May be provided multiple times.")
 	c.flags.Var((*flags.AppendSliceValue)(&c.excludeOutboundCIDRs), "exclude-outbound-cidr",
 		"Outbound CIDR to exclude from traffic redirection. May be provided multiple times.")
 	c.flags.Var((*flags.AppendSliceValue)(&c.excludeUIDs), "exclude-uid",

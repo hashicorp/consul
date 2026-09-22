@@ -1170,6 +1170,14 @@ func TestNormalizePortRange(t *testing.T) {
 		{":", "0-65535"},
 		// already dash-separated — unchanged
 		{"8080-9000", "8080-9000"},
+		// TCP service names — resolved to their well-known numeric port via
+		// /etc/services, matching iptables' --dport behavior.
+		{"ssh", "22"},
+		{"http", "80"},
+		{"http:https", "80-443"},
+		{"ssh:", "22-65535"},
+		{":ssh", "0-22"},
+		{"ssh-https", "22-443"},
 	}
 	for _, c := range cases {
 		t.Run(c.input, func(t *testing.T) {
@@ -1181,22 +1189,16 @@ func TestNormalizePortRange(t *testing.T) {
 }
 
 // TestNormalizePortRange_InvalidInput covers inputs normalizePortRange must
-// reject: service names (iptables resolves these via /etc/services, but this
-// package no longer uses iptables and does not replicate that lookup),
-// non-numeric values, out-of-range numbers, and empty endpoints.
+// reject: unresolvable names, out-of-range numbers, and empty endpoints.
 func TestNormalizePortRange_InvalidInput(t *testing.T) {
 	cases := []string{
-		"",             // empty
-		"http",         // service name, not numeric
-		"http:https",   // service-name range
-		"http:",        // service-name lower bound
-		":https",       // service-name upper bound
-		"not-a-port",   // non-numeric
-		"8080:not-num", // non-numeric upper bound
-		"-1",           // negative
-		"70000",        // above 65535
-		"8080-",        // dash range with empty upper bound
-		"-9000",        // dash range with empty lower bound
+		"",                        // empty
+		"not-a-real-service-name", // not numeric, not a known service name
+		"8080:not-a-service",      // non-resolvable upper bound
+		"-1",                      // negative
+		"70000",                   // above 65535
+		"8080-",                   // dash range with empty upper bound
+		"-9000",                   // dash range with empty lower bound
 	}
 	for _, input := range cases {
 		t.Run(input, func(t *testing.T) {
