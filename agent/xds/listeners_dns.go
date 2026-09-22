@@ -215,9 +215,6 @@ func virtualIPsForChain(cfgSnap *proxycfg.ConfigSnapshot, uid proxycfg.UpstreamI
 		for _, ip := range chain.AutoVirtualIPs {
 			uniqueAddrs[ip] = struct{}{}
 		}
-		for _, ip := range chain.ManualVirtualIPs {
-			uniqueAddrs[ip] = struct{}{}
-		}
 	}
 
 	nodes := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[uid][chain.ID()]
