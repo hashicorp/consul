@@ -1,0 +1,6 @@
+```release-note:bug
+proxycfg: stop leaking a watcher goroutine per peered upstream on every peered-upstreams update, and give those watches a cancel func so they are reclaimed when the upstream is no longer imported. [GH-23931]
+```
+```release-note:bug
+proxycfg: cancel a proxy's watches when its state is closed or replaced after its run loop has already stopped, so a recovered panic no longer strands every watch the state had registered. [GH-23931]
+```
