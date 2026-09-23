@@ -333,7 +333,7 @@ func newConfigSnapshotFromServiceInstance(s serviceInstance, config stateConfig)
 		Locality:              GatewayKey{Datacenter: config.source.Datacenter, Partition: s.proxyID.PartitionOrDefault()},
 		ServerSNIFn:           config.serverSNIFn,
 		IntentionDefaultAllow: config.intentionDefaultAllow,
-		LocalizedDNSEnabled:   config.featureGate == nil || config.featureGate.Enabled(featuregate.LocalizedDNS),
+		LocalizedDNSEnabled:   config.featureGate != nil && config.featureGate.Enabled(featuregate.LocalizedDNS),
 	}
 }
 
