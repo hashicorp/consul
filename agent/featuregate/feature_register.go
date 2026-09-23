@@ -20,7 +20,7 @@ import "github.com/hashicorp/go-version"
 // in production clusters, keeping the feature permanently disabled.
 var APIGatewayUpstreamRouting = registerFeature(Definition{
 	Name:        "api-gateway-upstream-routing",
-	MinVersion:  version.Must(version.NewVersion("2.1.0-rc1")),
+	MinVersion:  version.Must(version.NewVersion("2.1.0")),
 	Description: "Compose API Gateway HTTPRoutes with upstream routing policy",
 	Owner:       "proxycfg",
 })
@@ -39,7 +39,7 @@ var APIGatewayUpstreamRouting = registerFeature(Definition{
 // in production clusters, keeping the feature permanently disabled.
 var LocalizedDNS = registerFeature(Definition{
 	Name:        "localized-dns",
-	MinVersion:  version.Must(version.NewVersion("2.1.0-rc1")),
+	MinVersion:  version.Must(version.NewVersion("2.1.0")),
 	Description: "Add inline virtual DNS and egress recursor DNS listeners to connect-proxy sidecars",
 	Owner:       "proxycfg",
 })
