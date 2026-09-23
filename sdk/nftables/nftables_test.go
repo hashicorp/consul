@@ -1326,10 +1326,10 @@ func TestValidateCIDR(t *testing.T) {
 	invalidCases := []string{
 		"",
 		"not-an-ip",
-		"1.1.1.1/33",       // prefix out of range for IPv4
-		"1.1.1.1/-1",       // negative prefix
-		"::1/129",          // prefix out of range for IPv6
-		"1.1.1.1/abc",      // non-numeric prefix
+		"1.1.1.1/33",  // prefix out of range for IPv4
+		"1.1.1.1/-1",  // negative prefix
+		"::1/129",     // prefix out of range for IPv6
+		"1.1.1.1/abc", // non-numeric prefix
 		// Injection attempts: embedded nft statement separators, keywords,
 		// and control characters must never parse as a valid IP/CIDR.
 		"1.1.1.1; add table inet evil",
