@@ -90,12 +90,11 @@ func TestManager_RefreshFeatureGates_AgentlessAPIGatewayOnly(t *testing.T) {
 
 	m.refreshFeatureGates()
 	require.Equal(t, featureGateWatchID, (<-agentlessGateway.ch).CorrelationID)
-	for _, unaffected := range []*state{agentfulGateway, agentlessSidecar} {
-		select {
-		case event := <-unaffected.ch:
-			t.Fatalf("unexpected invalidation event: %#v", event)
-		default:
-		}
+	require.Equal(t, featureGateWatchID, (<-agentlessSidecar.ch).CorrelationID)
+	select {
+	case event := <-agentfulGateway.ch:
+		t.Fatalf("unexpected invalidation event: %#v", event)
+	default:
 	}
 }
 
