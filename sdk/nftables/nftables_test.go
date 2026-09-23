@@ -4,6 +4,7 @@
 package nftables
 
 import (
+	"errors"
 	"net"
 	"strconv"
 	"strings"
@@ -923,6 +924,13 @@ func TestSetup_errors(t *testing.T) {
 
 type fakeNftablesProvider struct {
 	rules []string
+
+	// applyErr, when non-nil, is returned by ApplyRules to simulate a
+	// failed nft batch (e.g. a kernel/parse-time rejection of the
+	// generated script), without actually mutating any real nftables state.
+	applyErr error
+	// applyCalls counts how many times ApplyRules was invoked.
+	applyCalls int
 }
 
 func (f *fakeNftablesProvider) AddRule(name string, args ...string) {
@@ -934,7 +942,8 @@ func (f *fakeNftablesProvider) AddRule(name string, args ...string) {
 }
 
 func (f *fakeNftablesProvider) ApplyRules(command string) error {
-	return nil
+	f.applyCalls++
+	return f.applyErr
 }
 
 func (f *fakeNftablesProvider) Rules() []string {
@@ -1136,6 +1145,73 @@ func TestSetup_ReapplyClearsRules(t *testing.T) {
 
 	require.NoError(t, SetupWithAdditionalRules(cfg, nil, false))
 	require.Equal(t, firstCount, len(provider.Rules()), "second call must not double-accumulate rules")
+}
+
+// TestSetup_ReapplyWithChangedConfig ensures that reapplying with a different
+// configuration (e.g. after exclusions are added/removed between agent
+// restarts) fully replaces the previous rule set rather than layering the new
+// rules on top of stale ones. A naive implementation that forgets to clear
+// state before rebuilding could otherwise leave a since-removed exclusion's
+// "return" rule active alongside the newly configured ones.
+func TestSetup_ReapplyWithChangedConfig(t *testing.T) {
+	provider := &fakeNftablesProvider{}
+	cfg := Config{
+		ProxyUserID:          "1",
+		ProxyInboundPort:     20000,
+		ExcludeUIDs:          []string{"999"},
+		ExcludeOutboundCIDRs: []string{"10.10.0.0/16"},
+		NftablesProvider:     provider,
+	}
+
+	require.NoError(t, SetupWithAdditionalRules(cfg, nil, false))
+	rules := provider.Rules()
+	require.Contains(t, rules, "nft insert rule inet consul_tproxy CONSUL_PROXY_OUTPUT skuid 999 return")
+	require.Contains(t, rules, "nft insert rule inet consul_tproxy CONSUL_PROXY_OUTPUT ip daddr 10.10.0.0/16 return")
+
+	// Reapply with a changed configuration: the old UID exclusion is dropped
+	// and replaced with a different UID and a new port exclusion.
+	cfg.ExcludeUIDs = []string{"111"}
+	cfg.ExcludeOutboundCIDRs = nil
+	cfg.ExcludeInboundPorts = []string{"8080"}
+
+	require.NoError(t, SetupWithAdditionalRules(cfg, nil, false))
+	rules = provider.Rules()
+
+	require.Contains(t, rules, "nft insert rule inet consul_tproxy CONSUL_PROXY_OUTPUT skuid 111 return")
+	require.Contains(t, rules, "nft insert rule inet consul_tproxy CONSUL_PROXY_INBOUND tcp dport 8080 return")
+	require.NotContains(t, rules, "nft insert rule inet consul_tproxy CONSUL_PROXY_OUTPUT skuid 999 return",
+		"stale UID exclusion from the previous config must not survive a reapply")
+	require.NotContains(t, rules, "nft insert rule inet consul_tproxy CONSUL_PROXY_OUTPUT ip daddr 10.10.0.0/16 return",
+		"stale CIDR exclusion removed from the config must not survive a reapply")
+}
+
+// TestSetup_FailedApply_ErrorPropagatesAndRetrySucceeds simulates a failed
+// nft batch (e.g. the kernel/nft parser rejecting the generated script) and
+// verifies that: (1) the error is surfaced to the caller rather than
+// swallowed, so Setup is never mistaken for a success, and (2) the failure
+// doesn't leave the provider in a state that blocks a subsequent, successful
+// retry — mirroring nft's own transactional all-or-nothing semantics, where a
+// rejected batch leaves the previously active table untouched and retryable.
+func TestSetup_FailedApply_ErrorPropagatesAndRetrySucceeds(t *testing.T) {
+	provider := &fakeNftablesProvider{applyErr: errors.New("simulated nft batch failure")}
+	cfg := Config{
+		ProxyUserID:      "1",
+		ProxyInboundPort: 20000,
+		NftablesProvider: provider,
+	}
+
+	err := SetupWithAdditionalRules(cfg, nil, false)
+	require.EqualError(t, err, "simulated nft batch failure")
+	require.Equal(t, 1, provider.applyCalls)
+	require.NotEmpty(t, provider.Rules(), "the rejected batch's staged rules remain visible for diagnostics")
+
+	// Clear the simulated failure and retry: the earlier failed attempt must
+	// not prevent a clean, successful reapply.
+	provider.applyErr = nil
+	require.NoError(t, SetupWithAdditionalRules(cfg, nil, false))
+	require.Equal(t, 2, provider.applyCalls)
+	require.Contains(t, provider.Rules(),
+		"nft add rule inet consul_tproxy CONSUL_PROXY_IN_REDIRECT meta l4proto tcp redirect to :20000")
 }
 
 // TestSetup_DefaultOutboundPort verifies ProxyOutboundPort=0 falls back to DefaultTProxyOutboundPort (15001).
