@@ -1179,6 +1179,12 @@ type ConfigSnapshot struct {
 	Locality              GatewayKey
 	JWTProviders          map[string]*structs.JWTProviderConfigEntry
 
+	// LocalizedDNSEnabled reports whether the featuregate.LocalizedDNS feature
+	// is enabled. When false, xDS generation must not add the inline virtual
+	// DNS listener or the egress recursor DNS listener to connect-proxy
+	// sidecars, regardless of virtual IP or recursor configuration.
+	LocalizedDNSEnabled bool
+
 	ServerSNIFn ServerSNIFunc
 	Roots       *structs.IndexedCARoots
 

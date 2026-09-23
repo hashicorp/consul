@@ -282,20 +282,28 @@ func (m *Manager) featureGateRefresher() {
 	}
 }
 
-// refreshFeatureGates invalidates only server-catalog API Gateway snapshots.
-// Local agent registrations are Phase 1's explicit fail-closed boundary.
+// refreshFeatureGates invalidates server-catalog API Gateway snapshots as
+// well as Connect proxy (sidecar) snapshots, which need feature-gate updates
+// regardless of source (e.g. LocalizedDNS applies to all sidecars). Local
+// agent registrations for API Gateway are Phase 1's explicit fail-closed
+// boundary and are excluded.
 func (m *Manager) refreshFeatureGates() {
 	m.mu.Lock()
 	states := make([]*state, 0)
 	for _, proxyState := range m.proxies {
-		if proxyState.source == ProxySourceCatalog && proxyState.serviceInstance.kind == structs.ServiceKindAPIGateway {
+		switch proxyState.serviceInstance.kind {
+		case structs.ServiceKindAPIGateway:
+			if proxyState.source == ProxySourceCatalog {
+				states = append(states, proxyState)
+			}
+		case structs.ServiceKindConnectProxy:
 			states = append(states, proxyState)
 		}
 	}
 	m.mu.Unlock()
 
 	if m.Logger != nil {
-		m.Logger.Debug("feature-gate refresh: dispatching to API Gateway states", "count", len(states))
+		m.Logger.Debug("feature-gate refresh: dispatching to feature-gate-aware states", "count", len(states))
 	}
 	event := UpdateEvent{CorrelationID: featureGateWatchID}
 	for _, proxyState := range states {
