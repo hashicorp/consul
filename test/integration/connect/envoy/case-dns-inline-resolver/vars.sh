@@ -8,10 +8,3 @@
 # listener advertises. Recursors for the egress DNS listener are supplied via
 # recursors.hcl.
 export REQUIRED_SERVICES="$DEFAULT_REQUIRED_SERVICES"
-
-# TODO: LocalizedDNS is currently only exercised against XDS_TARGET=server.
-# Revisit whether/how this feature should behave for classic client-agent
-# managed sidecars (XDS_TARGET=client) and re-enable this leg once that's
-# decided.
-export SKIP_CASE=""
-[ "$XDS_TARGET" = "client" ] && export SKIP_CASE="case-dns-inline-resolver is not yet supported under XDS_TARGET=client"
