@@ -1446,6 +1446,64 @@ func TestSetup_RejectsInjectedProxyUserID(t *testing.T) {
 	}
 }
 
+// TestValidateDNSIP covers validateDNSIP for valid IPs and rejected input,
+// including injection attempts.
+func TestValidateDNSIP(t *testing.T) {
+	validCases := []struct{ input, expected string }{
+		{"1.1.1.1", "1.1.1.1"},
+		{"10.0.34.16", "10.0.34.16"},
+		{"2001:db8::68", "2001:db8::68"},
+		{"::1", "::1"},
+	}
+	for _, c := range validCases {
+		t.Run(c.input, func(t *testing.T) {
+			got, err := validateDNSIP(c.input)
+			require.NoError(t, err)
+			require.Equal(t, c.expected, got)
+		})
+	}
+
+	invalidCases := []string{
+		"",
+		"not-an-ip",
+		"1.1.1.1/24", // CIDR notation is not accepted; ConsulDNSIP is a single destination
+		// Injection attempts: a valid IP prefix followed by nft syntax must
+		// be rejected outright, not truncated down to the IP part.
+		"1.1.1.1; add table inet evil",
+		"1.1.1.1\ninclude \"/etc/passwd\"",
+		"1.1.1.1 } add table inet evil {",
+	}
+	for _, input := range invalidCases {
+		t.Run(input, func(t *testing.T) {
+			_, err := validateDNSIP(input)
+			require.Error(t, err)
+		})
+	}
+}
+
+// TestSetup_RejectsInjectedConsulDNSIP verifies that a crafted ConsulDNSIP
+// containing nft script syntax is rejected when calling the exported
+// SetupWithAdditionalRules directly — not just via Setup(), which is not
+// the only path callers (e.g. ECS mesh-init) can use to reach it.
+func TestSetup_RejectsInjectedConsulDNSIP(t *testing.T) {
+	provider := &fakeNftablesProvider{}
+	cfg := Config{
+		ProxyUserID:      "123",
+		ProxyInboundPort: 20000,
+		ConsulDNSPort:    53,
+		ConsulDNSIP:      "1.1.1.1; add table inet evil_table",
+		NftablesProvider: provider,
+	}
+
+	err := SetupWithAdditionalRules(cfg, nil, false)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "ConsulDNSIP")
+
+	for _, r := range provider.Rules() {
+		require.NotContains(t, r, "evil_table", "injected statement must never reach the generated rules")
+	}
+}
+
 // TestSetup_PortRangeNormalization verifies that iptables-style port ranges
 // ("8080:9000") in ExcludeInboundPorts and ExcludeOutboundPorts are
 // normalised to nftables syntax ("8080-9000") in the generated rules.

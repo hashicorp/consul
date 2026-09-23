@@ -182,6 +182,18 @@ func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn, d
 		return fmt.Errorf("ProxyUserID: %w", err)
 	}
 
+	// ConsulDNSIP is also interpolated directly into the nft script (as a
+	// "dnat to" destination below). Setup() checks it via
+	// verifyDualStackConfig, but SetupWithAdditionalRules is exported and
+	// can be called directly (e.g. by ECS mesh-init) without going through
+	// Setup(), so canonicalize it here too rather than relying on callers.
+	if cfg.ConsulDNSIP != "" {
+		cfg.ConsulDNSIP, err = validateDNSIP(cfg.ConsulDNSIP)
+		if err != nil {
+			return fmt.Errorf("ConsulDNSIP: %w", err)
+		}
+	}
+
 	// Set the default outbound port if it's not already set.
 	if cfg.ProxyOutboundPort == 0 {
 		cfg.ProxyOutboundPort = DefaultTProxyOutboundPort
@@ -525,6 +537,25 @@ func validateUID(uid string) (string, error) {
 		return "", fmt.Errorf("must be a valid numeric user ID, got %q", uid)
 	}
 	return strconv.FormatUint(n, 10), nil
+}
+
+// validateDNSIP parses ip as a plain IP address (no CIDR notation — unlike
+// ExcludeOutboundCIDRs, ConsulDNSIP identifies a single destination, not a
+// range) and returns its canonical string form.
+//
+// Like validateCIDR and validateUID, this exists because the value is
+// interpolated directly into the nft script (as a "dnat to" destination in
+// the ConsulDNSIP rules in SetupWithAdditionalRules), so raw text must never
+// reach it.
+func validateDNSIP(ip string) (string, error) {
+	if ip == "" {
+		return "", errors.New("must not be empty")
+	}
+	parsed := net.ParseIP(ip)
+	if parsed == nil {
+		return "", fmt.Errorf("must be a valid IP address, got %q", ip)
+	}
+	return parsed.String(), nil
 }
 
 func validateConfig(cfg Config) error {
