@@ -571,7 +571,11 @@ IPSAVE_EOF
 // TestApplyRules_NamespaceForwarding verifies that a configured NetNS causes
 // ApplyRules to invoke "nsenter --net=<ns> -- nft -f -" rather than
 // executing nft directly, while the script still reaches nft's stdin
-// unchanged.
+// unchanged. It also stubs out the legacy iptables/ip6tables tooling that
+// ApplyRules's post-success cleanup step (flushLegacyIPTablesRules) always
+// consults, so the assertions below don't depend on whether the host
+// actually has iptables-save/ip6tables-save installed (e.g. present on
+// Linux CI runners but absent on a developer's Mac).
 func TestApplyRules_NamespaceForwarding(t *testing.T) {
 	dir := t.TempDir()
 	nsenterLog := filepath.Join(dir, "nsenter.log")
@@ -580,6 +584,25 @@ func TestApplyRules_NamespaceForwarding(t *testing.T) {
 
 	stdinCapture := filepath.Join(dir, "nft.stdin")
 	writeFakeBin(t, dir, "nft", `cat > "`+stdinCapture+`"`)
+	// No legacy Consul chains declared, for both address families, so
+	// flushLegacyIPTablesRules dumps the nat table and then stops without
+	// invoking iptables/ip6tables to delete/flush anything.
+	writeFakeBin(t, dir, "iptables-save", `cat <<'IPSAVE_EOF'
+*nat
+:PREROUTING ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+COMMIT
+IPSAVE_EOF
+`)
+	writeFakeBin(t, dir, "ip6tables-save", `cat <<'IPSAVE_EOF'
+*nat
+:PREROUTING ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+COMMIT
+IPSAVE_EOF
+`)
+	writeFakeBin(t, dir, "iptables", `exit 0`)
+	writeFakeBin(t, dir, "ip6tables", `exit 0`)
 	usePATH(t, dir)
 
 	n := &nftablesExecutor{cfg: Config{NetNS: "/var/run/netns/consul-test"}}
@@ -589,7 +612,9 @@ func TestApplyRules_NamespaceForwarding(t *testing.T) {
 
 	nsLogged, err := os.ReadFile(nsenterLog)
 	require.NoError(t, err)
-	require.Equal(t, "--net=/var/run/netns/consul-test -- nft -f -\n", string(nsLogged))
+	require.Equal(t, "--net=/var/run/netns/consul-test -- nft -f -\n"+
+		"--net=/var/run/netns/consul-test -- iptables-save -t nat\n"+
+		"--net=/var/run/netns/consul-test -- ip6tables-save -t nat\n", string(nsLogged))
 
 	stdinLogged, err := os.ReadFile(stdinCapture)
 	require.NoError(t, err)
