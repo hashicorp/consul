@@ -340,12 +340,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		snap.ConnectProxy.IntentionsSet = true
 
 	case u.CorrelationID == featureGateWatchID:
-		enabled := s.featureGate != nil && s.featureGate.Enabled(featuregate.LocalizedDNS)
-		if snap.LocalizedDNSEnabled == enabled {
-			return nil
-		}
-		s.logger.Debug("feature-gate changed: updating LocalizedDNS listener state", "localized_dns_enabled", enabled)
-		snap.LocalizedDNSEnabled = enabled
+		s.handleFeatureGateUpdate(snap)
 
 	case u.CorrelationID == jwtProviderID:
 		resp, ok := u.Result.(*structs.IndexedConfigEntries)
@@ -644,6 +639,19 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		return (*handlerUpstreams)(s).handleUpdateUpstreams(ctx, u, snap)
 	}
 	return nil
+}
+
+// handleFeatureGateUpdate refreshes snap.LocalizedDNSEnabled from the current
+// featuregate.LocalizedDNS state. It is split out from handleUpdate so that
+// enterprise builds can override the enabled computation without having to
+// duplicate the surrounding switch statement.
+func (s *handlerConnectProxy) handleFeatureGateUpdate(snap *ConfigSnapshot) {
+	enabled := s.featureGate != nil && s.featureGate.Enabled(featuregate.LocalizedDNS)
+	if snap.LocalizedDNSEnabled == enabled {
+		return
+	}
+	s.logger.Debug("feature-gate changed: updating LocalizedDNS listener state", "localized_dns_enabled", enabled)
+	snap.LocalizedDNSEnabled = enabled
 }
 
 // telemetryCollectorConfig represents the basic opaque config values for pushing telemetry to
