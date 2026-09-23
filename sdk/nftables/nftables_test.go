@@ -1304,6 +1304,148 @@ func TestNormalizePortRange_InvalidInput(t *testing.T) {
 	}
 }
 
+// TestValidateCIDR covers validateCIDR for accepted bare IPs and CIDRs,
+// and rejects malformed/injected input.
+func TestValidateCIDR(t *testing.T) {
+	validCases := []struct{ input, expected string }{
+		{"1.1.1.1", "1.1.1.1"},
+		{"2.2.2.2/24", "2.2.2.2/24"},
+		{"10.10.0.0/16", "10.10.0.0/16"},
+		{"2406:da1a:23:5e05:e1c6::5", "2406:da1a:23:5e05:e1c6::5"},
+		{"2406:da1a:23:5e05:e1c6::ffff/24", "2406:da1a:23:5e05:e1c6::ffff/24"},
+		{"fe80::/10", "fe80::/10"},
+	}
+	for _, c := range validCases {
+		t.Run(c.input, func(t *testing.T) {
+			got, err := validateCIDR(c.input)
+			require.NoError(t, err)
+			require.Equal(t, c.expected, got)
+		})
+	}
+
+	invalidCases := []string{
+		"",
+		"not-an-ip",
+		"1.1.1.1/33",       // prefix out of range for IPv4
+		"1.1.1.1/-1",       // negative prefix
+		"::1/129",          // prefix out of range for IPv6
+		"1.1.1.1/abc",      // non-numeric prefix
+		// Injection attempts: embedded nft statement separators, keywords,
+		// and control characters must never parse as a valid IP/CIDR.
+		"1.1.1.1; add table inet evil",
+		"1.1.1.1/24; add table inet evil",
+		"1.1.1.1\ninclude \"/etc/passwd\"",
+		"127.0.0.1 } add table inet evil {",
+	}
+	for _, input := range invalidCases {
+		t.Run(input, func(t *testing.T) {
+			_, err := validateCIDR(input)
+			require.Error(t, err)
+		})
+	}
+}
+
+// TestValidateUID covers validateUID for accepted numeric UIDs, and rejects
+// malformed/injected input.
+func TestValidateUID(t *testing.T) {
+	validCases := []struct{ input, expected string }{
+		{"0", "0"},
+		{"123", "123"},
+		{"999", "999"},
+		{"4294967295", "4294967295"}, // max uint32
+	}
+	for _, c := range validCases {
+		t.Run(c.input, func(t *testing.T) {
+			got, err := validateUID(c.input)
+			require.NoError(t, err)
+			require.Equal(t, c.expected, got)
+		})
+	}
+
+	invalidCases := []string{
+		"",
+		"-1",
+		"not-a-uid",
+		"4294967296", // overflows uint32
+		// Injection attempts: a valid numeric prefix followed by nft syntax
+		// must be rejected outright, not truncated down to the numeric part.
+		"123 ; add table inet evil",
+		"123; add table inet evil",
+		"123\ninclude \"/etc/passwd\"",
+		"123 } add table inet evil {",
+	}
+	for _, input := range invalidCases {
+		t.Run(input, func(t *testing.T) {
+			_, err := validateUID(input)
+			require.Error(t, err)
+		})
+	}
+}
+
+// TestSetup_RejectsInjectedCIDR verifies that a crafted ExcludeOutboundCIDRs
+// entry containing nft script syntax (a statement separator plus an
+// additional nft statement) is rejected by Setup rather than being written
+// into the generated nft script, where it would inject an extra statement.
+func TestSetup_RejectsInjectedCIDR(t *testing.T) {
+	provider := &fakeNftablesProvider{}
+	cfg := Config{
+		ProxyUserID:          "123",
+		ProxyInboundPort:     20000,
+		ExcludeOutboundCIDRs: []string{"1.1.1.1/24; add table inet evil_table"},
+		NftablesProvider:     provider,
+	}
+
+	err := SetupWithAdditionalRules(cfg, nil, false)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "ExcludeOutboundCIDRs")
+
+	for _, r := range provider.Rules() {
+		require.NotContains(t, r, "evil_table", "injected statement must never reach the generated rules")
+	}
+}
+
+// TestSetup_RejectsInjectedUID verifies that a crafted ExcludeUIDs entry
+// containing nft script syntax is rejected by Setup rather than being
+// written into the generated nft script.
+func TestSetup_RejectsInjectedUID(t *testing.T) {
+	provider := &fakeNftablesProvider{}
+	cfg := Config{
+		ProxyUserID:      "123",
+		ProxyInboundPort: 20000,
+		ExcludeUIDs:      []string{"123; add table inet evil_table"},
+		NftablesProvider: provider,
+	}
+
+	err := SetupWithAdditionalRules(cfg, nil, false)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "ExcludeUIDs")
+
+	for _, r := range provider.Rules() {
+		require.NotContains(t, r, "evil_table", "injected statement must never reach the generated rules")
+	}
+}
+
+// TestSetup_RejectsInjectedProxyUserID verifies that a crafted ProxyUserID
+// containing nft script syntax — including an attempt to smuggle a file
+// include directive, mirroring the file-content-disclosure vector via nft
+// parser diagnostics — is rejected before any rule is applied.
+func TestSetup_RejectsInjectedProxyUserID(t *testing.T) {
+	provider := &fakeNftablesProvider{}
+	cfg := Config{
+		ProxyUserID:      "123\ninclude \"/etc/passwd\"",
+		ProxyInboundPort: 20000,
+		NftablesProvider: provider,
+	}
+
+	err := SetupWithAdditionalRules(cfg, nil, false)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "ProxyUserID")
+
+	for _, r := range provider.Rules() {
+		require.NotContains(t, r, "include", "injected include directive must never reach the generated rules")
+	}
+}
+
 // TestSetup_PortRangeNormalization verifies that iptables-style port ranges
 // ("8080:9000") in ExcludeInboundPorts and ExcludeOutboundPorts are
 // normalised to nftables syntax ("8080-9000") in the generated rules.

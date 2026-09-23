@@ -173,6 +173,15 @@ func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn, d
 		return err
 	}
 
+	// Canonicalize the proxy's own UID the same way excluded UIDs are
+	// canonicalized below: it is interpolated directly into the nft script
+	// (see "skuid" rule further down) and must never carry raw, unvalidated
+	// text into that script.
+	cfg.ProxyUserID, err = validateUID(cfg.ProxyUserID)
+	if err != nil {
+		return fmt.Errorf("ProxyUserID: %w", err)
+	}
+
 	// Set the default outbound port if it's not already set.
 	if cfg.ProxyOutboundPort == 0 {
 		cfg.ProxyOutboundPort = DefaultTProxyOutboundPort
@@ -301,13 +310,21 @@ func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn, d
 		}
 
 		for _, outboundCIDR := range cfg.ExcludeOutboundCIDRs {
+			normalizedCIDR, err := validateCIDR(outboundCIDR)
+			if err != nil {
+				return fmt.Errorf("ExcludeOutboundCIDRs: %w", err)
+			}
 			cfg.NftablesProvider.AddRule("nft", "insert", "rule", "inet", tproxyTable, ProxyOutputChain,
-				ipFamilyKeyword(outboundCIDR), "daddr", outboundCIDR, "return")
+				ipFamilyKeyword(normalizedCIDR), "daddr", normalizedCIDR, "return")
 		}
 
 		for _, uid := range cfg.ExcludeUIDs {
+			normalizedUID, err := validateUID(uid)
+			if err != nil {
+				return fmt.Errorf("ExcludeUIDs: %w", err)
+			}
 			cfg.NftablesProvider.AddRule("nft", "insert", "rule", "inet", tproxyTable, ProxyOutputChain,
-				"skuid", uid, "return")
+				"skuid", normalizedUID, "return")
 		}
 	}
 
@@ -447,6 +464,67 @@ func ipFamilyKeyword(cidrOrIP string) string {
 		return "ip"
 	}
 	return "ip6"
+}
+
+// validateCIDR parses cidr as either a bare IP address ("1.2.3.4") or an
+// IP/prefix-length CIDR ("1.2.3.4/24", "::1/128") and returns its canonical
+// string form.
+//
+// This value is later interpolated directly into an nft script (see the
+// ExcludeOutboundCIDRs rule in SetupWithAdditionalRules), so it must never be
+// passed through as raw, attacker-influenced text: a value containing nft
+// statement separators, control characters, or additional nft keywords could
+// otherwise inject extra statements into the script rather than remaining
+// inert rule data. Rebuilding the value strictly from the parsed IP/prefix
+// components (rather than merely pattern-matching the input) guarantees any
+// such embedded syntax cannot survive into the reconstructed value.
+//
+// The host bits of the address are preserved as given (the value is not
+// masked down to its network address), since exclusions are matched against
+// the exact address/CIDR the operator configured.
+func validateCIDR(cidr string) (string, error) {
+	if cidr == "" {
+		return "", errors.New("must not be empty")
+	}
+
+	ipPart, prefixPart, hasPrefix := strings.Cut(cidr, "/")
+	ip := net.ParseIP(ipPart)
+	if ip == nil {
+		return "", fmt.Errorf("must be a valid IP address or CIDR, got %q", cidr)
+	}
+	if !hasPrefix {
+		return ip.String(), nil
+	}
+
+	maxPrefix := 32
+	if ip.To4() == nil {
+		maxPrefix = 128
+	}
+	prefix, err := strconv.Atoi(prefixPart)
+	if err != nil || prefix < 0 || prefix > maxPrefix {
+		return "", fmt.Errorf("invalid CIDR prefix length in %q", cidr)
+	}
+	return ip.String() + "/" + strconv.Itoa(prefix), nil
+}
+
+// validateUID parses uid as a non-negative Linux user ID and returns its
+// canonical decimal string form.
+//
+// Like validateCIDR, this exists because the value is interpolated directly
+// into an nft script (as an "skuid" match), so raw text must never reach it:
+// parsing the value strictly as an unsigned integer, then reconstructing the
+// canonical decimal string from the parsed number, guarantees embedded nft
+// syntax (statement separators, control characters, extra keywords) cannot
+// survive into the value actually written to the script.
+func validateUID(uid string) (string, error) {
+	if uid == "" {
+		return "", errors.New("must not be empty")
+	}
+	n, err := strconv.ParseUint(uid, 10, 32)
+	if err != nil {
+		return "", fmt.Errorf("must be a valid numeric user ID, got %q", uid)
+	}
+	return strconv.FormatUint(n, 10), nil
 }
 
 func validateConfig(cfg Config) error {
