@@ -4,6 +4,8 @@
 package nftables
 
 import (
+	"net"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -1186,6 +1188,24 @@ func TestNormalizePortRange(t *testing.T) {
 			require.Equal(t, c.expected, got)
 		})
 	}
+}
+
+// TestNormalizePortRange_HyphenatedServiceName verifies that a whole TCP
+// service name containing a hyphen (e.g. "http-alt") is resolved as a single
+// service, not misread as a range between two shorter, possibly-unresolvable
+// names (e.g. "http" and "alt", where "alt" is not a registered service).
+// The expected port is derived from the resolver itself rather than
+// hardcoded, since the exact assignment for "http-alt" varies by host.
+func TestNormalizePortRange_HyphenatedServiceName(t *testing.T) {
+	wantPort, err := net.LookupPort("tcp", "http-alt")
+	if err != nil {
+		t.Skipf("skipping: %q is not a resolvable TCP service name on this host", "http-alt")
+	}
+
+	got, err := normalizePortRange("http-alt")
+	require.NoError(t, err)
+	require.NotContains(t, got, "-", "a whole service name must resolve to a single port, not a range")
+	require.Equal(t, strconv.Itoa(wantPort), got)
 }
 
 // TestNormalizePortRange_InvalidInput covers inputs normalizePortRange must

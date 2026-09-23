@@ -162,7 +162,6 @@ func Setup(cfg Config, dualStack bool) error {
 // The nftables inet family is used so a single rule set covers both IPv4 and IPv6;
 // there is no longer a need for a separate IPv6-only pass.
 func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn, dualStack bool) error {
-
 	if cfg.NftablesProvider == nil {
 		cfg.NftablesProvider = &nftablesExecutor{cfg: cfg}
 	} else {
@@ -340,6 +339,7 @@ func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn, d
 	if additionalRulesFn != nil {
 		additionalRulesFn(cfg.NftablesProvider)
 	}
+
 	return cfg.NftablesProvider.ApplyRules("nft")
 }
 
@@ -377,6 +377,13 @@ func normalizePortRange(port string) (string, error) {
 	}
 
 	if idx := strings.IndexByte(port, '-'); idx >= 0 {
+		// A whole TCP service name may itself contain a hyphen (e.g.
+		// "http-alt"). Try resolving the full string as a single service
+		// name first, before assuming the hyphen is a range separator.
+		if resolved, err := resolvePort(port); err == nil {
+			return resolved, nil
+		}
+
 		lo, hi := port[:idx], port[idx+1:]
 		loNum, err := resolvePort(lo)
 		if err != nil {
