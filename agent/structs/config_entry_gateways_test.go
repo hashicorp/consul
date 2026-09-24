@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/types"
 )
 
 func TestIngressGatewayConfigEntry(t *testing.T) {
@@ -2372,6 +2373,60 @@ func TestAPIGatewayListenerProtocolsCompatible(t *testing.T) {
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			require.Equal(t, tc.expected, APIGatewayListenerProtocolsCompatible(tc.a, tc.b))
+		})
+	}
+}
+
+func boundListenerTestPointer[T any](v T) *T { return &v }
+
+func TestBoundAPIGatewayListenerIsSame(t *testing.T) {
+	base := func() BoundAPIGatewayListener {
+		return BoundAPIGatewayListener{
+			Name:         "listener",
+			Hostname:     "host.consul",
+			Port:         8443,
+			Protocol:     ListenerProtocolHTTP,
+			Routes:       []ResourceReference{{Kind: HTTPRoute, Name: "route"}},
+			Certificates: []ResourceReference{{Kind: InlineCertificate, Name: "cert"}},
+			TLS: APIGatewayTLSConfiguration{
+				MinVersion:   types.TLSv1_2,
+				CipherSuites: []types.TLSCipherSuite{types.TLSCipherSuite("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256")},
+				Certificates: []ResourceReference{{Kind: InlineCertificate, Name: "cert"}},
+			},
+			MaxRequestHeadersKB: boundListenerTestPointer(uint32(96)),
+		}
+	}
+
+	cases := map[string]struct {
+		mutate func(l *BoundAPIGatewayListener)
+		same   bool
+	}{
+		"identical": {func(l *BoundAPIGatewayListener) {}, true},
+		"reordered routes": {func(l *BoundAPIGatewayListener) {
+			l.Routes = append([]ResourceReference{{Kind: HTTPRoute, Name: "other"}}, l.Routes...)
+		}, false},
+		"different name":        {func(l *BoundAPIGatewayListener) { l.Name = "other" }, false},
+		"different port":        {func(l *BoundAPIGatewayListener) { l.Port = 9443 }, false},
+		"zero port":             {func(l *BoundAPIGatewayListener) { l.Port = 0 }, false},
+		"different protocol":    {func(l *BoundAPIGatewayListener) { l.Protocol = ListenerProtocolTCP }, false},
+		"empty protocol":        {func(l *BoundAPIGatewayListener) { l.Protocol = "" }, false},
+		"different hostname":    {func(l *BoundAPIGatewayListener) { l.Hostname = "other.consul" }, false},
+		"different tls version": {func(l *BoundAPIGatewayListener) { l.TLS.MinVersion = types.TLSv1_3 }, false},
+		"different cipher":      {func(l *BoundAPIGatewayListener) { l.TLS.CipherSuites = nil }, false},
+		"tls cert added":        {func(l *BoundAPIGatewayListener) { l.TLS.Certificates = nil }, false},
+		"sds added":             {func(l *BoundAPIGatewayListener) { l.TLS.SDS = &GatewayTLSSDSConfig{ClusterName: "c"} }, false},
+		"max headers changed":   {func(l *BoundAPIGatewayListener) { l.MaxRequestHeadersKB = boundListenerTestPointer(uint32(64)) }, false},
+		"max headers cleared":   {func(l *BoundAPIGatewayListener) { l.MaxRequestHeadersKB = nil }, false},
+		"override policy added": {func(l *BoundAPIGatewayListener) { l.Override = &APIGatewayPolicy{} }, false},
+		"default policy added":  {func(l *BoundAPIGatewayListener) { l.Default = &APIGatewayPolicy{} }, false},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			first, second := base(), base()
+			tc.mutate(&second)
+			require.Equal(t, tc.same, first.IsSame(second))
+			require.Equal(t, tc.same, second.IsSame(first))
 		})
 	}
 }

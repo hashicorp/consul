@@ -398,7 +398,19 @@ func intentionSourceTypeToStructs(_ IntentionSourceType) structs.IntentionSource
 	return structs.IntentionSourceConsul
 }
 
+// pointerToIntFromInt32 decodes a proto3 int32 limit back into the *int form
+// used by structs.UpstreamLimits, where nil means "unset".
+//
+// proto3 scalars have no field presence, so an unset limit is encoded on the
+// wire as 0 by int32FromPointerToInt. Decoding that 0 into a non-nil *int would
+// turn "unset" into "explicitly 0", which makes a per-service limit block
+// suppress the API gateway Defaults it should inherit field-wise. 0 is therefore
+// decoded as unset, consistent with the xDS layer which already treats
+// non-positive limits as unset.
 func pointerToIntFromInt32(i32 int32) *int {
+	if i32 == 0 {
+		return nil
+	}
 	i := int(i32)
 	return &i
 }
