@@ -1256,6 +1256,13 @@ func TestNormalizePortRange(t *testing.T) {
 		{"ssh:", "22-65535"},
 		{":ssh", "0-22"},
 		{"ssh-https", "22-443"},
+		// leading/trailing whitespace tolerated, matching iptables — e.g. a
+		// value produced by splitting a "8080, 9090"-style annotation on ",".
+		{" 9090", "9090"},
+		{"8080 ", "8080"},
+		{" 8080 ", "8080"},
+		{" :19000", "0-19000"},
+		{"8080:9000 ", "8080-9000"},
 	}
 	for _, c := range cases {
 		t.Run(c.input, func(t *testing.T) {
@@ -1295,6 +1302,12 @@ func TestNormalizePortRange_InvalidInput(t *testing.T) {
 		"70000",                   // above 65535
 		"8080-",                   // dash range with empty upper bound
 		"-9000",                   // dash range with empty lower bound
+		"   ",                     // whitespace-only, empty after trimming
+		// Injection attempt wrapped in edge whitespace must still be
+		// rejected: trimming only removes the surrounding whitespace, not
+		// the embedded nft syntax.
+		" 8080; add table inet evil ",
+		" 8080\ninclude \"/etc/passwd\" ",
 	}
 	for _, input := range cases {
 		t.Run(input, func(t *testing.T) {

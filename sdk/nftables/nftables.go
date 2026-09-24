@@ -388,6 +388,7 @@ func SetupWithAdditionalRulesIPv6(_ Config, _ AdditionalRulesFn, _ bool) error {
 // (e.g. "ssh", or "http:https" for a range) -- nft has no such lookup, so
 // these are resolved to numeric ports via /etc/services beforehand.
 func normalizePortRange(port string) (string, error) {
+	port = strings.TrimSpace(port)
 	if idx := strings.IndexByte(port, ':'); idx >= 0 {
 		lo, hi := port[:idx], port[idx+1:]
 		loNum, hiNum := "0", "65535"
@@ -495,6 +496,7 @@ func ipFamilyKeyword(cidrOrIP string) string {
 // masked down to its network address), since exclusions are matched against
 // the exact address/CIDR the operator configured.
 func validateCIDR(cidr string) (string, error) {
+	cidr = strings.TrimSpace(cidr)
 	if cidr == "" {
 		return "", errors.New("must not be empty")
 	}
@@ -529,6 +531,7 @@ func validateCIDR(cidr string) (string, error) {
 // syntax (statement separators, control characters, extra keywords) cannot
 // survive into the value actually written to the script.
 func validateUID(uid string) (string, error) {
+	uid = strings.TrimSpace(uid)
 	if uid == "" {
 		return "", errors.New("must not be empty")
 	}
@@ -548,6 +551,7 @@ func validateUID(uid string) (string, error) {
 // the ConsulDNSIP rules in SetupWithAdditionalRules), so raw text must never
 // reach it.
 func validateDNSIP(ip string) (string, error) {
+	ip = strings.TrimSpace(ip)
 	if ip == "" {
 		return "", errors.New("must not be empty")
 	}
