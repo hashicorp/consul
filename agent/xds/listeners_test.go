@@ -19,6 +19,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/config"
 	"github.com/hashicorp/consul/agent/xds/configfetcher"
 	"github.com/hashicorp/consul/types"
 )
@@ -885,6 +886,55 @@ func TestFinalizePublicListenerFromConfig_PropagatesInjectionErrors(t *testing.T
 		err := s.finalizePublicListenerFromConfig(newListener(), newSnap(), false)
 		require.Error(t, err, "injection error must not be swallowed")
 	})
+}
+
+// TestCreateDownstreamTransportSocketForConnectTLS_UsesSDSSecrets asserts that a
+// Connect sidecar's public listener refers to its leaf certificate and CA roots
+// by SDS name rather than embedding the PEM bytes inline.
+//
+// Inlining the certificate material meant that every leaf rotation produced a
+// different listener proto, which changed Envoy's filter chain hash and forced a
+// drain of every established connection. Referencing the secrets by name keeps
+// the listener byte-identical across rotations, so only the Secret resources
+// change and connections survive.
+func TestCreateDownstreamTransportSocketForConnectTLS_UsesSDSSecrets(t *testing.T) {
+	roots, _ := proxycfg.TestCerts(t)
+
+	snap := &proxycfg.ConfigSnapshot{
+		Kind:  structs.ServiceKindConnectProxy,
+		Roots: roots,
+	}
+
+	ts, err := createDownstreamTransportSocketForConnectTLS(snap, &config.ProxyConfig{Protocol: "tcp"}, nil)
+	require.NoError(t, err)
+	require.NotNil(t, ts)
+
+	var downstreamCtx envoy_tls_v3.DownstreamTlsContext
+	require.NoError(t, ts.GetTypedConfig().UnmarshalTo(&downstreamCtx))
+
+	common := downstreamCtx.GetCommonTlsContext()
+	require.NotNil(t, common)
+
+	// The leaf must be referenced by SDS name, with no inline certificate.
+	require.Empty(t, common.GetTlsCertificates(),
+		"leaf certificate must not be embedded inline in the listener")
+	require.Len(t, common.GetTlsCertificateSdsSecretConfigs(), 1)
+	require.Equal(t, connectLeafSecretName, common.GetTlsCertificateSdsSecretConfigs()[0].GetName())
+
+	// The roots must likewise be referenced by SDS name.
+	require.Nil(t, common.GetValidationContext(),
+		"CA roots must not be embedded inline in the listener")
+	require.Equal(t, connectRootSecretName, common.GetValidationContextSdsSecretConfig().GetName())
+
+	// Both secrets must be delivered over the existing ADS stream, otherwise
+	// Envoy would need a separate SDS cluster that Consul does not configure.
+	for _, cfg := range []*envoy_tls_v3.SdsSecretConfig{
+		common.GetTlsCertificateSdsSecretConfigs()[0],
+		common.GetValidationContextSdsSecretConfig(),
+	} {
+		require.NotNil(t, cfg.GetSdsConfig().GetAds(), "secret %q must be fetched over ADS", cfg.GetName())
+		require.Equal(t, envoy_core_v3.ApiVersion_V3, cfg.GetSdsConfig().GetResourceApiVersion())
+	}
 }
 
 // Test_injectRequestNormalizationOnFilterChains is a unit test for

@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
 )
 
 // secretsFromSnapshot returns the xDS API representation of the "secrets"
@@ -29,11 +30,55 @@ func (s *ResourceGenerator) secretsFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot
 	case structs.ServiceKindTerminatingGateway:
 		return s.secretsFromSnapshotTerminatingGateway(cfgSnap), nil
 	case structs.ServiceKindConnectProxy,
-		structs.ServiceKindMeshGateway,
-		structs.ServiceKindIngressGateway:
+		structs.ServiceKindMeshGateway:
+		return s.secretsFromSnapshotConnectProxy(cfgSnap), nil
+	case structs.ServiceKindIngressGateway:
 		return nil, nil
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
+	}
+}
+
+const (
+	connectLeafSecretName = "connect-leaf"
+	connectRootSecretName = "connect-root"
+)
+
+func (s *ResourceGenerator) secretsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) []proto.Message {
+	if cfgSnap.Leaf() == nil || cfgSnap.RootPEMs() == "" {
+		return nil
+	}
+
+	return []proto.Message{
+		&envoy_tls_v3.Secret{
+			Name: connectLeafSecretName,
+			Type: &envoy_tls_v3.Secret_TlsCertificate{
+				TlsCertificate: &envoy_tls_v3.TlsCertificate{
+					CertificateChain: &envoy_core_v3.DataSource{
+						Specifier: &envoy_core_v3.DataSource_InlineString{
+							InlineString: lib.EnsureTrailingNewline(cfgSnap.Leaf().CertPEM),
+						},
+					},
+					PrivateKey: &envoy_core_v3.DataSource{
+						Specifier: &envoy_core_v3.DataSource_InlineString{
+							InlineString: lib.EnsureTrailingNewline(cfgSnap.Leaf().PrivateKeyPEM),
+						},
+					},
+				},
+			},
+		},
+		&envoy_tls_v3.Secret{
+			Name: connectRootSecretName,
+			Type: &envoy_tls_v3.Secret_ValidationContext{
+				ValidationContext: &envoy_tls_v3.CertificateValidationContext{
+					TrustedCa: &envoy_core_v3.DataSource{
+						Specifier: &envoy_core_v3.DataSource_InlineString{
+							InlineString: cfgSnap.RootPEMs(),
+						},
+					},
+				},
+			},
+		},
 	}
 }
 

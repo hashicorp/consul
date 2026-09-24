@@ -299,17 +299,24 @@ func xdsNewTransportSocket(
 	// Assume just one root for now, can get fancier later if needed.
 	caPEM := snap.Roots.Roots[0].RootCert
 
-	commonTLSContext := &envoy_tls_v3.CommonTlsContext{
-		TlsParams: &envoy_tls_v3.TlsParameters{},
-		TlsCertificates: []*envoy_tls_v3.TlsCertificate{{
-			CertificateChain: xdsNewInlineString(snap.Leaf().CertPEM),
-			PrivateKey:       xdsNewInlineString(snap.Leaf().PrivateKeyPEM),
-		}},
-		ValidationContextType: &envoy_tls_v3.CommonTlsContext_ValidationContext{
-			ValidationContext: &envoy_tls_v3.CertificateValidationContext{
-				TrustedCa: xdsNewInlineString(caPEM),
+	var commonTLSContext *envoy_tls_v3.CommonTlsContext
+	if downstream {
+		// Downstream (public listener) Connect TLS is served via SDS so that
+		// leaf rotation does not rewrite the listener.
+		commonTLSContext = makeCommonConnectTLSContext(&envoy_tls_v3.TlsParameters{})
+	} else {
+		commonTLSContext = &envoy_tls_v3.CommonTlsContext{
+			TlsParams: &envoy_tls_v3.TlsParameters{},
+			TlsCertificates: []*envoy_tls_v3.TlsCertificate{{
+				CertificateChain: xdsNewInlineString(snap.Leaf().CertPEM),
+				PrivateKey:       xdsNewInlineString(snap.Leaf().PrivateKeyPEM),
+			}},
+			ValidationContextType: &envoy_tls_v3.CommonTlsContext_ValidationContext{
+				ValidationContext: &envoy_tls_v3.CertificateValidationContext{
+					TrustedCa: xdsNewInlineString(caPEM),
+				},
 			},
-		},
+		}
 	}
 	if len(spiffeID) > 0 {
 		require.NoError(t, injectSANMatcher(commonTLSContext, false, spiffeID...))

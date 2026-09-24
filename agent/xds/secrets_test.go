@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
 )
 
 func TestSecretsFromSnapshotTerminatingGateway_NilSnapshot(t *testing.T) {
@@ -411,11 +412,40 @@ func TestSecretsFromSnapshot_NonTerminatingGatewayKindsReturnNil(t *testing.T) {
 	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
 
 	snap := proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
-	snap.Kind = structs.ServiceKindConnectProxy
+	snap.Kind = structs.ServiceKindIngressGateway
 
 	resources, err := s.secretsFromSnapshot(snap)
 	require.NoError(t, err)
 	require.Nil(t, resources)
+}
+
+func TestSecretsFromSnapshot_ConnectProxyReturnsLeafAndRootSecrets(t *testing.T) {
+	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
+
+	snap := proxycfg.TestConfigSnapshot(t, nil, nil)
+
+	resources, err := s.secretsFromSnapshot(snap)
+	require.NoError(t, err)
+	require.Len(t, resources, 2)
+
+	secrets := make(map[string]*envoy_tls_v3.Secret, len(resources))
+	for _, resource := range resources {
+		secret := resource.(*envoy_tls_v3.Secret)
+		secrets[secret.Name] = secret
+	}
+
+	leafSecret := secrets[connectLeafSecretName]
+	require.NotNil(t, leafSecret)
+	leafCert, ok := leafSecret.Type.(*envoy_tls_v3.Secret_TlsCertificate)
+	require.True(t, ok)
+	require.Equal(t, lib.EnsureTrailingNewline(snap.Leaf().CertPEM), leafCert.TlsCertificate.CertificateChain.GetInlineString())
+	require.Equal(t, lib.EnsureTrailingNewline(snap.Leaf().PrivateKeyPEM), leafCert.TlsCertificate.PrivateKey.GetInlineString())
+
+	rootSecret := secrets[connectRootSecretName]
+	require.NotNil(t, rootSecret)
+	rootCA, ok := rootSecret.Type.(*envoy_tls_v3.Secret_ValidationContext)
+	require.True(t, ok)
+	require.Equal(t, snap.RootPEMs(), rootCA.ValidationContext.TrustedCa.GetInlineString())
 }
 
 func TestSecretsFromSnapshot_InvalidKindReturnsError(t *testing.T) {
