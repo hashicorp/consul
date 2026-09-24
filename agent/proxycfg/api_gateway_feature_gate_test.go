@@ -62,9 +62,10 @@ func TestManager_RefreshFeatureGates_APIGatewayAndConnectProxy(t *testing.T) {
 	m.refreshFeatureGates()
 	require.Equal(t, featureGateWatchID, (<-agentlessGateway.ch).CorrelationID)
 	require.Equal(t, featureGateWatchID, (<-agentlessSidecar.ch).CorrelationID)
-	require.Equal(t, featureGateWatchID, (<-localSidecar.ch).CorrelationID)
 	select {
 	case event := <-agentfulGateway.ch:
+		t.Fatalf("unexpected invalidation event: %#v", event)
+	case event := <-localSidecar.ch:
 		t.Fatalf("unexpected invalidation event: %#v", event)
 	default:
 	}
