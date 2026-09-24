@@ -291,12 +291,9 @@ func (m *Manager) refreshFeatureGates() {
 	m.mu.Lock()
 	states := make([]*state, 0)
 	for _, proxyState := range m.proxies {
-		switch proxyState.serviceInstance.kind {
-		case structs.ServiceKindAPIGateway:
-			if proxyState.source == ProxySourceCatalog {
-				states = append(states, proxyState)
-			}
-		case structs.ServiceKindConnectProxy:
+		if proxyState.source == ProxySourceCatalog &&
+			(proxyState.serviceInstance.kind == structs.ServiceKindAPIGateway ||
+				proxyState.serviceInstance.kind == structs.ServiceKindConnectProxy) {
 			states = append(states, proxyState)
 		}
 	}
