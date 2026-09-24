@@ -3350,6 +3350,110 @@ func TestParseConfigEntry(t *testing.T) {
 			},
 		},
 		{
+			// Covers the snake_case aliases of the terminating-gateway credential
+			// injection fields decoded by `consul config write`.
+			name: "terminating-gateway: credential injection",
+			snake: `
+				kind = "terminating-gateway"
+				name = "camp-egress"
+				credential_injection {
+					uds_path = "/run/camp-auth/processor.sock"
+					message_timeout = "250ms"
+				}
+				services = [
+				  {
+					name = "openai-a"
+					ca_file = "/etc/ssl/certs/ca-certificates.crt"
+					sni = "api.openai.com"
+					credential {
+						mode = "inject"
+						binding_id = "openai-a"
+					}
+				  }
+				]
+			`,
+			camel: `
+				Kind = "terminating-gateway"
+				Name = "camp-egress"
+				CredentialInjection {
+					UDSPath = "/run/camp-auth/processor.sock"
+					MessageTimeout = "250ms"
+				}
+				Services = [
+				  {
+					Name = "openai-a"
+					CAFile = "/etc/ssl/certs/ca-certificates.crt"
+					SNI = "api.openai.com"
+					Credential {
+						Mode = "inject"
+						BindingID = "openai-a"
+					}
+				  }
+				]
+			`,
+			snakeJSON: `
+			{
+				"kind": "terminating-gateway",
+				"name": "camp-egress",
+				"credential_injection": {
+					"uds_path": "/run/camp-auth/processor.sock",
+					"message_timeout": "250ms"
+				},
+				"services": [
+				  {
+					"name": "openai-a",
+					"ca_file": "/etc/ssl/certs/ca-certificates.crt",
+					"sni": "api.openai.com",
+					"credential": {
+						"mode": "inject",
+						"binding_id": "openai-a"
+					}
+				  }
+				]
+			}
+			`,
+			camelJSON: `
+			{
+				"Kind": "terminating-gateway",
+				"Name": "camp-egress",
+				"CredentialInjection": {
+					"UDSPath": "/run/camp-auth/processor.sock",
+					"MessageTimeout": "250ms"
+				},
+				"Services": [
+				  {
+					"Name": "openai-a",
+					"CAFile": "/etc/ssl/certs/ca-certificates.crt",
+					"SNI": "api.openai.com",
+					"Credential": {
+						"Mode": "inject",
+						"BindingID": "openai-a"
+					}
+				  }
+				]
+			}
+			`,
+			expect: &api.TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "camp-egress",
+				CredentialInjection: &api.GatewayCredentialInjection{
+					UDSPath:        "/run/camp-auth/processor.sock",
+					MessageTimeout: "250ms",
+				},
+				Services: []api.LinkedService{
+					{
+						Name:   "openai-a",
+						CAFile: "/etc/ssl/certs/ca-certificates.crt",
+						SNI:    "api.openai.com",
+						Credential: &api.GatewayServiceCredential{
+							Mode:      "inject",
+							BindingID: "openai-a",
+						},
+					},
+				},
+			},
+		},
+		{
 			// `consul config write` decodes operator HCL/JSON into the api types via
 			// the alias tags, so this covers the snake_case spelling of every
 			// multi-word inference-gateway field.

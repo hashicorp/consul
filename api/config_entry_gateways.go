@@ -171,6 +171,9 @@ type TerminatingGatewayConfigEntry struct {
 	// Services is a list of service names represented by the terminating gateway.
 	Services []LinkedService `json:",omitempty"`
 
+	// CredentialInjection enables non-secret credential injection for linked services.
+	CredentialInjection *GatewayCredentialInjection `json:",omitempty" alias:"credential_injection"`
+
 	Meta map[string]string `json:",omitempty"`
 
 	// CreateIndex is the Raft index this entry was created at. This is a
@@ -189,6 +192,19 @@ type TerminatingGatewayConfigEntry struct {
 	// Namespace is the namespace the config entry is associated with.
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
+}
+
+// GatewayCredentialInjection configures the local credential processor for a
+// terminating gateway.
+type GatewayCredentialInjection struct {
+	UDSPath        string `json:",omitempty" alias:"uds_path"`
+	MessageTimeout string `json:",omitempty" alias:"message_timeout"`
+}
+
+// GatewayServiceCredential configures credential injection for a linked service.
+type GatewayServiceCredential struct {
+	Mode      string `json:",omitempty"`
+	BindingID string `json:",omitempty" alias:"binding_id"`
 }
 
 // A LinkedService is a service represented by a terminating gateway
@@ -218,6 +234,9 @@ type LinkedService struct {
 
 	// SNI is the optional name to specify during the TLS handshake with a linked service.
 	SNI string `json:",omitempty"`
+
+	// Credential configures non-secret credential injection for this service.
+	Credential *GatewayServiceCredential `json:",omitempty"`
 }
 
 func (g *TerminatingGatewayConfigEntry) GetKind() string            { return g.Kind }

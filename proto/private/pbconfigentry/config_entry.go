@@ -46,6 +46,14 @@ func ConfigEntryToStructs(s *ConfigEntry) structs.ConfigEntry {
 		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
 		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
 		return &target
+	case Kind_KindTerminatingGateway:
+		var target structs.TerminatingGatewayConfigEntry
+		target.Name = s.Name
+
+		TerminatingGatewayToStructs(s.GetTerminatingGateway(), &target)
+		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
+		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
+		return &target
 	case Kind_KindServiceIntentions:
 		var target structs.ServiceIntentionsConfigEntry
 		target.Name = s.Name
@@ -181,6 +189,14 @@ func ConfigEntryFromStructs(s structs.ConfigEntry) *ConfigEntry {
 		configEntry.Kind = Kind_KindIngressGateway
 		configEntry.Entry = &ConfigEntry_IngressGateway{
 			IngressGateway: &ingressGateway,
+		}
+	case *structs.TerminatingGatewayConfigEntry:
+		var terminatingGateway TerminatingGateway
+		TerminatingGatewayFromStructs(v, &terminatingGateway)
+
+		configEntry.Kind = Kind_KindTerminatingGateway
+		configEntry.Entry = &ConfigEntry_TerminatingGateway{
+			TerminatingGateway: &terminatingGateway,
 		}
 	case *structs.ServiceIntentionsConfigEntry:
 		var serviceIntentions ServiceIntentions

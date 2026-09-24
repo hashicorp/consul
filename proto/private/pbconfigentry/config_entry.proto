@@ -78,6 +78,7 @@ enum Kind {
   KindExportedServices = 13;
   KindFileSystemCertificate = 14;
   KindInferenceGateway = 15;
+  KindTerminatingGateway = 16;
 }
 
 message ConfigEntry {
@@ -103,6 +104,7 @@ message ConfigEntry {
     ExportedServices ExportedServices = 17;
     FileSystemCertificate FileSystemCertificate = 18;
     InferenceGateway InferenceGateway = 19;
+    TerminatingGateway TerminatingGateway = 20;
   }
 }
 
@@ -446,6 +448,56 @@ message IngressService {
   uint32 MaxPendingRequests = 9;
   uint32 MaxConcurrentRequests = 10;
   PassiveHealthCheck PassiveHealthCheck = 11;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.TerminatingGatewayConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+message TerminatingGateway {
+  repeated LinkedService Services = 1;
+  GatewayCredentialInjection CredentialInjection = 2;
+  map<string, string> Meta = 3;
+  uint64 Hash = 4;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.LinkedService
+// output=config_entry.gen.go
+// name=Structs
+message LinkedService {
+  string Name = 1;
+  string CAFile = 2;
+  string CertFile = 3;
+  string KeyFile = 4;
+  string SNI = 5;
+  bool DisableAutoHostRewrite = 6;
+  // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
+  common.EnterpriseMeta EnterpriseMeta = 7;
+  GatewayServiceCredential Credential = 8;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.GatewayCredentialInjection
+// output=config_entry.gen.go
+// name=Structs
+message GatewayCredentialInjection {
+  string UDSPath = 1;
+  string MessageTimeout = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.GatewayServiceCredential
+// output=config_entry.gen.go
+// name=Structs
+message GatewayServiceCredential {
+  string Mode = 1;
+  string BindingID = 2;
 }
 
 // mog annotation:
@@ -1138,6 +1190,17 @@ message ExtProcFilter {
 // name=Structs
 message ExtProcOverrides {
   ExtProcProcessing Processing = 1;
+  repeated ExtProcMetadataKV GRPCInitialMetadata = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ExtProcMetadataKV
+// output=config_entry.gen.go
+// name=Structs
+message ExtProcMetadataKV {
+  string Key = 1;
+  string Value = 2;
 }
 
 // mog annotation:
