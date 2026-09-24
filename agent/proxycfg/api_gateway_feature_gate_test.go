@@ -66,6 +66,8 @@ func TestManager_RefreshFeatureGates_APIGatewayAndConnectProxy(t *testing.T) {
 	select {
 	case event := <-agentfulGateway.ch:
 		t.Fatalf("unexpected invalidation event: %#v", event)
+	case event := <-localSidecar.ch:
+		t.Fatalf("unexpected invalidation event: %#v", event)
 	default:
 	}
 }
