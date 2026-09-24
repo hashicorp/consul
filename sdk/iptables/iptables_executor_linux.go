@@ -9,55 +9,60 @@ import (
 	"bytes"
 	"fmt"
 	"os/exec"
+	"strings"
 )
 
-// iptablesExecutor implements IptablesProvider using exec.Cmd.
-type iptablesExecutor struct {
-	commands []*exec.Cmd
-	cfg      Config
+// nftablesExecutor implements Provider by collecting nft(8) script lines and
+// applying them atomically via `nft -f -` (reading from stdin).
+type nftablesExecutor struct {
+	lines []string
+	cfg   Config
 }
 
-func (i *iptablesExecutor) AddRule(name string, args ...string) {
-	if i.cfg.NetNS != "" {
-		// If network namespace is provided, then we need to execute the command in the given network namespace.
-		nsenterArgs := []string{fmt.Sprintf("--net=%s", i.cfg.NetNS), "--", name}
-		nsenterArgs = append(nsenterArgs, args...)
-		cmd := exec.Command("nsenter", nsenterArgs...)
-		i.commands = append(i.commands, cmd)
+// AddRule collects one nft script line. The first argument (the binary name) is
+// ignored; all remaining arguments form the nft command that will be written to
+// the script (e.g. "add", "rule", "inet", "nat", ...).
+func (n *nftablesExecutor) AddRule(_ string, args ...string) {
+	n.lines = append(n.lines, strings.Join(args, " "))
+}
+
+// ApplyRules builds a script from all collected lines and pipes it atomically to
+// `nft -f -` (or `nsenter --net=<ns> -- nft -f -` when a network namespace is
+// configured).  The command argument is unused; nft is always the binary.
+func (n *nftablesExecutor) ApplyRules(_ string) error {
+	if _, err := exec.LookPath("nft"); err != nil {
+		return fmt.Errorf("nft binary not found: %w", err)
+	}
+
+	script := strings.Join(n.lines, "\n")
+
+	var cmd *exec.Cmd
+	if n.cfg.NetNS != "" {
+		cmd = exec.Command("nsenter", fmt.Sprintf("--net=%s", n.cfg.NetNS), "--", "nft", "-f", "-")
 	} else {
-		i.commands = append(i.commands, exec.Command(name, args...))
+		cmd = exec.Command("nft", "-f", "-")
 	}
+	cmd.Stdin = strings.NewReader(script)
 
-}
-
-func (i *iptablesExecutor) ApplyRules(command string) error {
-	_, err := exec.LookPath(command)
-	if err != nil {
-		return err
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to apply nftables rules: %w, output: %s", err, out.String())
 	}
-
-	for _, cmd := range i.commands {
-		var cmdOutput bytes.Buffer
-		cmd.Stdout = &cmdOutput
-		cmd.Stderr = &cmdOutput
-		err := cmd.Run()
-		if err != nil {
-			return fmt.Errorf("failed to run command: %s, err: %v, output: %s", cmd.String(), err, cmdOutput.String())
-		}
-	}
-
 	return nil
 }
 
-func (i *iptablesExecutor) Rules() []string {
+// Rules returns the accumulated nft commands prefixed with "nft " for
+// inspection (e.g. in tests and the Rules() API).
+func (n *nftablesExecutor) Rules() []string {
 	var rules []string
-	for _, cmd := range i.commands {
-		rules = append(rules, cmd.String())
+	for _, line := range n.lines {
+		rules = append(rules, "nft "+line)
 	}
-
 	return rules
 }
 
-func (i *iptablesExecutor) ClearAllRules() {
-	i.commands = nil
+func (n *nftablesExecutor) ClearAllRules() {
+	n.lines = nil
 }

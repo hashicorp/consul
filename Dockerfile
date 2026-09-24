@@ -60,7 +60,7 @@ RUN set -eux && \
             iputils \
             jq \
             libc6-compat \
-            iptables \
+            nftables \
             tzdata \
             zlib \
             curl && \
@@ -171,7 +171,7 @@ COPY LICENSE /usr/share/doc/$PRODUCT_NAME/LICENSE.txt
 RUN apk add -v --no-cache --upgrade \
 		dumb-init \
 		libc6-compat \
-		iptables \
+		nftables \
 		tzdata \
 		ca-certificates \
 		gnupg \
@@ -280,7 +280,7 @@ RUN set -eux && \
         openssl \
         iputils \
         jq \
-        iptables \
+        nftables \
         wget \
         unzip \
         tar && \
