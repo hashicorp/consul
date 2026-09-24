@@ -496,6 +496,10 @@ type OIDCAuthMethodConfig struct {
 	OIDCACRValues       []string             `json:",omitempty"`
 	AllowedRedirectURIs []string             `json:",omitempty"`
 	VerboseOIDCLogging  bool                 `json:",omitempty"`
+	// EnableServiceDCR marks this OIDC auth method as the cluster IAM for
+	// RFC 7591 Dynamic Client Registration of Consul services (CAMP).
+	// EnableServiceDCR is a Consul Enterprise feature.
+	EnableServiceDCR bool `json:",omitempty"`
 	// just for type=jwt
 	JWKSURL              string        `json:",omitempty"`
 	JWKSCACert           string        `json:",omitempty"`
@@ -526,6 +530,7 @@ func (c *OIDCAuthMethodConfig) RenderToConfig() map[string]interface{} {
 		"OIDCACRValues":       c.OIDCACRValues,
 		"AllowedRedirectURIs": c.AllowedRedirectURIs,
 		"VerboseOIDCLogging":  c.VerboseOIDCLogging,
+		"EnableServiceDCR":    c.EnableServiceDCR,
 		// just for type=jwt
 		"JWKSURL":              c.JWKSURL,
 		"JWKSCACert":           c.JWKSCACert,
