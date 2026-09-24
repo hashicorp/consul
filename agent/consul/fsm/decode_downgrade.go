@@ -846,7 +846,22 @@ func (s ShadowTerminatingGatewayConfigEntry) GetRealConfigEntry() structs.Config
 			s.TerminatingGatewayConfigEntry.Services = append(s.TerminatingGatewayConfigEntry.Services, *svc.LinkedService)
 		}
 	}
+	stripEnterpriseOnlyConfigEntryFields(s.TerminatingGatewayConfigEntry)
 	return s.TerminatingGatewayConfigEntry
+}
+
+// stripEnterpriseOnlyConfigEntryFields clears enterprise-only fields that CE carries
+// for API consumers but never stores, so a downgraded CE server keeps the entry
+// without them. Terminating-gateway credential injection is the only such field.
+func stripEnterpriseOnlyConfigEntryFields(entry structs.ConfigEntry) {
+	tgw, ok := entry.(*structs.TerminatingGatewayConfigEntry)
+	if !ok || tgw == nil {
+		return
+	}
+	tgw.CredentialInjection = nil
+	for i := range tgw.Services {
+		tgw.Services[i].Credential = nil
+	}
 }
 
 type ShadowSourceIntention struct {
