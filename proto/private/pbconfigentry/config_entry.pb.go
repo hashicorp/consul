@@ -9864,7 +9864,7 @@ var File_private_pbconfigentry_config_entry_proto protoreflect.FileDescriptor
 
 const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"\n" +
-	"(private/pbconfigentry/config_entry.proto\x12%hashicorp.consul.internal.configentry\x1a%annotations/ratelimit/ratelimit.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dprivate/pbcommon/common.proto\x1a\x1egoogle/protobuf/wrappers.proto\"B\n" +
+	"(private/pbconfigentry/config_entry.proto\x12%hashicorp.consul.internal.configentry\x1a%annotations/ratelimit/ratelimit.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\x1a\x1dprivate/pbcommon/common.proto\"B\n" +
 	"\"GetResolvedExportedServicesRequest\x12\x1c\n" +
 	"\tPartition\x18\x01 \x01(\tR\tPartition\"\x81\x01\n" +
 	"#GetResolvedExportedServicesResponse\x12Z\n" +
