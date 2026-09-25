@@ -1239,8 +1239,6 @@ func InferenceGatewayMetricsToStructs(s *InferenceGatewayMetrics, t *structs.Inf
 		InferenceGatewayOTLPExportToStructs(s.OTLP, &x)
 		t.OTLP = &x
 	}
-	t.SemconvSchema = s.SemconvSchema
-	t.CustomLabels = s.CustomLabels
 }
 func InferenceGatewayMetricsFromStructs(t *structs.InferenceGatewayMetrics, s *InferenceGatewayMetrics) {
 	if s == nil {
@@ -1257,22 +1255,18 @@ func InferenceGatewayMetricsFromStructs(t *structs.InferenceGatewayMetrics, s *I
 		InferenceGatewayOTLPExportFromStructs(t.OTLP, &x)
 		s.OTLP = &x
 	}
-	s.SemconvSchema = t.SemconvSchema
-	s.CustomLabels = t.CustomLabels
 }
 func InferenceGatewayMetricsPrometheusToStructs(s *InferenceGatewayMetricsPrometheus, t *structs.InferenceGatewayMetricsPrometheus) {
 	if s == nil {
 		return
 	}
-	t.Port = int(s.Port)
-	t.Path = s.Path
+	t.Port = pointerToIntFromInt32Value(s.Port)
 }
 func InferenceGatewayMetricsPrometheusFromStructs(t *structs.InferenceGatewayMetricsPrometheus, s *InferenceGatewayMetricsPrometheus) {
 	if s == nil {
 		return
 	}
-	s.Port = int32(t.Port)
-	s.Path = t.Path
+	s.Port = int32ValueFromPointerToInt(t.Port)
 }
 func InferenceGatewayOTLPExportToStructs(s *InferenceGatewayOTLPExport, t *structs.InferenceGatewayOTLPExport) {
 	if s == nil {

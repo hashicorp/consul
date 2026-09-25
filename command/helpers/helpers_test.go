@@ -3473,10 +3473,11 @@ func TestParseConfigEntry(t *testing.T) {
 				request_timeout = "10m"
 				observability {
 					metrics {
+						// 0 disables the scrape endpoint, so it must decode as a set
+						// value rather than be dropped as the zero value.
 						prometheus {
-							port = 9105
+							port = 0
 						}
-						custom_labels = ["team"]
 					}
 					tracing {
 						enabled = true
@@ -3518,9 +3519,8 @@ func TestParseConfigEntry(t *testing.T) {
 				Observability {
 					Metrics {
 						Prometheus {
-							Port = 9105
+							Port = 0
 						}
-						CustomLabels = ["team"]
 					}
 					Tracing {
 						Enabled = true
@@ -3561,7 +3561,7 @@ func TestParseConfigEntry(t *testing.T) {
 				},
 				"request_timeout": "10m",
 				"observability": {
-					"metrics": { "prometheus": { "port": 9105 }, "custom_labels": ["team"] },
+					"metrics": { "prometheus": { "port": 0 } },
 					"tracing": { "enabled": true, "sample_ratio": 0.05, "otlp": { "endpoint": "collector:4317" } }
 				},
 				"pii": {
@@ -3588,7 +3588,7 @@ func TestParseConfigEntry(t *testing.T) {
 				},
 				"RequestTimeout": "10m",
 				"Observability": {
-					"Metrics": { "Prometheus": { "Port": 9105 }, "CustomLabels": ["team"] },
+					"Metrics": { "Prometheus": { "Port": 0 } },
 					"Tracing": { "Enabled": true, "SampleRatio": 0.05, "OTLP": { "Endpoint": "collector:4317" } }
 				},
 				"PII": {
@@ -3615,8 +3615,7 @@ func TestParseConfigEntry(t *testing.T) {
 				RequestTimeout: "10m",
 				Observability: &api.InferenceGatewayObservability{
 					Metrics: &api.InferenceGatewayMetrics{
-						Prometheus:   &api.InferenceGatewayMetricsPrometheus{Port: 9105},
-						CustomLabels: []string{"team"},
+						Prometheus: &api.InferenceGatewayMetricsPrometheus{Port: intPointer(0)},
 					},
 					Tracing: &api.InferenceGatewayTracing{
 						Enabled:     true,
@@ -3649,8 +3648,7 @@ func TestParseConfigEntry(t *testing.T) {
 				RequestTimeout: "10m",
 				Observability: &api.InferenceGatewayObservability{
 					Metrics: &api.InferenceGatewayMetrics{
-						Prometheus:   &api.InferenceGatewayMetricsPrometheus{Port: 9105},
-						CustomLabels: []string{"team"},
+						Prometheus: &api.InferenceGatewayMetricsPrometheus{Port: intPointer(0)},
 					},
 					Tracing: &api.InferenceGatewayTracing{
 						Enabled:     true,

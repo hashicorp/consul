@@ -138,21 +138,17 @@ type InferenceGatewayObservability struct {
 // InferenceGatewayMetrics configures OTel metrics export. Enabled is a pointer so an
 // unset field stays distinguishable from an explicit false: metrics default to on.
 type InferenceGatewayMetrics struct {
-	Enabled       *bool                              `json:",omitempty"`
-	Prometheus    *InferenceGatewayMetricsPrometheus `json:",omitempty"`
-	OTLP          *InferenceGatewayOTLPExport        `json:",omitempty"`
-	SemconvSchema string                             `json:",omitempty" alias:"semconv_schema"`
-	CustomLabels  []string                           `json:",omitempty" alias:"custom_labels"`
+	Enabled    *bool                              `json:",omitempty"`
+	Prometheus *InferenceGatewayMetricsPrometheus `json:",omitempty"`
+	OTLP       *InferenceGatewayOTLPExport        `json:",omitempty"`
 }
 
-// InferenceGatewayMetricsPrometheus configures the processor's scrape endpoint.
+// InferenceGatewayMetricsPrometheus configures the processor's scrape endpoint,
+// which is always served on /metrics. Port is a pointer because 0 is meaningful:
+// nil keeps the processor's default port, 0 turns the scrape endpoint off, and
+// 1-65535 moves it.
 type InferenceGatewayMetricsPrometheus struct {
-	Port int `json:",omitempty"`
-
-	// Path is retained for wire compatibility but is not configurable: the processor
-	// serves the scrape endpoint on a fixed path, and a write is rejected unless this
-	// is empty or exactly that path.
-	Path string `json:",omitempty"`
+	Port *int `json:",omitempty"`
 }
 
 // InferenceGatewayTracing configures OTel tracing. Off by default.

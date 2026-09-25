@@ -9986,8 +9986,6 @@ type InferenceGatewayMetrics struct {
 	Enabled       *wrapperspb.BoolValue              `protobuf:"bytes,1,opt,name=Enabled,proto3" json:"Enabled,omitempty"`
 	Prometheus    *InferenceGatewayMetricsPrometheus `protobuf:"bytes,2,opt,name=Prometheus,proto3" json:"Prometheus,omitempty"`
 	OTLP          *InferenceGatewayOTLPExport        `protobuf:"bytes,3,opt,name=OTLP,proto3" json:"OTLP,omitempty"`
-	SemconvSchema string                             `protobuf:"bytes,4,opt,name=SemconvSchema,proto3" json:"SemconvSchema,omitempty"`
-	CustomLabels  []string                           `protobuf:"bytes,5,rep,name=CustomLabels,proto3" json:"CustomLabels,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -10043,20 +10041,6 @@ func (x *InferenceGatewayMetrics) GetOTLP() *InferenceGatewayOTLPExport {
 	return nil
 }
 
-func (x *InferenceGatewayMetrics) GetSemconvSchema() string {
-	if x != nil {
-		return x.SemconvSchema
-	}
-	return ""
-}
-
-func (x *InferenceGatewayMetrics) GetCustomLabels() []string {
-	if x != nil {
-		return x.CustomLabels
-	}
-	return nil
-}
-
 // mog annotation:
 //
 // target=github.com/hashicorp/consul/agent/structs.InferenceGatewayMetricsPrometheus
@@ -10064,9 +10048,12 @@ func (x *InferenceGatewayMetrics) GetCustomLabels() []string {
 // name=Structs
 type InferenceGatewayMetricsPrometheus struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// mog: func-to=int func-from=int32
-	Port          int32  `protobuf:"varint,1,opt,name=Port,proto3" json:"Port,omitempty"`
-	Path          string `protobuf:"bytes,2,opt,name=Path,proto3" json:"Path,omitempty"`
+	// Port is a wrapper for the same reason Metrics.Enabled is: 0 disables the scrape
+	// endpoint and unset keeps the default port, and a bare int32 cannot tell them
+	// apart.
+	//
+	// mog: target=Port func-to=pointerToIntFromInt32Value func-from=int32ValueFromPointerToInt
+	Port          *wrapperspb.Int32Value `protobuf:"bytes,1,opt,name=Port,proto3" json:"Port,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -10101,18 +10088,11 @@ func (*InferenceGatewayMetricsPrometheus) Descriptor() ([]byte, []int) {
 	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{126}
 }
 
-func (x *InferenceGatewayMetricsPrometheus) GetPort() int32 {
+func (x *InferenceGatewayMetricsPrometheus) GetPort() *wrapperspb.Int32Value {
 	if x != nil {
 		return x.Port
 	}
-	return 0
-}
-
-func (x *InferenceGatewayMetricsPrometheus) GetPath() string {
-	if x != nil {
-		return x.Path
-	}
-	return ""
+	return nil
 }
 
 // mog annotation:
@@ -11118,18 +11098,15 @@ const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"\x06Action\x18\x03 \x01(\x0e2@.hashicorp.consul.internal.configentry.InferenceGatewayPIIActionR\x06Action\"\xd3\x01\n" +
 	"\x1dInferenceGatewayObservability\x12X\n" +
 	"\aMetrics\x18\x01 \x01(\v2>.hashicorp.consul.internal.configentry.InferenceGatewayMetricsR\aMetrics\x12X\n" +
-	"\aTracing\x18\x02 \x01(\v2>.hashicorp.consul.internal.configentry.InferenceGatewayTracingR\aTracing\"\xda\x02\n" +
+	"\aTracing\x18\x02 \x01(\v2>.hashicorp.consul.internal.configentry.InferenceGatewayTracingR\aTracing\"\xb9\x02\n" +
 	"\x17InferenceGatewayMetrics\x124\n" +
 	"\aEnabled\x18\x01 \x01(\v2\x1a.google.protobuf.BoolValueR\aEnabled\x12h\n" +
 	"\n" +
 	"Prometheus\x18\x02 \x01(\v2H.hashicorp.consul.internal.configentry.InferenceGatewayMetricsPrometheusR\n" +
 	"Prometheus\x12U\n" +
-	"\x04OTLP\x18\x03 \x01(\v2A.hashicorp.consul.internal.configentry.InferenceGatewayOTLPExportR\x04OTLP\x12$\n" +
-	"\rSemconvSchema\x18\x04 \x01(\tR\rSemconvSchema\x12\"\n" +
-	"\fCustomLabels\x18\x05 \x03(\tR\fCustomLabels\"K\n" +
-	"!InferenceGatewayMetricsPrometheus\x12\x12\n" +
-	"\x04Port\x18\x01 \x01(\x05R\x04Port\x12\x12\n" +
-	"\x04Path\x18\x02 \x01(\tR\x04Path\"\xac\x01\n" +
+	"\x04OTLP\x18\x03 \x01(\v2A.hashicorp.consul.internal.configentry.InferenceGatewayOTLPExportR\x04OTLPJ\x04\b\x04\x10\x05J\x04\b\x05\x10\x06R\rSemconvSchemaR\fCustomLabels\"`\n" +
+	"!InferenceGatewayMetricsPrometheus\x12/\n" +
+	"\x04Port\x18\x01 \x01(\v2\x1b.google.protobuf.Int32ValueR\x04PortJ\x04\b\x02\x10\x03R\x04Path\"\xac\x01\n" +
 	"\x17InferenceGatewayTracing\x12\x18\n" +
 	"\aEnabled\x18\x01 \x01(\bR\aEnabled\x12U\n" +
 	"\x04OTLP\x18\x02 \x01(\v2A.hashicorp.consul.internal.configentry.InferenceGatewayOTLPExportR\x04OTLP\x12 \n" +
@@ -11430,6 +11407,7 @@ var file_private_pbconfigentry_config_entry_proto_goTypes = []any{
 	(*timestamppb.Timestamp)(nil),               // 174: google.protobuf.Timestamp
 	(*pbcommon.EnvoyExtension)(nil),             // 175: hashicorp.consul.internal.common.EnvoyExtension
 	(*wrapperspb.BoolValue)(nil),                // 176: google.protobuf.BoolValue
+	(*wrapperspb.Int32Value)(nil),               // 177: google.protobuf.Int32Value
 }
 var file_private_pbconfigentry_config_entry_proto_depIdxs = []int32{
 	17,  // 0: hashicorp.consul.internal.configentry.GetResolvedExportedServicesResponse.services:type_name -> hashicorp.consul.internal.configentry.ResolvedExportedService
@@ -11661,19 +11639,20 @@ var file_private_pbconfigentry_config_entry_proto_depIdxs = []int32{
 	176, // 226: hashicorp.consul.internal.configentry.InferenceGatewayMetrics.Enabled:type_name -> google.protobuf.BoolValue
 	141, // 227: hashicorp.consul.internal.configentry.InferenceGatewayMetrics.Prometheus:type_name -> hashicorp.consul.internal.configentry.InferenceGatewayMetricsPrometheus
 	143, // 228: hashicorp.consul.internal.configentry.InferenceGatewayMetrics.OTLP:type_name -> hashicorp.consul.internal.configentry.InferenceGatewayOTLPExport
-	143, // 229: hashicorp.consul.internal.configentry.InferenceGatewayTracing.OTLP:type_name -> hashicorp.consul.internal.configentry.InferenceGatewayOTLPExport
-	32,  // 230: hashicorp.consul.internal.configentry.ServiceResolver.SubsetsEntry.value:type_name -> hashicorp.consul.internal.configentry.ServiceResolverSubset
-	34,  // 231: hashicorp.consul.internal.configentry.ServiceResolver.FailoverEntry.value:type_name -> hashicorp.consul.internal.configentry.ServiceResolverFailover
-	88,  // 232: hashicorp.consul.internal.configentry.BoundAPIGateway.ServicesEntry.value:type_name -> hashicorp.consul.internal.configentry.ListOfResourceReference
-	15,  // 233: hashicorp.consul.internal.configentry.ConfigEntryService.GetResolvedExportedServices:input_type -> hashicorp.consul.internal.configentry.GetResolvedExportedServicesRequest
-	19,  // 234: hashicorp.consul.internal.configentry.ConfigEntryService.GetImportedServices:input_type -> hashicorp.consul.internal.configentry.GetImportedServicesRequest
-	16,  // 235: hashicorp.consul.internal.configentry.ConfigEntryService.GetResolvedExportedServices:output_type -> hashicorp.consul.internal.configentry.GetResolvedExportedServicesResponse
-	20,  // 236: hashicorp.consul.internal.configentry.ConfigEntryService.GetImportedServices:output_type -> hashicorp.consul.internal.configentry.GetImportedServicesResponse
-	235, // [235:237] is the sub-list for method output_type
-	233, // [233:235] is the sub-list for method input_type
-	233, // [233:233] is the sub-list for extension type_name
-	233, // [233:233] is the sub-list for extension extendee
-	0,   // [0:233] is the sub-list for field type_name
+	177, // 229: hashicorp.consul.internal.configentry.InferenceGatewayMetricsPrometheus.Port:type_name -> google.protobuf.Int32Value
+	143, // 230: hashicorp.consul.internal.configentry.InferenceGatewayTracing.OTLP:type_name -> hashicorp.consul.internal.configentry.InferenceGatewayOTLPExport
+	32,  // 231: hashicorp.consul.internal.configentry.ServiceResolver.SubsetsEntry.value:type_name -> hashicorp.consul.internal.configentry.ServiceResolverSubset
+	34,  // 232: hashicorp.consul.internal.configentry.ServiceResolver.FailoverEntry.value:type_name -> hashicorp.consul.internal.configentry.ServiceResolverFailover
+	88,  // 233: hashicorp.consul.internal.configentry.BoundAPIGateway.ServicesEntry.value:type_name -> hashicorp.consul.internal.configentry.ListOfResourceReference
+	15,  // 234: hashicorp.consul.internal.configentry.ConfigEntryService.GetResolvedExportedServices:input_type -> hashicorp.consul.internal.configentry.GetResolvedExportedServicesRequest
+	19,  // 235: hashicorp.consul.internal.configentry.ConfigEntryService.GetImportedServices:input_type -> hashicorp.consul.internal.configentry.GetImportedServicesRequest
+	16,  // 236: hashicorp.consul.internal.configentry.ConfigEntryService.GetResolvedExportedServices:output_type -> hashicorp.consul.internal.configentry.GetResolvedExportedServicesResponse
+	20,  // 237: hashicorp.consul.internal.configentry.ConfigEntryService.GetImportedServices:output_type -> hashicorp.consul.internal.configentry.GetImportedServicesResponse
+	236, // [236:238] is the sub-list for method output_type
+	234, // [234:236] is the sub-list for method input_type
+	234, // [234:234] is the sub-list for extension type_name
+	234, // [234:234] is the sub-list for extension extendee
+	0,   // [0:234] is the sub-list for field type_name
 }
 
 func init() { file_private_pbconfigentry_config_entry_proto_init() }
