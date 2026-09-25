@@ -172,6 +172,8 @@ type TerminatingGatewayConfigEntry struct {
 	Services []LinkedService `json:",omitempty"`
 
 	// CredentialInjection enables non-secret credential injection for linked services.
+	// Credential injection is a Consul Enterprise feature; Consul CE rejects
+	// entries that set it.
 	CredentialInjection *GatewayCredentialInjection `json:",omitempty" alias:"credential_injection"`
 
 	Meta map[string]string `json:",omitempty"`
@@ -195,13 +197,14 @@ type TerminatingGatewayConfigEntry struct {
 }
 
 // GatewayCredentialInjection configures the local credential processor for a
-// terminating gateway.
+// terminating gateway. Credential injection is a Consul Enterprise feature.
 type GatewayCredentialInjection struct {
 	UDSPath        string `json:",omitempty" alias:"uds_path"`
 	MessageTimeout string `json:",omitempty" alias:"message_timeout"`
 }
 
 // GatewayServiceCredential configures credential injection for a linked service.
+// Credential injection is a Consul Enterprise feature.
 type GatewayServiceCredential struct {
 	Mode      string `json:",omitempty"`
 	BindingID string `json:",omitempty" alias:"binding_id"`
@@ -236,6 +239,8 @@ type LinkedService struct {
 	SNI string `json:",omitempty"`
 
 	// Credential configures non-secret credential injection for this service.
+	// Credential injection is a Consul Enterprise feature; Consul CE rejects
+	// entries that set it.
 	Credential *GatewayServiceCredential `json:",omitempty"`
 }
 
