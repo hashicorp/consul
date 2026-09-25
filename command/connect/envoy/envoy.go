@@ -487,10 +487,12 @@ func (c *cmd) run(args []string) int {
 		if err != nil {
 			c.UI.Warn("There was an error checking the compatibility of the envoy version: " + err.Error())
 		} else if !ec.isCompatible {
-			c.UI.Error(fmt.Sprintf("Envoy version %s is not supported. If there is a reason you need to use "+
+			c.UI.Error(fmt.Sprintf("Envoy version %s is not supported. This version of Consul supports Envoy %s.x "+
+				"through %s.x. If there is a reason you need to use "+
 				"this version of envoy use the ignore-envoy-compatibility flag. Using an unsupported version of Envoy "+
 				"is not recommended and your experience may vary. For more information on compatibility "+
-				"see https://developer.hashicorp.com/consul/docs/connect/proxies/envoy#envoy-and-consul-client-agent", ec.versionIncompatible))
+				"see https://developer.hashicorp.com/consul/docs/connect/proxies/envoy#envoy-and-consul-client-agent",
+				ec.versionIncompatible, xdscommon.GetMinEnvoyMajorVersion(), xdscommon.GetMaxEnvoyMajorVersion()))
 			return 1
 		}
 	}
