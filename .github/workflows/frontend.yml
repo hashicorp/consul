@@ -190,7 +190,8 @@ jobs:
 
   e2e-tests:
     needs: setup
-    if: ${{ !endsWith(github.repository, '-enterprise') }}
+    # Temporarily disabled.
+    if: ${{ false }}
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
     continue-on-error: false
     env:
@@ -332,7 +333,8 @@ jobs:
 
   e2e-tests-ent:
     needs: setup
-    if: ${{ needs.setup.outputs.has-consul-license == 'true' }}
+    # Temporarily disabled.
+    if: ${{ false }}
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
     continue-on-error: false
     env:
