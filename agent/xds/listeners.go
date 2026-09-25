@@ -1420,10 +1420,9 @@ func createDownstreamTransportSocketForConnectTLS(cfgSnap *proxycfg.ConfigSnapsh
 		return nil, fmt.Errorf("cannot inject peering trust bundles for kind %q", cfgSnap.Kind)
 	}
 
-	// Create TLS validation context for mTLS with leaf certificate and root certs.
-	tlsContext := makeCommonTLSContext(
-		cfgSnap.Leaf(),
-		cfgSnap.RootPEMs(),
+	// Use SDS-backed secrets for the default Connect leaf/root pair so leaf
+	// rotations update Secret resources rather than rebuilding listeners.
+	tlsContext := makeCommonConnectTLSContext(
 		makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSIncoming()),
 	)
 
@@ -1452,6 +1451,16 @@ func injectSpiffeValidatorConfigForPeers(cfgSnap *proxycfg.ConfigSnapshot, tlsCo
 	spiffeConfig, err := makeSpiffeValidatorConfig(cfgSnap.Roots.TrustDomain, cfgSnap.RootPEMs(), peerBundles)
 	if err != nil {
 		return err
+	}
+
+	// Connect downstream contexts fetch their trust bundle over SDS. The SPIFFE
+	// validator has to carry the per-trust-domain roots itself, so replace the
+	// SDS validation context with an inline one for these proxies. The leaf
+	// certificate keeps using SDS, which is what makes rotation hitless.
+	if _, isSDS := tlsContext.ValidationContextType.(*envoy_tls_v3.CommonTlsContext_ValidationContextSdsSecretConfig); isSDS {
+		tlsContext.ValidationContextType = &envoy_tls_v3.CommonTlsContext_ValidationContext{
+			ValidationContext: &envoy_tls_v3.CertificateValidationContext{},
+		}
 	}
 
 	typ, ok := tlsContext.ValidationContextType.(*envoy_tls_v3.CommonTlsContext_ValidationContext)
@@ -3153,6 +3162,34 @@ func makeCommonTLSContext(
 					},
 				},
 			},
+		},
+	}
+}
+
+func makeCommonConnectTLSContext(tlsParams *envoy_tls_v3.TlsParameters) *envoy_tls_v3.CommonTlsContext {
+	if tlsParams == nil {
+		tlsParams = &envoy_tls_v3.TlsParameters{}
+	}
+
+	return &envoy_tls_v3.CommonTlsContext{
+		TlsParams: tlsParams,
+		TlsCertificateSdsSecretConfigs: []*envoy_tls_v3.SdsSecretConfig{
+			makeADSSecretConfig(connectLeafSecretName),
+		},
+		ValidationContextType: &envoy_tls_v3.CommonTlsContext_ValidationContextSdsSecretConfig{
+			ValidationContextSdsSecretConfig: makeADSSecretConfig(connectRootSecretName),
+		},
+	}
+}
+
+func makeADSSecretConfig(name string) *envoy_tls_v3.SdsSecretConfig {
+	return &envoy_tls_v3.SdsSecretConfig{
+		Name: name,
+		SdsConfig: &envoy_core_v3.ConfigSource{
+			ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
+				Ads: &envoy_core_v3.AggregatedConfigSource{},
+			},
+			ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
 		},
 	}
 }
