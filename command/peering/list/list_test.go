@@ -134,3 +134,28 @@ func TestListCommand(t *testing.T) {
 		require.Equal(t, "foo", outputList[1].Name)
 	})
 }
+
+func TestListCommand_PeeringDisabled(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	a := agent.NewTestAgent(t, `peering { enabled = false }`)
+	t.Cleanup(func() { _ = a.Shutdown() })
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	ui := cli.NewMockUi()
+	cmd := New(ui)
+
+	code := cmd.Run([]string{
+		"-http-addr=" + a.HTTPAddr(),
+	})
+	require.Equal(t, 1, code)
+
+	output := ui.ErrorWriter.String()
+	require.Contains(t, output, "Error listing peerings")
+	require.Contains(t, output, "peering is disabled")
+}
