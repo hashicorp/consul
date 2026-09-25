@@ -31,7 +31,7 @@ const (
 // proto drops cannot reach anything downstream at all.
 //
 //   - RENDERED   Consul reads the field and turns it into Envoy configuration
-//     (Processor, Failover).
+//     (Processor, Failover, RequestTimeout).
 //   - FORWARDED  Consul does not interpret the field but carries it to the
 //     co-located policy processor as Envoy listener metadata
 //     (PII, Observability).
@@ -68,6 +68,18 @@ type InferenceGatewayConfigEntry struct {
 	// and in what order comes from the catalog (each model's `capabilities` set and
 	// `priority_<capability>` meta), gated by intentions.
 	Failover *InferenceGatewayFailover `json:",omitempty"`
+
+	// RequestTimeout is the overall deadline for one request through the gateway,
+	// from the request arriving to the response ending, spanning every failover
+	// attempt (e.g. "10m"). Rendered as the route timeout on BOTH the capability and
+	// the per-model routes, so the two routing modes share one deadline.
+	//
+	// Empty or "0s" disables it, and that is the default. Envoy's own default of 15s
+	// is set for API traffic and cuts off an inference response - a long completion,
+	// or a stream still delivering tokens - mid-body. With it disabled a request is
+	// bounded instead by Failover.PerTryTimeout for each attempt and by Envoy's
+	// stream idle timeout for a stalled stream.
+	RequestTimeout string `json:",omitempty" alias:"request_timeout"`
 
 	// --- FORWARDED: carried to the processor as Envoy listener metadata ---
 
@@ -139,13 +151,13 @@ type InferenceGatewayFailover struct {
 // processor. Consul does not interpret these fields; it stores and returns them
 // verbatim.
 type InferenceGatewayPII struct {
-	// Scope selects which bodies the detectors' actions apply to: request |
-	// response | both.
-	Scope string `json:",omitempty"`
+	// Scope selects which bodies the detectors' actions apply to. Empty leaves it
+	// to the processor, which defaults to request.
+	Scope InferenceGatewayPIIScope `json:",omitempty"`
 
-	// DefaultAction applies to any detector that does not set its own Action:
-	// placeholder | mask | block | off.
-	DefaultAction string `json:",omitempty" alias:"default_action"`
+	// DefaultAction applies to any detector that does not set its own Action.
+	// Empty leaves it to the processor, which defaults to placeholder.
+	DefaultAction InferenceGatewayPIIAction `json:",omitempty" alias:"default_action"`
 
 	// StreamHoldbackBytes is the trailing content the streaming response redactor
 	// withholds so PII split across chunk boundaries is caught before release.
@@ -169,14 +181,40 @@ type InferenceGatewayPIIMask struct {
 // InferenceGatewayPIIDetector is one PII rule: a named built-in or a custom Regex, with
 // an Action that overrides PII.DefaultAction.
 type InferenceGatewayPIIDetector struct {
-	// Name selects a built-in detector (ssn, credit_card, api_key, email) or names
-	// a custom one.
+	// Name selects a built-in detector (see inferenceBuiltinPIIDetectors) or, with a
+	// Regex, names a custom one for placeholder text and logs.
 	Name string `json:",omitempty"`
-	// Regex is a custom RE2 pattern; empty selects the built-in of Name.
+	// Regex is a custom RE2 pattern. It is required unless Name is a built-in, in
+	// which case leaving it empty selects the built-in (a built-in can do more than
+	// match a pattern: credit_card also checks the Luhn digit). Setting it on a
+	// built-in name replaces the built-in with the pattern.
 	Regex string `json:",omitempty"`
-	// Action is placeholder | mask | block | off.
-	Action string `json:",omitempty"`
+	// Action overrides PII.DefaultAction for this detector. Empty inherits it.
+	Action InferenceGatewayPIIAction `json:",omitempty"`
 }
+
+// InferenceGatewayPIIScope selects which bodies PII detection applies to.
+type InferenceGatewayPIIScope string
+
+const (
+	InferenceGatewayPIIScopeRequest  InferenceGatewayPIIScope = "request"
+	InferenceGatewayPIIScopeResponse InferenceGatewayPIIScope = "response"
+	InferenceGatewayPIIScopeBoth     InferenceGatewayPIIScope = "both"
+)
+
+// InferenceGatewayPIIAction is what the processor does with a detected match.
+type InferenceGatewayPIIAction string
+
+const (
+	// InferenceGatewayPIIActionPlaceholder replaces a match with [REDACTED_<NAME>].
+	InferenceGatewayPIIActionPlaceholder InferenceGatewayPIIAction = "placeholder"
+	// InferenceGatewayPIIActionMask masks a match per PII.Mask, keeping its shape.
+	InferenceGatewayPIIActionMask InferenceGatewayPIIAction = "mask"
+	// InferenceGatewayPIIActionBlock rejects the request or response outright.
+	InferenceGatewayPIIActionBlock InferenceGatewayPIIAction = "block"
+	// InferenceGatewayPIIActionOff disables the detector.
+	InferenceGatewayPIIActionOff InferenceGatewayPIIAction = "off"
+)
 
 // InferenceGatewayObservability configures the processor's telemetry pillars over
 // a shared request-correlation id. Both are independent and individually
@@ -208,7 +246,8 @@ type InferenceGatewayMetrics struct {
 
 	// SemconvSchema pins the OpenTelemetry semantic-conventions version the emitted
 	// gen_ai.* names are drawn from. That vocabulary is pre-1.0, so pinning keeps an
-	// upstream rename a config flip rather than a dashboard break.
+	// upstream rename a config flip rather than a dashboard break. Only the version
+	// the processor implements is accepted - see inferenceImplementedSemconvSchema.
 	SemconvSchema string `json:",omitempty" alias:"semconv_schema"`
 
 	// CustomLabels promotes an allowlisted, low-cardinality set of tenant metadata
@@ -221,7 +260,11 @@ type InferenceGatewayMetrics struct {
 // Omitting the block keeps the default port; setting Port = 0 turns the scrape
 // endpoint off while leaving any OTLP push running.
 type InferenceGatewayMetricsPrometheus struct {
-	Port int    `json:",omitempty"`
+	Port int `json:",omitempty"`
+
+	// Path is retained for wire compatibility but is not configurable: the processor
+	// serves the scrape endpoint on a fixed path, so the only accepted values are
+	// empty and that path. See inferenceFixedPrometheusPath.
 	Path string `json:",omitempty"`
 }
 
@@ -267,10 +310,10 @@ func (e *InferenceGatewayConfigEntry) Normalize() error {
 	}
 
 	if e.PII != nil {
-		e.PII.Scope = strings.ToLower(e.PII.Scope)
-		e.PII.DefaultAction = strings.ToLower(e.PII.DefaultAction)
+		e.PII.Scope = InferenceGatewayPIIScope(strings.ToLower(string(e.PII.Scope)))
+		e.PII.DefaultAction = InferenceGatewayPIIAction(strings.ToLower(string(e.PII.DefaultAction)))
 		for i := range e.PII.Detectors {
-			e.PII.Detectors[i].Action = strings.ToLower(e.PII.Detectors[i].Action)
+			e.PII.Detectors[i].Action = InferenceGatewayPIIAction(strings.ToLower(string(e.PII.Detectors[i].Action)))
 		}
 	}
 

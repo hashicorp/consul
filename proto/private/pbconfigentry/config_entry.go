@@ -514,6 +514,65 @@ func mutualTLSModeFromStructs(a structs.MutualTLSMode) MutualTLSMode {
 	}
 }
 
+// The PII enums cross the wire as proto enums but are strings in the struct. Only
+// values Validate accepts reach these, so anything unrecognised maps to unset
+// rather than being carried across as a value no consumer understands.
+func inferenceGatewayPIIScopeFromStructs(a structs.InferenceGatewayPIIScope) InferenceGatewayPIIScope {
+	switch a {
+	case structs.InferenceGatewayPIIScopeRequest:
+		return InferenceGatewayPIIScope_InferenceGatewayPIIScopeRequest
+	case structs.InferenceGatewayPIIScopeResponse:
+		return InferenceGatewayPIIScope_InferenceGatewayPIIScopeResponse
+	case structs.InferenceGatewayPIIScopeBoth:
+		return InferenceGatewayPIIScope_InferenceGatewayPIIScopeBoth
+	default:
+		return InferenceGatewayPIIScope_InferenceGatewayPIIScopeUnset
+	}
+}
+
+func inferenceGatewayPIIScopeToStructs(a InferenceGatewayPIIScope) structs.InferenceGatewayPIIScope {
+	switch a {
+	case InferenceGatewayPIIScope_InferenceGatewayPIIScopeRequest:
+		return structs.InferenceGatewayPIIScopeRequest
+	case InferenceGatewayPIIScope_InferenceGatewayPIIScopeResponse:
+		return structs.InferenceGatewayPIIScopeResponse
+	case InferenceGatewayPIIScope_InferenceGatewayPIIScopeBoth:
+		return structs.InferenceGatewayPIIScopeBoth
+	default:
+		return ""
+	}
+}
+
+func inferenceGatewayPIIActionFromStructs(a structs.InferenceGatewayPIIAction) InferenceGatewayPIIAction {
+	switch a {
+	case structs.InferenceGatewayPIIActionPlaceholder:
+		return InferenceGatewayPIIAction_InferenceGatewayPIIActionPlaceholder
+	case structs.InferenceGatewayPIIActionMask:
+		return InferenceGatewayPIIAction_InferenceGatewayPIIActionMask
+	case structs.InferenceGatewayPIIActionBlock:
+		return InferenceGatewayPIIAction_InferenceGatewayPIIActionBlock
+	case structs.InferenceGatewayPIIActionOff:
+		return InferenceGatewayPIIAction_InferenceGatewayPIIActionOff
+	default:
+		return InferenceGatewayPIIAction_InferenceGatewayPIIActionUnset
+	}
+}
+
+func inferenceGatewayPIIActionToStructs(a InferenceGatewayPIIAction) structs.InferenceGatewayPIIAction {
+	switch a {
+	case InferenceGatewayPIIAction_InferenceGatewayPIIActionPlaceholder:
+		return structs.InferenceGatewayPIIActionPlaceholder
+	case InferenceGatewayPIIAction_InferenceGatewayPIIActionMask:
+		return structs.InferenceGatewayPIIActionMask
+	case InferenceGatewayPIIAction_InferenceGatewayPIIActionBlock:
+		return structs.InferenceGatewayPIIActionBlock
+	case InferenceGatewayPIIAction_InferenceGatewayPIIActionOff:
+		return structs.InferenceGatewayPIIActionOff
+	default:
+		return ""
+	}
+}
+
 func mutualTLSModeToStructs(a MutualTLSMode) structs.MutualTLSMode {
 	switch a {
 	case MutualTLSMode_MutualTLSModeDefault:
