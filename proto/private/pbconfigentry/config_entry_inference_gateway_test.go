@@ -24,14 +24,14 @@ var (
 	identityFields = []string{"Kind", "Name", "EnterpriseMeta", "RaftIndex"}
 
 	// carriedFields must survive the wire. That is every non-identity field:
-	// RENDERED ones (Processor, Failover) because proxycfg and the xDS renderer
+	// RENDERED ones (Processor, Failover, RequestTimeout) because proxycfg and the xDS renderer
 	// read them, and FORWARDED ones (PII, Observability) because this stream is the
 	// only way they reach the policy processor at all — Consul renders them into
 	// listener metadata rather than the processor fetching them itself.
 	//
 	// There is deliberately no third list. A field that does not cross this stream
 	// reaches nothing.
-	carriedFields = []string{"Processor", "Failover", "Meta", "Hash", "PII", "Observability"}
+	carriedFields = []string{"Processor", "Failover", "RequestTimeout", "Meta", "Hash", "PII", "Observability"}
 )
 
 // testInferenceGatewayEntry is an entry with every field set to a non-zero value,
@@ -52,6 +52,7 @@ func testInferenceGatewayEntry() *structs.InferenceGatewayConfigEntry {
 			MaxTiers:      3,
 			PerTryTimeout: "30s",
 		},
+		RequestTimeout: "10m",
 		PII: &structs.InferenceGatewayPII{
 			Scope:               "both",
 			DefaultAction:       "placeholder",
@@ -173,4 +174,34 @@ func TestInferenceGateway_MetricsEnabledThreeState(t *testing.T) {
 			require.Equal(t, want, got.Observability.Metrics.Enabled)
 		})
 	}
+}
+
+// TestInferenceGatewayPIIEnumConversions checks every PII enum value maps across
+// the wire and back to itself, and that the empty struct value maps to the proto
+// zero value rather than to a real choice. The processor applies its own default
+// to an empty value, so the two must never be confused.
+func TestInferenceGatewayPIIEnumConversions(t *testing.T) {
+	for _, s := range []structs.InferenceGatewayPIIScope{
+		"",
+		structs.InferenceGatewayPIIScopeRequest,
+		structs.InferenceGatewayPIIScopeResponse,
+		structs.InferenceGatewayPIIScopeBoth,
+	} {
+		require.Equal(t, s, inferenceGatewayPIIScopeToStructs(inferenceGatewayPIIScopeFromStructs(s)), "scope %q", s)
+	}
+	require.Equal(t, InferenceGatewayPIIScope_InferenceGatewayPIIScopeUnset, inferenceGatewayPIIScopeFromStructs(""))
+	// Every proto value except unset has a struct constant.
+	require.Len(t, InferenceGatewayPIIScope_name, 4)
+
+	for _, a := range []structs.InferenceGatewayPIIAction{
+		"",
+		structs.InferenceGatewayPIIActionPlaceholder,
+		structs.InferenceGatewayPIIActionMask,
+		structs.InferenceGatewayPIIActionBlock,
+		structs.InferenceGatewayPIIActionOff,
+	} {
+		require.Equal(t, a, inferenceGatewayPIIActionToStructs(inferenceGatewayPIIActionFromStructs(a)), "action %q", a)
+	}
+	require.Equal(t, InferenceGatewayPIIAction_InferenceGatewayPIIActionUnset, inferenceGatewayPIIActionFromStructs(""))
+	require.Len(t, InferenceGatewayPIIAction_name, 5)
 }

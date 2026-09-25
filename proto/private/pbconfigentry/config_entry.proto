@@ -1525,7 +1525,7 @@ message InferenceGateway {
   // is not part of the ConfigEntry envelope, because this stream is the entry's
   // only path out of Consul.
   //
-  // RENDERED fields (Processor, Failover) are read by proxycfg and the xDS
+  // RENDERED fields (Processor, Failover, RequestTimeout) are read by proxycfg and the xDS
   // renderer. FORWARDED fields (PII, Observability) are not interpreted here at
   // all - Consul renders them into the gateway listener's consul.inference.policy
   // metadata, which is how the co-located policy processor receives them. The
@@ -1537,7 +1537,7 @@ message InferenceGateway {
   // Numbering is dense and starts at 1: this entry ships for the first time in
   // the release that introduces it, so there is no deployed peer whose field
   // numbers have to be honoured. The rate-limit follow-up appends RateLimit and
-  // StateStore at 7 and 8. Once this HAS shipped, that freedom ends -- removed
+  // StateStore at 8 and 9. Once this HAS shipped, that freedom ends -- removed
   // fields must then be reserved rather than renumbered.
 
   InferenceGatewayProcessor Processor = 1;
@@ -1546,6 +1546,9 @@ message InferenceGateway {
   InferenceGatewayFailover Failover = 4;
   InferenceGatewayPII PII = 5;
   InferenceGatewayObservability Observability = 6;
+  // A string rather than a Duration, mirroring the struct field and
+  // Failover.PerTryTimeout; Validate parses it at write time.
+  string RequestTimeout = 7;
 }
 
 // mog annotation:
@@ -1554,8 +1557,10 @@ message InferenceGateway {
 // output=config_entry.gen.go
 // name=Structs
 message InferenceGatewayPII {
-  string Scope = 1;
-  string DefaultAction = 2;
+  // mog: func-to=inferenceGatewayPIIScopeToStructs func-from=inferenceGatewayPIIScopeFromStructs
+  InferenceGatewayPIIScope Scope = 1;
+  // mog: func-to=inferenceGatewayPIIActionToStructs func-from=inferenceGatewayPIIActionFromStructs
+  InferenceGatewayPIIAction DefaultAction = 2;
   // mog: func-to=int func-from=int32
   int32 StreamHoldbackBytes = 3;
   InferenceGatewayPIIMask Mask = 4;
@@ -1581,7 +1586,25 @@ message InferenceGatewayPIIMask {
 message InferenceGatewayPIIDetector {
   string Name = 1;
   string Regex = 2;
-  string Action = 3;
+  // mog: func-to=inferenceGatewayPIIActionToStructs func-from=inferenceGatewayPIIActionFromStructs
+  InferenceGatewayPIIAction Action = 3;
+}
+
+// The zero value of each enum is "unset": the struct field is empty and the
+// processor applies its own default, so it must not be mistaken for a real choice.
+enum InferenceGatewayPIIScope {
+  InferenceGatewayPIIScopeUnset = 0;
+  InferenceGatewayPIIScopeRequest = 1;
+  InferenceGatewayPIIScopeResponse = 2;
+  InferenceGatewayPIIScopeBoth = 3;
+}
+
+enum InferenceGatewayPIIAction {
+  InferenceGatewayPIIActionUnset = 0;
+  InferenceGatewayPIIActionPlaceholder = 1;
+  InferenceGatewayPIIActionMask = 2;
+  InferenceGatewayPIIActionBlock = 3;
+  InferenceGatewayPIIActionOff = 4;
 }
 
 // mog annotation:

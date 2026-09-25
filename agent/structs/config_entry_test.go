@@ -2713,6 +2713,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 					max_tiers = 2
 					per_try_timeout = "30s"
 				}
+				request_timeout = "10m"
 				pii {
 					scope = "both"
 					default_action = "placeholder"
@@ -2743,6 +2744,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 					MaxTiers = 2
 					PerTryTimeout = "30s"
 				}
+				RequestTimeout = "10m"
 				PII {
 					Scope = "both"
 					DefaultAction = "placeholder"
@@ -2771,6 +2773,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 					MaxTiers:      2,
 					PerTryTimeout: "30s",
 				},
+				RequestTimeout: "10m",
 				PII: &InferenceGatewayPII{
 					Scope:               "both",
 					DefaultAction:       "placeholder",

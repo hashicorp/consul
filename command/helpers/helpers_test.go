@@ -3366,6 +3366,7 @@ func TestParseConfigEntry(t *testing.T) {
 					max_tiers = 2
 					per_try_timeout = "30s"
 				}
+				request_timeout = "10m"
 				observability {
 					metrics {
 						prometheus {
@@ -3409,6 +3410,7 @@ func TestParseConfigEntry(t *testing.T) {
 					MaxTiers = 2
 					PerTryTimeout = "30s"
 				}
+				RequestTimeout = "10m"
 				Observability {
 					Metrics {
 						Prometheus {
@@ -3453,6 +3455,7 @@ func TestParseConfigEntry(t *testing.T) {
 					"max_tiers": 2,
 					"per_try_timeout": "30s"
 				},
+				"request_timeout": "10m",
 				"observability": {
 					"metrics": { "prometheus": { "port": 9105 }, "custom_labels": ["team"] },
 					"tracing": { "enabled": true, "sample_ratio": 0.05, "otlp": { "endpoint": "collector:4317" } }
@@ -3479,6 +3482,7 @@ func TestParseConfigEntry(t *testing.T) {
 					"MaxTiers": 2,
 					"PerTryTimeout": "30s"
 				},
+				"RequestTimeout": "10m",
 				"Observability": {
 					"Metrics": { "Prometheus": { "Port": 9105 }, "CustomLabels": ["team"] },
 					"Tracing": { "Enabled": true, "SampleRatio": 0.05, "OTLP": { "Endpoint": "collector:4317" } }
@@ -3504,6 +3508,7 @@ func TestParseConfigEntry(t *testing.T) {
 					MaxTiers:      2,
 					PerTryTimeout: "30s",
 				},
+				RequestTimeout: "10m",
 				Observability: &api.InferenceGatewayObservability{
 					Metrics: &api.InferenceGatewayMetrics{
 						Prometheus:   &api.InferenceGatewayMetricsPrometheus{Port: 9105},
@@ -3537,6 +3542,7 @@ func TestParseConfigEntry(t *testing.T) {
 					MaxTiers:      2,
 					PerTryTimeout: "30s",
 				},
+				RequestTimeout: "10m",
 				Observability: &api.InferenceGatewayObservability{
 					Metrics: &api.InferenceGatewayMetrics{
 						Prometheus:   &api.InferenceGatewayMetricsPrometheus{Port: 9105},

@@ -46,9 +46,9 @@ func TestInferenceGatewayConfigEntry_CE_Normalize(t *testing.T) {
 	require.Equal(t, InferenceGateway, e.GetKind())
 	require.Equal(t, InferenceGateway, e.Kind)
 	require.Equal(t, InferenceGatewayFailureModeOpen, e.Processor.FailureMode)
-	require.Equal(t, "request", e.PII.Scope)
-	require.Equal(t, "mask", e.PII.DefaultAction)
-	require.Equal(t, "block", e.PII.Detectors[0].Action)
+	require.Equal(t, InferenceGatewayPIIScopeRequest, e.PII.Scope)
+	require.Equal(t, InferenceGatewayPIIActionMask, e.PII.DefaultAction)
+	require.Equal(t, InferenceGatewayPIIActionBlock, e.PII.Detectors[0].Action)
 	require.NotZero(t, e.GetHash())
 
 	unset := &InferenceGatewayConfigEntry{Name: "gw"}
@@ -68,6 +68,7 @@ func TestInferenceGatewayConfigEntry_CE_DecodeAndJSONRoundTrip(t *testing.T) {
 			"FailureMode":      "open",
 			"BodyModelRouting": true,
 		},
+		"RequestTimeout": "10m",
 		"Failover": map[string]interface{}{
 			"RetryOn":       []interface{}{"401", "5xx"},
 			"MaxTiers":      2,
@@ -101,8 +102,9 @@ func TestInferenceGatewayConfigEntry_CE_DecodeAndJSONRoundTrip(t *testing.T) {
 	require.Equal(t, InferenceGatewayFailureModeOpen, e.Processor.FailureMode)
 	require.True(t, e.Processor.BodyModelRouting)
 	require.Equal(t, &InferenceGatewayFailover{RetryOn: []string{"401", "5xx"}, MaxTiers: 2, PerTryTimeout: "30s"}, e.Failover)
+	require.Equal(t, "10m", e.RequestTimeout)
 	require.Equal(t, &InferenceGatewayPIIMask{Char: "#", KeepLast: 4}, e.PII.Mask)
-	require.Equal(t, []InferenceGatewayPIIDetector{{Name: "ssn", Action: "block"}}, e.PII.Detectors)
+	require.Equal(t, []InferenceGatewayPIIDetector{{Name: "ssn", Action: InferenceGatewayPIIActionBlock}}, e.PII.Detectors)
 	require.NotNil(t, e.Observability.Metrics.Enabled)
 	require.True(t, *e.Observability.Metrics.Enabled)
 	require.Equal(t, "collector:4317", e.Observability.Tracing.OTLP.Endpoint)

@@ -1106,6 +1106,7 @@ func InferenceGatewayToStructs(s *InferenceGateway, t *structs.InferenceGatewayC
 		InferenceGatewayFailoverToStructs(s.Failover, &x)
 		t.Failover = &x
 	}
+	t.RequestTimeout = s.RequestTimeout
 	if s.PII != nil {
 		var x structs.InferenceGatewayPII
 		InferenceGatewayPIIToStructs(s.PII, &x)
@@ -1133,6 +1134,7 @@ func InferenceGatewayFromStructs(t *structs.InferenceGatewayConfigEntry, s *Infe
 		InferenceGatewayFailoverFromStructs(t.Failover, &x)
 		s.Failover = &x
 	}
+	s.RequestTimeout = t.RequestTimeout
 	if t.PII != nil {
 		var x InferenceGatewayPII
 		InferenceGatewayPIIFromStructs(t.PII, &x)
@@ -1260,8 +1262,8 @@ func InferenceGatewayPIIToStructs(s *InferenceGatewayPII, t *structs.InferenceGa
 	if s == nil {
 		return
 	}
-	t.Scope = s.Scope
-	t.DefaultAction = s.DefaultAction
+	t.Scope = inferenceGatewayPIIScopeToStructs(s.Scope)
+	t.DefaultAction = inferenceGatewayPIIActionToStructs(s.DefaultAction)
 	t.StreamHoldbackBytes = int(s.StreamHoldbackBytes)
 	if s.Mask != nil {
 		var x structs.InferenceGatewayPIIMask
@@ -1281,8 +1283,8 @@ func InferenceGatewayPIIFromStructs(t *structs.InferenceGatewayPII, s *Inference
 	if s == nil {
 		return
 	}
-	s.Scope = t.Scope
-	s.DefaultAction = t.DefaultAction
+	s.Scope = inferenceGatewayPIIScopeFromStructs(t.Scope)
+	s.DefaultAction = inferenceGatewayPIIActionFromStructs(t.DefaultAction)
 	s.StreamHoldbackBytes = int32(t.StreamHoldbackBytes)
 	if t.Mask != nil {
 		var x InferenceGatewayPIIMask
@@ -1306,7 +1308,7 @@ func InferenceGatewayPIIDetectorToStructs(s *InferenceGatewayPIIDetector, t *str
 	}
 	t.Name = s.Name
 	t.Regex = s.Regex
-	t.Action = s.Action
+	t.Action = inferenceGatewayPIIActionToStructs(s.Action)
 }
 func InferenceGatewayPIIDetectorFromStructs(t *structs.InferenceGatewayPIIDetector, s *InferenceGatewayPIIDetector) {
 	if s == nil {
@@ -1314,7 +1316,7 @@ func InferenceGatewayPIIDetectorFromStructs(t *structs.InferenceGatewayPIIDetect
 	}
 	s.Name = t.Name
 	s.Regex = t.Regex
-	s.Action = t.Action
+	s.Action = inferenceGatewayPIIActionFromStructs(t.Action)
 }
 func InferenceGatewayPIIMaskToStructs(s *InferenceGatewayPIIMask, t *structs.InferenceGatewayPIIMask) {
 	if s == nil {
