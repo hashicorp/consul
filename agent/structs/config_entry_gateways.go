@@ -22,6 +22,8 @@ import (
 
 const (
 	wildcardPrefix = "*."
+
+	defaultGatewayCredentialMessageTimeout = "250ms"
 )
 
 // IngressGatewayConfigEntry manages the configuration for an ingress service
@@ -493,9 +495,10 @@ func (s *IngressService) ToServiceName() ServiceName {
 // TerminatingGatewayConfigEntry manages the configuration for a terminating service
 // with the given name.
 type TerminatingGatewayConfigEntry struct {
-	Kind     string
-	Name     string
-	Services []LinkedService
+	Kind                string
+	Name                string
+	Services            []LinkedService
+	CredentialInjection *GatewayCredentialInjection `json:",omitempty" alias:"credential_injection"`
 
 	Meta               map[string]string `json:",omitempty"`
 	Hash               uint64            `json:",omitempty" hash:"ignore"`
@@ -509,6 +512,20 @@ func (e *TerminatingGatewayConfigEntry) SetHash(h uint64) {
 
 func (e *TerminatingGatewayConfigEntry) GetHash() uint64 {
 	return e.Hash
+}
+
+// GatewayCredentialInjection configures the local credential processor for a
+// terminating gateway. It contains no credential material or credential source.
+type GatewayCredentialInjection struct {
+	UDSPath        string `json:",omitempty" alias:"uds_path"`
+	MessageTimeout string `json:",omitempty" alias:"message_timeout"`
+}
+
+// GatewayServiceCredential configures the credential policy for one linked
+// terminating-gateway service.
+type GatewayServiceCredential struct {
+	Mode      string `json:",omitempty"`
+	BindingID string `json:",omitempty" alias:"binding_id"`
 }
 
 // A LinkedService is a service represented by a terminating gateway
@@ -533,6 +550,9 @@ type LinkedService struct {
 
 	//DisableAutoHostRewrite disables terminating gateways auto host rewrite feature when set to true.
 	DisableAutoHostRewrite bool `json:",omitempty"`
+
+	// Credential configures non-secret credential injection for this service.
+	Credential *GatewayServiceCredential `json:",omitempty"`
 
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
@@ -564,6 +584,10 @@ func (e *TerminatingGatewayConfigEntry) Normalize() error {
 	e.Kind = TerminatingGateway
 	e.EnterpriseMeta.Normalize()
 
+	if e.CredentialInjection != nil && e.CredentialInjection.MessageTimeout == "" {
+		e.CredentialInjection.MessageTimeout = defaultGatewayCredentialMessageTimeout
+	}
+
 	for i := range e.Services {
 		e.Services[i].Merge(&e.EnterpriseMeta)
 		e.Services[i].Normalize()
@@ -583,7 +607,6 @@ func (e *TerminatingGatewayConfigEntry) Validate() error {
 	}
 
 	seen := make(map[ServiceID]bool)
-
 	for _, svc := range e.Services {
 		if svc.Name == "" {
 			return fmt.Errorf("Service name cannot be blank.")
@@ -614,7 +637,8 @@ func (e *TerminatingGatewayConfigEntry) Validate() error {
 			return fmt.Errorf("Service %q must have a CertFile, CAFile, and KeyFile specified for TLS origination", svc.Name)
 		}
 	}
-	return nil
+
+	return e.validateCredentialInjection()
 }
 
 func (e *TerminatingGatewayConfigEntry) CanRead(authz acl.Authorizer) error {
@@ -671,18 +695,20 @@ const (
 
 // GatewayService is used to associate gateways with their linked services.
 type GatewayService struct {
-	Gateway      ServiceName
-	Service      ServiceName
-	GatewayKind  ServiceKind
-	Port         int                `json:",omitempty"`
-	Protocol     string             `json:",omitempty"`
-	Hosts        []string           `json:",omitempty"`
-	CAFile       string             `json:",omitempty"`
-	CertFile     string             `json:",omitempty"`
-	KeyFile      string             `json:",omitempty"`
-	SNI          string             `json:",omitempty"`
-	FromWildcard bool               `json:",omitempty"`
-	ServiceKind  GatewayServiceKind `json:",omitempty"`
+	Gateway             ServiceName
+	Service             ServiceName
+	GatewayKind         ServiceKind
+	Port                int                         `json:",omitempty"`
+	Protocol            string                      `json:",omitempty"`
+	Hosts               []string                    `json:",omitempty"`
+	CAFile              string                      `json:",omitempty"`
+	CertFile            string                      `json:",omitempty"`
+	KeyFile             string                      `json:",omitempty"`
+	SNI                 string                      `json:",omitempty"`
+	FromWildcard        bool                        `json:",omitempty"`
+	ServiceKind         GatewayServiceKind          `json:",omitempty"`
+	CredentialInjection *GatewayCredentialInjection `json:",omitempty"`
+	Credential          *GatewayServiceCredential   `json:",omitempty"`
 	RaftIndex
 	AutoHostRewrite bool `json:",omitempty"`
 }
@@ -722,11 +748,13 @@ func (g *GatewayService) IsSame(o *GatewayService) bool {
 		g.KeyFile == o.KeyFile &&
 		g.SNI == o.SNI &&
 		g.ServiceKind == o.ServiceKind &&
-		g.FromWildcard == o.FromWildcard
+		g.FromWildcard == o.FromWildcard &&
+		equalGatewayCredentialInjection(g.CredentialInjection, o.CredentialInjection) &&
+		equalGatewayServiceCredential(g.Credential, o.Credential)
 }
 
 func (g *GatewayService) Clone() *GatewayService {
-	return &GatewayService{
+	clone := &GatewayService{
 		Gateway:     g.Gateway,
 		Service:     g.Service,
 		GatewayKind: g.GatewayKind,
@@ -743,6 +771,25 @@ func (g *GatewayService) Clone() *GatewayService {
 		ServiceKind:     g.ServiceKind,
 		AutoHostRewrite: g.AutoHostRewrite,
 	}
+	if g.CredentialInjection != nil {
+		credentialInjection := *g.CredentialInjection
+		clone.CredentialInjection = &credentialInjection
+	}
+	if g.Credential != nil {
+		credential := *g.Credential
+		clone.Credential = &credential
+	}
+	return clone
+}
+
+func equalGatewayCredentialInjection(a, b *GatewayCredentialInjection) bool {
+	return (a == nil && b == nil) ||
+		(a != nil && b != nil && *a == *b)
+}
+
+func equalGatewayServiceCredential(a, b *GatewayServiceCredential) bool {
+	return (a == nil && b == nil) ||
+		(a != nil && b != nil && *a == *b)
 }
 
 // APIGatewayConfigEntry manages the configuration for an API gateway service

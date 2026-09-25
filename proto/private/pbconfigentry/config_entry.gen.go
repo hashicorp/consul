@@ -500,6 +500,20 @@ func ExtProcFilterFromStructs(t *structs.ExtProcFilter, s *ExtProcFilter) {
 		s.Overrides = &x
 	}
 }
+func ExtProcMetadataKVToStructs(s *ExtProcMetadataKV, t *structs.ExtProcMetadataKV) {
+	if s == nil {
+		return
+	}
+	t.Key = s.Key
+	t.Value = s.Value
+}
+func ExtProcMetadataKVFromStructs(t *structs.ExtProcMetadataKV, s *ExtProcMetadataKV) {
+	if s == nil {
+		return
+	}
+	s.Key = t.Key
+	s.Value = t.Value
+}
 func ExtProcOverridesToStructs(s *ExtProcOverrides, t *structs.ExtProcOverrides) {
 	if s == nil {
 		return
@@ -508,6 +522,14 @@ func ExtProcOverridesToStructs(s *ExtProcOverrides, t *structs.ExtProcOverrides)
 		var x structs.ExtProcProcessing
 		ExtProcProcessingToStructs(s.Processing, &x)
 		t.Processing = &x
+	}
+	{
+		t.GRPCInitialMetadata = make([]structs.ExtProcMetadataKV, len(s.GRPCInitialMetadata))
+		for i := range s.GRPCInitialMetadata {
+			if s.GRPCInitialMetadata[i] != nil {
+				ExtProcMetadataKVToStructs(s.GRPCInitialMetadata[i], &t.GRPCInitialMetadata[i])
+			}
+		}
 	}
 }
 func ExtProcOverridesFromStructs(t *structs.ExtProcOverrides, s *ExtProcOverrides) {
@@ -518,6 +540,16 @@ func ExtProcOverridesFromStructs(t *structs.ExtProcOverrides, s *ExtProcOverride
 		var x ExtProcProcessing
 		ExtProcProcessingFromStructs(t.Processing, &x)
 		s.Processing = &x
+	}
+	{
+		s.GRPCInitialMetadata = make([]*ExtProcMetadataKV, len(t.GRPCInitialMetadata))
+		for i := range t.GRPCInitialMetadata {
+			{
+				var x ExtProcMetadataKV
+				ExtProcMetadataKVFromStructs(&t.GRPCInitialMetadata[i], &x)
+				s.GRPCInitialMetadata[i] = &x
+			}
+		}
 	}
 }
 func ExtProcProcessingToStructs(s *ExtProcProcessing, t *structs.ExtProcProcessing) {
@@ -585,6 +617,34 @@ func FileSystemCertificateFromStructs(t *structs.FileSystemCertificateConfigEntr
 	s.PrivateKey = t.PrivateKey
 	s.Meta = t.Meta
 	s.Hash = t.Hash
+}
+func GatewayCredentialInjectionToStructs(s *GatewayCredentialInjection, t *structs.GatewayCredentialInjection) {
+	if s == nil {
+		return
+	}
+	t.UDSPath = s.UDSPath
+	t.MessageTimeout = s.MessageTimeout
+}
+func GatewayCredentialInjectionFromStructs(t *structs.GatewayCredentialInjection, s *GatewayCredentialInjection) {
+	if s == nil {
+		return
+	}
+	s.UDSPath = t.UDSPath
+	s.MessageTimeout = t.MessageTimeout
+}
+func GatewayServiceCredentialToStructs(s *GatewayServiceCredential, t *structs.GatewayServiceCredential) {
+	if s == nil {
+		return
+	}
+	t.Mode = s.Mode
+	t.BindingID = s.BindingID
+}
+func GatewayServiceCredentialFromStructs(t *structs.GatewayServiceCredential, s *GatewayServiceCredential) {
+	if s == nil {
+		return
+	}
+	s.Mode = t.Mode
+	s.BindingID = t.BindingID
 }
 func GatewayServiceTLSConfigToStructs(s *GatewayServiceTLSConfig, t *structs.GatewayServiceTLSConfig) {
 	if s == nil {
@@ -2114,6 +2174,40 @@ func LeastRequestConfigFromStructs(t *structs.LeastRequestConfig, s *LeastReques
 	}
 	s.ChoiceCount = t.ChoiceCount
 }
+func LinkedServiceToStructs(s *LinkedService, t *structs.LinkedService) {
+	if s == nil {
+		return
+	}
+	t.Name = s.Name
+	t.CAFile = s.CAFile
+	t.CertFile = s.CertFile
+	t.KeyFile = s.KeyFile
+	t.SNI = s.SNI
+	t.DisableAutoHostRewrite = s.DisableAutoHostRewrite
+	if s.Credential != nil {
+		var x structs.GatewayServiceCredential
+		GatewayServiceCredentialToStructs(s.Credential, &x)
+		t.Credential = &x
+	}
+	t.EnterpriseMeta = enterpriseMetaToStructs(s.EnterpriseMeta)
+}
+func LinkedServiceFromStructs(t *structs.LinkedService, s *LinkedService) {
+	if s == nil {
+		return
+	}
+	s.Name = t.Name
+	s.CAFile = t.CAFile
+	s.CertFile = t.CertFile
+	s.KeyFile = t.KeyFile
+	s.SNI = t.SNI
+	s.DisableAutoHostRewrite = t.DisableAutoHostRewrite
+	if t.Credential != nil {
+		var x GatewayServiceCredential
+		GatewayServiceCredentialFromStructs(t.Credential, &x)
+		s.Credential = &x
+	}
+	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
+}
 func LoadBalancerToStructs(s *LoadBalancer, t *structs.LoadBalancer) {
 	if s == nil {
 		return
@@ -3101,6 +3195,48 @@ func TCPServiceFromStructs(t *structs.TCPService, s *TCPService) {
 		s.Limits = &x
 	}
 	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
+}
+func TerminatingGatewayToStructs(s *TerminatingGateway, t *structs.TerminatingGatewayConfigEntry) {
+	if s == nil {
+		return
+	}
+	{
+		t.Services = make([]structs.LinkedService, len(s.Services))
+		for i := range s.Services {
+			if s.Services[i] != nil {
+				LinkedServiceToStructs(s.Services[i], &t.Services[i])
+			}
+		}
+	}
+	if s.CredentialInjection != nil {
+		var x structs.GatewayCredentialInjection
+		GatewayCredentialInjectionToStructs(s.CredentialInjection, &x)
+		t.CredentialInjection = &x
+	}
+	t.Meta = s.Meta
+	t.Hash = s.Hash
+}
+func TerminatingGatewayFromStructs(t *structs.TerminatingGatewayConfigEntry, s *TerminatingGateway) {
+	if s == nil {
+		return
+	}
+	{
+		s.Services = make([]*LinkedService, len(t.Services))
+		for i := range t.Services {
+			{
+				var x LinkedService
+				LinkedServiceFromStructs(&t.Services[i], &x)
+				s.Services[i] = &x
+			}
+		}
+	}
+	if t.CredentialInjection != nil {
+		var x GatewayCredentialInjection
+		GatewayCredentialInjectionFromStructs(t.CredentialInjection, &x)
+		s.CredentialInjection = &x
+	}
+	s.Meta = t.Meta
+	s.Hash = t.Hash
 }
 func TimeoutFilterToStructs(s *TimeoutFilter, t *structs.TimeoutFilter) {
 	if s == nil {

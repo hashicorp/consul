@@ -631,6 +631,9 @@ func validateProposedConfigEntryInGraph(
 				return err
 			}
 		}
+		if err := validateInjectedGatewayServiceProtocol(tx, kindName, newEntry); err != nil {
+			return err
+		}
 	case structs.ServiceRouter:
 	case structs.ServiceSplitter:
 	case structs.ServiceResolver:
@@ -643,6 +646,11 @@ func validateProposedConfigEntryInGraph(
 		err := checkGatewayClash(tx, kindName, structs.IngressGateway)
 		if err != nil {
 			return err
+		}
+		if newGateway, ok := newEntry.(*structs.TerminatingGatewayConfigEntry); ok && newGateway != nil {
+			if err := validateTerminatingGatewayCredentialProtocols(tx, newGateway); err != nil {
+				return err
+			}
 		}
 	case structs.SamenessGroup:
 	case structs.ServiceIntentions:
@@ -675,6 +683,55 @@ func validateProposedConfigEntryInGraph(
 	}
 
 	return validateProposedConfigEntryInServiceGraph(tx, kindName, newEntry)
+}
+
+func validateTerminatingGatewayCredentialProtocols(tx ReadTxn, gateway *structs.TerminatingGatewayConfigEntry) error {
+	if gateway.CredentialInjection == nil {
+		return nil
+	}
+
+	for _, service := range gateway.Services {
+		if service.Credential == nil || service.Credential.Mode != "inject" {
+			continue
+		}
+
+		_, entry, err := configEntryTxn(tx, nil, structs.ServiceDefaults, service.Name, &service.EnterpriseMeta)
+		if err != nil {
+			return err
+		}
+		serviceDefaults, ok := entry.(*structs.ServiceConfigEntry)
+		if !ok || serviceDefaults == nil || !structs.IsProtocolHTTPLike(serviceDefaults.Protocol) {
+			return fmt.Errorf("injected service %q requires HTTP-like service-defaults protocol", service.Name)
+		}
+	}
+
+	return nil
+}
+
+func validateInjectedGatewayServiceProtocol(tx ReadTxn, kindName configentry.KindName, newEntry structs.ConfigEntry) error {
+	protocol := ""
+	if serviceDefaults, ok := newEntry.(*structs.ServiceConfigEntry); ok && serviceDefaults != nil {
+		protocol = serviceDefaults.Protocol
+	}
+	if structs.IsProtocolHTTPLike(protocol) {
+		return nil
+	}
+
+	service := structs.NewServiceName(kindName.Name, &kindName.EnterpriseMeta)
+	mappings, err := tx.Get(tableGatewayServices, indexService, service)
+	if err != nil {
+		return err
+	}
+	for mapping := mappings.Next(); mapping != nil; mapping = mappings.Next() {
+		gatewayService, ok := mapping.(*structs.GatewayService)
+		if !ok || gatewayService.GatewayKind != structs.ServiceKindTerminatingGateway ||
+			gatewayService.Credential == nil || gatewayService.Credential.Mode != "inject" {
+			continue
+		}
+		return fmt.Errorf("injected service %q requires HTTP-like service-defaults protocol", kindName.Name)
+	}
+
+	return nil
 }
 
 func getExistingJWTProvidersByName(tx ReadTxn, kn configentry.KindName) (map[string]*structs.JWTProviderConfigEntry, error) {
