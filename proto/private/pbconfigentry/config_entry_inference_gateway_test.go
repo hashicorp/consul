@@ -62,9 +62,8 @@ func testInferenceGatewayEntry() *structs.InferenceGatewayConfigEntry {
 		},
 		Observability: &structs.InferenceGatewayObservability{
 			Metrics: &structs.InferenceGatewayMetrics{
-				Prometheus:   &structs.InferenceGatewayMetricsPrometheus{Port: 9105, Path: "/metrics"},
-				OTLP:         &structs.InferenceGatewayOTLPExport{Endpoint: "collector:4317", Insecure: true},
-				CustomLabels: []string{"team"},
+				Prometheus: &structs.InferenceGatewayMetricsPrometheus{Port: intPtr(9105)},
+				OTLP:       &structs.InferenceGatewayOTLPExport{Endpoint: "collector:4317", Insecure: true},
 			},
 			Tracing: &structs.InferenceGatewayTracing{
 				Enabled:     true,
@@ -172,6 +171,33 @@ func TestInferenceGateway_MetricsEnabledThreeState(t *testing.T) {
 			InferenceGatewayToStructs(&pb, &got)
 
 			require.Equal(t, want, got.Observability.Metrics.Enabled)
+		})
+	}
+}
+
+// TestInferenceGateway_PrometheusPortThreeState is the Port counterpart of the
+// Enabled test above. Port = 0 turns the scrape endpoint off and an unset port keeps
+// the default, so a bare int32 - which cannot tell the two apart - would silently
+// re-enable the endpoint on every server-managed proxy that asked for it off.
+func TestInferenceGateway_PrometheusPortThreeState(t *testing.T) {
+	for name, want := range map[string]*int{
+		"unset stays unset":      nil,
+		"explicit 0 survives":    intPtr(0),
+		"explicit port survives": intPtr(9200),
+	} {
+		t.Run(name, func(t *testing.T) {
+			src := testInferenceGatewayEntry()
+			src.Observability.Metrics.Prometheus.Port = want
+
+			// Through bytes, not just the struct conversion: the pbsubscribe stream
+			// is where a bare int32 would lose the distinction.
+			b, err := proto.Marshal(ConfigEntryFromStructs(src))
+			require.NoError(t, err)
+			var pb ConfigEntry
+			require.NoError(t, proto.Unmarshal(b, &pb))
+
+			got := ConfigEntryToStructs(&pb).(*structs.InferenceGatewayConfigEntry)
+			require.Equal(t, want, got.Observability.Metrics.Prometheus.Port)
 		})
 	}
 }

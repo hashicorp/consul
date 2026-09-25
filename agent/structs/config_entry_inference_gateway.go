@@ -166,7 +166,8 @@ type InferenceGatewayPII struct {
 	// Mask parameterizes the "mask" action.
 	Mask *InferenceGatewayPIIMask `json:",omitempty"`
 
-	// Detectors are the PII rules to run.
+	// Detectors are the PII rules to run. At least one is required whenever the PII
+	// block is present.
 	Detectors []InferenceGatewayPIIDetector `json:",omitempty"`
 }
 
@@ -236,6 +237,11 @@ type InferenceGatewayObservability struct {
 // InferenceGatewayMetrics configures OTel metrics export. Prometheus pull is the
 // default so a collector is never a dependency; OTLP push is added when an endpoint
 // is set.
+//
+// The scrape path, the semantic-conventions version and promoted labels are
+// deliberately absent: the processor implements exactly one path and one version
+// and no label promotion at all, so a field for any of them could only ever be set
+// wrong. Each comes back when there is a real choice behind it.
 type InferenceGatewayMetrics struct {
 	// Enabled is a pointer so an unset field is distinguishable from an explicit
 	// false: metrics default to ON, and a block written only to set a port must not
@@ -243,29 +249,16 @@ type InferenceGatewayMetrics struct {
 	Enabled    *bool                              `json:",omitempty"`
 	Prometheus *InferenceGatewayMetricsPrometheus `json:",omitempty"`
 	OTLP       *InferenceGatewayOTLPExport        `json:",omitempty"`
-
-	// SemconvSchema pins the OpenTelemetry semantic-conventions version the emitted
-	// gen_ai.* names are drawn from. That vocabulary is pre-1.0, so pinning keeps an
-	// upstream rename a config flip rather than a dashboard break. Only the version
-	// the processor implements is accepted - see inferenceImplementedSemconvSchema.
-	SemconvSchema string `json:",omitempty" alias:"semconv_schema"`
-
-	// CustomLabels promotes an allowlisted, low-cardinality set of tenant metadata
-	// keys onto the gateway_* instruments. This is the only sanctioned path for extra
-	// labels; anything unbounded here is a cardinality incident.
-	CustomLabels []string `json:",omitempty" alias:"custom_labels"`
 }
 
-// InferenceGatewayMetricsPrometheus configures the processor's scrape endpoint.
-// Omitting the block keeps the default port; setting Port = 0 turns the scrape
-// endpoint off while leaving any OTLP push running.
+// InferenceGatewayMetricsPrometheus configures the processor's scrape endpoint,
+// which is always served on /metrics.
 type InferenceGatewayMetricsPrometheus struct {
-	Port int `json:",omitempty"`
-
-	// Path is retained for wire compatibility but is not configurable: the processor
-	// serves the scrape endpoint on a fixed path, so the only accepted values are
-	// empty and that path. See inferenceFixedPrometheusPath.
-	Path string `json:",omitempty"`
+	// Port is a pointer because 0 is meaningful: nil keeps the processor's default
+	// port, 0 turns the scrape endpoint off while leaving any OTLP push running, and
+	// 1-65535 moves it. A plain int with omitempty drops 0 on the way to the
+	// processor, which then reads it as "use the default".
+	Port *int `json:",omitempty"`
 }
 
 // InferenceGatewayTracing configures OTel tracing. Off by default; when enabled it

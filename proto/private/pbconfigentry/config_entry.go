@@ -447,6 +447,25 @@ func boolValueFromPointerToBool(b *bool) *wrapperspb.BoolValue {
 	return wrapperspb.Bool(*b)
 }
 
+// pointerToIntFromInt32Value and int32ValueFromPointerToInt are the int
+// counterparts of the bool helpers above, for the same reason:
+// InferenceGatewayMetricsPrometheus.Port uses 0 to disable the scrape endpoint and
+// nil to keep the default, so nil must not collapse to 0.
+func pointerToIntFromInt32Value(v *wrapperspb.Int32Value) *int {
+	if v == nil {
+		return nil
+	}
+	i := int(v.GetValue())
+	return &i
+}
+
+func int32ValueFromPointerToInt(i *int) *wrapperspb.Int32Value {
+	if i == nil {
+		return nil
+	}
+	return wrapperspb.Int32(int32(*i))
+}
+
 func pointerToUint32FromUint32(ui32 uint32) *uint32 {
 	i := ui32
 	return &i

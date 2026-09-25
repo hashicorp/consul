@@ -1633,8 +1633,8 @@ message InferenceGatewayMetrics {
   google.protobuf.BoolValue Enabled = 1;
   InferenceGatewayMetricsPrometheus Prometheus = 2;
   InferenceGatewayOTLPExport OTLP = 3;
-  string SemconvSchema = 4;
-  repeated string CustomLabels = 5;
+  reserved 4, 5;
+  reserved "SemconvSchema", "CustomLabels";
 }
 
 // mog annotation:
@@ -1643,9 +1643,14 @@ message InferenceGatewayMetrics {
 // output=config_entry.gen.go
 // name=Structs
 message InferenceGatewayMetricsPrometheus {
-  // mog: func-to=int func-from=int32
-  int32 Port = 1;
-  string Path = 2;
+  // Port is a wrapper for the same reason Metrics.Enabled is: 0 disables the scrape
+  // endpoint and unset keeps the default port, and a bare int32 cannot tell them
+  // apart.
+  //
+  // mog: target=Port func-to=pointerToIntFromInt32Value func-from=int32ValueFromPointerToInt
+  google.protobuf.Int32Value Port = 1;
+  reserved 2;
+  reserved "Path";
 }
 
 // mog annotation:

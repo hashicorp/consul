@@ -82,8 +82,8 @@ func TestInferenceGatewayConfigEntry_CE_DecodeAndJSONRoundTrip(t *testing.T) {
 		},
 		"Observability": map[string]interface{}{
 			"Metrics": map[string]interface{}{
-				"Enabled":      true,
-				"CustomLabels": []interface{}{"team"},
+				"Enabled":    true,
+				"Prometheus": map[string]interface{}{"Port": 0},
 			},
 			"Tracing": map[string]interface{}{
 				"Enabled":     true,
@@ -107,6 +107,10 @@ func TestInferenceGatewayConfigEntry_CE_DecodeAndJSONRoundTrip(t *testing.T) {
 	require.Equal(t, []InferenceGatewayPIIDetector{{Name: "ssn", Action: InferenceGatewayPIIActionBlock}}, e.PII.Detectors)
 	require.NotNil(t, e.Observability.Metrics.Enabled)
 	require.True(t, *e.Observability.Metrics.Enabled)
+	// Port is a pointer so an explicit 0 ("scrape endpoint off") survives decode
+	// instead of collapsing into "unset, use the default".
+	require.NotNil(t, e.Observability.Metrics.Prometheus.Port)
+	require.Equal(t, 0, *e.Observability.Metrics.Prometheus.Port)
 	require.Equal(t, "collector:4317", e.Observability.Tracing.OTLP.Endpoint)
 
 	encoded, err := json.Marshal(e)
