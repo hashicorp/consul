@@ -45,6 +45,61 @@ func testAPIGatewayHandler(t *testing.T, leaf LeafCertificate) *handlerAPIGatewa
 	}
 }
 
+// TestGenerateAPIGatewayDNSSANs_NoTLS verifies that generateAPIGatewayDNSSANs
+// returns nil when the global TLS flag is not set. The leaf cert is still
+// issued for outbound mTLS, but with no DNS SANs — which prevents unnecessary
+// XFCC header fields that would otherwise break RBAC intentions on the
+// destination service.
+func TestGenerateAPIGatewayDNSSANs_NoTLS(t *testing.T) {
+	snap := TestConfigSnapshotAPIGateway(t, "default", nil,
+		func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+			// entry.TLS.Enabled is false by default — no global TLS flag set.
+			entry.Listeners = []structs.APIGatewayListener{{
+				Name:     "http-listener",
+				Protocol: structs.ListenerProtocolHTTP,
+				Port:     8080,
+			}}
+			bound.Listeners = []structs.BoundAPIGatewayListener{{
+				Name:     "http-listener",
+				Protocol: structs.ListenerProtocolHTTP,
+				Port:     8080,
+			}}
+		}, nil, nil, nil)
+
+	h := testAPIGatewayHandler(t, nil)
+	sans := h.generateAPIGatewayDNSSANs(snap)
+
+	require.Nil(t, sans, "no DNS SANs should be generated when APIGatewayConfigEntry.TLS.Enabled is false")
+}
+
+// TestGenerateAPIGatewayDNSSANs_GlobalTLSEnabled verifies that DNS SANs are
+// injected when APIGatewayConfigEntry.TLS.Enabled is true. Listener-level
+// certificate references are irrelevant to this decision — they only control
+// which custom cert is presented, not whether TLS is active.
+func TestGenerateAPIGatewayDNSSANs_GlobalTLSEnabled(t *testing.T) {
+	snap := TestConfigSnapshotAPIGateway(t, "default", nil,
+		func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+			entry.TLS = structs.GatewayTLSConfig{Enabled: true}
+			entry.Listeners = []structs.APIGatewayListener{{
+				Name:     "https-listener",
+				Protocol: structs.ListenerProtocolHTTP,
+				Port:     8443,
+			}}
+			bound.Listeners = []structs.BoundAPIGatewayListener{{
+				Name:     "https-listener",
+				Protocol: structs.ListenerProtocolHTTP,
+				Port:     8443,
+			}}
+		}, nil, nil, nil)
+
+	h := testAPIGatewayHandler(t, nil)
+	sans := h.generateAPIGatewayDNSSANs(snap)
+
+	require.NotNil(t, sans, "DNS SANs must be generated when APIGatewayConfigEntry.TLS.Enabled is true")
+	require.Contains(t, sans, "*.api-gateway.consul")
+	require.Contains(t, sans, "*.api-gateway.dc1.consul")
+}
+
 // TestGenerateAPIGatewayDNSSANs verifies the leaf-cert DNS SANs include the
 // "*.api-gateway.<domain>" wildcards plus explicit listener and route
 // hostnames, and that the result is sorted for deterministic cert requests.
@@ -60,10 +115,11 @@ func TestGenerateAPIGatewayDNSSANs(t *testing.T) {
 
 	snap := TestConfigSnapshotAPIGateway(t, "default", nil,
 		func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+			entry.TLS = structs.GatewayTLSConfig{Enabled: true}
 			entry.Listeners = []structs.APIGatewayListener{{
-				Name:     "http-listener",
+				Name:     "https-listener",
 				Protocol: structs.ListenerProtocolHTTP,
-				Port:     8080,
+				Port:     8443,
 				Hostname: "listener.example.com",
 			}}
 			// BoundAPIGatewayListener carries a copy of the api-gateway listener
@@ -71,9 +127,9 @@ func TestGenerateAPIGatewayDNSSANs(t *testing.T) {
 			// the test must mirror that copy for generateAPIGatewayDNSSANs to see
 			// the listener hostname.
 			bound.Listeners = []structs.BoundAPIGatewayListener{{
-				Name:     "http-listener",
+				Name:     "https-listener",
 				Protocol: structs.ListenerProtocolHTTP,
-				Port:     8080,
+				Port:     8443,
 				Hostname: "listener.example.com",
 				Routes:   []structs.ResourceReference{ref},
 			}}
@@ -96,12 +152,17 @@ func TestGenerateAPIGatewayDNSSANs(t *testing.T) {
 func TestGenerateAPIGatewayDNSSANs_TrimsTrailingDot(t *testing.T) {
 	snap := TestConfigSnapshotAPIGateway(t, "default", nil,
 		func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+			entry.TLS = structs.GatewayTLSConfig{Enabled: true}
 			entry.Listeners = []structs.APIGatewayListener{{
-				Name:     "http-listener",
+				Name:     "https-listener",
 				Protocol: structs.ListenerProtocolHTTP,
-				Port:     8080,
+				Port:     8443,
 			}}
-			bound.Listeners = []structs.BoundAPIGatewayListener{{Name: "http-listener"}}
+			bound.Listeners = []structs.BoundAPIGatewayListener{{
+				Name:     "https-listener",
+				Protocol: structs.ListenerProtocolHTTP,
+				Port:     8443,
+			}}
 		}, nil, nil, nil)
 
 	h := &handlerAPIGateway{
@@ -134,6 +195,11 @@ func TestWatchIngressLeafCert_RewatchOnSANChange(t *testing.T) {
 	h.service = "api-gateway"
 
 	snap := newTestAPIGatewaySnapshot()
+	// Enable global TLS so apiGatewayTLSServingEnabled returns true and SANs
+	// are generated. Without this the guard returns nil on every call, which
+	// means every call looks like a SAN change and the no-rewatch assertion
+	// would never be exercised correctly.
+	snap.APIGateway.TLSConfig.Enabled = true
 
 	// First watch: establishes with the base (wildcard-only) SANs.
 	require.NoError(t, h.watchIngressLeafCert(context.Background(), snap))
@@ -158,6 +224,22 @@ func TestWatchIngressLeafCert_RewatchOnSANChange(t *testing.T) {
 	require.NoError(t, h.watchIngressLeafCert(context.Background(), snap))
 	require.Equal(t, 2, leaf.count, "a new route hostname SAN must re-establish the leaf watch")
 	require.Contains(t, leaf.lastReq.DNSSAN, "web.example.com")
+}
+
+// TestWatchIngressLeafCert_NoTLSNoSANs verifies that when no listener terminates
+// TLS the leaf cert watch is still established (for outbound mTLS) but with a
+// nil/empty DNSSAN slice — no wildcard SANs are included.
+func TestWatchIngressLeafCert_NoTLSNoSANs(t *testing.T) {
+	leaf := &countingLeafSource{}
+	h := testAPIGatewayHandler(t, leaf)
+	h.service = "api-gateway"
+
+	snap := newTestAPIGatewaySnapshot()
+	// No TLS listeners — BoundListeners is empty from newTestAPIGatewaySnapshot.
+
+	require.NoError(t, h.watchIngressLeafCert(context.Background(), snap))
+	require.Equal(t, 1, leaf.count, "leaf cert watch must still be established without TLS")
+	require.Empty(t, leaf.lastReq.DNSSAN, "no DNS SANs should be requested when no listener terminates TLS")
 }
 
 // newTestAPIGatewaySnapshot builds a minimal API gateway snapshot with the
