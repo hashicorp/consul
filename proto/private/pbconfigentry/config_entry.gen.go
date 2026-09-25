@@ -1094,6 +1094,276 @@ func HashPolicyFromStructs(t *structs.HashPolicy, s *HashPolicy) {
 	s.SourceIP = t.SourceIP
 	s.Terminal = t.Terminal
 }
+func InferenceGatewayToStructs(s *InferenceGateway, t *structs.InferenceGatewayConfigEntry) {
+	if s == nil {
+		return
+	}
+	if s.Processor != nil {
+		InferenceGatewayProcessorToStructs(s.Processor, &t.Processor)
+	}
+	if s.Failover != nil {
+		var x structs.InferenceGatewayFailover
+		InferenceGatewayFailoverToStructs(s.Failover, &x)
+		t.Failover = &x
+	}
+	t.RequestTimeout = s.RequestTimeout
+	if s.PII != nil {
+		var x structs.InferenceGatewayPII
+		InferenceGatewayPIIToStructs(s.PII, &x)
+		t.PII = &x
+	}
+	if s.Observability != nil {
+		var x structs.InferenceGatewayObservability
+		InferenceGatewayObservabilityToStructs(s.Observability, &x)
+		t.Observability = &x
+	}
+	t.Meta = s.Meta
+	t.Hash = s.Hash
+}
+func InferenceGatewayFromStructs(t *structs.InferenceGatewayConfigEntry, s *InferenceGateway) {
+	if s == nil {
+		return
+	}
+	{
+		var x InferenceGatewayProcessor
+		InferenceGatewayProcessorFromStructs(&t.Processor, &x)
+		s.Processor = &x
+	}
+	if t.Failover != nil {
+		var x InferenceGatewayFailover
+		InferenceGatewayFailoverFromStructs(t.Failover, &x)
+		s.Failover = &x
+	}
+	s.RequestTimeout = t.RequestTimeout
+	if t.PII != nil {
+		var x InferenceGatewayPII
+		InferenceGatewayPIIFromStructs(t.PII, &x)
+		s.PII = &x
+	}
+	if t.Observability != nil {
+		var x InferenceGatewayObservability
+		InferenceGatewayObservabilityFromStructs(t.Observability, &x)
+		s.Observability = &x
+	}
+	s.Meta = t.Meta
+	s.Hash = t.Hash
+}
+func InferenceGatewayFailoverToStructs(s *InferenceGatewayFailover, t *structs.InferenceGatewayFailover) {
+	if s == nil {
+		return
+	}
+	t.RetryOn = s.RetryOn
+	t.MaxTiers = int(s.MaxTiers)
+	t.PerTryTimeout = s.PerTryTimeout
+}
+func InferenceGatewayFailoverFromStructs(t *structs.InferenceGatewayFailover, s *InferenceGatewayFailover) {
+	if s == nil {
+		return
+	}
+	s.RetryOn = t.RetryOn
+	s.MaxTiers = int32(t.MaxTiers)
+	s.PerTryTimeout = t.PerTryTimeout
+}
+func InferenceGatewayMetricsToStructs(s *InferenceGatewayMetrics, t *structs.InferenceGatewayMetrics) {
+	if s == nil {
+		return
+	}
+	t.Enabled = pointerToBoolFromBoolValue(s.Enabled)
+	if s.Prometheus != nil {
+		var x structs.InferenceGatewayMetricsPrometheus
+		InferenceGatewayMetricsPrometheusToStructs(s.Prometheus, &x)
+		t.Prometheus = &x
+	}
+	if s.OTLP != nil {
+		var x structs.InferenceGatewayOTLPExport
+		InferenceGatewayOTLPExportToStructs(s.OTLP, &x)
+		t.OTLP = &x
+	}
+}
+func InferenceGatewayMetricsFromStructs(t *structs.InferenceGatewayMetrics, s *InferenceGatewayMetrics) {
+	if s == nil {
+		return
+	}
+	s.Enabled = boolValueFromPointerToBool(t.Enabled)
+	if t.Prometheus != nil {
+		var x InferenceGatewayMetricsPrometheus
+		InferenceGatewayMetricsPrometheusFromStructs(t.Prometheus, &x)
+		s.Prometheus = &x
+	}
+	if t.OTLP != nil {
+		var x InferenceGatewayOTLPExport
+		InferenceGatewayOTLPExportFromStructs(t.OTLP, &x)
+		s.OTLP = &x
+	}
+}
+func InferenceGatewayMetricsPrometheusToStructs(s *InferenceGatewayMetricsPrometheus, t *structs.InferenceGatewayMetricsPrometheus) {
+	if s == nil {
+		return
+	}
+	t.Port = pointerToIntFromInt32Value(s.Port)
+}
+func InferenceGatewayMetricsPrometheusFromStructs(t *structs.InferenceGatewayMetricsPrometheus, s *InferenceGatewayMetricsPrometheus) {
+	if s == nil {
+		return
+	}
+	s.Port = int32ValueFromPointerToInt(t.Port)
+}
+func InferenceGatewayOTLPExportToStructs(s *InferenceGatewayOTLPExport, t *structs.InferenceGatewayOTLPExport) {
+	if s == nil {
+		return
+	}
+	t.Endpoint = s.Endpoint
+	t.Insecure = s.Insecure
+}
+func InferenceGatewayOTLPExportFromStructs(t *structs.InferenceGatewayOTLPExport, s *InferenceGatewayOTLPExport) {
+	if s == nil {
+		return
+	}
+	s.Endpoint = t.Endpoint
+	s.Insecure = t.Insecure
+}
+func InferenceGatewayObservabilityToStructs(s *InferenceGatewayObservability, t *structs.InferenceGatewayObservability) {
+	if s == nil {
+		return
+	}
+	if s.Metrics != nil {
+		var x structs.InferenceGatewayMetrics
+		InferenceGatewayMetricsToStructs(s.Metrics, &x)
+		t.Metrics = &x
+	}
+	if s.Tracing != nil {
+		var x structs.InferenceGatewayTracing
+		InferenceGatewayTracingToStructs(s.Tracing, &x)
+		t.Tracing = &x
+	}
+}
+func InferenceGatewayObservabilityFromStructs(t *structs.InferenceGatewayObservability, s *InferenceGatewayObservability) {
+	if s == nil {
+		return
+	}
+	if t.Metrics != nil {
+		var x InferenceGatewayMetrics
+		InferenceGatewayMetricsFromStructs(t.Metrics, &x)
+		s.Metrics = &x
+	}
+	if t.Tracing != nil {
+		var x InferenceGatewayTracing
+		InferenceGatewayTracingFromStructs(t.Tracing, &x)
+		s.Tracing = &x
+	}
+}
+func InferenceGatewayPIIToStructs(s *InferenceGatewayPII, t *structs.InferenceGatewayPII) {
+	if s == nil {
+		return
+	}
+	t.Scope = inferenceGatewayPIIScopeToStructs(s.Scope)
+	t.DefaultAction = inferenceGatewayPIIActionToStructs(s.DefaultAction)
+	t.StreamHoldbackBytes = int(s.StreamHoldbackBytes)
+	if s.Mask != nil {
+		var x structs.InferenceGatewayPIIMask
+		InferenceGatewayPIIMaskToStructs(s.Mask, &x)
+		t.Mask = &x
+	}
+	{
+		t.Detectors = make([]structs.InferenceGatewayPIIDetector, len(s.Detectors))
+		for i := range s.Detectors {
+			if s.Detectors[i] != nil {
+				InferenceGatewayPIIDetectorToStructs(s.Detectors[i], &t.Detectors[i])
+			}
+		}
+	}
+}
+func InferenceGatewayPIIFromStructs(t *structs.InferenceGatewayPII, s *InferenceGatewayPII) {
+	if s == nil {
+		return
+	}
+	s.Scope = inferenceGatewayPIIScopeFromStructs(t.Scope)
+	s.DefaultAction = inferenceGatewayPIIActionFromStructs(t.DefaultAction)
+	s.StreamHoldbackBytes = int32(t.StreamHoldbackBytes)
+	if t.Mask != nil {
+		var x InferenceGatewayPIIMask
+		InferenceGatewayPIIMaskFromStructs(t.Mask, &x)
+		s.Mask = &x
+	}
+	{
+		s.Detectors = make([]*InferenceGatewayPIIDetector, len(t.Detectors))
+		for i := range t.Detectors {
+			{
+				var x InferenceGatewayPIIDetector
+				InferenceGatewayPIIDetectorFromStructs(&t.Detectors[i], &x)
+				s.Detectors[i] = &x
+			}
+		}
+	}
+}
+func InferenceGatewayPIIDetectorToStructs(s *InferenceGatewayPIIDetector, t *structs.InferenceGatewayPIIDetector) {
+	if s == nil {
+		return
+	}
+	t.Name = s.Name
+	t.Regex = s.Regex
+	t.Action = inferenceGatewayPIIActionToStructs(s.Action)
+}
+func InferenceGatewayPIIDetectorFromStructs(t *structs.InferenceGatewayPIIDetector, s *InferenceGatewayPIIDetector) {
+	if s == nil {
+		return
+	}
+	s.Name = t.Name
+	s.Regex = t.Regex
+	s.Action = inferenceGatewayPIIActionFromStructs(t.Action)
+}
+func InferenceGatewayPIIMaskToStructs(s *InferenceGatewayPIIMask, t *structs.InferenceGatewayPIIMask) {
+	if s == nil {
+		return
+	}
+	t.Char = s.Char
+	t.KeepLast = int(s.KeepLast)
+}
+func InferenceGatewayPIIMaskFromStructs(t *structs.InferenceGatewayPIIMask, s *InferenceGatewayPIIMask) {
+	if s == nil {
+		return
+	}
+	s.Char = t.Char
+	s.KeepLast = int32(t.KeepLast)
+}
+func InferenceGatewayProcessorToStructs(s *InferenceGatewayProcessor, t *structs.InferenceGatewayProcessor) {
+	if s == nil {
+		return
+	}
+	t.FailureMode = s.FailureMode
+	t.BodyModelRouting = s.BodyModelRouting
+}
+func InferenceGatewayProcessorFromStructs(t *structs.InferenceGatewayProcessor, s *InferenceGatewayProcessor) {
+	if s == nil {
+		return
+	}
+	s.FailureMode = t.FailureMode
+	s.BodyModelRouting = t.BodyModelRouting
+}
+func InferenceGatewayTracingToStructs(s *InferenceGatewayTracing, t *structs.InferenceGatewayTracing) {
+	if s == nil {
+		return
+	}
+	t.Enabled = s.Enabled
+	if s.OTLP != nil {
+		var x structs.InferenceGatewayOTLPExport
+		InferenceGatewayOTLPExportToStructs(s.OTLP, &x)
+		t.OTLP = &x
+	}
+	t.SampleRatio = s.SampleRatio
+}
+func InferenceGatewayTracingFromStructs(t *structs.InferenceGatewayTracing, s *InferenceGatewayTracing) {
+	if s == nil {
+		return
+	}
+	s.Enabled = t.Enabled
+	if t.OTLP != nil {
+		var x InferenceGatewayOTLPExport
+		InferenceGatewayOTLPExportFromStructs(t.OTLP, &x)
+		s.OTLP = &x
+	}
+	s.SampleRatio = t.SampleRatio
+}
 func IngressGatewayToStructs(s *IngressGateway, t *structs.IngressGatewayConfigEntry) {
 	if s == nil {
 		return
