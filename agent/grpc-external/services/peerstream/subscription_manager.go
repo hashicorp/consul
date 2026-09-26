@@ -709,7 +709,7 @@ func flattenChecks(
 		for _, chk := range checks {
 			id := chk.CheckID
 			if id == api.NodeMaint || strings.HasPrefix(id, api.ServiceMaintPrefix) {
-				healthStatus = api.HealthMaint
+				healthStatus = api.HealthCritical
 				break // always wins
 			}
 			healthStatus = getMostImportantStatus(healthStatus, chk.Status)
