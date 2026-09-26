@@ -974,3 +974,33 @@ func TestTxnEndpoint_KV_KeyValidation(t *testing.T) {
 		require.Equal(t, "foo/bar", txnResp.Results[0].KV.Key)
 	})
 }
+
+func TestTxnEndpoint_StringCoercion(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	// Construct a raw JSON payload string containing an operational transaction block 
+	// where the token is an unquoted numerical literal.
+	payload := `[{"KV": {"Verb": "set", "Key": "foo/bar", "Value": "dGVzdA=="}, "Token": 999888}]`
+
+	buf := bytes.NewBuffer([]byte(payload))
+	req, err := http.NewRequest("PUT", "/v1/txn", buf)
+	require.NoError(t, err)
+	resp := httptest.NewRecorder()
+	
+	// Invoke the unmarshaling sequence via the local test agent transaction processor
+	obj, err := a.srv.Txn(resp, req)
+	require.NoError(t, err, "expected operation to parse with zero type exceptions")
+	
+	// Though we successfully coerced the numerical literal into a string,
+	// the internal Token is simply processed and doesn't cause a panic.
+	// Since TxnOp is a local alias in txn_endpoint.go, we verify the endpoint processed it.
+	require.NotNil(t, obj)
+	require.Equal(t, 200, resp.Code)
+
+	txnResp, ok := obj.(structs.TxnResponse)
+	require.True(t, ok)
+	require.Len(t, txnResp.Results, 1)
+	require.Equal(t, "foo/bar", txnResp.Results[0].KV.Key)
+}
