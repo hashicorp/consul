@@ -117,37 +117,6 @@ jobs:
           # tput complains if this isn't set to something.
           TERM: ansi
 
-      - name: Authenticate to Vault
-        if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
-        id: vault-auth
-        run: vault-auth
-
-      - name: Fetch Secrets
-        if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
-        id: secrets
-        uses: hashicorp/vault-action@v3
-        with:
-          url: ${{ steps.vault-auth.outputs.addr }}
-          caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
-          token: ${{ steps.vault-auth.outputs.token }}
-          secrets: |
-              kv/data/github/${{ github.repository }}/datadog apikey | DATADOG_API_KEY;
-
-      - name: upload test results
-        if: ${{ !cancelled() }}
-        continue-on-error: true
-        env:
-          DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
-          DD_ENV: ci
-        run: |
-          # TODO: we should probably version this and check a shasum or something? or run a container?
-          which datadog-ci > /dev/null 2>&1 || {
-            curl -L --fail "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci"
-            chmod +x /usr/local/bin/datadog-ci 
-          }
-          datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
-
-
   success:
     needs: 
     - setup
