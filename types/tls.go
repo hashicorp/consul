@@ -19,7 +19,7 @@ const (
 	// Explicit unspecified zero-value to avoid overwriting parent defaults
 	TLSVersionUnspecified TLSVersion = ""
 
-	// Explictly allow implementation to select TLS version
+	// Explicitly allow implementation to select TLS version
 	// May be useful to supercede defaults specified at a higher layer
 	TLSVersionAuto TLSVersion = "TLS_AUTO"
 
