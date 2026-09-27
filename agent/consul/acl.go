@@ -43,7 +43,8 @@ var ACLSummaries = []prometheus.SummaryDefinition{
 	},
 }
 
-// These must be kept in sync with the constants in command/agent/acl.go.
+// anonymousToken must be kept in sync with the anonymous token handling in
+// agent/structs/acl.go.
 const (
 	// anonymousToken is the token SecretID we re-write to if there is no token ID
 	// provided.
