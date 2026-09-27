@@ -62,6 +62,12 @@ github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX
 github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+github.com/hashicorp/consul/api v1.35.0-rc1 h1:0ct9UEMcPTCHYMiqAcZ8qrV0L+T2qM98ciasSlfKSsg=
+github.com/hashicorp/consul/api v1.35.0-rc1/go.mod h1:AK0k54eYTUMPuXjjrHFQfzX47yozYqvXr5iq0RKoW14=
+github.com/hashicorp/consul/envoyextensions v0.11.0-rc1 h1:4ZRXri/Zb05+sjGdeDTSaqOEsTysOrh7xEtWXSS2Lek=
+github.com/hashicorp/consul/envoyextensions v0.11.0-rc1/go.mod h1:IvyYTQQE3E+Mj7WjBsaq8BV+1RHcO6LUtyoShaLAuIg=
+github.com/hashicorp/consul/sdk v0.19.0-rc1 h1:u0SoBnG4DUTsyYqROs++S/2cB0lSNlQ4+iTK7bIcwAQ=
+github.com/hashicorp/consul/sdk v0.19.0-rc1/go.mod h1:2V4Z2YguOFZelOtkQs3UnIrkCXDQ6iL3P4B6EtSqoQY=
 github.com/hashicorp/errwrap v1.0.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
 github.com/hashicorp/errwrap v1.1.0 h1:OxrOeh75EUXMY8TBjag2fzXGZ40LB6IKw45YeGUDY2I=
 github.com/hashicorp/errwrap v1.1.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
