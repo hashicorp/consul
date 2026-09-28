@@ -115,6 +115,9 @@ enum Topic {
 
   // GlobalRateLimit topic contains events for changes to global rate limits.
   GlobalRateLimit = 19;
+
+  // InferenceGateway topic contains events for changes to inference-gateway config entries.
+  InferenceGateway = 20;
 }
 
 message NamedSubject {

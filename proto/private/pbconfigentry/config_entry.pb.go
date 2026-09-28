@@ -16,6 +16,7 @@ import (
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
+	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -46,6 +47,8 @@ const (
 	Kind_KindJWTProvider           Kind = 12
 	Kind_KindExportedServices      Kind = 13
 	Kind_KindFileSystemCertificate Kind = 14
+	Kind_KindInferenceGateway      Kind = 15
+	Kind_KindTerminatingGateway    Kind = 16
 )
 
 // Enum value maps for Kind.
@@ -66,6 +69,8 @@ var (
 		12: "KindJWTProvider",
 		13: "KindExportedServices",
 		14: "KindFileSystemCertificate",
+		15: "KindInferenceGateway",
+		16: "KindTerminatingGateway",
 	}
 	Kind_value = map[string]int32{
 		"KindUnknown":               0,
@@ -83,6 +88,8 @@ var (
 		"KindJWTProvider":           12,
 		"KindExportedServices":      13,
 		"KindFileSystemCertificate": 14,
+		"KindInferenceGateway":      15,
+		"KindTerminatingGateway":    16,
 	}
 )
 
@@ -731,6 +738,115 @@ func (HTTPQueryMatchType) EnumDescriptor() ([]byte, []int) {
 	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{12}
 }
 
+// The zero value of each enum is "unset": the struct field is empty and the
+// processor applies its own default, so it must not be mistaken for a real choice.
+type InferenceGatewayPIIScope int32
+
+const (
+	InferenceGatewayPIIScope_InferenceGatewayPIIScopeUnset    InferenceGatewayPIIScope = 0
+	InferenceGatewayPIIScope_InferenceGatewayPIIScopeRequest  InferenceGatewayPIIScope = 1
+	InferenceGatewayPIIScope_InferenceGatewayPIIScopeResponse InferenceGatewayPIIScope = 2
+	InferenceGatewayPIIScope_InferenceGatewayPIIScopeBoth     InferenceGatewayPIIScope = 3
+)
+
+// Enum value maps for InferenceGatewayPIIScope.
+var (
+	InferenceGatewayPIIScope_name = map[int32]string{
+		0: "InferenceGatewayPIIScopeUnset",
+		1: "InferenceGatewayPIIScopeRequest",
+		2: "InferenceGatewayPIIScopeResponse",
+		3: "InferenceGatewayPIIScopeBoth",
+	}
+	InferenceGatewayPIIScope_value = map[string]int32{
+		"InferenceGatewayPIIScopeUnset":    0,
+		"InferenceGatewayPIIScopeRequest":  1,
+		"InferenceGatewayPIIScopeResponse": 2,
+		"InferenceGatewayPIIScopeBoth":     3,
+	}
+)
+
+func (x InferenceGatewayPIIScope) Enum() *InferenceGatewayPIIScope {
+	p := new(InferenceGatewayPIIScope)
+	*p = x
+	return p
+}
+
+func (x InferenceGatewayPIIScope) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (InferenceGatewayPIIScope) Descriptor() protoreflect.EnumDescriptor {
+	return file_private_pbconfigentry_config_entry_proto_enumTypes[13].Descriptor()
+}
+
+func (InferenceGatewayPIIScope) Type() protoreflect.EnumType {
+	return &file_private_pbconfigentry_config_entry_proto_enumTypes[13]
+}
+
+func (x InferenceGatewayPIIScope) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use InferenceGatewayPIIScope.Descriptor instead.
+func (InferenceGatewayPIIScope) EnumDescriptor() ([]byte, []int) {
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{13}
+}
+
+type InferenceGatewayPIIAction int32
+
+const (
+	InferenceGatewayPIIAction_InferenceGatewayPIIActionUnset       InferenceGatewayPIIAction = 0
+	InferenceGatewayPIIAction_InferenceGatewayPIIActionPlaceholder InferenceGatewayPIIAction = 1
+	InferenceGatewayPIIAction_InferenceGatewayPIIActionMask        InferenceGatewayPIIAction = 2
+	InferenceGatewayPIIAction_InferenceGatewayPIIActionBlock       InferenceGatewayPIIAction = 3
+	InferenceGatewayPIIAction_InferenceGatewayPIIActionOff         InferenceGatewayPIIAction = 4
+)
+
+// Enum value maps for InferenceGatewayPIIAction.
+var (
+	InferenceGatewayPIIAction_name = map[int32]string{
+		0: "InferenceGatewayPIIActionUnset",
+		1: "InferenceGatewayPIIActionPlaceholder",
+		2: "InferenceGatewayPIIActionMask",
+		3: "InferenceGatewayPIIActionBlock",
+		4: "InferenceGatewayPIIActionOff",
+	}
+	InferenceGatewayPIIAction_value = map[string]int32{
+		"InferenceGatewayPIIActionUnset":       0,
+		"InferenceGatewayPIIActionPlaceholder": 1,
+		"InferenceGatewayPIIActionMask":        2,
+		"InferenceGatewayPIIActionBlock":       3,
+		"InferenceGatewayPIIActionOff":         4,
+	}
+)
+
+func (x InferenceGatewayPIIAction) Enum() *InferenceGatewayPIIAction {
+	p := new(InferenceGatewayPIIAction)
+	*p = x
+	return p
+}
+
+func (x InferenceGatewayPIIAction) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (InferenceGatewayPIIAction) Descriptor() protoreflect.EnumDescriptor {
+	return file_private_pbconfigentry_config_entry_proto_enumTypes[14].Descriptor()
+}
+
+func (InferenceGatewayPIIAction) Type() protoreflect.EnumType {
+	return &file_private_pbconfigentry_config_entry_proto_enumTypes[14]
+}
+
+func (x InferenceGatewayPIIAction) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use InferenceGatewayPIIAction.Descriptor instead.
+func (InferenceGatewayPIIAction) EnumDescriptor() ([]byte, []int) {
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{14}
+}
+
 type GetResolvedExportedServicesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Partition     string                 `protobuf:"bytes,1,opt,name=Partition,proto3" json:"Partition,omitempty"`
@@ -1109,6 +1225,8 @@ type ConfigEntry struct {
 	//	*ConfigEntry_JWTProvider
 	//	*ConfigEntry_ExportedServices
 	//	*ConfigEntry_FileSystemCertificate
+	//	*ConfigEntry_InferenceGateway
+	//	*ConfigEntry_TerminatingGateway
 	Entry         isConfigEntry_Entry `protobuf_oneof:"Entry"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1305,6 +1423,24 @@ func (x *ConfigEntry) GetFileSystemCertificate() *FileSystemCertificate {
 	return nil
 }
 
+func (x *ConfigEntry) GetInferenceGateway() *InferenceGateway {
+	if x != nil {
+		if x, ok := x.Entry.(*ConfigEntry_InferenceGateway); ok {
+			return x.InferenceGateway
+		}
+	}
+	return nil
+}
+
+func (x *ConfigEntry) GetTerminatingGateway() *TerminatingGateway {
+	if x != nil {
+		if x, ok := x.Entry.(*ConfigEntry_TerminatingGateway); ok {
+			return x.TerminatingGateway
+		}
+	}
+	return nil
+}
+
 type isConfigEntry_Entry interface {
 	isConfigEntry_Entry()
 }
@@ -1365,6 +1501,14 @@ type ConfigEntry_FileSystemCertificate struct {
 	FileSystemCertificate *FileSystemCertificate `protobuf:"bytes,18,opt,name=FileSystemCertificate,proto3,oneof"`
 }
 
+type ConfigEntry_InferenceGateway struct {
+	InferenceGateway *InferenceGateway `protobuf:"bytes,19,opt,name=InferenceGateway,proto3,oneof"`
+}
+
+type ConfigEntry_TerminatingGateway struct {
+	TerminatingGateway *TerminatingGateway `protobuf:"bytes,20,opt,name=TerminatingGateway,proto3,oneof"`
+}
+
 func (*ConfigEntry_MeshConfig) isConfigEntry_Entry() {}
 
 func (*ConfigEntry_ServiceResolver) isConfigEntry_Entry() {}
@@ -1392,6 +1536,10 @@ func (*ConfigEntry_JWTProvider) isConfigEntry_Entry() {}
 func (*ConfigEntry_ExportedServices) isConfigEntry_Entry() {}
 
 func (*ConfigEntry_FileSystemCertificate) isConfigEntry_Entry() {}
+
+func (*ConfigEntry_InferenceGateway) isConfigEntry_Entry() {}
+
+func (*ConfigEntry_TerminatingGateway) isConfigEntry_Entry() {}
 
 // mog annotation:
 //
@@ -3309,6 +3457,300 @@ func (x *IngressService) GetPassiveHealthCheck() *PassiveHealthCheck {
 
 // mog annotation:
 //
+// target=github.com/hashicorp/consul/agent/structs.TerminatingGatewayConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+type TerminatingGateway struct {
+	state               protoimpl.MessageState      `protogen:"open.v1"`
+	Services            []*LinkedService            `protobuf:"bytes,1,rep,name=Services,proto3" json:"Services,omitempty"`
+	CredentialInjection *GatewayCredentialInjection `protobuf:"bytes,2,opt,name=CredentialInjection,proto3" json:"CredentialInjection,omitempty"`
+	Meta                map[string]string           `protobuf:"bytes,3,rep,name=Meta,proto3" json:"Meta,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Hash                uint64                      `protobuf:"varint,4,opt,name=Hash,proto3" json:"Hash,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *TerminatingGateway) Reset() {
+	*x = TerminatingGateway{}
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TerminatingGateway) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TerminatingGateway) ProtoMessage() {}
+
+func (x *TerminatingGateway) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TerminatingGateway.ProtoReflect.Descriptor instead.
+func (*TerminatingGateway) Descriptor() ([]byte, []int) {
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *TerminatingGateway) GetServices() []*LinkedService {
+	if x != nil {
+		return x.Services
+	}
+	return nil
+}
+
+func (x *TerminatingGateway) GetCredentialInjection() *GatewayCredentialInjection {
+	if x != nil {
+		return x.CredentialInjection
+	}
+	return nil
+}
+
+func (x *TerminatingGateway) GetMeta() map[string]string {
+	if x != nil {
+		return x.Meta
+	}
+	return nil
+}
+
+func (x *TerminatingGateway) GetHash() uint64 {
+	if x != nil {
+		return x.Hash
+	}
+	return 0
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.LinkedService
+// output=config_entry.gen.go
+// name=Structs
+type LinkedService struct {
+	state                  protoimpl.MessageState `protogen:"open.v1"`
+	Name                   string                 `protobuf:"bytes,1,opt,name=Name,proto3" json:"Name,omitempty"`
+	CAFile                 string                 `protobuf:"bytes,2,opt,name=CAFile,proto3" json:"CAFile,omitempty"`
+	CertFile               string                 `protobuf:"bytes,3,opt,name=CertFile,proto3" json:"CertFile,omitempty"`
+	KeyFile                string                 `protobuf:"bytes,4,opt,name=KeyFile,proto3" json:"KeyFile,omitempty"`
+	SNI                    string                 `protobuf:"bytes,5,opt,name=SNI,proto3" json:"SNI,omitempty"`
+	DisableAutoHostRewrite bool                   `protobuf:"varint,6,opt,name=DisableAutoHostRewrite,proto3" json:"DisableAutoHostRewrite,omitempty"`
+	// mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
+	EnterpriseMeta *pbcommon.EnterpriseMeta  `protobuf:"bytes,7,opt,name=EnterpriseMeta,proto3" json:"EnterpriseMeta,omitempty"`
+	Credential     *GatewayServiceCredential `protobuf:"bytes,8,opt,name=Credential,proto3" json:"Credential,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *LinkedService) Reset() {
+	*x = LinkedService{}
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LinkedService) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LinkedService) ProtoMessage() {}
+
+func (x *LinkedService) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LinkedService.ProtoReflect.Descriptor instead.
+func (*LinkedService) Descriptor() ([]byte, []int) {
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *LinkedService) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *LinkedService) GetCAFile() string {
+	if x != nil {
+		return x.CAFile
+	}
+	return ""
+}
+
+func (x *LinkedService) GetCertFile() string {
+	if x != nil {
+		return x.CertFile
+	}
+	return ""
+}
+
+func (x *LinkedService) GetKeyFile() string {
+	if x != nil {
+		return x.KeyFile
+	}
+	return ""
+}
+
+func (x *LinkedService) GetSNI() string {
+	if x != nil {
+		return x.SNI
+	}
+	return ""
+}
+
+func (x *LinkedService) GetDisableAutoHostRewrite() bool {
+	if x != nil {
+		return x.DisableAutoHostRewrite
+	}
+	return false
+}
+
+func (x *LinkedService) GetEnterpriseMeta() *pbcommon.EnterpriseMeta {
+	if x != nil {
+		return x.EnterpriseMeta
+	}
+	return nil
+}
+
+func (x *LinkedService) GetCredential() *GatewayServiceCredential {
+	if x != nil {
+		return x.Credential
+	}
+	return nil
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.GatewayCredentialInjection
+// output=config_entry.gen.go
+// name=Structs
+type GatewayCredentialInjection struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	UDSPath        string                 `protobuf:"bytes,1,opt,name=UDSPath,proto3" json:"UDSPath,omitempty"`
+	MessageTimeout string                 `protobuf:"bytes,2,opt,name=MessageTimeout,proto3" json:"MessageTimeout,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *GatewayCredentialInjection) Reset() {
+	*x = GatewayCredentialInjection{}
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GatewayCredentialInjection) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GatewayCredentialInjection) ProtoMessage() {}
+
+func (x *GatewayCredentialInjection) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GatewayCredentialInjection.ProtoReflect.Descriptor instead.
+func (*GatewayCredentialInjection) Descriptor() ([]byte, []int) {
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{36}
+}
+
+func (x *GatewayCredentialInjection) GetUDSPath() string {
+	if x != nil {
+		return x.UDSPath
+	}
+	return ""
+}
+
+func (x *GatewayCredentialInjection) GetMessageTimeout() string {
+	if x != nil {
+		return x.MessageTimeout
+	}
+	return ""
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.GatewayServiceCredential
+// output=config_entry.gen.go
+// name=Structs
+type GatewayServiceCredential struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Mode          string                 `protobuf:"bytes,1,opt,name=Mode,proto3" json:"Mode,omitempty"`
+	BindingID     string                 `protobuf:"bytes,2,opt,name=BindingID,proto3" json:"BindingID,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GatewayServiceCredential) Reset() {
+	*x = GatewayServiceCredential{}
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GatewayServiceCredential) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GatewayServiceCredential) ProtoMessage() {}
+
+func (x *GatewayServiceCredential) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GatewayServiceCredential.ProtoReflect.Descriptor instead.
+func (*GatewayServiceCredential) Descriptor() ([]byte, []int) {
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *GatewayServiceCredential) GetMode() string {
+	if x != nil {
+		return x.Mode
+	}
+	return ""
+}
+
+func (x *GatewayServiceCredential) GetBindingID() string {
+	if x != nil {
+		return x.BindingID
+	}
+	return ""
+}
+
+// mog annotation:
+//
 // target=github.com/hashicorp/consul/agent/structs.GatewayServiceTLSConfig
 // output=config_entry.gen.go
 // name=Structs
@@ -3321,7 +3763,7 @@ type GatewayServiceTLSConfig struct {
 
 func (x *GatewayServiceTLSConfig) Reset() {
 	*x = GatewayServiceTLSConfig{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[34]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3333,7 +3775,7 @@ func (x *GatewayServiceTLSConfig) String() string {
 func (*GatewayServiceTLSConfig) ProtoMessage() {}
 
 func (x *GatewayServiceTLSConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[34]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3346,7 +3788,7 @@ func (x *GatewayServiceTLSConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GatewayServiceTLSConfig.ProtoReflect.Descriptor instead.
 func (*GatewayServiceTLSConfig) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{34}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *GatewayServiceTLSConfig) GetSDS() *GatewayTLSSDSConfig {
@@ -3372,7 +3814,7 @@ type HTTPHeaderModifiers struct {
 
 func (x *HTTPHeaderModifiers) Reset() {
 	*x = HTTPHeaderModifiers{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[35]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3384,7 +3826,7 @@ func (x *HTTPHeaderModifiers) String() string {
 func (*HTTPHeaderModifiers) ProtoMessage() {}
 
 func (x *HTTPHeaderModifiers) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[35]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3397,7 +3839,7 @@ func (x *HTTPHeaderModifiers) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HTTPHeaderModifiers.ProtoReflect.Descriptor instead.
 func (*HTTPHeaderModifiers) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{35}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *HTTPHeaderModifiers) GetAdd() map[string]string {
@@ -3439,7 +3881,7 @@ type ServiceIntentions struct {
 
 func (x *ServiceIntentions) Reset() {
 	*x = ServiceIntentions{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[36]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3451,7 +3893,7 @@ func (x *ServiceIntentions) String() string {
 func (*ServiceIntentions) ProtoMessage() {}
 
 func (x *ServiceIntentions) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[36]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3464,7 +3906,7 @@ func (x *ServiceIntentions) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServiceIntentions.ProtoReflect.Descriptor instead.
 func (*ServiceIntentions) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{36}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *ServiceIntentions) GetSources() []*SourceIntention {
@@ -3509,7 +3951,7 @@ type IntentionJWTRequirement struct {
 
 func (x *IntentionJWTRequirement) Reset() {
 	*x = IntentionJWTRequirement{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[37]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3521,7 +3963,7 @@ func (x *IntentionJWTRequirement) String() string {
 func (*IntentionJWTRequirement) ProtoMessage() {}
 
 func (x *IntentionJWTRequirement) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[37]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3534,7 +3976,7 @@ func (x *IntentionJWTRequirement) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IntentionJWTRequirement.ProtoReflect.Descriptor instead.
 func (*IntentionJWTRequirement) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{37}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *IntentionJWTRequirement) GetProviders() []*IntentionJWTProvider {
@@ -3559,7 +4001,7 @@ type IntentionJWTProvider struct {
 
 func (x *IntentionJWTProvider) Reset() {
 	*x = IntentionJWTProvider{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[38]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3571,7 +4013,7 @@ func (x *IntentionJWTProvider) String() string {
 func (*IntentionJWTProvider) ProtoMessage() {}
 
 func (x *IntentionJWTProvider) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[38]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3584,7 +4026,7 @@ func (x *IntentionJWTProvider) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IntentionJWTProvider.ProtoReflect.Descriptor instead.
 func (*IntentionJWTProvider) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{38}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *IntentionJWTProvider) GetName() string {
@@ -3616,7 +4058,7 @@ type IntentionJWTClaimVerification struct {
 
 func (x *IntentionJWTClaimVerification) Reset() {
 	*x = IntentionJWTClaimVerification{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[39]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3628,7 +4070,7 @@ func (x *IntentionJWTClaimVerification) String() string {
 func (*IntentionJWTClaimVerification) ProtoMessage() {}
 
 func (x *IntentionJWTClaimVerification) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[39]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3641,7 +4083,7 @@ func (x *IntentionJWTClaimVerification) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IntentionJWTClaimVerification.ProtoReflect.Descriptor instead.
 func (*IntentionJWTClaimVerification) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{39}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *IntentionJWTClaimVerification) GetPath() []string {
@@ -3690,7 +4132,7 @@ type SourceIntention struct {
 
 func (x *SourceIntention) Reset() {
 	*x = SourceIntention{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[40]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3702,7 +4144,7 @@ func (x *SourceIntention) String() string {
 func (*SourceIntention) ProtoMessage() {}
 
 func (x *SourceIntention) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[40]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3715,7 +4157,7 @@ func (x *SourceIntention) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SourceIntention.ProtoReflect.Descriptor instead.
 func (*SourceIntention) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{40}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *SourceIntention) GetName() string {
@@ -3826,7 +4268,7 @@ type IntentionPermission struct {
 
 func (x *IntentionPermission) Reset() {
 	*x = IntentionPermission{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[41]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3838,7 +4280,7 @@ func (x *IntentionPermission) String() string {
 func (*IntentionPermission) ProtoMessage() {}
 
 func (x *IntentionPermission) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[41]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3851,7 +4293,7 @@ func (x *IntentionPermission) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IntentionPermission.ProtoReflect.Descriptor instead.
 func (*IntentionPermission) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{41}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *IntentionPermission) GetAction() IntentionAction {
@@ -3893,7 +4335,7 @@ type IntentionHTTPPermission struct {
 
 func (x *IntentionHTTPPermission) Reset() {
 	*x = IntentionHTTPPermission{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[42]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3905,7 +4347,7 @@ func (x *IntentionHTTPPermission) String() string {
 func (*IntentionHTTPPermission) ProtoMessage() {}
 
 func (x *IntentionHTTPPermission) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[42]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3918,7 +4360,7 @@ func (x *IntentionHTTPPermission) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IntentionHTTPPermission.ProtoReflect.Descriptor instead.
 func (*IntentionHTTPPermission) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{42}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *IntentionHTTPPermission) GetPathExact() string {
@@ -3978,7 +4420,7 @@ type IntentionHTTPHeaderPermission struct {
 
 func (x *IntentionHTTPHeaderPermission) Reset() {
 	*x = IntentionHTTPHeaderPermission{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[43]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3990,7 +4432,7 @@ func (x *IntentionHTTPHeaderPermission) String() string {
 func (*IntentionHTTPHeaderPermission) ProtoMessage() {}
 
 func (x *IntentionHTTPHeaderPermission) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[43]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4003,7 +4445,7 @@ func (x *IntentionHTTPHeaderPermission) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IntentionHTTPHeaderPermission.ProtoReflect.Descriptor instead.
 func (*IntentionHTTPHeaderPermission) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{43}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *IntentionHTTPHeaderPermission) GetName() string {
@@ -4107,7 +4549,7 @@ type ServiceDefaults struct {
 
 func (x *ServiceDefaults) Reset() {
 	*x = ServiceDefaults{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[44]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4119,7 +4561,7 @@ func (x *ServiceDefaults) String() string {
 func (*ServiceDefaults) ProtoMessage() {}
 
 func (x *ServiceDefaults) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[44]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4132,7 +4574,7 @@ func (x *ServiceDefaults) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServiceDefaults.ProtoReflect.Descriptor instead.
 func (*ServiceDefaults) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{44}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *ServiceDefaults) GetProtocol() string {
@@ -4277,7 +4719,7 @@ type TransparentProxyConfig struct {
 
 func (x *TransparentProxyConfig) Reset() {
 	*x = TransparentProxyConfig{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[45]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4289,7 +4731,7 @@ func (x *TransparentProxyConfig) String() string {
 func (*TransparentProxyConfig) ProtoMessage() {}
 
 func (x *TransparentProxyConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[45]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4302,7 +4744,7 @@ func (x *TransparentProxyConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TransparentProxyConfig.ProtoReflect.Descriptor instead.
 func (*TransparentProxyConfig) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{45}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *TransparentProxyConfig) GetOutboundListenerPort() int32 {
@@ -4334,7 +4776,7 @@ type MeshGatewayConfig struct {
 
 func (x *MeshGatewayConfig) Reset() {
 	*x = MeshGatewayConfig{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[46]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4346,7 +4788,7 @@ func (x *MeshGatewayConfig) String() string {
 func (*MeshGatewayConfig) ProtoMessage() {}
 
 func (x *MeshGatewayConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[46]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4359,7 +4801,7 @@ func (x *MeshGatewayConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MeshGatewayConfig.ProtoReflect.Descriptor instead.
 func (*MeshGatewayConfig) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{46}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *MeshGatewayConfig) GetMode() MeshGatewayMode {
@@ -4384,7 +4826,7 @@ type ExposeConfig struct {
 
 func (x *ExposeConfig) Reset() {
 	*x = ExposeConfig{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[47]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4396,7 +4838,7 @@ func (x *ExposeConfig) String() string {
 func (*ExposeConfig) ProtoMessage() {}
 
 func (x *ExposeConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[47]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4409,7 +4851,7 @@ func (x *ExposeConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExposeConfig.ProtoReflect.Descriptor instead.
 func (*ExposeConfig) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{47}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *ExposeConfig) GetChecks() bool {
@@ -4446,7 +4888,7 @@ type ExposePath struct {
 
 func (x *ExposePath) Reset() {
 	*x = ExposePath{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[48]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4458,7 +4900,7 @@ func (x *ExposePath) String() string {
 func (*ExposePath) ProtoMessage() {}
 
 func (x *ExposePath) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[48]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4471,7 +4913,7 @@ func (x *ExposePath) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExposePath.ProtoReflect.Descriptor instead.
 func (*ExposePath) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{48}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *ExposePath) GetListenerPort() int32 {
@@ -4524,7 +4966,7 @@ type UpstreamConfiguration struct {
 
 func (x *UpstreamConfiguration) Reset() {
 	*x = UpstreamConfiguration{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[49]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4536,7 +4978,7 @@ func (x *UpstreamConfiguration) String() string {
 func (*UpstreamConfiguration) ProtoMessage() {}
 
 func (x *UpstreamConfiguration) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[49]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4549,7 +4991,7 @@ func (x *UpstreamConfiguration) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpstreamConfiguration.ProtoReflect.Descriptor instead.
 func (*UpstreamConfiguration) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{49}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *UpstreamConfiguration) GetOverrides() []*UpstreamConfig {
@@ -4592,7 +5034,7 @@ type UpstreamConfig struct {
 
 func (x *UpstreamConfig) Reset() {
 	*x = UpstreamConfig{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[50]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4604,7 +5046,7 @@ func (x *UpstreamConfig) String() string {
 func (*UpstreamConfig) ProtoMessage() {}
 
 func (x *UpstreamConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[50]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4617,7 +5059,7 @@ func (x *UpstreamConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpstreamConfig.ProtoReflect.Descriptor instead.
 func (*UpstreamConfig) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{50}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *UpstreamConfig) GetName() string {
@@ -4717,7 +5159,7 @@ type UpstreamLimits struct {
 
 func (x *UpstreamLimits) Reset() {
 	*x = UpstreamLimits{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[51]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4729,7 +5171,7 @@ func (x *UpstreamLimits) String() string {
 func (*UpstreamLimits) ProtoMessage() {}
 
 func (x *UpstreamLimits) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[51]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4742,7 +5184,7 @@ func (x *UpstreamLimits) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpstreamLimits.ProtoReflect.Descriptor instead.
 func (*UpstreamLimits) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{51}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *UpstreamLimits) GetMaxConnections() int32 {
@@ -4801,7 +5243,7 @@ type PassiveHealthCheck struct {
 
 func (x *PassiveHealthCheck) Reset() {
 	*x = PassiveHealthCheck{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[52]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4813,7 +5255,7 @@ func (x *PassiveHealthCheck) String() string {
 func (*PassiveHealthCheck) ProtoMessage() {}
 
 func (x *PassiveHealthCheck) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[52]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4826,7 +5268,7 @@ func (x *PassiveHealthCheck) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PassiveHealthCheck.ProtoReflect.Descriptor instead.
 func (*PassiveHealthCheck) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{52}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *PassiveHealthCheck) GetInterval() *durationpb.Duration {
@@ -4901,7 +5343,7 @@ type DestinationConfig struct {
 
 func (x *DestinationConfig) Reset() {
 	*x = DestinationConfig{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[53]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4913,7 +5355,7 @@ func (x *DestinationConfig) String() string {
 func (*DestinationConfig) ProtoMessage() {}
 
 func (x *DestinationConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[53]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4926,7 +5368,7 @@ func (x *DestinationConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DestinationConfig.ProtoReflect.Descriptor instead.
 func (*DestinationConfig) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{53}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *DestinationConfig) GetAddresses() []string {
@@ -4957,7 +5399,7 @@ type RateLimits struct {
 
 func (x *RateLimits) Reset() {
 	*x = RateLimits{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[54]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4969,7 +5411,7 @@ func (x *RateLimits) String() string {
 func (*RateLimits) ProtoMessage() {}
 
 func (x *RateLimits) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[54]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4982,7 +5424,7 @@ func (x *RateLimits) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RateLimits.ProtoReflect.Descriptor instead.
 func (*RateLimits) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{54}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *RateLimits) GetInstanceLevel() *InstanceLevelRateLimits {
@@ -5010,7 +5452,7 @@ type InstanceLevelRateLimits struct {
 
 func (x *InstanceLevelRateLimits) Reset() {
 	*x = InstanceLevelRateLimits{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[55]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5022,7 +5464,7 @@ func (x *InstanceLevelRateLimits) String() string {
 func (*InstanceLevelRateLimits) ProtoMessage() {}
 
 func (x *InstanceLevelRateLimits) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[55]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5035,7 +5477,7 @@ func (x *InstanceLevelRateLimits) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstanceLevelRateLimits.ProtoReflect.Descriptor instead.
 func (*InstanceLevelRateLimits) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{55}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *InstanceLevelRateLimits) GetRequestsPerSecond() uint32 {
@@ -5079,7 +5521,7 @@ type InstanceLevelRouteRateLimits struct {
 
 func (x *InstanceLevelRouteRateLimits) Reset() {
 	*x = InstanceLevelRouteRateLimits{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[56]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5091,7 +5533,7 @@ func (x *InstanceLevelRouteRateLimits) String() string {
 func (*InstanceLevelRouteRateLimits) ProtoMessage() {}
 
 func (x *InstanceLevelRouteRateLimits) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[56]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5104,7 +5546,7 @@ func (x *InstanceLevelRouteRateLimits) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstanceLevelRouteRateLimits.ProtoReflect.Descriptor instead.
 func (*InstanceLevelRouteRateLimits) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{56}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *InstanceLevelRouteRateLimits) GetPathExact() string {
@@ -5164,7 +5606,7 @@ type APIGateway struct {
 
 func (x *APIGateway) Reset() {
 	*x = APIGateway{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[57]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5176,7 +5618,7 @@ func (x *APIGateway) String() string {
 func (*APIGateway) ProtoMessage() {}
 
 func (x *APIGateway) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[57]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5189,7 +5631,7 @@ func (x *APIGateway) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use APIGateway.ProtoReflect.Descriptor instead.
 func (*APIGateway) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{57}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *APIGateway) GetMeta() map[string]string {
@@ -5250,7 +5692,7 @@ type APIGatewayExtAuthz struct {
 
 func (x *APIGatewayExtAuthz) Reset() {
 	*x = APIGatewayExtAuthz{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[58]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5262,7 +5704,7 @@ func (x *APIGatewayExtAuthz) String() string {
 func (*APIGatewayExtAuthz) ProtoMessage() {}
 
 func (x *APIGatewayExtAuthz) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[58]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5275,7 +5717,7 @@ func (x *APIGatewayExtAuthz) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use APIGatewayExtAuthz.ProtoReflect.Descriptor instead.
 func (*APIGatewayExtAuthz) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{58}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *APIGatewayExtAuthz) GetEnabled() bool {
@@ -5299,7 +5741,7 @@ type Status struct {
 
 func (x *Status) Reset() {
 	*x = Status{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[59]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5311,7 +5753,7 @@ func (x *Status) String() string {
 func (*Status) ProtoMessage() {}
 
 func (x *Status) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[59]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5324,7 +5766,7 @@ func (x *Status) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Status.ProtoReflect.Descriptor instead.
 func (*Status) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{59}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *Status) GetConditions() []*Condition {
@@ -5354,7 +5796,7 @@ type Condition struct {
 
 func (x *Condition) Reset() {
 	*x = Condition{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[60]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5366,7 +5808,7 @@ func (x *Condition) String() string {
 func (*Condition) ProtoMessage() {}
 
 func (x *Condition) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[60]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5379,7 +5821,7 @@ func (x *Condition) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Condition.ProtoReflect.Descriptor instead.
 func (*Condition) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{60}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{64}
 }
 
 func (x *Condition) GetType() string {
@@ -5447,7 +5889,7 @@ type APIGatewayListener struct {
 
 func (x *APIGatewayListener) Reset() {
 	*x = APIGatewayListener{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[61]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5459,7 +5901,7 @@ func (x *APIGatewayListener) String() string {
 func (*APIGatewayListener) ProtoMessage() {}
 
 func (x *APIGatewayListener) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[61]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5472,7 +5914,7 @@ func (x *APIGatewayListener) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use APIGatewayListener.ProtoReflect.Descriptor instead.
 func (*APIGatewayListener) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{61}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{65}
 }
 
 func (x *APIGatewayListener) GetName() string {
@@ -5552,7 +5994,7 @@ type APIGatewayTLSConfiguration struct {
 
 func (x *APIGatewayTLSConfiguration) Reset() {
 	*x = APIGatewayTLSConfiguration{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[62]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5564,7 +6006,7 @@ func (x *APIGatewayTLSConfiguration) String() string {
 func (*APIGatewayTLSConfiguration) ProtoMessage() {}
 
 func (x *APIGatewayTLSConfiguration) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[62]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5577,7 +6019,7 @@ func (x *APIGatewayTLSConfiguration) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use APIGatewayTLSConfiguration.ProtoReflect.Descriptor instead.
 func (*APIGatewayTLSConfiguration) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{62}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{66}
 }
 
 func (x *APIGatewayTLSConfiguration) GetCertificates() []*ResourceReference {
@@ -5630,7 +6072,7 @@ type APIGatewayPolicy struct {
 
 func (x *APIGatewayPolicy) Reset() {
 	*x = APIGatewayPolicy{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[63]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5642,7 +6084,7 @@ func (x *APIGatewayPolicy) String() string {
 func (*APIGatewayPolicy) ProtoMessage() {}
 
 func (x *APIGatewayPolicy) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[63]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5655,7 +6097,7 @@ func (x *APIGatewayPolicy) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use APIGatewayPolicy.ProtoReflect.Descriptor instead.
 func (*APIGatewayPolicy) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{63}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{67}
 }
 
 func (x *APIGatewayPolicy) GetJWT() *APIGatewayJWTRequirement {
@@ -5674,7 +6116,7 @@ type APIGatewayJWTRequirement struct {
 
 func (x *APIGatewayJWTRequirement) Reset() {
 	*x = APIGatewayJWTRequirement{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[64]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5686,7 +6128,7 @@ func (x *APIGatewayJWTRequirement) String() string {
 func (*APIGatewayJWTRequirement) ProtoMessage() {}
 
 func (x *APIGatewayJWTRequirement) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[64]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5699,7 +6141,7 @@ func (x *APIGatewayJWTRequirement) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use APIGatewayJWTRequirement.ProtoReflect.Descriptor instead.
 func (*APIGatewayJWTRequirement) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{64}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{68}
 }
 
 func (x *APIGatewayJWTRequirement) GetProviders() []*APIGatewayJWTProvider {
@@ -5719,7 +6161,7 @@ type APIGatewayJWTProvider struct {
 
 func (x *APIGatewayJWTProvider) Reset() {
 	*x = APIGatewayJWTProvider{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[65]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5731,7 +6173,7 @@ func (x *APIGatewayJWTProvider) String() string {
 func (*APIGatewayJWTProvider) ProtoMessage() {}
 
 func (x *APIGatewayJWTProvider) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[65]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5744,7 +6186,7 @@ func (x *APIGatewayJWTProvider) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use APIGatewayJWTProvider.ProtoReflect.Descriptor instead.
 func (*APIGatewayJWTProvider) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{65}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{69}
 }
 
 func (x *APIGatewayJWTProvider) GetName() string {
@@ -5771,7 +6213,7 @@ type APIGatewayJWTClaimVerification struct {
 
 func (x *APIGatewayJWTClaimVerification) Reset() {
 	*x = APIGatewayJWTClaimVerification{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[66]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[70]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5783,7 +6225,7 @@ func (x *APIGatewayJWTClaimVerification) String() string {
 func (*APIGatewayJWTClaimVerification) ProtoMessage() {}
 
 func (x *APIGatewayJWTClaimVerification) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[66]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[70]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5796,7 +6238,7 @@ func (x *APIGatewayJWTClaimVerification) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use APIGatewayJWTClaimVerification.ProtoReflect.Descriptor instead.
 func (*APIGatewayJWTClaimVerification) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{66}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{70}
 }
 
 func (x *APIGatewayJWTClaimVerification) GetPath() []string {
@@ -5831,7 +6273,7 @@ type ResourceReference struct {
 
 func (x *ResourceReference) Reset() {
 	*x = ResourceReference{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[67]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[71]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5843,7 +6285,7 @@ func (x *ResourceReference) String() string {
 func (*ResourceReference) ProtoMessage() {}
 
 func (x *ResourceReference) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[67]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[71]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5856,7 +6298,7 @@ func (x *ResourceReference) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResourceReference.ProtoReflect.Descriptor instead.
 func (*ResourceReference) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{67}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{71}
 }
 
 func (x *ResourceReference) GetKind() string {
@@ -5906,7 +6348,7 @@ type BoundAPIGateway struct {
 
 func (x *BoundAPIGateway) Reset() {
 	*x = BoundAPIGateway{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[68]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[72]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5918,7 +6360,7 @@ func (x *BoundAPIGateway) String() string {
 func (*BoundAPIGateway) ProtoMessage() {}
 
 func (x *BoundAPIGateway) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[68]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[72]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5931,7 +6373,7 @@ func (x *BoundAPIGateway) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BoundAPIGateway.ProtoReflect.Descriptor instead.
 func (*BoundAPIGateway) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{68}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{72}
 }
 
 func (x *BoundAPIGateway) GetMeta() map[string]string {
@@ -5971,7 +6413,7 @@ type ListOfResourceReference struct {
 
 func (x *ListOfResourceReference) Reset() {
 	*x = ListOfResourceReference{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[69]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[73]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5983,7 +6425,7 @@ func (x *ListOfResourceReference) String() string {
 func (*ListOfResourceReference) ProtoMessage() {}
 
 func (x *ListOfResourceReference) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[69]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[73]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5996,7 +6438,7 @@ func (x *ListOfResourceReference) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListOfResourceReference.ProtoReflect.Descriptor instead.
 func (*ListOfResourceReference) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{69}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{73}
 }
 
 func (x *ListOfResourceReference) GetRef() []*ResourceReference {
@@ -6033,7 +6475,7 @@ type BoundAPIGatewayListener struct {
 
 func (x *BoundAPIGatewayListener) Reset() {
 	*x = BoundAPIGatewayListener{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[70]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[74]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6045,7 +6487,7 @@ func (x *BoundAPIGatewayListener) String() string {
 func (*BoundAPIGatewayListener) ProtoMessage() {}
 
 func (x *BoundAPIGatewayListener) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[70]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[74]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6058,7 +6500,7 @@ func (x *BoundAPIGatewayListener) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BoundAPIGatewayListener.ProtoReflect.Descriptor instead.
 func (*BoundAPIGatewayListener) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{70}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{74}
 }
 
 func (x *BoundAPIGatewayListener) GetName() string {
@@ -6149,7 +6591,7 @@ type FileSystemCertificate struct {
 
 func (x *FileSystemCertificate) Reset() {
 	*x = FileSystemCertificate{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[71]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[75]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6161,7 +6603,7 @@ func (x *FileSystemCertificate) String() string {
 func (*FileSystemCertificate) ProtoMessage() {}
 
 func (x *FileSystemCertificate) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[71]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[75]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6174,7 +6616,7 @@ func (x *FileSystemCertificate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileSystemCertificate.ProtoReflect.Descriptor instead.
 func (*FileSystemCertificate) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{71}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{75}
 }
 
 func (x *FileSystemCertificate) GetMeta() map[string]string {
@@ -6223,7 +6665,7 @@ type InlineCertificate struct {
 
 func (x *InlineCertificate) Reset() {
 	*x = InlineCertificate{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[72]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[76]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6235,7 +6677,7 @@ func (x *InlineCertificate) String() string {
 func (*InlineCertificate) ProtoMessage() {}
 
 func (x *InlineCertificate) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[72]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[76]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6248,7 +6690,7 @@ func (x *InlineCertificate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InlineCertificate.ProtoReflect.Descriptor instead.
 func (*InlineCertificate) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{72}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{76}
 }
 
 func (x *InlineCertificate) GetMeta() map[string]string {
@@ -6299,7 +6741,7 @@ type HTTPRoute struct {
 
 func (x *HTTPRoute) Reset() {
 	*x = HTTPRoute{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[73]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[77]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6311,7 +6753,7 @@ func (x *HTTPRoute) String() string {
 func (*HTTPRoute) ProtoMessage() {}
 
 func (x *HTTPRoute) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[73]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[77]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6324,7 +6766,7 @@ func (x *HTTPRoute) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HTTPRoute.ProtoReflect.Descriptor instead.
 func (*HTTPRoute) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{73}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{77}
 }
 
 func (x *HTTPRoute) GetMeta() map[string]string {
@@ -6386,7 +6828,7 @@ type HTTPRouteRule struct {
 
 func (x *HTTPRouteRule) Reset() {
 	*x = HTTPRouteRule{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[74]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[78]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6398,7 +6840,7 @@ func (x *HTTPRouteRule) String() string {
 func (*HTTPRouteRule) ProtoMessage() {}
 
 func (x *HTTPRouteRule) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[74]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[78]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6411,7 +6853,7 @@ func (x *HTTPRouteRule) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HTTPRouteRule.ProtoReflect.Descriptor instead.
 func (*HTTPRouteRule) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{74}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{78}
 }
 
 func (x *HTTPRouteRule) GetFilters() *HTTPFilters {
@@ -6460,7 +6902,7 @@ type HTTPMatch struct {
 
 func (x *HTTPMatch) Reset() {
 	*x = HTTPMatch{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[75]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[79]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6472,7 +6914,7 @@ func (x *HTTPMatch) String() string {
 func (*HTTPMatch) ProtoMessage() {}
 
 func (x *HTTPMatch) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[75]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[79]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6485,7 +6927,7 @@ func (x *HTTPMatch) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HTTPMatch.ProtoReflect.Descriptor instead.
 func (*HTTPMatch) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{75}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{79}
 }
 
 func (x *HTTPMatch) GetHeaders() []*HTTPHeaderMatch {
@@ -6534,7 +6976,7 @@ type HTTPHeaderMatch struct {
 
 func (x *HTTPHeaderMatch) Reset() {
 	*x = HTTPHeaderMatch{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[76]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[80]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6546,7 +6988,7 @@ func (x *HTTPHeaderMatch) String() string {
 func (*HTTPHeaderMatch) ProtoMessage() {}
 
 func (x *HTTPHeaderMatch) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[76]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[80]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6559,7 +7001,7 @@ func (x *HTTPHeaderMatch) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HTTPHeaderMatch.ProtoReflect.Descriptor instead.
 func (*HTTPHeaderMatch) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{76}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{80}
 }
 
 func (x *HTTPHeaderMatch) GetMatch() HTTPHeaderMatchType {
@@ -6606,7 +7048,7 @@ type HTTPPathMatch struct {
 
 func (x *HTTPPathMatch) Reset() {
 	*x = HTTPPathMatch{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[77]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[81]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6618,7 +7060,7 @@ func (x *HTTPPathMatch) String() string {
 func (*HTTPPathMatch) ProtoMessage() {}
 
 func (x *HTTPPathMatch) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[77]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[81]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6631,7 +7073,7 @@ func (x *HTTPPathMatch) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HTTPPathMatch.ProtoReflect.Descriptor instead.
 func (*HTTPPathMatch) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{77}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{81}
 }
 
 func (x *HTTPPathMatch) GetMatch() HTTPPathMatchType {
@@ -6665,7 +7107,7 @@ type HTTPQueryMatch struct {
 
 func (x *HTTPQueryMatch) Reset() {
 	*x = HTTPQueryMatch{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[78]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[82]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6677,7 +7119,7 @@ func (x *HTTPQueryMatch) String() string {
 func (*HTTPQueryMatch) ProtoMessage() {}
 
 func (x *HTTPQueryMatch) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[78]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[82]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6690,7 +7132,7 @@ func (x *HTTPQueryMatch) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HTTPQueryMatch.ProtoReflect.Descriptor instead.
 func (*HTTPQueryMatch) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{78}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{82}
 }
 
 func (x *HTTPQueryMatch) GetMatch() HTTPQueryMatchType {
@@ -6736,7 +7178,7 @@ type HTTPFilters struct {
 
 func (x *HTTPFilters) Reset() {
 	*x = HTTPFilters{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[79]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[83]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6748,7 +7190,7 @@ func (x *HTTPFilters) String() string {
 func (*HTTPFilters) ProtoMessage() {}
 
 func (x *HTTPFilters) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[79]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[83]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6761,7 +7203,7 @@ func (x *HTTPFilters) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HTTPFilters.ProtoReflect.Descriptor instead.
 func (*HTTPFilters) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{79}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{83}
 }
 
 func (x *HTTPFilters) GetHeaders() []*HTTPHeaderFilter {
@@ -6829,7 +7271,7 @@ type ExtProcFilter struct {
 
 func (x *ExtProcFilter) Reset() {
 	*x = ExtProcFilter{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[80]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[84]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6841,7 +7283,7 @@ func (x *ExtProcFilter) String() string {
 func (*ExtProcFilter) ProtoMessage() {}
 
 func (x *ExtProcFilter) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[80]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[84]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6854,7 +7296,7 @@ func (x *ExtProcFilter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExtProcFilter.ProtoReflect.Descriptor instead.
 func (*ExtProcFilter) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{80}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{84}
 }
 
 func (x *ExtProcFilter) GetStatPrefix() string {
@@ -6884,15 +7326,16 @@ func (x *ExtProcFilter) GetOverrides() *ExtProcOverrides {
 // output=config_entry.gen.go
 // name=Structs
 type ExtProcOverrides struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Processing    *ExtProcProcessing     `protobuf:"bytes,1,opt,name=Processing,proto3" json:"Processing,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Processing          *ExtProcProcessing     `protobuf:"bytes,1,opt,name=Processing,proto3" json:"Processing,omitempty"`
+	GRPCInitialMetadata []*ExtProcMetadataKV   `protobuf:"bytes,2,rep,name=GRPCInitialMetadata,proto3" json:"GRPCInitialMetadata,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *ExtProcOverrides) Reset() {
 	*x = ExtProcOverrides{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[81]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[85]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6904,7 +7347,7 @@ func (x *ExtProcOverrides) String() string {
 func (*ExtProcOverrides) ProtoMessage() {}
 
 func (x *ExtProcOverrides) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[81]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[85]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6917,7 +7360,7 @@ func (x *ExtProcOverrides) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExtProcOverrides.ProtoReflect.Descriptor instead.
 func (*ExtProcOverrides) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{81}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{85}
 }
 
 func (x *ExtProcOverrides) GetProcessing() *ExtProcProcessing {
@@ -6925,6 +7368,70 @@ func (x *ExtProcOverrides) GetProcessing() *ExtProcProcessing {
 		return x.Processing
 	}
 	return nil
+}
+
+func (x *ExtProcOverrides) GetGRPCInitialMetadata() []*ExtProcMetadataKV {
+	if x != nil {
+		return x.GRPCInitialMetadata
+	}
+	return nil
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ExtProcMetadataKV
+// output=config_entry.gen.go
+// name=Structs
+type ExtProcMetadataKV struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Key           string                 `protobuf:"bytes,1,opt,name=Key,proto3" json:"Key,omitempty"`
+	Value         string                 `protobuf:"bytes,2,opt,name=Value,proto3" json:"Value,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExtProcMetadataKV) Reset() {
+	*x = ExtProcMetadataKV{}
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[86]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExtProcMetadataKV) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExtProcMetadataKV) ProtoMessage() {}
+
+func (x *ExtProcMetadataKV) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[86]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExtProcMetadataKV.ProtoReflect.Descriptor instead.
+func (*ExtProcMetadataKV) Descriptor() ([]byte, []int) {
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{86}
+}
+
+func (x *ExtProcMetadataKV) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *ExtProcMetadataKV) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
 }
 
 // mog annotation:
@@ -6942,7 +7449,7 @@ type ExtProcProcessing struct {
 
 func (x *ExtProcProcessing) Reset() {
 	*x = ExtProcProcessing{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[82]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[87]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6954,7 +7461,7 @@ func (x *ExtProcProcessing) String() string {
 func (*ExtProcProcessing) ProtoMessage() {}
 
 func (x *ExtProcProcessing) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[82]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[87]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6967,7 +7474,7 @@ func (x *ExtProcProcessing) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExtProcProcessing.ProtoReflect.Descriptor instead.
 func (*ExtProcProcessing) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{82}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{87}
 }
 
 func (x *ExtProcProcessing) GetRequest() *ExtProcProcessingDirection {
@@ -7001,7 +7508,7 @@ type ExtProcProcessingDirection struct {
 
 func (x *ExtProcProcessingDirection) Reset() {
 	*x = ExtProcProcessingDirection{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[83]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[88]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7013,7 +7520,7 @@ func (x *ExtProcProcessingDirection) String() string {
 func (*ExtProcProcessingDirection) ProtoMessage() {}
 
 func (x *ExtProcProcessingDirection) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[83]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[88]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7026,7 +7533,7 @@ func (x *ExtProcProcessingDirection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExtProcProcessingDirection.ProtoReflect.Descriptor instead.
 func (*ExtProcProcessingDirection) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{83}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{88}
 }
 
 func (x *ExtProcProcessingDirection) GetHeadersMode() string {
@@ -7066,7 +7573,7 @@ type HTTPRouteExtAuthzFilter struct {
 
 func (x *HTTPRouteExtAuthzFilter) Reset() {
 	*x = HTTPRouteExtAuthzFilter{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[84]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[89]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7078,7 +7585,7 @@ func (x *HTTPRouteExtAuthzFilter) String() string {
 func (*HTTPRouteExtAuthzFilter) ProtoMessage() {}
 
 func (x *HTTPRouteExtAuthzFilter) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[84]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[89]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7091,7 +7598,7 @@ func (x *HTTPRouteExtAuthzFilter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HTTPRouteExtAuthzFilter.ProtoReflect.Descriptor instead.
 func (*HTTPRouteExtAuthzFilter) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{84}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{89}
 }
 
 func (x *HTTPRouteExtAuthzFilter) GetEnabled() bool {
@@ -7115,7 +7622,7 @@ type HTTPResponseFilters struct {
 
 func (x *HTTPResponseFilters) Reset() {
 	*x = HTTPResponseFilters{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[85]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[90]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7127,7 +7634,7 @@ func (x *HTTPResponseFilters) String() string {
 func (*HTTPResponseFilters) ProtoMessage() {}
 
 func (x *HTTPResponseFilters) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[85]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[90]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7140,7 +7647,7 @@ func (x *HTTPResponseFilters) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HTTPResponseFilters.ProtoReflect.Descriptor instead.
 func (*HTTPResponseFilters) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{85}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{90}
 }
 
 func (x *HTTPResponseFilters) GetHeaders() []*HTTPHeaderFilter {
@@ -7164,7 +7671,7 @@ type URLRewrite struct {
 
 func (x *URLRewrite) Reset() {
 	*x = URLRewrite{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[86]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[91]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7176,7 +7683,7 @@ func (x *URLRewrite) String() string {
 func (*URLRewrite) ProtoMessage() {}
 
 func (x *URLRewrite) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[86]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[91]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7189,7 +7696,7 @@ func (x *URLRewrite) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use URLRewrite.ProtoReflect.Descriptor instead.
 func (*URLRewrite) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{86}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{91}
 }
 
 func (x *URLRewrite) GetPath() string {
@@ -7216,7 +7723,7 @@ type RetryFilter struct {
 
 func (x *RetryFilter) Reset() {
 	*x = RetryFilter{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[87]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[92]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7228,7 +7735,7 @@ func (x *RetryFilter) String() string {
 func (*RetryFilter) ProtoMessage() {}
 
 func (x *RetryFilter) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[87]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[92]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7241,7 +7748,7 @@ func (x *RetryFilter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RetryFilter.ProtoReflect.Descriptor instead.
 func (*RetryFilter) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{87}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{92}
 }
 
 func (x *RetryFilter) GetNumRetries() uint32 {
@@ -7289,7 +7796,7 @@ type TimeoutFilter struct {
 
 func (x *TimeoutFilter) Reset() {
 	*x = TimeoutFilter{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[88]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[93]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7301,7 +7808,7 @@ func (x *TimeoutFilter) String() string {
 func (*TimeoutFilter) ProtoMessage() {}
 
 func (x *TimeoutFilter) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[88]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[93]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7314,7 +7821,7 @@ func (x *TimeoutFilter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TimeoutFilter.ProtoReflect.Descriptor instead.
 func (*TimeoutFilter) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{88}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{93}
 }
 
 func (x *TimeoutFilter) GetRequestTimeout() *durationpb.Duration {
@@ -7340,7 +7847,7 @@ type JWTFilter struct {
 
 func (x *JWTFilter) Reset() {
 	*x = JWTFilter{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[89]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[94]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7352,7 +7859,7 @@ func (x *JWTFilter) String() string {
 func (*JWTFilter) ProtoMessage() {}
 
 func (x *JWTFilter) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[89]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[94]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7365,7 +7872,7 @@ func (x *JWTFilter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JWTFilter.ProtoReflect.Descriptor instead.
 func (*JWTFilter) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{89}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{94}
 }
 
 func (x *JWTFilter) GetProviders() []*APIGatewayJWTProvider {
@@ -7391,7 +7898,7 @@ type HTTPHeaderFilter struct {
 
 func (x *HTTPHeaderFilter) Reset() {
 	*x = HTTPHeaderFilter{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[90]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[95]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7403,7 +7910,7 @@ func (x *HTTPHeaderFilter) String() string {
 func (*HTTPHeaderFilter) ProtoMessage() {}
 
 func (x *HTTPHeaderFilter) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[90]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[95]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7416,7 +7923,7 @@ func (x *HTTPHeaderFilter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HTTPHeaderFilter.ProtoReflect.Descriptor instead.
 func (*HTTPHeaderFilter) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{90}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{95}
 }
 
 func (x *HTTPHeaderFilter) GetAdd() map[string]string {
@@ -7462,7 +7969,7 @@ type HTTPService struct {
 
 func (x *HTTPService) Reset() {
 	*x = HTTPService{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[91]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[96]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7474,7 +7981,7 @@ func (x *HTTPService) String() string {
 func (*HTTPService) ProtoMessage() {}
 
 func (x *HTTPService) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[91]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[96]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7487,7 +7994,7 @@ func (x *HTTPService) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HTTPService.ProtoReflect.Descriptor instead.
 func (*HTTPService) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{91}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{96}
 }
 
 func (x *HTTPService) GetName() string {
@@ -7558,7 +8065,7 @@ type TCPRoute struct {
 
 func (x *TCPRoute) Reset() {
 	*x = TCPRoute{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[92]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[97]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7570,7 +8077,7 @@ func (x *TCPRoute) String() string {
 func (*TCPRoute) ProtoMessage() {}
 
 func (x *TCPRoute) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[92]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[97]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7583,7 +8090,7 @@ func (x *TCPRoute) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TCPRoute.ProtoReflect.Descriptor instead.
 func (*TCPRoute) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{92}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{97}
 }
 
 func (x *TCPRoute) GetMeta() map[string]string {
@@ -7639,7 +8146,7 @@ type TCPService struct {
 
 func (x *TCPService) Reset() {
 	*x = TCPService{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[93]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[98]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7651,7 +8158,7 @@ func (x *TCPService) String() string {
 func (*TCPService) ProtoMessage() {}
 
 func (x *TCPService) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[93]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[98]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7664,7 +8171,7 @@ func (x *TCPService) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TCPService.ProtoReflect.Descriptor instead.
 func (*TCPService) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{93}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{98}
 }
 
 func (x *TCPService) GetName() string {
@@ -7717,7 +8224,7 @@ type SamenessGroup struct {
 
 func (x *SamenessGroup) Reset() {
 	*x = SamenessGroup{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[94]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[99]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7729,7 +8236,7 @@ func (x *SamenessGroup) String() string {
 func (*SamenessGroup) ProtoMessage() {}
 
 func (x *SamenessGroup) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[94]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[99]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7742,7 +8249,7 @@ func (x *SamenessGroup) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SamenessGroup.ProtoReflect.Descriptor instead.
 func (*SamenessGroup) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{94}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{99}
 }
 
 func (x *SamenessGroup) GetName() string {
@@ -7809,7 +8316,7 @@ type SamenessGroupMember struct {
 
 func (x *SamenessGroupMember) Reset() {
 	*x = SamenessGroupMember{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[95]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[100]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7821,7 +8328,7 @@ func (x *SamenessGroupMember) String() string {
 func (*SamenessGroupMember) ProtoMessage() {}
 
 func (x *SamenessGroupMember) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[95]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[100]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7834,7 +8341,7 @@ func (x *SamenessGroupMember) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SamenessGroupMember.ProtoReflect.Descriptor instead.
 func (*SamenessGroupMember) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{95}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{100}
 }
 
 func (x *SamenessGroupMember) GetPartition() string {
@@ -7875,7 +8382,7 @@ type JWTProvider struct {
 
 func (x *JWTProvider) Reset() {
 	*x = JWTProvider{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[96]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[101]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7887,7 +8394,7 @@ func (x *JWTProvider) String() string {
 func (*JWTProvider) ProtoMessage() {}
 
 func (x *JWTProvider) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[96]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[101]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7900,7 +8407,7 @@ func (x *JWTProvider) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JWTProvider.ProtoReflect.Descriptor instead.
 func (*JWTProvider) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{96}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{101}
 }
 
 func (x *JWTProvider) GetJSONWebKeySet() *JSONWebKeySet {
@@ -7981,7 +8488,7 @@ type JSONWebKeySet struct {
 
 func (x *JSONWebKeySet) Reset() {
 	*x = JSONWebKeySet{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[97]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[102]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7993,7 +8500,7 @@ func (x *JSONWebKeySet) String() string {
 func (*JSONWebKeySet) ProtoMessage() {}
 
 func (x *JSONWebKeySet) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[97]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[102]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8006,7 +8513,7 @@ func (x *JSONWebKeySet) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JSONWebKeySet.ProtoReflect.Descriptor instead.
 func (*JSONWebKeySet) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{97}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{102}
 }
 
 func (x *JSONWebKeySet) GetLocal() *LocalJWKS {
@@ -8038,7 +8545,7 @@ type LocalJWKS struct {
 
 func (x *LocalJWKS) Reset() {
 	*x = LocalJWKS{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[98]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[103]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8050,7 +8557,7 @@ func (x *LocalJWKS) String() string {
 func (*LocalJWKS) ProtoMessage() {}
 
 func (x *LocalJWKS) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[98]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[103]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8063,7 +8570,7 @@ func (x *LocalJWKS) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalJWKS.ProtoReflect.Descriptor instead.
 func (*LocalJWKS) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{98}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{103}
 }
 
 func (x *LocalJWKS) GetJWKS() string {
@@ -8102,7 +8609,7 @@ type RemoteJWKS struct {
 
 func (x *RemoteJWKS) Reset() {
 	*x = RemoteJWKS{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[99]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[104]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8114,7 +8621,7 @@ func (x *RemoteJWKS) String() string {
 func (*RemoteJWKS) ProtoMessage() {}
 
 func (x *RemoteJWKS) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[99]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[104]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8127,7 +8634,7 @@ func (x *RemoteJWKS) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoteJWKS.ProtoReflect.Descriptor instead.
 func (*RemoteJWKS) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{99}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{104}
 }
 
 func (x *RemoteJWKS) GetURI() string {
@@ -8196,7 +8703,7 @@ type JWKSCluster struct {
 
 func (x *JWKSCluster) Reset() {
 	*x = JWKSCluster{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[100]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[105]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8208,7 +8715,7 @@ func (x *JWKSCluster) String() string {
 func (*JWKSCluster) ProtoMessage() {}
 
 func (x *JWKSCluster) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[100]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[105]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8221,7 +8728,7 @@ func (x *JWKSCluster) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JWKSCluster.ProtoReflect.Descriptor instead.
 func (*JWKSCluster) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{100}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{105}
 }
 
 func (x *JWKSCluster) GetDiscoveryType() string {
@@ -8260,7 +8767,7 @@ type JWKSTLSCertificate struct {
 
 func (x *JWKSTLSCertificate) Reset() {
 	*x = JWKSTLSCertificate{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[101]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[106]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8272,7 +8779,7 @@ func (x *JWKSTLSCertificate) String() string {
 func (*JWKSTLSCertificate) ProtoMessage() {}
 
 func (x *JWKSTLSCertificate) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[101]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[106]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8285,7 +8792,7 @@ func (x *JWKSTLSCertificate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JWKSTLSCertificate.ProtoReflect.Descriptor instead.
 func (*JWKSTLSCertificate) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{101}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{106}
 }
 
 func (x *JWKSTLSCertificate) GetCaCertificateProviderInstance() *JWKSTLSCertProviderInstance {
@@ -8317,7 +8824,7 @@ type JWKSTLSCertProviderInstance struct {
 
 func (x *JWKSTLSCertProviderInstance) Reset() {
 	*x = JWKSTLSCertProviderInstance{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[102]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[107]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8329,7 +8836,7 @@ func (x *JWKSTLSCertProviderInstance) String() string {
 func (*JWKSTLSCertProviderInstance) ProtoMessage() {}
 
 func (x *JWKSTLSCertProviderInstance) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[102]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[107]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8342,7 +8849,7 @@ func (x *JWKSTLSCertProviderInstance) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JWKSTLSCertProviderInstance.ProtoReflect.Descriptor instead.
 func (*JWKSTLSCertProviderInstance) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{102}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{107}
 }
 
 func (x *JWKSTLSCertProviderInstance) GetInstanceName() string {
@@ -8376,7 +8883,7 @@ type JWKSTLSCertTrustedCA struct {
 
 func (x *JWKSTLSCertTrustedCA) Reset() {
 	*x = JWKSTLSCertTrustedCA{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[103]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[108]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8388,7 +8895,7 @@ func (x *JWKSTLSCertTrustedCA) String() string {
 func (*JWKSTLSCertTrustedCA) ProtoMessage() {}
 
 func (x *JWKSTLSCertTrustedCA) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[103]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[108]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8401,7 +8908,7 @@ func (x *JWKSTLSCertTrustedCA) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JWKSTLSCertTrustedCA.ProtoReflect.Descriptor instead.
 func (*JWKSTLSCertTrustedCA) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{103}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{108}
 }
 
 func (x *JWKSTLSCertTrustedCA) GetFilename() string {
@@ -8448,7 +8955,7 @@ type JWKSRetryPolicy struct {
 
 func (x *JWKSRetryPolicy) Reset() {
 	*x = JWKSRetryPolicy{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[104]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[109]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8460,7 +8967,7 @@ func (x *JWKSRetryPolicy) String() string {
 func (*JWKSRetryPolicy) ProtoMessage() {}
 
 func (x *JWKSRetryPolicy) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[104]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[109]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8473,7 +8980,7 @@ func (x *JWKSRetryPolicy) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JWKSRetryPolicy.ProtoReflect.Descriptor instead.
 func (*JWKSRetryPolicy) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{104}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{109}
 }
 
 func (x *JWKSRetryPolicy) GetNumRetries() int32 {
@@ -8507,7 +9014,7 @@ type RetryPolicyBackOff struct {
 
 func (x *RetryPolicyBackOff) Reset() {
 	*x = RetryPolicyBackOff{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[105]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[110]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8519,7 +9026,7 @@ func (x *RetryPolicyBackOff) String() string {
 func (*RetryPolicyBackOff) ProtoMessage() {}
 
 func (x *RetryPolicyBackOff) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[105]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[110]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8532,7 +9039,7 @@ func (x *RetryPolicyBackOff) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RetryPolicyBackOff.ProtoReflect.Descriptor instead.
 func (*RetryPolicyBackOff) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{105}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{110}
 }
 
 func (x *RetryPolicyBackOff) GetBaseInterval() *durationpb.Duration {
@@ -8565,7 +9072,7 @@ type JWTLocation struct {
 
 func (x *JWTLocation) Reset() {
 	*x = JWTLocation{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[106]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[111]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8577,7 +9084,7 @@ func (x *JWTLocation) String() string {
 func (*JWTLocation) ProtoMessage() {}
 
 func (x *JWTLocation) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[106]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[111]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8590,7 +9097,7 @@ func (x *JWTLocation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JWTLocation.ProtoReflect.Descriptor instead.
 func (*JWTLocation) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{106}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{111}
 }
 
 func (x *JWTLocation) GetHeader() *JWTLocationHeader {
@@ -8630,7 +9137,7 @@ type JWTLocationHeader struct {
 
 func (x *JWTLocationHeader) Reset() {
 	*x = JWTLocationHeader{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[107]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[112]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8642,7 +9149,7 @@ func (x *JWTLocationHeader) String() string {
 func (*JWTLocationHeader) ProtoMessage() {}
 
 func (x *JWTLocationHeader) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[107]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[112]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8655,7 +9162,7 @@ func (x *JWTLocationHeader) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JWTLocationHeader.ProtoReflect.Descriptor instead.
 func (*JWTLocationHeader) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{107}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{112}
 }
 
 func (x *JWTLocationHeader) GetName() string {
@@ -8693,7 +9200,7 @@ type JWTLocationQueryParam struct {
 
 func (x *JWTLocationQueryParam) Reset() {
 	*x = JWTLocationQueryParam{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[108]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[113]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8705,7 +9212,7 @@ func (x *JWTLocationQueryParam) String() string {
 func (*JWTLocationQueryParam) ProtoMessage() {}
 
 func (x *JWTLocationQueryParam) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[108]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[113]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8718,7 +9225,7 @@ func (x *JWTLocationQueryParam) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JWTLocationQueryParam.ProtoReflect.Descriptor instead.
 func (*JWTLocationQueryParam) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{108}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{113}
 }
 
 func (x *JWTLocationQueryParam) GetName() string {
@@ -8742,7 +9249,7 @@ type JWTLocationCookie struct {
 
 func (x *JWTLocationCookie) Reset() {
 	*x = JWTLocationCookie{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[109]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[114]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8754,7 +9261,7 @@ func (x *JWTLocationCookie) String() string {
 func (*JWTLocationCookie) ProtoMessage() {}
 
 func (x *JWTLocationCookie) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[109]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[114]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8767,7 +9274,7 @@ func (x *JWTLocationCookie) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JWTLocationCookie.ProtoReflect.Descriptor instead.
 func (*JWTLocationCookie) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{109}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{114}
 }
 
 func (x *JWTLocationCookie) GetName() string {
@@ -8792,7 +9299,7 @@ type JWTForwardingConfig struct {
 
 func (x *JWTForwardingConfig) Reset() {
 	*x = JWTForwardingConfig{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[110]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[115]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8804,7 +9311,7 @@ func (x *JWTForwardingConfig) String() string {
 func (*JWTForwardingConfig) ProtoMessage() {}
 
 func (x *JWTForwardingConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[110]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[115]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8817,7 +9324,7 @@ func (x *JWTForwardingConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JWTForwardingConfig.ProtoReflect.Descriptor instead.
 func (*JWTForwardingConfig) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{110}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{115}
 }
 
 func (x *JWTForwardingConfig) GetHeaderName() string {
@@ -8849,7 +9356,7 @@ type JWTCacheConfig struct {
 
 func (x *JWTCacheConfig) Reset() {
 	*x = JWTCacheConfig{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[111]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[116]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8861,7 +9368,7 @@ func (x *JWTCacheConfig) String() string {
 func (*JWTCacheConfig) ProtoMessage() {}
 
 func (x *JWTCacheConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[111]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[116]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8874,7 +9381,7 @@ func (x *JWTCacheConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JWTCacheConfig.ProtoReflect.Descriptor instead.
 func (*JWTCacheConfig) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{111}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{116}
 }
 
 func (x *JWTCacheConfig) GetSize() int32 {
@@ -8904,7 +9411,7 @@ type ExportedServices struct {
 
 func (x *ExportedServices) Reset() {
 	*x = ExportedServices{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[112]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[117]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8916,7 +9423,7 @@ func (x *ExportedServices) String() string {
 func (*ExportedServices) ProtoMessage() {}
 
 func (x *ExportedServices) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[112]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[117]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8929,7 +9436,7 @@ func (x *ExportedServices) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExportedServices.ProtoReflect.Descriptor instead.
 func (*ExportedServices) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{112}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{117}
 }
 
 func (x *ExportedServices) GetName() string {
@@ -8983,7 +9490,7 @@ type ExportedServicesService struct {
 
 func (x *ExportedServicesService) Reset() {
 	*x = ExportedServicesService{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[113]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[118]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8995,7 +9502,7 @@ func (x *ExportedServicesService) String() string {
 func (*ExportedServicesService) ProtoMessage() {}
 
 func (x *ExportedServicesService) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[113]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[118]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9008,7 +9515,7 @@ func (x *ExportedServicesService) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExportedServicesService.ProtoReflect.Descriptor instead.
 func (*ExportedServicesService) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{113}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{118}
 }
 
 func (x *ExportedServicesService) GetName() string {
@@ -9048,7 +9555,7 @@ type ExportedServicesConsumer struct {
 
 func (x *ExportedServicesConsumer) Reset() {
 	*x = ExportedServicesConsumer{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[114]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[119]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9060,7 +9567,7 @@ func (x *ExportedServicesConsumer) String() string {
 func (*ExportedServicesConsumer) ProtoMessage() {}
 
 func (x *ExportedServicesConsumer) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[114]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[119]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9073,7 +9580,7 @@ func (x *ExportedServicesConsumer) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExportedServicesConsumer.ProtoReflect.Descriptor instead.
 func (*ExportedServicesConsumer) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{114}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{119}
 }
 
 func (x *ExportedServicesConsumer) GetPartition() string {
@@ -9097,11 +9604,747 @@ func (x *ExportedServicesConsumer) GetSamenessGroup() string {
 	return ""
 }
 
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.InferenceGatewayConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Name,Kind,RaftIndex,EnterpriseMeta
+type InferenceGateway struct {
+	state         protoimpl.MessageState         `protogen:"open.v1"`
+	Processor     *InferenceGatewayProcessor     `protobuf:"bytes,1,opt,name=Processor,proto3" json:"Processor,omitempty"`
+	Meta          map[string]string              `protobuf:"bytes,2,rep,name=Meta,proto3" json:"Meta,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Hash          uint64                         `protobuf:"varint,3,opt,name=Hash,proto3" json:"Hash,omitempty"`
+	Failover      *InferenceGatewayFailover      `protobuf:"bytes,4,opt,name=Failover,proto3" json:"Failover,omitempty"`
+	PII           *InferenceGatewayPII           `protobuf:"bytes,5,opt,name=PII,proto3" json:"PII,omitempty"`
+	Observability *InferenceGatewayObservability `protobuf:"bytes,6,opt,name=Observability,proto3" json:"Observability,omitempty"`
+	// A string rather than a Duration, mirroring the struct field and
+	// Failover.PerTryTimeout; Validate parses it at write time.
+	RequestTimeout string `protobuf:"bytes,7,opt,name=RequestTimeout,proto3" json:"RequestTimeout,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *InferenceGateway) Reset() {
+	*x = InferenceGateway{}
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[120]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InferenceGateway) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InferenceGateway) ProtoMessage() {}
+
+func (x *InferenceGateway) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[120]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InferenceGateway.ProtoReflect.Descriptor instead.
+func (*InferenceGateway) Descriptor() ([]byte, []int) {
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{120}
+}
+
+func (x *InferenceGateway) GetProcessor() *InferenceGatewayProcessor {
+	if x != nil {
+		return x.Processor
+	}
+	return nil
+}
+
+func (x *InferenceGateway) GetMeta() map[string]string {
+	if x != nil {
+		return x.Meta
+	}
+	return nil
+}
+
+func (x *InferenceGateway) GetHash() uint64 {
+	if x != nil {
+		return x.Hash
+	}
+	return 0
+}
+
+func (x *InferenceGateway) GetFailover() *InferenceGatewayFailover {
+	if x != nil {
+		return x.Failover
+	}
+	return nil
+}
+
+func (x *InferenceGateway) GetPII() *InferenceGatewayPII {
+	if x != nil {
+		return x.PII
+	}
+	return nil
+}
+
+func (x *InferenceGateway) GetObservability() *InferenceGatewayObservability {
+	if x != nil {
+		return x.Observability
+	}
+	return nil
+}
+
+func (x *InferenceGateway) GetRequestTimeout() string {
+	if x != nil {
+		return x.RequestTimeout
+	}
+	return ""
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.InferenceGatewayPII
+// output=config_entry.gen.go
+// name=Structs
+type InferenceGatewayPII struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// mog: func-to=inferenceGatewayPIIScopeToStructs func-from=inferenceGatewayPIIScopeFromStructs
+	Scope InferenceGatewayPIIScope `protobuf:"varint,1,opt,name=Scope,proto3,enum=hashicorp.consul.internal.configentry.InferenceGatewayPIIScope" json:"Scope,omitempty"`
+	// mog: func-to=inferenceGatewayPIIActionToStructs func-from=inferenceGatewayPIIActionFromStructs
+	DefaultAction InferenceGatewayPIIAction `protobuf:"varint,2,opt,name=DefaultAction,proto3,enum=hashicorp.consul.internal.configentry.InferenceGatewayPIIAction" json:"DefaultAction,omitempty"`
+	// mog: func-to=int func-from=int32
+	StreamHoldbackBytes int32                          `protobuf:"varint,3,opt,name=StreamHoldbackBytes,proto3" json:"StreamHoldbackBytes,omitempty"`
+	Mask                *InferenceGatewayPIIMask       `protobuf:"bytes,4,opt,name=Mask,proto3" json:"Mask,omitempty"`
+	Detectors           []*InferenceGatewayPIIDetector `protobuf:"bytes,5,rep,name=Detectors,proto3" json:"Detectors,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *InferenceGatewayPII) Reset() {
+	*x = InferenceGatewayPII{}
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[121]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InferenceGatewayPII) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InferenceGatewayPII) ProtoMessage() {}
+
+func (x *InferenceGatewayPII) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[121]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InferenceGatewayPII.ProtoReflect.Descriptor instead.
+func (*InferenceGatewayPII) Descriptor() ([]byte, []int) {
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{121}
+}
+
+func (x *InferenceGatewayPII) GetScope() InferenceGatewayPIIScope {
+	if x != nil {
+		return x.Scope
+	}
+	return InferenceGatewayPIIScope_InferenceGatewayPIIScopeUnset
+}
+
+func (x *InferenceGatewayPII) GetDefaultAction() InferenceGatewayPIIAction {
+	if x != nil {
+		return x.DefaultAction
+	}
+	return InferenceGatewayPIIAction_InferenceGatewayPIIActionUnset
+}
+
+func (x *InferenceGatewayPII) GetStreamHoldbackBytes() int32 {
+	if x != nil {
+		return x.StreamHoldbackBytes
+	}
+	return 0
+}
+
+func (x *InferenceGatewayPII) GetMask() *InferenceGatewayPIIMask {
+	if x != nil {
+		return x.Mask
+	}
+	return nil
+}
+
+func (x *InferenceGatewayPII) GetDetectors() []*InferenceGatewayPIIDetector {
+	if x != nil {
+		return x.Detectors
+	}
+	return nil
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.InferenceGatewayPIIMask
+// output=config_entry.gen.go
+// name=Structs
+type InferenceGatewayPIIMask struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Char  string                 `protobuf:"bytes,1,opt,name=Char,proto3" json:"Char,omitempty"`
+	// mog: func-to=int func-from=int32
+	KeepLast      int32 `protobuf:"varint,2,opt,name=KeepLast,proto3" json:"KeepLast,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InferenceGatewayPIIMask) Reset() {
+	*x = InferenceGatewayPIIMask{}
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[122]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InferenceGatewayPIIMask) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InferenceGatewayPIIMask) ProtoMessage() {}
+
+func (x *InferenceGatewayPIIMask) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[122]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InferenceGatewayPIIMask.ProtoReflect.Descriptor instead.
+func (*InferenceGatewayPIIMask) Descriptor() ([]byte, []int) {
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{122}
+}
+
+func (x *InferenceGatewayPIIMask) GetChar() string {
+	if x != nil {
+		return x.Char
+	}
+	return ""
+}
+
+func (x *InferenceGatewayPIIMask) GetKeepLast() int32 {
+	if x != nil {
+		return x.KeepLast
+	}
+	return 0
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.InferenceGatewayPIIDetector
+// output=config_entry.gen.go
+// name=Structs
+type InferenceGatewayPIIDetector struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Name  string                 `protobuf:"bytes,1,opt,name=Name,proto3" json:"Name,omitempty"`
+	Regex string                 `protobuf:"bytes,2,opt,name=Regex,proto3" json:"Regex,omitempty"`
+	// mog: func-to=inferenceGatewayPIIActionToStructs func-from=inferenceGatewayPIIActionFromStructs
+	Action        InferenceGatewayPIIAction `protobuf:"varint,3,opt,name=Action,proto3,enum=hashicorp.consul.internal.configentry.InferenceGatewayPIIAction" json:"Action,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InferenceGatewayPIIDetector) Reset() {
+	*x = InferenceGatewayPIIDetector{}
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[123]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InferenceGatewayPIIDetector) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InferenceGatewayPIIDetector) ProtoMessage() {}
+
+func (x *InferenceGatewayPIIDetector) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[123]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InferenceGatewayPIIDetector.ProtoReflect.Descriptor instead.
+func (*InferenceGatewayPIIDetector) Descriptor() ([]byte, []int) {
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{123}
+}
+
+func (x *InferenceGatewayPIIDetector) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *InferenceGatewayPIIDetector) GetRegex() string {
+	if x != nil {
+		return x.Regex
+	}
+	return ""
+}
+
+func (x *InferenceGatewayPIIDetector) GetAction() InferenceGatewayPIIAction {
+	if x != nil {
+		return x.Action
+	}
+	return InferenceGatewayPIIAction_InferenceGatewayPIIActionUnset
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.InferenceGatewayObservability
+// output=config_entry.gen.go
+// name=Structs
+type InferenceGatewayObservability struct {
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Metrics       *InferenceGatewayMetrics `protobuf:"bytes,1,opt,name=Metrics,proto3" json:"Metrics,omitempty"`
+	Tracing       *InferenceGatewayTracing `protobuf:"bytes,2,opt,name=Tracing,proto3" json:"Tracing,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InferenceGatewayObservability) Reset() {
+	*x = InferenceGatewayObservability{}
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[124]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InferenceGatewayObservability) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InferenceGatewayObservability) ProtoMessage() {}
+
+func (x *InferenceGatewayObservability) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[124]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InferenceGatewayObservability.ProtoReflect.Descriptor instead.
+func (*InferenceGatewayObservability) Descriptor() ([]byte, []int) {
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{124}
+}
+
+func (x *InferenceGatewayObservability) GetMetrics() *InferenceGatewayMetrics {
+	if x != nil {
+		return x.Metrics
+	}
+	return nil
+}
+
+func (x *InferenceGatewayObservability) GetTracing() *InferenceGatewayTracing {
+	if x != nil {
+		return x.Tracing
+	}
+	return nil
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.InferenceGatewayMetrics
+// output=config_entry.gen.go
+// name=Structs
+type InferenceGatewayMetrics struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Enabled is a wrapper, not a bare bool, because unset and explicit false mean
+	// different things: metrics default to ON, so a block written only to set a port
+	// must not read as "turn metrics off". A bare bool would make nil and false
+	// indistinguishable on the wire and silently disable metrics on every
+	// server-managed proxy.
+	//
+	// mog: target=Enabled func-to=pointerToBoolFromBoolValue func-from=boolValueFromPointerToBool
+	Enabled       *wrapperspb.BoolValue              `protobuf:"bytes,1,opt,name=Enabled,proto3" json:"Enabled,omitempty"`
+	Prometheus    *InferenceGatewayMetricsPrometheus `protobuf:"bytes,2,opt,name=Prometheus,proto3" json:"Prometheus,omitempty"`
+	OTLP          *InferenceGatewayOTLPExport        `protobuf:"bytes,3,opt,name=OTLP,proto3" json:"OTLP,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InferenceGatewayMetrics) Reset() {
+	*x = InferenceGatewayMetrics{}
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[125]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InferenceGatewayMetrics) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InferenceGatewayMetrics) ProtoMessage() {}
+
+func (x *InferenceGatewayMetrics) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[125]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InferenceGatewayMetrics.ProtoReflect.Descriptor instead.
+func (*InferenceGatewayMetrics) Descriptor() ([]byte, []int) {
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{125}
+}
+
+func (x *InferenceGatewayMetrics) GetEnabled() *wrapperspb.BoolValue {
+	if x != nil {
+		return x.Enabled
+	}
+	return nil
+}
+
+func (x *InferenceGatewayMetrics) GetPrometheus() *InferenceGatewayMetricsPrometheus {
+	if x != nil {
+		return x.Prometheus
+	}
+	return nil
+}
+
+func (x *InferenceGatewayMetrics) GetOTLP() *InferenceGatewayOTLPExport {
+	if x != nil {
+		return x.OTLP
+	}
+	return nil
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.InferenceGatewayMetricsPrometheus
+// output=config_entry.gen.go
+// name=Structs
+type InferenceGatewayMetricsPrometheus struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Port is a wrapper for the same reason Metrics.Enabled is: 0 disables the scrape
+	// endpoint and unset keeps the default port, and a bare int32 cannot tell them
+	// apart.
+	//
+	// mog: target=Port func-to=pointerToIntFromInt32Value func-from=int32ValueFromPointerToInt
+	Port          *wrapperspb.Int32Value `protobuf:"bytes,1,opt,name=Port,proto3" json:"Port,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InferenceGatewayMetricsPrometheus) Reset() {
+	*x = InferenceGatewayMetricsPrometheus{}
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[126]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InferenceGatewayMetricsPrometheus) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InferenceGatewayMetricsPrometheus) ProtoMessage() {}
+
+func (x *InferenceGatewayMetricsPrometheus) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[126]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InferenceGatewayMetricsPrometheus.ProtoReflect.Descriptor instead.
+func (*InferenceGatewayMetricsPrometheus) Descriptor() ([]byte, []int) {
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{126}
+}
+
+func (x *InferenceGatewayMetricsPrometheus) GetPort() *wrapperspb.Int32Value {
+	if x != nil {
+		return x.Port
+	}
+	return nil
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.InferenceGatewayTracing
+// output=config_entry.gen.go
+// name=Structs
+type InferenceGatewayTracing struct {
+	state         protoimpl.MessageState      `protogen:"open.v1"`
+	Enabled       bool                        `protobuf:"varint,1,opt,name=Enabled,proto3" json:"Enabled,omitempty"`
+	OTLP          *InferenceGatewayOTLPExport `protobuf:"bytes,2,opt,name=OTLP,proto3" json:"OTLP,omitempty"`
+	SampleRatio   float64                     `protobuf:"fixed64,3,opt,name=SampleRatio,proto3" json:"SampleRatio,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InferenceGatewayTracing) Reset() {
+	*x = InferenceGatewayTracing{}
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[127]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InferenceGatewayTracing) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InferenceGatewayTracing) ProtoMessage() {}
+
+func (x *InferenceGatewayTracing) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[127]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InferenceGatewayTracing.ProtoReflect.Descriptor instead.
+func (*InferenceGatewayTracing) Descriptor() ([]byte, []int) {
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{127}
+}
+
+func (x *InferenceGatewayTracing) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *InferenceGatewayTracing) GetOTLP() *InferenceGatewayOTLPExport {
+	if x != nil {
+		return x.OTLP
+	}
+	return nil
+}
+
+func (x *InferenceGatewayTracing) GetSampleRatio() float64 {
+	if x != nil {
+		return x.SampleRatio
+	}
+	return 0
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.InferenceGatewayOTLPExport
+// output=config_entry.gen.go
+// name=Structs
+type InferenceGatewayOTLPExport struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Endpoint      string                 `protobuf:"bytes,1,opt,name=Endpoint,proto3" json:"Endpoint,omitempty"`
+	Insecure      bool                   `protobuf:"varint,2,opt,name=Insecure,proto3" json:"Insecure,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InferenceGatewayOTLPExport) Reset() {
+	*x = InferenceGatewayOTLPExport{}
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[128]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InferenceGatewayOTLPExport) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InferenceGatewayOTLPExport) ProtoMessage() {}
+
+func (x *InferenceGatewayOTLPExport) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[128]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InferenceGatewayOTLPExport.ProtoReflect.Descriptor instead.
+func (*InferenceGatewayOTLPExport) Descriptor() ([]byte, []int) {
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{128}
+}
+
+func (x *InferenceGatewayOTLPExport) GetEndpoint() string {
+	if x != nil {
+		return x.Endpoint
+	}
+	return ""
+}
+
+func (x *InferenceGatewayOTLPExport) GetInsecure() bool {
+	if x != nil {
+		return x.Insecure
+	}
+	return false
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.InferenceGatewayProcessor
+// output=config_entry.gen.go
+// name=Structs
+type InferenceGatewayProcessor struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	FailureMode      string                 `protobuf:"bytes,1,opt,name=FailureMode,proto3" json:"FailureMode,omitempty"`
+	BodyModelRouting bool                   `protobuf:"varint,2,opt,name=BodyModelRouting,proto3" json:"BodyModelRouting,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *InferenceGatewayProcessor) Reset() {
+	*x = InferenceGatewayProcessor{}
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[129]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InferenceGatewayProcessor) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InferenceGatewayProcessor) ProtoMessage() {}
+
+func (x *InferenceGatewayProcessor) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[129]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InferenceGatewayProcessor.ProtoReflect.Descriptor instead.
+func (*InferenceGatewayProcessor) Descriptor() ([]byte, []int) {
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{129}
+}
+
+func (x *InferenceGatewayProcessor) GetFailureMode() string {
+	if x != nil {
+		return x.FailureMode
+	}
+	return ""
+}
+
+func (x *InferenceGatewayProcessor) GetBodyModelRouting() bool {
+	if x != nil {
+		return x.BodyModelRouting
+	}
+	return false
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.InferenceGatewayFailover
+// output=config_entry.gen.go
+// name=Structs
+type InferenceGatewayFailover struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	RetryOn []string               `protobuf:"bytes,1,rep,name=RetryOn,proto3" json:"RetryOn,omitempty"`
+	// mog: func-to=int func-from=int32
+	MaxTiers      int32  `protobuf:"varint,2,opt,name=MaxTiers,proto3" json:"MaxTiers,omitempty"`
+	PerTryTimeout string `protobuf:"bytes,3,opt,name=PerTryTimeout,proto3" json:"PerTryTimeout,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InferenceGatewayFailover) Reset() {
+	*x = InferenceGatewayFailover{}
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[130]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InferenceGatewayFailover) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InferenceGatewayFailover) ProtoMessage() {}
+
+func (x *InferenceGatewayFailover) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[130]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InferenceGatewayFailover.ProtoReflect.Descriptor instead.
+func (*InferenceGatewayFailover) Descriptor() ([]byte, []int) {
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{130}
+}
+
+func (x *InferenceGatewayFailover) GetRetryOn() []string {
+	if x != nil {
+		return x.RetryOn
+	}
+	return nil
+}
+
+func (x *InferenceGatewayFailover) GetMaxTiers() int32 {
+	if x != nil {
+		return x.MaxTiers
+	}
+	return 0
+}
+
+func (x *InferenceGatewayFailover) GetPerTryTimeout() string {
+	if x != nil {
+		return x.PerTryTimeout
+	}
+	return ""
+}
+
 var File_private_pbconfigentry_config_entry_proto protoreflect.FileDescriptor
 
 const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"\n" +
-	"(private/pbconfigentry/config_entry.proto\x12%hashicorp.consul.internal.configentry\x1a%annotations/ratelimit/ratelimit.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dprivate/pbcommon/common.proto\"B\n" +
+	"(private/pbconfigentry/config_entry.proto\x12%hashicorp.consul.internal.configentry\x1a%annotations/ratelimit/ratelimit.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\x1a\x1dprivate/pbcommon/common.proto\"B\n" +
 	"\"GetResolvedExportedServicesRequest\x12\x1c\n" +
 	"\tPartition\x18\x01 \x01(\tR\tPartition\"\x81\x01\n" +
 	"#GetResolvedExportedServicesResponse\x12Z\n" +
@@ -9125,7 +10368,7 @@ const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"\n" +
 	"SourcePeer\x18\x03 \x01(\tR\n" +
 	"SourcePeer\x12(\n" +
-	"\x0fSourcePartition\x18\x04 \x01(\tR\x0fSourcePartition\"\xcf\f\n" +
+	"\x0fSourcePartition\x18\x04 \x01(\tR\x0fSourcePartition\"\xa3\x0e\n" +
 	"\vConfigEntry\x12?\n" +
 	"\x04Kind\x18\x01 \x01(\x0e2+.hashicorp.consul.internal.configentry.KindR\x04Kind\x12\x12\n" +
 	"\x04Name\x18\x02 \x01(\tR\x04Name\x12X\n" +
@@ -9149,7 +10392,9 @@ const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"\rSamenessGroup\x18\x0f \x01(\v24.hashicorp.consul.internal.configentry.SamenessGroupH\x00R\rSamenessGroup\x12V\n" +
 	"\vJWTProvider\x18\x10 \x01(\v22.hashicorp.consul.internal.configentry.JWTProviderH\x00R\vJWTProvider\x12e\n" +
 	"\x10ExportedServices\x18\x11 \x01(\v27.hashicorp.consul.internal.configentry.ExportedServicesH\x00R\x10ExportedServices\x12t\n" +
-	"\x15FileSystemCertificate\x18\x12 \x01(\v2<.hashicorp.consul.internal.configentry.FileSystemCertificateH\x00R\x15FileSystemCertificateB\a\n" +
+	"\x15FileSystemCertificate\x18\x12 \x01(\v2<.hashicorp.consul.internal.configentry.FileSystemCertificateH\x00R\x15FileSystemCertificate\x12e\n" +
+	"\x10InferenceGateway\x18\x13 \x01(\v27.hashicorp.consul.internal.configentry.InferenceGatewayH\x00R\x10InferenceGateway\x12k\n" +
+	"\x12TerminatingGateway\x18\x14 \x01(\v29.hashicorp.consul.internal.configentry.TerminatingGatewayH\x00R\x12TerminatingGatewayB\a\n" +
 	"\x05Entry\"\xf8\x04\n" +
 	"\n" +
 	"MeshConfig\x12m\n" +
@@ -9310,7 +10555,32 @@ const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"\x12PassiveHealthCheck\x18\v \x01(\v29.hashicorp.consul.internal.configentry.PassiveHealthCheckR\x12PassiveHealthCheck\x1a7\n" +
 	"\tMetaEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"g\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x81\x03\n" +
+	"\x12TerminatingGateway\x12P\n" +
+	"\bServices\x18\x01 \x03(\v24.hashicorp.consul.internal.configentry.LinkedServiceR\bServices\x12s\n" +
+	"\x13CredentialInjection\x18\x02 \x01(\v2A.hashicorp.consul.internal.configentry.GatewayCredentialInjectionR\x13CredentialInjection\x12W\n" +
+	"\x04Meta\x18\x03 \x03(\v2C.hashicorp.consul.internal.configentry.TerminatingGateway.MetaEntryR\x04Meta\x12\x12\n" +
+	"\x04Hash\x18\x04 \x01(\x04R\x04Hash\x1a7\n" +
+	"\tMetaEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xf6\x02\n" +
+	"\rLinkedService\x12\x12\n" +
+	"\x04Name\x18\x01 \x01(\tR\x04Name\x12\x16\n" +
+	"\x06CAFile\x18\x02 \x01(\tR\x06CAFile\x12\x1a\n" +
+	"\bCertFile\x18\x03 \x01(\tR\bCertFile\x12\x18\n" +
+	"\aKeyFile\x18\x04 \x01(\tR\aKeyFile\x12\x10\n" +
+	"\x03SNI\x18\x05 \x01(\tR\x03SNI\x126\n" +
+	"\x16DisableAutoHostRewrite\x18\x06 \x01(\bR\x16DisableAutoHostRewrite\x12X\n" +
+	"\x0eEnterpriseMeta\x18\a \x01(\v20.hashicorp.consul.internal.common.EnterpriseMetaR\x0eEnterpriseMeta\x12_\n" +
+	"\n" +
+	"Credential\x18\b \x01(\v2?.hashicorp.consul.internal.configentry.GatewayServiceCredentialR\n" +
+	"Credential\"^\n" +
+	"\x1aGatewayCredentialInjection\x12\x18\n" +
+	"\aUDSPath\x18\x01 \x01(\tR\aUDSPath\x12&\n" +
+	"\x0eMessageTimeout\x18\x02 \x01(\tR\x0eMessageTimeout\"L\n" +
+	"\x18GatewayServiceCredential\x12\x12\n" +
+	"\x04Mode\x18\x01 \x01(\tR\x04Mode\x12\x1c\n" +
+	"\tBindingID\x18\x02 \x01(\tR\tBindingID\"g\n" +
 	"\x17GatewayServiceTLSConfig\x12L\n" +
 	"\x03SDS\x18\x01 \x01(\v2:.hashicorp.consul.internal.configentry.GatewayTLSSDSConfigR\x03SDS\"\xcb\x02\n" +
 	"\x13HTTPHeaderModifiers\x12U\n" +
@@ -9628,11 +10898,15 @@ const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"StatPrefix\x18\x01 \x01(\tR\n" +
 	"StatPrefix\x12\x12\n" +
 	"\x04Mode\x18\x02 \x01(\tR\x04Mode\x12U\n" +
-	"\tOverrides\x18\x03 \x01(\v27.hashicorp.consul.internal.configentry.ExtProcOverridesR\tOverrides\"l\n" +
+	"\tOverrides\x18\x03 \x01(\v27.hashicorp.consul.internal.configentry.ExtProcOverridesR\tOverrides\"\xd8\x01\n" +
 	"\x10ExtProcOverrides\x12X\n" +
 	"\n" +
 	"Processing\x18\x01 \x01(\v28.hashicorp.consul.internal.configentry.ExtProcProcessingR\n" +
-	"Processing\"\xcf\x01\n" +
+	"Processing\x12j\n" +
+	"\x13GRPCInitialMetadata\x18\x02 \x03(\v28.hashicorp.consul.internal.configentry.ExtProcMetadataKVR\x13GRPCInitialMetadata\";\n" +
+	"\x11ExtProcMetadataKV\x12\x10\n" +
+	"\x03Key\x18\x01 \x01(\tR\x03Key\x12\x14\n" +
+	"\x05Value\x18\x02 \x01(\tR\x05Value\"\xcf\x01\n" +
 	"\x11ExtProcProcessing\x12[\n" +
 	"\aRequest\x18\x01 \x01(\v2A.hashicorp.consul.internal.configentry.ExtProcProcessingDirectionR\aRequest\x12]\n" +
 	"\bResponse\x18\x02 \x01(\v2A.hashicorp.consul.internal.configentry.ExtProcProcessingDirectionR\bResponse\"\xa2\x01\n" +
@@ -9797,7 +11071,56 @@ const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"\x18ExportedServicesConsumer\x12\x1c\n" +
 	"\tPartition\x18\x01 \x01(\tR\tPartition\x12\x12\n" +
 	"\x04Peer\x18\x02 \x01(\tR\x04Peer\x12$\n" +
-	"\rSamenessGroup\x18\x03 \x01(\tR\rSamenessGroup*\xe2\x02\n" +
+	"\rSamenessGroup\x18\x03 \x01(\tR\rSamenessGroup\"\xd5\x04\n" +
+	"\x10InferenceGateway\x12^\n" +
+	"\tProcessor\x18\x01 \x01(\v2@.hashicorp.consul.internal.configentry.InferenceGatewayProcessorR\tProcessor\x12U\n" +
+	"\x04Meta\x18\x02 \x03(\v2A.hashicorp.consul.internal.configentry.InferenceGateway.MetaEntryR\x04Meta\x12\x12\n" +
+	"\x04Hash\x18\x03 \x01(\x04R\x04Hash\x12[\n" +
+	"\bFailover\x18\x04 \x01(\v2?.hashicorp.consul.internal.configentry.InferenceGatewayFailoverR\bFailover\x12L\n" +
+	"\x03PII\x18\x05 \x01(\v2:.hashicorp.consul.internal.configentry.InferenceGatewayPIIR\x03PII\x12j\n" +
+	"\rObservability\x18\x06 \x01(\v2D.hashicorp.consul.internal.configentry.InferenceGatewayObservabilityR\rObservability\x12&\n" +
+	"\x0eRequestTimeout\x18\a \x01(\tR\x0eRequestTimeout\x1a7\n" +
+	"\tMetaEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xbc\x03\n" +
+	"\x13InferenceGatewayPII\x12U\n" +
+	"\x05Scope\x18\x01 \x01(\x0e2?.hashicorp.consul.internal.configentry.InferenceGatewayPIIScopeR\x05Scope\x12f\n" +
+	"\rDefaultAction\x18\x02 \x01(\x0e2@.hashicorp.consul.internal.configentry.InferenceGatewayPIIActionR\rDefaultAction\x120\n" +
+	"\x13StreamHoldbackBytes\x18\x03 \x01(\x05R\x13StreamHoldbackBytes\x12R\n" +
+	"\x04Mask\x18\x04 \x01(\v2>.hashicorp.consul.internal.configentry.InferenceGatewayPIIMaskR\x04Mask\x12`\n" +
+	"\tDetectors\x18\x05 \x03(\v2B.hashicorp.consul.internal.configentry.InferenceGatewayPIIDetectorR\tDetectors\"I\n" +
+	"\x17InferenceGatewayPIIMask\x12\x12\n" +
+	"\x04Char\x18\x01 \x01(\tR\x04Char\x12\x1a\n" +
+	"\bKeepLast\x18\x02 \x01(\x05R\bKeepLast\"\xa1\x01\n" +
+	"\x1bInferenceGatewayPIIDetector\x12\x12\n" +
+	"\x04Name\x18\x01 \x01(\tR\x04Name\x12\x14\n" +
+	"\x05Regex\x18\x02 \x01(\tR\x05Regex\x12X\n" +
+	"\x06Action\x18\x03 \x01(\x0e2@.hashicorp.consul.internal.configentry.InferenceGatewayPIIActionR\x06Action\"\xd3\x01\n" +
+	"\x1dInferenceGatewayObservability\x12X\n" +
+	"\aMetrics\x18\x01 \x01(\v2>.hashicorp.consul.internal.configentry.InferenceGatewayMetricsR\aMetrics\x12X\n" +
+	"\aTracing\x18\x02 \x01(\v2>.hashicorp.consul.internal.configentry.InferenceGatewayTracingR\aTracing\"\xb9\x02\n" +
+	"\x17InferenceGatewayMetrics\x124\n" +
+	"\aEnabled\x18\x01 \x01(\v2\x1a.google.protobuf.BoolValueR\aEnabled\x12h\n" +
+	"\n" +
+	"Prometheus\x18\x02 \x01(\v2H.hashicorp.consul.internal.configentry.InferenceGatewayMetricsPrometheusR\n" +
+	"Prometheus\x12U\n" +
+	"\x04OTLP\x18\x03 \x01(\v2A.hashicorp.consul.internal.configentry.InferenceGatewayOTLPExportR\x04OTLPJ\x04\b\x04\x10\x05J\x04\b\x05\x10\x06R\rSemconvSchemaR\fCustomLabels\"`\n" +
+	"!InferenceGatewayMetricsPrometheus\x12/\n" +
+	"\x04Port\x18\x01 \x01(\v2\x1b.google.protobuf.Int32ValueR\x04PortJ\x04\b\x02\x10\x03R\x04Path\"\xac\x01\n" +
+	"\x17InferenceGatewayTracing\x12\x18\n" +
+	"\aEnabled\x18\x01 \x01(\bR\aEnabled\x12U\n" +
+	"\x04OTLP\x18\x02 \x01(\v2A.hashicorp.consul.internal.configentry.InferenceGatewayOTLPExportR\x04OTLP\x12 \n" +
+	"\vSampleRatio\x18\x03 \x01(\x01R\vSampleRatio\"T\n" +
+	"\x1aInferenceGatewayOTLPExport\x12\x1a\n" +
+	"\bEndpoint\x18\x01 \x01(\tR\bEndpoint\x12\x1a\n" +
+	"\bInsecure\x18\x02 \x01(\bR\bInsecure\"i\n" +
+	"\x19InferenceGatewayProcessor\x12 \n" +
+	"\vFailureMode\x18\x01 \x01(\tR\vFailureMode\x12*\n" +
+	"\x10BodyModelRouting\x18\x02 \x01(\bR\x10BodyModelRouting\"v\n" +
+	"\x18InferenceGatewayFailover\x12\x18\n" +
+	"\aRetryOn\x18\x01 \x03(\tR\aRetryOn\x12\x1a\n" +
+	"\bMaxTiers\x18\x02 \x01(\x05R\bMaxTiers\x12$\n" +
+	"\rPerTryTimeout\x18\x03 \x01(\tR\rPerTryTimeout*\x98\x03\n" +
 	"\x04Kind\x12\x0f\n" +
 	"\vKindUnknown\x10\x00\x12\x12\n" +
 	"\x0eKindMeshConfig\x10\x01\x12\x17\n" +
@@ -9814,7 +11137,9 @@ const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"\x11KindSamenessGroup\x10\v\x12\x13\n" +
 	"\x0fKindJWTProvider\x10\f\x12\x18\n" +
 	"\x14KindExportedServices\x10\r\x12\x1d\n" +
-	"\x19KindFileSystemCertificate\x10\x0e*\xfe\x01\n" +
+	"\x19KindFileSystemCertificate\x10\x0e\x12\x18\n" +
+	"\x14KindInferenceGateway\x10\x0f\x12\x1a\n" +
+	"\x16KindTerminatingGateway\x10\x10*\xfe\x01\n" +
 	"\x1cPathWithEscapedSlashesAction\x12'\n" +
 	"#PathWithEscapedSlashesActionDefault\x10\x00\x12$\n" +
 	" PathWithEscapedSlashesActionKeep\x10\x01\x12&\n" +
@@ -9873,7 +11198,18 @@ const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"\x12HTTPQueryMatchType\x12\x17\n" +
 	"\x13HTTPQueryMatchExact\x10\x00\x12\x19\n" +
 	"\x15HTTPQueryMatchPresent\x10\x01\x12#\n" +
-	"\x1fHTTPQueryMatchRegularExpression\x10\x032\xfe\x02\n" +
+	"\x1fHTTPQueryMatchRegularExpression\x10\x03*\xaa\x01\n" +
+	"\x18InferenceGatewayPIIScope\x12!\n" +
+	"\x1dInferenceGatewayPIIScopeUnset\x10\x00\x12#\n" +
+	"\x1fInferenceGatewayPIIScopeRequest\x10\x01\x12$\n" +
+	" InferenceGatewayPIIScopeResponse\x10\x02\x12 \n" +
+	"\x1cInferenceGatewayPIIScopeBoth\x10\x03*\xd2\x01\n" +
+	"\x19InferenceGatewayPIIAction\x12\"\n" +
+	"\x1eInferenceGatewayPIIActionUnset\x10\x00\x12(\n" +
+	"$InferenceGatewayPIIActionPlaceholder\x10\x01\x12!\n" +
+	"\x1dInferenceGatewayPIIActionMask\x10\x02\x12\"\n" +
+	"\x1eInferenceGatewayPIIActionBlock\x10\x03\x12 \n" +
+	"\x1cInferenceGatewayPIIActionOff\x10\x042\xfe\x02\n" +
 	"\x12ConfigEntryService\x12\xbe\x01\n" +
 	"\x1bGetResolvedExportedServices\x12I.hashicorp.consul.internal.configentry.GetResolvedExportedServicesRequest\x1aJ.hashicorp.consul.internal.configentry.GetResolvedExportedServicesResponse\"\b\xe2\x86\x04\x04\b\x02\x10\f\x12\xa6\x01\n" +
 	"\x13GetImportedServices\x12A.hashicorp.consul.internal.configentry.GetImportedServicesRequest\x1aB.hashicorp.consul.internal.configentry.GetImportedServicesResponse\"\b\xe2\x86\x04\x04\b\x02\x10\fB\xae\x02\n" +
@@ -9891,8 +11227,8 @@ func file_private_pbconfigentry_config_entry_proto_rawDescGZIP() []byte {
 	return file_private_pbconfigentry_config_entry_proto_rawDescData
 }
 
-var file_private_pbconfigentry_config_entry_proto_enumTypes = make([]protoimpl.EnumInfo, 13)
-var file_private_pbconfigentry_config_entry_proto_msgTypes = make([]protoimpl.MessageInfo, 138)
+var file_private_pbconfigentry_config_entry_proto_enumTypes = make([]protoimpl.EnumInfo, 15)
+var file_private_pbconfigentry_config_entry_proto_msgTypes = make([]protoimpl.MessageInfo, 156)
 var file_private_pbconfigentry_config_entry_proto_goTypes = []any{
 	(Kind)(0),                                   // 0: hashicorp.consul.internal.configentry.Kind
 	(PathWithEscapedSlashesAction)(0),           // 1: hashicorp.consul.internal.configentry.PathWithEscapedSlashesAction
@@ -9907,369 +11243,416 @@ var file_private_pbconfigentry_config_entry_proto_goTypes = []any{
 	(HTTPHeaderMatchType)(0),                    // 10: hashicorp.consul.internal.configentry.HTTPHeaderMatchType
 	(HTTPPathMatchType)(0),                      // 11: hashicorp.consul.internal.configentry.HTTPPathMatchType
 	(HTTPQueryMatchType)(0),                     // 12: hashicorp.consul.internal.configentry.HTTPQueryMatchType
-	(*GetResolvedExportedServicesRequest)(nil),  // 13: hashicorp.consul.internal.configentry.GetResolvedExportedServicesRequest
-	(*GetResolvedExportedServicesResponse)(nil), // 14: hashicorp.consul.internal.configentry.GetResolvedExportedServicesResponse
-	(*ResolvedExportedService)(nil),             // 15: hashicorp.consul.internal.configentry.ResolvedExportedService
-	(*Consumers)(nil),                           // 16: hashicorp.consul.internal.configentry.Consumers
-	(*GetImportedServicesRequest)(nil),          // 17: hashicorp.consul.internal.configentry.GetImportedServicesRequest
-	(*GetImportedServicesResponse)(nil),         // 18: hashicorp.consul.internal.configentry.GetImportedServicesResponse
-	(*ImportedService)(nil),                     // 19: hashicorp.consul.internal.configentry.ImportedService
-	(*ConfigEntry)(nil),                         // 20: hashicorp.consul.internal.configentry.ConfigEntry
-	(*MeshConfig)(nil),                          // 21: hashicorp.consul.internal.configentry.MeshConfig
-	(*TransparentProxyMeshConfig)(nil),          // 22: hashicorp.consul.internal.configentry.TransparentProxyMeshConfig
-	(*MeshTLSConfig)(nil),                       // 23: hashicorp.consul.internal.configentry.MeshTLSConfig
-	(*MeshDirectionalTLSConfig)(nil),            // 24: hashicorp.consul.internal.configentry.MeshDirectionalTLSConfig
-	(*MeshHTTPConfig)(nil),                      // 25: hashicorp.consul.internal.configentry.MeshHTTPConfig
-	(*MeshDirectionalHTTPConfig)(nil),           // 26: hashicorp.consul.internal.configentry.MeshDirectionalHTTPConfig
-	(*PeeringMeshConfig)(nil),                   // 27: hashicorp.consul.internal.configentry.PeeringMeshConfig
-	(*RequestNormalizationMeshConfig)(nil),      // 28: hashicorp.consul.internal.configentry.RequestNormalizationMeshConfig
-	(*ServiceResolver)(nil),                     // 29: hashicorp.consul.internal.configentry.ServiceResolver
-	(*ServiceResolverSubset)(nil),               // 30: hashicorp.consul.internal.configentry.ServiceResolverSubset
-	(*ServiceResolverRedirect)(nil),             // 31: hashicorp.consul.internal.configentry.ServiceResolverRedirect
-	(*ServiceResolverFailover)(nil),             // 32: hashicorp.consul.internal.configentry.ServiceResolverFailover
-	(*ServiceResolverFailoverPolicy)(nil),       // 33: hashicorp.consul.internal.configentry.ServiceResolverFailoverPolicy
-	(*ServiceResolverPrioritizeByLocality)(nil), // 34: hashicorp.consul.internal.configentry.ServiceResolverPrioritizeByLocality
-	(*ServiceResolverFailoverTarget)(nil),       // 35: hashicorp.consul.internal.configentry.ServiceResolverFailoverTarget
-	(*LoadBalancer)(nil),                        // 36: hashicorp.consul.internal.configentry.LoadBalancer
-	(*RingHashConfig)(nil),                      // 37: hashicorp.consul.internal.configentry.RingHashConfig
-	(*LeastRequestConfig)(nil),                  // 38: hashicorp.consul.internal.configentry.LeastRequestConfig
-	(*HashPolicy)(nil),                          // 39: hashicorp.consul.internal.configentry.HashPolicy
-	(*CookieConfig)(nil),                        // 40: hashicorp.consul.internal.configentry.CookieConfig
-	(*IngressGateway)(nil),                      // 41: hashicorp.consul.internal.configentry.IngressGateway
-	(*IngressServiceConfig)(nil),                // 42: hashicorp.consul.internal.configentry.IngressServiceConfig
-	(*GatewayTLSConfig)(nil),                    // 43: hashicorp.consul.internal.configentry.GatewayTLSConfig
-	(*GatewayTLSSDSConfig)(nil),                 // 44: hashicorp.consul.internal.configentry.GatewayTLSSDSConfig
-	(*IngressListener)(nil),                     // 45: hashicorp.consul.internal.configentry.IngressListener
-	(*IngressService)(nil),                      // 46: hashicorp.consul.internal.configentry.IngressService
-	(*GatewayServiceTLSConfig)(nil),             // 47: hashicorp.consul.internal.configentry.GatewayServiceTLSConfig
-	(*HTTPHeaderModifiers)(nil),                 // 48: hashicorp.consul.internal.configentry.HTTPHeaderModifiers
-	(*ServiceIntentions)(nil),                   // 49: hashicorp.consul.internal.configentry.ServiceIntentions
-	(*IntentionJWTRequirement)(nil),             // 50: hashicorp.consul.internal.configentry.IntentionJWTRequirement
-	(*IntentionJWTProvider)(nil),                // 51: hashicorp.consul.internal.configentry.IntentionJWTProvider
-	(*IntentionJWTClaimVerification)(nil),       // 52: hashicorp.consul.internal.configentry.IntentionJWTClaimVerification
-	(*SourceIntention)(nil),                     // 53: hashicorp.consul.internal.configentry.SourceIntention
-	(*IntentionPermission)(nil),                 // 54: hashicorp.consul.internal.configentry.IntentionPermission
-	(*IntentionHTTPPermission)(nil),             // 55: hashicorp.consul.internal.configentry.IntentionHTTPPermission
-	(*IntentionHTTPHeaderPermission)(nil),       // 56: hashicorp.consul.internal.configentry.IntentionHTTPHeaderPermission
-	(*ServiceDefaults)(nil),                     // 57: hashicorp.consul.internal.configentry.ServiceDefaults
-	(*TransparentProxyConfig)(nil),              // 58: hashicorp.consul.internal.configentry.TransparentProxyConfig
-	(*MeshGatewayConfig)(nil),                   // 59: hashicorp.consul.internal.configentry.MeshGatewayConfig
-	(*ExposeConfig)(nil),                        // 60: hashicorp.consul.internal.configentry.ExposeConfig
-	(*ExposePath)(nil),                          // 61: hashicorp.consul.internal.configentry.ExposePath
-	(*UpstreamConfiguration)(nil),               // 62: hashicorp.consul.internal.configentry.UpstreamConfiguration
-	(*UpstreamConfig)(nil),                      // 63: hashicorp.consul.internal.configentry.UpstreamConfig
-	(*UpstreamLimits)(nil),                      // 64: hashicorp.consul.internal.configentry.UpstreamLimits
-	(*PassiveHealthCheck)(nil),                  // 65: hashicorp.consul.internal.configentry.PassiveHealthCheck
-	(*DestinationConfig)(nil),                   // 66: hashicorp.consul.internal.configentry.DestinationConfig
-	(*RateLimits)(nil),                          // 67: hashicorp.consul.internal.configentry.RateLimits
-	(*InstanceLevelRateLimits)(nil),             // 68: hashicorp.consul.internal.configentry.InstanceLevelRateLimits
-	(*InstanceLevelRouteRateLimits)(nil),        // 69: hashicorp.consul.internal.configentry.InstanceLevelRouteRateLimits
-	(*APIGateway)(nil),                          // 70: hashicorp.consul.internal.configentry.APIGateway
-	(*APIGatewayExtAuthz)(nil),                  // 71: hashicorp.consul.internal.configentry.APIGatewayExtAuthz
-	(*Status)(nil),                              // 72: hashicorp.consul.internal.configentry.Status
-	(*Condition)(nil),                           // 73: hashicorp.consul.internal.configentry.Condition
-	(*APIGatewayListener)(nil),                  // 74: hashicorp.consul.internal.configentry.APIGatewayListener
-	(*APIGatewayTLSConfiguration)(nil),          // 75: hashicorp.consul.internal.configentry.APIGatewayTLSConfiguration
-	(*APIGatewayPolicy)(nil),                    // 76: hashicorp.consul.internal.configentry.APIGatewayPolicy
-	(*APIGatewayJWTRequirement)(nil),            // 77: hashicorp.consul.internal.configentry.APIGatewayJWTRequirement
-	(*APIGatewayJWTProvider)(nil),               // 78: hashicorp.consul.internal.configentry.APIGatewayJWTProvider
-	(*APIGatewayJWTClaimVerification)(nil),      // 79: hashicorp.consul.internal.configentry.APIGatewayJWTClaimVerification
-	(*ResourceReference)(nil),                   // 80: hashicorp.consul.internal.configentry.ResourceReference
-	(*BoundAPIGateway)(nil),                     // 81: hashicorp.consul.internal.configentry.BoundAPIGateway
-	(*ListOfResourceReference)(nil),             // 82: hashicorp.consul.internal.configentry.ListOfResourceReference
-	(*BoundAPIGatewayListener)(nil),             // 83: hashicorp.consul.internal.configentry.BoundAPIGatewayListener
-	(*FileSystemCertificate)(nil),               // 84: hashicorp.consul.internal.configentry.FileSystemCertificate
-	(*InlineCertificate)(nil),                   // 85: hashicorp.consul.internal.configentry.InlineCertificate
-	(*HTTPRoute)(nil),                           // 86: hashicorp.consul.internal.configentry.HTTPRoute
-	(*HTTPRouteRule)(nil),                       // 87: hashicorp.consul.internal.configentry.HTTPRouteRule
-	(*HTTPMatch)(nil),                           // 88: hashicorp.consul.internal.configentry.HTTPMatch
-	(*HTTPHeaderMatch)(nil),                     // 89: hashicorp.consul.internal.configentry.HTTPHeaderMatch
-	(*HTTPPathMatch)(nil),                       // 90: hashicorp.consul.internal.configentry.HTTPPathMatch
-	(*HTTPQueryMatch)(nil),                      // 91: hashicorp.consul.internal.configentry.HTTPQueryMatch
-	(*HTTPFilters)(nil),                         // 92: hashicorp.consul.internal.configentry.HTTPFilters
-	(*ExtProcFilter)(nil),                       // 93: hashicorp.consul.internal.configentry.ExtProcFilter
-	(*ExtProcOverrides)(nil),                    // 94: hashicorp.consul.internal.configentry.ExtProcOverrides
-	(*ExtProcProcessing)(nil),                   // 95: hashicorp.consul.internal.configentry.ExtProcProcessing
-	(*ExtProcProcessingDirection)(nil),          // 96: hashicorp.consul.internal.configentry.ExtProcProcessingDirection
-	(*HTTPRouteExtAuthzFilter)(nil),             // 97: hashicorp.consul.internal.configentry.HTTPRouteExtAuthzFilter
-	(*HTTPResponseFilters)(nil),                 // 98: hashicorp.consul.internal.configentry.HTTPResponseFilters
-	(*URLRewrite)(nil),                          // 99: hashicorp.consul.internal.configentry.URLRewrite
-	(*RetryFilter)(nil),                         // 100: hashicorp.consul.internal.configentry.RetryFilter
-	(*TimeoutFilter)(nil),                       // 101: hashicorp.consul.internal.configentry.TimeoutFilter
-	(*JWTFilter)(nil),                           // 102: hashicorp.consul.internal.configentry.JWTFilter
-	(*HTTPHeaderFilter)(nil),                    // 103: hashicorp.consul.internal.configentry.HTTPHeaderFilter
-	(*HTTPService)(nil),                         // 104: hashicorp.consul.internal.configentry.HTTPService
-	(*TCPRoute)(nil),                            // 105: hashicorp.consul.internal.configentry.TCPRoute
-	(*TCPService)(nil),                          // 106: hashicorp.consul.internal.configentry.TCPService
-	(*SamenessGroup)(nil),                       // 107: hashicorp.consul.internal.configentry.SamenessGroup
-	(*SamenessGroupMember)(nil),                 // 108: hashicorp.consul.internal.configentry.SamenessGroupMember
-	(*JWTProvider)(nil),                         // 109: hashicorp.consul.internal.configentry.JWTProvider
-	(*JSONWebKeySet)(nil),                       // 110: hashicorp.consul.internal.configentry.JSONWebKeySet
-	(*LocalJWKS)(nil),                           // 111: hashicorp.consul.internal.configentry.LocalJWKS
-	(*RemoteJWKS)(nil),                          // 112: hashicorp.consul.internal.configentry.RemoteJWKS
-	(*JWKSCluster)(nil),                         // 113: hashicorp.consul.internal.configentry.JWKSCluster
-	(*JWKSTLSCertificate)(nil),                  // 114: hashicorp.consul.internal.configentry.JWKSTLSCertificate
-	(*JWKSTLSCertProviderInstance)(nil),         // 115: hashicorp.consul.internal.configentry.JWKSTLSCertProviderInstance
-	(*JWKSTLSCertTrustedCA)(nil),                // 116: hashicorp.consul.internal.configentry.JWKSTLSCertTrustedCA
-	(*JWKSRetryPolicy)(nil),                     // 117: hashicorp.consul.internal.configentry.JWKSRetryPolicy
-	(*RetryPolicyBackOff)(nil),                  // 118: hashicorp.consul.internal.configentry.RetryPolicyBackOff
-	(*JWTLocation)(nil),                         // 119: hashicorp.consul.internal.configentry.JWTLocation
-	(*JWTLocationHeader)(nil),                   // 120: hashicorp.consul.internal.configentry.JWTLocationHeader
-	(*JWTLocationQueryParam)(nil),               // 121: hashicorp.consul.internal.configentry.JWTLocationQueryParam
-	(*JWTLocationCookie)(nil),                   // 122: hashicorp.consul.internal.configentry.JWTLocationCookie
-	(*JWTForwardingConfig)(nil),                 // 123: hashicorp.consul.internal.configentry.JWTForwardingConfig
-	(*JWTCacheConfig)(nil),                      // 124: hashicorp.consul.internal.configentry.JWTCacheConfig
-	(*ExportedServices)(nil),                    // 125: hashicorp.consul.internal.configentry.ExportedServices
-	(*ExportedServicesService)(nil),             // 126: hashicorp.consul.internal.configentry.ExportedServicesService
-	(*ExportedServicesConsumer)(nil),            // 127: hashicorp.consul.internal.configentry.ExportedServicesConsumer
-	nil,                                         // 128: hashicorp.consul.internal.configentry.MeshConfig.MetaEntry
-	nil,                                         // 129: hashicorp.consul.internal.configentry.ServiceResolver.SubsetsEntry
-	nil,                                         // 130: hashicorp.consul.internal.configentry.ServiceResolver.FailoverEntry
-	nil,                                         // 131: hashicorp.consul.internal.configentry.ServiceResolver.MetaEntry
-	nil,                                         // 132: hashicorp.consul.internal.configentry.IngressGateway.MetaEntry
-	nil,                                         // 133: hashicorp.consul.internal.configentry.IngressService.MetaEntry
-	nil,                                         // 134: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.AddEntry
-	nil,                                         // 135: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.SetEntry
-	nil,                                         // 136: hashicorp.consul.internal.configentry.ServiceIntentions.MetaEntry
-	nil,                                         // 137: hashicorp.consul.internal.configentry.SourceIntention.LegacyMetaEntry
-	nil,                                         // 138: hashicorp.consul.internal.configentry.ServiceDefaults.MetaEntry
-	nil,                                         // 139: hashicorp.consul.internal.configentry.APIGateway.MetaEntry
-	nil,                                         // 140: hashicorp.consul.internal.configentry.BoundAPIGateway.MetaEntry
-	nil,                                         // 141: hashicorp.consul.internal.configentry.BoundAPIGateway.ServicesEntry
-	nil,                                         // 142: hashicorp.consul.internal.configentry.FileSystemCertificate.MetaEntry
-	nil,                                         // 143: hashicorp.consul.internal.configentry.InlineCertificate.MetaEntry
-	nil,                                         // 144: hashicorp.consul.internal.configentry.HTTPRoute.MetaEntry
-	nil,                                         // 145: hashicorp.consul.internal.configentry.HTTPHeaderFilter.AddEntry
-	nil,                                         // 146: hashicorp.consul.internal.configentry.HTTPHeaderFilter.SetEntry
-	nil,                                         // 147: hashicorp.consul.internal.configentry.TCPRoute.MetaEntry
-	nil,                                         // 148: hashicorp.consul.internal.configentry.SamenessGroup.MetaEntry
-	nil,                                         // 149: hashicorp.consul.internal.configentry.JWTProvider.MetaEntry
-	nil,                                         // 150: hashicorp.consul.internal.configentry.ExportedServices.MetaEntry
-	(*pbcommon.EnterpriseMeta)(nil),             // 151: hashicorp.consul.internal.common.EnterpriseMeta
-	(*pbcommon.RaftIndex)(nil),                  // 152: hashicorp.consul.internal.common.RaftIndex
-	(*durationpb.Duration)(nil),                 // 153: google.protobuf.Duration
-	(*timestamppb.Timestamp)(nil),               // 154: google.protobuf.Timestamp
-	(*pbcommon.EnvoyExtension)(nil),             // 155: hashicorp.consul.internal.common.EnvoyExtension
+	(InferenceGatewayPIIScope)(0),               // 13: hashicorp.consul.internal.configentry.InferenceGatewayPIIScope
+	(InferenceGatewayPIIAction)(0),              // 14: hashicorp.consul.internal.configentry.InferenceGatewayPIIAction
+	(*GetResolvedExportedServicesRequest)(nil),  // 15: hashicorp.consul.internal.configentry.GetResolvedExportedServicesRequest
+	(*GetResolvedExportedServicesResponse)(nil), // 16: hashicorp.consul.internal.configentry.GetResolvedExportedServicesResponse
+	(*ResolvedExportedService)(nil),             // 17: hashicorp.consul.internal.configentry.ResolvedExportedService
+	(*Consumers)(nil),                           // 18: hashicorp.consul.internal.configentry.Consumers
+	(*GetImportedServicesRequest)(nil),          // 19: hashicorp.consul.internal.configentry.GetImportedServicesRequest
+	(*GetImportedServicesResponse)(nil),         // 20: hashicorp.consul.internal.configentry.GetImportedServicesResponse
+	(*ImportedService)(nil),                     // 21: hashicorp.consul.internal.configentry.ImportedService
+	(*ConfigEntry)(nil),                         // 22: hashicorp.consul.internal.configentry.ConfigEntry
+	(*MeshConfig)(nil),                          // 23: hashicorp.consul.internal.configentry.MeshConfig
+	(*TransparentProxyMeshConfig)(nil),          // 24: hashicorp.consul.internal.configentry.TransparentProxyMeshConfig
+	(*MeshTLSConfig)(nil),                       // 25: hashicorp.consul.internal.configentry.MeshTLSConfig
+	(*MeshDirectionalTLSConfig)(nil),            // 26: hashicorp.consul.internal.configentry.MeshDirectionalTLSConfig
+	(*MeshHTTPConfig)(nil),                      // 27: hashicorp.consul.internal.configentry.MeshHTTPConfig
+	(*MeshDirectionalHTTPConfig)(nil),           // 28: hashicorp.consul.internal.configentry.MeshDirectionalHTTPConfig
+	(*PeeringMeshConfig)(nil),                   // 29: hashicorp.consul.internal.configentry.PeeringMeshConfig
+	(*RequestNormalizationMeshConfig)(nil),      // 30: hashicorp.consul.internal.configentry.RequestNormalizationMeshConfig
+	(*ServiceResolver)(nil),                     // 31: hashicorp.consul.internal.configentry.ServiceResolver
+	(*ServiceResolverSubset)(nil),               // 32: hashicorp.consul.internal.configentry.ServiceResolverSubset
+	(*ServiceResolverRedirect)(nil),             // 33: hashicorp.consul.internal.configentry.ServiceResolverRedirect
+	(*ServiceResolverFailover)(nil),             // 34: hashicorp.consul.internal.configentry.ServiceResolverFailover
+	(*ServiceResolverFailoverPolicy)(nil),       // 35: hashicorp.consul.internal.configentry.ServiceResolverFailoverPolicy
+	(*ServiceResolverPrioritizeByLocality)(nil), // 36: hashicorp.consul.internal.configentry.ServiceResolverPrioritizeByLocality
+	(*ServiceResolverFailoverTarget)(nil),       // 37: hashicorp.consul.internal.configentry.ServiceResolverFailoverTarget
+	(*LoadBalancer)(nil),                        // 38: hashicorp.consul.internal.configentry.LoadBalancer
+	(*RingHashConfig)(nil),                      // 39: hashicorp.consul.internal.configentry.RingHashConfig
+	(*LeastRequestConfig)(nil),                  // 40: hashicorp.consul.internal.configentry.LeastRequestConfig
+	(*HashPolicy)(nil),                          // 41: hashicorp.consul.internal.configentry.HashPolicy
+	(*CookieConfig)(nil),                        // 42: hashicorp.consul.internal.configentry.CookieConfig
+	(*IngressGateway)(nil),                      // 43: hashicorp.consul.internal.configentry.IngressGateway
+	(*IngressServiceConfig)(nil),                // 44: hashicorp.consul.internal.configentry.IngressServiceConfig
+	(*GatewayTLSConfig)(nil),                    // 45: hashicorp.consul.internal.configentry.GatewayTLSConfig
+	(*GatewayTLSSDSConfig)(nil),                 // 46: hashicorp.consul.internal.configentry.GatewayTLSSDSConfig
+	(*IngressListener)(nil),                     // 47: hashicorp.consul.internal.configentry.IngressListener
+	(*IngressService)(nil),                      // 48: hashicorp.consul.internal.configentry.IngressService
+	(*TerminatingGateway)(nil),                  // 49: hashicorp.consul.internal.configentry.TerminatingGateway
+	(*LinkedService)(nil),                       // 50: hashicorp.consul.internal.configentry.LinkedService
+	(*GatewayCredentialInjection)(nil),          // 51: hashicorp.consul.internal.configentry.GatewayCredentialInjection
+	(*GatewayServiceCredential)(nil),            // 52: hashicorp.consul.internal.configentry.GatewayServiceCredential
+	(*GatewayServiceTLSConfig)(nil),             // 53: hashicorp.consul.internal.configentry.GatewayServiceTLSConfig
+	(*HTTPHeaderModifiers)(nil),                 // 54: hashicorp.consul.internal.configentry.HTTPHeaderModifiers
+	(*ServiceIntentions)(nil),                   // 55: hashicorp.consul.internal.configentry.ServiceIntentions
+	(*IntentionJWTRequirement)(nil),             // 56: hashicorp.consul.internal.configentry.IntentionJWTRequirement
+	(*IntentionJWTProvider)(nil),                // 57: hashicorp.consul.internal.configentry.IntentionJWTProvider
+	(*IntentionJWTClaimVerification)(nil),       // 58: hashicorp.consul.internal.configentry.IntentionJWTClaimVerification
+	(*SourceIntention)(nil),                     // 59: hashicorp.consul.internal.configentry.SourceIntention
+	(*IntentionPermission)(nil),                 // 60: hashicorp.consul.internal.configentry.IntentionPermission
+	(*IntentionHTTPPermission)(nil),             // 61: hashicorp.consul.internal.configentry.IntentionHTTPPermission
+	(*IntentionHTTPHeaderPermission)(nil),       // 62: hashicorp.consul.internal.configentry.IntentionHTTPHeaderPermission
+	(*ServiceDefaults)(nil),                     // 63: hashicorp.consul.internal.configentry.ServiceDefaults
+	(*TransparentProxyConfig)(nil),              // 64: hashicorp.consul.internal.configentry.TransparentProxyConfig
+	(*MeshGatewayConfig)(nil),                   // 65: hashicorp.consul.internal.configentry.MeshGatewayConfig
+	(*ExposeConfig)(nil),                        // 66: hashicorp.consul.internal.configentry.ExposeConfig
+	(*ExposePath)(nil),                          // 67: hashicorp.consul.internal.configentry.ExposePath
+	(*UpstreamConfiguration)(nil),               // 68: hashicorp.consul.internal.configentry.UpstreamConfiguration
+	(*UpstreamConfig)(nil),                      // 69: hashicorp.consul.internal.configentry.UpstreamConfig
+	(*UpstreamLimits)(nil),                      // 70: hashicorp.consul.internal.configentry.UpstreamLimits
+	(*PassiveHealthCheck)(nil),                  // 71: hashicorp.consul.internal.configentry.PassiveHealthCheck
+	(*DestinationConfig)(nil),                   // 72: hashicorp.consul.internal.configentry.DestinationConfig
+	(*RateLimits)(nil),                          // 73: hashicorp.consul.internal.configentry.RateLimits
+	(*InstanceLevelRateLimits)(nil),             // 74: hashicorp.consul.internal.configentry.InstanceLevelRateLimits
+	(*InstanceLevelRouteRateLimits)(nil),        // 75: hashicorp.consul.internal.configentry.InstanceLevelRouteRateLimits
+	(*APIGateway)(nil),                          // 76: hashicorp.consul.internal.configentry.APIGateway
+	(*APIGatewayExtAuthz)(nil),                  // 77: hashicorp.consul.internal.configentry.APIGatewayExtAuthz
+	(*Status)(nil),                              // 78: hashicorp.consul.internal.configentry.Status
+	(*Condition)(nil),                           // 79: hashicorp.consul.internal.configentry.Condition
+	(*APIGatewayListener)(nil),                  // 80: hashicorp.consul.internal.configentry.APIGatewayListener
+	(*APIGatewayTLSConfiguration)(nil),          // 81: hashicorp.consul.internal.configentry.APIGatewayTLSConfiguration
+	(*APIGatewayPolicy)(nil),                    // 82: hashicorp.consul.internal.configentry.APIGatewayPolicy
+	(*APIGatewayJWTRequirement)(nil),            // 83: hashicorp.consul.internal.configentry.APIGatewayJWTRequirement
+	(*APIGatewayJWTProvider)(nil),               // 84: hashicorp.consul.internal.configentry.APIGatewayJWTProvider
+	(*APIGatewayJWTClaimVerification)(nil),      // 85: hashicorp.consul.internal.configentry.APIGatewayJWTClaimVerification
+	(*ResourceReference)(nil),                   // 86: hashicorp.consul.internal.configentry.ResourceReference
+	(*BoundAPIGateway)(nil),                     // 87: hashicorp.consul.internal.configentry.BoundAPIGateway
+	(*ListOfResourceReference)(nil),             // 88: hashicorp.consul.internal.configentry.ListOfResourceReference
+	(*BoundAPIGatewayListener)(nil),             // 89: hashicorp.consul.internal.configentry.BoundAPIGatewayListener
+	(*FileSystemCertificate)(nil),               // 90: hashicorp.consul.internal.configentry.FileSystemCertificate
+	(*InlineCertificate)(nil),                   // 91: hashicorp.consul.internal.configentry.InlineCertificate
+	(*HTTPRoute)(nil),                           // 92: hashicorp.consul.internal.configentry.HTTPRoute
+	(*HTTPRouteRule)(nil),                       // 93: hashicorp.consul.internal.configentry.HTTPRouteRule
+	(*HTTPMatch)(nil),                           // 94: hashicorp.consul.internal.configentry.HTTPMatch
+	(*HTTPHeaderMatch)(nil),                     // 95: hashicorp.consul.internal.configentry.HTTPHeaderMatch
+	(*HTTPPathMatch)(nil),                       // 96: hashicorp.consul.internal.configentry.HTTPPathMatch
+	(*HTTPQueryMatch)(nil),                      // 97: hashicorp.consul.internal.configentry.HTTPQueryMatch
+	(*HTTPFilters)(nil),                         // 98: hashicorp.consul.internal.configentry.HTTPFilters
+	(*ExtProcFilter)(nil),                       // 99: hashicorp.consul.internal.configentry.ExtProcFilter
+	(*ExtProcOverrides)(nil),                    // 100: hashicorp.consul.internal.configentry.ExtProcOverrides
+	(*ExtProcMetadataKV)(nil),                   // 101: hashicorp.consul.internal.configentry.ExtProcMetadataKV
+	(*ExtProcProcessing)(nil),                   // 102: hashicorp.consul.internal.configentry.ExtProcProcessing
+	(*ExtProcProcessingDirection)(nil),          // 103: hashicorp.consul.internal.configentry.ExtProcProcessingDirection
+	(*HTTPRouteExtAuthzFilter)(nil),             // 104: hashicorp.consul.internal.configentry.HTTPRouteExtAuthzFilter
+	(*HTTPResponseFilters)(nil),                 // 105: hashicorp.consul.internal.configentry.HTTPResponseFilters
+	(*URLRewrite)(nil),                          // 106: hashicorp.consul.internal.configentry.URLRewrite
+	(*RetryFilter)(nil),                         // 107: hashicorp.consul.internal.configentry.RetryFilter
+	(*TimeoutFilter)(nil),                       // 108: hashicorp.consul.internal.configentry.TimeoutFilter
+	(*JWTFilter)(nil),                           // 109: hashicorp.consul.internal.configentry.JWTFilter
+	(*HTTPHeaderFilter)(nil),                    // 110: hashicorp.consul.internal.configentry.HTTPHeaderFilter
+	(*HTTPService)(nil),                         // 111: hashicorp.consul.internal.configentry.HTTPService
+	(*TCPRoute)(nil),                            // 112: hashicorp.consul.internal.configentry.TCPRoute
+	(*TCPService)(nil),                          // 113: hashicorp.consul.internal.configentry.TCPService
+	(*SamenessGroup)(nil),                       // 114: hashicorp.consul.internal.configentry.SamenessGroup
+	(*SamenessGroupMember)(nil),                 // 115: hashicorp.consul.internal.configentry.SamenessGroupMember
+	(*JWTProvider)(nil),                         // 116: hashicorp.consul.internal.configentry.JWTProvider
+	(*JSONWebKeySet)(nil),                       // 117: hashicorp.consul.internal.configentry.JSONWebKeySet
+	(*LocalJWKS)(nil),                           // 118: hashicorp.consul.internal.configentry.LocalJWKS
+	(*RemoteJWKS)(nil),                          // 119: hashicorp.consul.internal.configentry.RemoteJWKS
+	(*JWKSCluster)(nil),                         // 120: hashicorp.consul.internal.configentry.JWKSCluster
+	(*JWKSTLSCertificate)(nil),                  // 121: hashicorp.consul.internal.configentry.JWKSTLSCertificate
+	(*JWKSTLSCertProviderInstance)(nil),         // 122: hashicorp.consul.internal.configentry.JWKSTLSCertProviderInstance
+	(*JWKSTLSCertTrustedCA)(nil),                // 123: hashicorp.consul.internal.configentry.JWKSTLSCertTrustedCA
+	(*JWKSRetryPolicy)(nil),                     // 124: hashicorp.consul.internal.configentry.JWKSRetryPolicy
+	(*RetryPolicyBackOff)(nil),                  // 125: hashicorp.consul.internal.configentry.RetryPolicyBackOff
+	(*JWTLocation)(nil),                         // 126: hashicorp.consul.internal.configentry.JWTLocation
+	(*JWTLocationHeader)(nil),                   // 127: hashicorp.consul.internal.configentry.JWTLocationHeader
+	(*JWTLocationQueryParam)(nil),               // 128: hashicorp.consul.internal.configentry.JWTLocationQueryParam
+	(*JWTLocationCookie)(nil),                   // 129: hashicorp.consul.internal.configentry.JWTLocationCookie
+	(*JWTForwardingConfig)(nil),                 // 130: hashicorp.consul.internal.configentry.JWTForwardingConfig
+	(*JWTCacheConfig)(nil),                      // 131: hashicorp.consul.internal.configentry.JWTCacheConfig
+	(*ExportedServices)(nil),                    // 132: hashicorp.consul.internal.configentry.ExportedServices
+	(*ExportedServicesService)(nil),             // 133: hashicorp.consul.internal.configentry.ExportedServicesService
+	(*ExportedServicesConsumer)(nil),            // 134: hashicorp.consul.internal.configentry.ExportedServicesConsumer
+	(*InferenceGateway)(nil),                    // 135: hashicorp.consul.internal.configentry.InferenceGateway
+	(*InferenceGatewayPII)(nil),                 // 136: hashicorp.consul.internal.configentry.InferenceGatewayPII
+	(*InferenceGatewayPIIMask)(nil),             // 137: hashicorp.consul.internal.configentry.InferenceGatewayPIIMask
+	(*InferenceGatewayPIIDetector)(nil),         // 138: hashicorp.consul.internal.configentry.InferenceGatewayPIIDetector
+	(*InferenceGatewayObservability)(nil),       // 139: hashicorp.consul.internal.configentry.InferenceGatewayObservability
+	(*InferenceGatewayMetrics)(nil),             // 140: hashicorp.consul.internal.configentry.InferenceGatewayMetrics
+	(*InferenceGatewayMetricsPrometheus)(nil),   // 141: hashicorp.consul.internal.configentry.InferenceGatewayMetricsPrometheus
+	(*InferenceGatewayTracing)(nil),             // 142: hashicorp.consul.internal.configentry.InferenceGatewayTracing
+	(*InferenceGatewayOTLPExport)(nil),          // 143: hashicorp.consul.internal.configentry.InferenceGatewayOTLPExport
+	(*InferenceGatewayProcessor)(nil),           // 144: hashicorp.consul.internal.configentry.InferenceGatewayProcessor
+	(*InferenceGatewayFailover)(nil),            // 145: hashicorp.consul.internal.configentry.InferenceGatewayFailover
+	nil,                                         // 146: hashicorp.consul.internal.configentry.MeshConfig.MetaEntry
+	nil,                                         // 147: hashicorp.consul.internal.configentry.ServiceResolver.SubsetsEntry
+	nil,                                         // 148: hashicorp.consul.internal.configentry.ServiceResolver.FailoverEntry
+	nil,                                         // 149: hashicorp.consul.internal.configentry.ServiceResolver.MetaEntry
+	nil,                                         // 150: hashicorp.consul.internal.configentry.IngressGateway.MetaEntry
+	nil,                                         // 151: hashicorp.consul.internal.configentry.IngressService.MetaEntry
+	nil,                                         // 152: hashicorp.consul.internal.configentry.TerminatingGateway.MetaEntry
+	nil,                                         // 153: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.AddEntry
+	nil,                                         // 154: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.SetEntry
+	nil,                                         // 155: hashicorp.consul.internal.configentry.ServiceIntentions.MetaEntry
+	nil,                                         // 156: hashicorp.consul.internal.configentry.SourceIntention.LegacyMetaEntry
+	nil,                                         // 157: hashicorp.consul.internal.configentry.ServiceDefaults.MetaEntry
+	nil,                                         // 158: hashicorp.consul.internal.configentry.APIGateway.MetaEntry
+	nil,                                         // 159: hashicorp.consul.internal.configentry.BoundAPIGateway.MetaEntry
+	nil,                                         // 160: hashicorp.consul.internal.configentry.BoundAPIGateway.ServicesEntry
+	nil,                                         // 161: hashicorp.consul.internal.configentry.FileSystemCertificate.MetaEntry
+	nil,                                         // 162: hashicorp.consul.internal.configentry.InlineCertificate.MetaEntry
+	nil,                                         // 163: hashicorp.consul.internal.configentry.HTTPRoute.MetaEntry
+	nil,                                         // 164: hashicorp.consul.internal.configentry.HTTPHeaderFilter.AddEntry
+	nil,                                         // 165: hashicorp.consul.internal.configentry.HTTPHeaderFilter.SetEntry
+	nil,                                         // 166: hashicorp.consul.internal.configentry.TCPRoute.MetaEntry
+	nil,                                         // 167: hashicorp.consul.internal.configentry.SamenessGroup.MetaEntry
+	nil,                                         // 168: hashicorp.consul.internal.configentry.JWTProvider.MetaEntry
+	nil,                                         // 169: hashicorp.consul.internal.configentry.ExportedServices.MetaEntry
+	nil,                                         // 170: hashicorp.consul.internal.configentry.InferenceGateway.MetaEntry
+	(*pbcommon.EnterpriseMeta)(nil),             // 171: hashicorp.consul.internal.common.EnterpriseMeta
+	(*pbcommon.RaftIndex)(nil),                  // 172: hashicorp.consul.internal.common.RaftIndex
+	(*durationpb.Duration)(nil),                 // 173: google.protobuf.Duration
+	(*timestamppb.Timestamp)(nil),               // 174: google.protobuf.Timestamp
+	(*pbcommon.EnvoyExtension)(nil),             // 175: hashicorp.consul.internal.common.EnvoyExtension
+	(*wrapperspb.BoolValue)(nil),                // 176: google.protobuf.BoolValue
+	(*wrapperspb.Int32Value)(nil),               // 177: google.protobuf.Int32Value
 }
 var file_private_pbconfigentry_config_entry_proto_depIdxs = []int32{
-	15,  // 0: hashicorp.consul.internal.configentry.GetResolvedExportedServicesResponse.services:type_name -> hashicorp.consul.internal.configentry.ResolvedExportedService
-	151, // 1: hashicorp.consul.internal.configentry.ResolvedExportedService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
-	16,  // 2: hashicorp.consul.internal.configentry.ResolvedExportedService.Consumers:type_name -> hashicorp.consul.internal.configentry.Consumers
-	19,  // 3: hashicorp.consul.internal.configentry.GetImportedServicesResponse.Services:type_name -> hashicorp.consul.internal.configentry.ImportedService
-	151, // 4: hashicorp.consul.internal.configentry.ImportedService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	17,  // 0: hashicorp.consul.internal.configentry.GetResolvedExportedServicesResponse.services:type_name -> hashicorp.consul.internal.configentry.ResolvedExportedService
+	171, // 1: hashicorp.consul.internal.configentry.ResolvedExportedService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	18,  // 2: hashicorp.consul.internal.configentry.ResolvedExportedService.Consumers:type_name -> hashicorp.consul.internal.configentry.Consumers
+	21,  // 3: hashicorp.consul.internal.configentry.GetImportedServicesResponse.Services:type_name -> hashicorp.consul.internal.configentry.ImportedService
+	171, // 4: hashicorp.consul.internal.configentry.ImportedService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
 	0,   // 5: hashicorp.consul.internal.configentry.ConfigEntry.Kind:type_name -> hashicorp.consul.internal.configentry.Kind
-	151, // 6: hashicorp.consul.internal.configentry.ConfigEntry.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
-	152, // 7: hashicorp.consul.internal.configentry.ConfigEntry.RaftIndex:type_name -> hashicorp.consul.internal.common.RaftIndex
-	21,  // 8: hashicorp.consul.internal.configentry.ConfigEntry.MeshConfig:type_name -> hashicorp.consul.internal.configentry.MeshConfig
-	29,  // 9: hashicorp.consul.internal.configentry.ConfigEntry.ServiceResolver:type_name -> hashicorp.consul.internal.configentry.ServiceResolver
-	41,  // 10: hashicorp.consul.internal.configentry.ConfigEntry.IngressGateway:type_name -> hashicorp.consul.internal.configentry.IngressGateway
-	49,  // 11: hashicorp.consul.internal.configentry.ConfigEntry.ServiceIntentions:type_name -> hashicorp.consul.internal.configentry.ServiceIntentions
-	57,  // 12: hashicorp.consul.internal.configentry.ConfigEntry.ServiceDefaults:type_name -> hashicorp.consul.internal.configentry.ServiceDefaults
-	70,  // 13: hashicorp.consul.internal.configentry.ConfigEntry.APIGateway:type_name -> hashicorp.consul.internal.configentry.APIGateway
-	81,  // 14: hashicorp.consul.internal.configentry.ConfigEntry.BoundAPIGateway:type_name -> hashicorp.consul.internal.configentry.BoundAPIGateway
-	105, // 15: hashicorp.consul.internal.configentry.ConfigEntry.TCPRoute:type_name -> hashicorp.consul.internal.configentry.TCPRoute
-	86,  // 16: hashicorp.consul.internal.configentry.ConfigEntry.HTTPRoute:type_name -> hashicorp.consul.internal.configentry.HTTPRoute
-	85,  // 17: hashicorp.consul.internal.configentry.ConfigEntry.InlineCertificate:type_name -> hashicorp.consul.internal.configentry.InlineCertificate
-	107, // 18: hashicorp.consul.internal.configentry.ConfigEntry.SamenessGroup:type_name -> hashicorp.consul.internal.configentry.SamenessGroup
-	109, // 19: hashicorp.consul.internal.configentry.ConfigEntry.JWTProvider:type_name -> hashicorp.consul.internal.configentry.JWTProvider
-	125, // 20: hashicorp.consul.internal.configentry.ConfigEntry.ExportedServices:type_name -> hashicorp.consul.internal.configentry.ExportedServices
-	84,  // 21: hashicorp.consul.internal.configentry.ConfigEntry.FileSystemCertificate:type_name -> hashicorp.consul.internal.configentry.FileSystemCertificate
-	22,  // 22: hashicorp.consul.internal.configentry.MeshConfig.TransparentProxy:type_name -> hashicorp.consul.internal.configentry.TransparentProxyMeshConfig
-	23,  // 23: hashicorp.consul.internal.configentry.MeshConfig.TLS:type_name -> hashicorp.consul.internal.configentry.MeshTLSConfig
-	25,  // 24: hashicorp.consul.internal.configentry.MeshConfig.HTTP:type_name -> hashicorp.consul.internal.configentry.MeshHTTPConfig
-	128, // 25: hashicorp.consul.internal.configentry.MeshConfig.Meta:type_name -> hashicorp.consul.internal.configentry.MeshConfig.MetaEntry
-	27,  // 26: hashicorp.consul.internal.configentry.MeshConfig.Peering:type_name -> hashicorp.consul.internal.configentry.PeeringMeshConfig
-	24,  // 27: hashicorp.consul.internal.configentry.MeshTLSConfig.Incoming:type_name -> hashicorp.consul.internal.configentry.MeshDirectionalTLSConfig
-	24,  // 28: hashicorp.consul.internal.configentry.MeshTLSConfig.Outgoing:type_name -> hashicorp.consul.internal.configentry.MeshDirectionalTLSConfig
-	26,  // 29: hashicorp.consul.internal.configentry.MeshHTTPConfig.Incoming:type_name -> hashicorp.consul.internal.configentry.MeshDirectionalHTTPConfig
-	28,  // 30: hashicorp.consul.internal.configentry.MeshDirectionalHTTPConfig.RequestNormalization:type_name -> hashicorp.consul.internal.configentry.RequestNormalizationMeshConfig
-	1,   // 31: hashicorp.consul.internal.configentry.RequestNormalizationMeshConfig.PathWithEscapedSlashesAction:type_name -> hashicorp.consul.internal.configentry.PathWithEscapedSlashesAction
-	2,   // 32: hashicorp.consul.internal.configentry.RequestNormalizationMeshConfig.HeadersWithUnderscoresAction:type_name -> hashicorp.consul.internal.configentry.HeadersWithUnderscoresAction
-	129, // 33: hashicorp.consul.internal.configentry.ServiceResolver.Subsets:type_name -> hashicorp.consul.internal.configentry.ServiceResolver.SubsetsEntry
-	31,  // 34: hashicorp.consul.internal.configentry.ServiceResolver.Redirect:type_name -> hashicorp.consul.internal.configentry.ServiceResolverRedirect
-	130, // 35: hashicorp.consul.internal.configentry.ServiceResolver.Failover:type_name -> hashicorp.consul.internal.configentry.ServiceResolver.FailoverEntry
-	153, // 36: hashicorp.consul.internal.configentry.ServiceResolver.ConnectTimeout:type_name -> google.protobuf.Duration
-	36,  // 37: hashicorp.consul.internal.configentry.ServiceResolver.LoadBalancer:type_name -> hashicorp.consul.internal.configentry.LoadBalancer
-	131, // 38: hashicorp.consul.internal.configentry.ServiceResolver.Meta:type_name -> hashicorp.consul.internal.configentry.ServiceResolver.MetaEntry
-	153, // 39: hashicorp.consul.internal.configentry.ServiceResolver.RequestTimeout:type_name -> google.protobuf.Duration
-	34,  // 40: hashicorp.consul.internal.configentry.ServiceResolver.PrioritizeByLocality:type_name -> hashicorp.consul.internal.configentry.ServiceResolverPrioritizeByLocality
-	35,  // 41: hashicorp.consul.internal.configentry.ServiceResolverFailover.Targets:type_name -> hashicorp.consul.internal.configentry.ServiceResolverFailoverTarget
-	33,  // 42: hashicorp.consul.internal.configentry.ServiceResolverFailover.Policy:type_name -> hashicorp.consul.internal.configentry.ServiceResolverFailoverPolicy
-	37,  // 43: hashicorp.consul.internal.configentry.LoadBalancer.RingHashConfig:type_name -> hashicorp.consul.internal.configentry.RingHashConfig
-	38,  // 44: hashicorp.consul.internal.configentry.LoadBalancer.LeastRequestConfig:type_name -> hashicorp.consul.internal.configentry.LeastRequestConfig
-	39,  // 45: hashicorp.consul.internal.configentry.LoadBalancer.HashPolicies:type_name -> hashicorp.consul.internal.configentry.HashPolicy
-	40,  // 46: hashicorp.consul.internal.configentry.HashPolicy.CookieConfig:type_name -> hashicorp.consul.internal.configentry.CookieConfig
-	153, // 47: hashicorp.consul.internal.configentry.CookieConfig.TTL:type_name -> google.protobuf.Duration
-	43,  // 48: hashicorp.consul.internal.configentry.IngressGateway.TLS:type_name -> hashicorp.consul.internal.configentry.GatewayTLSConfig
-	45,  // 49: hashicorp.consul.internal.configentry.IngressGateway.Listeners:type_name -> hashicorp.consul.internal.configentry.IngressListener
-	132, // 50: hashicorp.consul.internal.configentry.IngressGateway.Meta:type_name -> hashicorp.consul.internal.configentry.IngressGateway.MetaEntry
-	42,  // 51: hashicorp.consul.internal.configentry.IngressGateway.Defaults:type_name -> hashicorp.consul.internal.configentry.IngressServiceConfig
-	65,  // 52: hashicorp.consul.internal.configentry.IngressServiceConfig.PassiveHealthCheck:type_name -> hashicorp.consul.internal.configentry.PassiveHealthCheck
-	44,  // 53: hashicorp.consul.internal.configentry.GatewayTLSConfig.SDS:type_name -> hashicorp.consul.internal.configentry.GatewayTLSSDSConfig
-	46,  // 54: hashicorp.consul.internal.configentry.IngressListener.Services:type_name -> hashicorp.consul.internal.configentry.IngressService
-	43,  // 55: hashicorp.consul.internal.configentry.IngressListener.TLS:type_name -> hashicorp.consul.internal.configentry.GatewayTLSConfig
-	47,  // 56: hashicorp.consul.internal.configentry.IngressService.TLS:type_name -> hashicorp.consul.internal.configentry.GatewayServiceTLSConfig
-	48,  // 57: hashicorp.consul.internal.configentry.IngressService.RequestHeaders:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderModifiers
-	48,  // 58: hashicorp.consul.internal.configentry.IngressService.ResponseHeaders:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderModifiers
-	133, // 59: hashicorp.consul.internal.configentry.IngressService.Meta:type_name -> hashicorp.consul.internal.configentry.IngressService.MetaEntry
-	151, // 60: hashicorp.consul.internal.configentry.IngressService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
-	65,  // 61: hashicorp.consul.internal.configentry.IngressService.PassiveHealthCheck:type_name -> hashicorp.consul.internal.configentry.PassiveHealthCheck
-	44,  // 62: hashicorp.consul.internal.configentry.GatewayServiceTLSConfig.SDS:type_name -> hashicorp.consul.internal.configentry.GatewayTLSSDSConfig
-	134, // 63: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.Add:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderModifiers.AddEntry
-	135, // 64: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.Set:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderModifiers.SetEntry
-	53,  // 65: hashicorp.consul.internal.configentry.ServiceIntentions.Sources:type_name -> hashicorp.consul.internal.configentry.SourceIntention
-	136, // 66: hashicorp.consul.internal.configentry.ServiceIntentions.Meta:type_name -> hashicorp.consul.internal.configentry.ServiceIntentions.MetaEntry
-	50,  // 67: hashicorp.consul.internal.configentry.ServiceIntentions.JWT:type_name -> hashicorp.consul.internal.configentry.IntentionJWTRequirement
-	51,  // 68: hashicorp.consul.internal.configentry.IntentionJWTRequirement.Providers:type_name -> hashicorp.consul.internal.configentry.IntentionJWTProvider
-	52,  // 69: hashicorp.consul.internal.configentry.IntentionJWTProvider.VerifyClaims:type_name -> hashicorp.consul.internal.configentry.IntentionJWTClaimVerification
-	3,   // 70: hashicorp.consul.internal.configentry.SourceIntention.Action:type_name -> hashicorp.consul.internal.configentry.IntentionAction
-	54,  // 71: hashicorp.consul.internal.configentry.SourceIntention.Permissions:type_name -> hashicorp.consul.internal.configentry.IntentionPermission
-	4,   // 72: hashicorp.consul.internal.configentry.SourceIntention.Type:type_name -> hashicorp.consul.internal.configentry.IntentionSourceType
-	137, // 73: hashicorp.consul.internal.configentry.SourceIntention.LegacyMeta:type_name -> hashicorp.consul.internal.configentry.SourceIntention.LegacyMetaEntry
-	154, // 74: hashicorp.consul.internal.configentry.SourceIntention.LegacyCreateTime:type_name -> google.protobuf.Timestamp
-	154, // 75: hashicorp.consul.internal.configentry.SourceIntention.LegacyUpdateTime:type_name -> google.protobuf.Timestamp
-	151, // 76: hashicorp.consul.internal.configentry.SourceIntention.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
-	3,   // 77: hashicorp.consul.internal.configentry.IntentionPermission.Action:type_name -> hashicorp.consul.internal.configentry.IntentionAction
-	55,  // 78: hashicorp.consul.internal.configentry.IntentionPermission.HTTP:type_name -> hashicorp.consul.internal.configentry.IntentionHTTPPermission
-	50,  // 79: hashicorp.consul.internal.configentry.IntentionPermission.JWT:type_name -> hashicorp.consul.internal.configentry.IntentionJWTRequirement
-	56,  // 80: hashicorp.consul.internal.configentry.IntentionHTTPPermission.Header:type_name -> hashicorp.consul.internal.configentry.IntentionHTTPHeaderPermission
-	5,   // 81: hashicorp.consul.internal.configentry.ServiceDefaults.Mode:type_name -> hashicorp.consul.internal.configentry.ProxyMode
-	58,  // 82: hashicorp.consul.internal.configentry.ServiceDefaults.TransparentProxy:type_name -> hashicorp.consul.internal.configentry.TransparentProxyConfig
-	59,  // 83: hashicorp.consul.internal.configentry.ServiceDefaults.MeshGateway:type_name -> hashicorp.consul.internal.configentry.MeshGatewayConfig
-	60,  // 84: hashicorp.consul.internal.configentry.ServiceDefaults.Expose:type_name -> hashicorp.consul.internal.configentry.ExposeConfig
-	62,  // 85: hashicorp.consul.internal.configentry.ServiceDefaults.UpstreamConfig:type_name -> hashicorp.consul.internal.configentry.UpstreamConfiguration
-	66,  // 86: hashicorp.consul.internal.configentry.ServiceDefaults.Destination:type_name -> hashicorp.consul.internal.configentry.DestinationConfig
-	67,  // 87: hashicorp.consul.internal.configentry.ServiceDefaults.RateLimits:type_name -> hashicorp.consul.internal.configentry.RateLimits
-	138, // 88: hashicorp.consul.internal.configentry.ServiceDefaults.Meta:type_name -> hashicorp.consul.internal.configentry.ServiceDefaults.MetaEntry
-	155, // 89: hashicorp.consul.internal.configentry.ServiceDefaults.EnvoyExtensions:type_name -> hashicorp.consul.internal.common.EnvoyExtension
-	6,   // 90: hashicorp.consul.internal.configentry.ServiceDefaults.MutualTLSMode:type_name -> hashicorp.consul.internal.configentry.MutualTLSMode
-	7,   // 91: hashicorp.consul.internal.configentry.MeshGatewayConfig.Mode:type_name -> hashicorp.consul.internal.configentry.MeshGatewayMode
-	61,  // 92: hashicorp.consul.internal.configentry.ExposeConfig.Paths:type_name -> hashicorp.consul.internal.configentry.ExposePath
-	63,  // 93: hashicorp.consul.internal.configentry.UpstreamConfiguration.Overrides:type_name -> hashicorp.consul.internal.configentry.UpstreamConfig
-	63,  // 94: hashicorp.consul.internal.configentry.UpstreamConfiguration.Defaults:type_name -> hashicorp.consul.internal.configentry.UpstreamConfig
-	151, // 95: hashicorp.consul.internal.configentry.UpstreamConfig.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
-	64,  // 96: hashicorp.consul.internal.configentry.UpstreamConfig.Limits:type_name -> hashicorp.consul.internal.configentry.UpstreamLimits
-	65,  // 97: hashicorp.consul.internal.configentry.UpstreamConfig.PassiveHealthCheck:type_name -> hashicorp.consul.internal.configentry.PassiveHealthCheck
-	59,  // 98: hashicorp.consul.internal.configentry.UpstreamConfig.MeshGateway:type_name -> hashicorp.consul.internal.configentry.MeshGatewayConfig
-	65,  // 99: hashicorp.consul.internal.configentry.UpstreamLimits.PassiveHealthCheck:type_name -> hashicorp.consul.internal.configentry.PassiveHealthCheck
-	153, // 100: hashicorp.consul.internal.configentry.PassiveHealthCheck.Interval:type_name -> google.protobuf.Duration
-	153, // 101: hashicorp.consul.internal.configentry.PassiveHealthCheck.BaseEjectionTime:type_name -> google.protobuf.Duration
-	68,  // 102: hashicorp.consul.internal.configentry.RateLimits.InstanceLevel:type_name -> hashicorp.consul.internal.configentry.InstanceLevelRateLimits
-	69,  // 103: hashicorp.consul.internal.configentry.InstanceLevelRateLimits.Routes:type_name -> hashicorp.consul.internal.configentry.InstanceLevelRouteRateLimits
-	139, // 104: hashicorp.consul.internal.configentry.APIGateway.Meta:type_name -> hashicorp.consul.internal.configentry.APIGateway.MetaEntry
-	74,  // 105: hashicorp.consul.internal.configentry.APIGateway.Listeners:type_name -> hashicorp.consul.internal.configentry.APIGatewayListener
-	72,  // 106: hashicorp.consul.internal.configentry.APIGateway.Status:type_name -> hashicorp.consul.internal.configentry.Status
-	43,  // 107: hashicorp.consul.internal.configentry.APIGateway.TLS:type_name -> hashicorp.consul.internal.configentry.GatewayTLSConfig
-	64,  // 108: hashicorp.consul.internal.configentry.APIGateway.Defaults:type_name -> hashicorp.consul.internal.configentry.UpstreamLimits
-	71,  // 109: hashicorp.consul.internal.configentry.APIGateway.ExtAuthz:type_name -> hashicorp.consul.internal.configentry.APIGatewayExtAuthz
-	73,  // 110: hashicorp.consul.internal.configentry.Status.Conditions:type_name -> hashicorp.consul.internal.configentry.Condition
-	80,  // 111: hashicorp.consul.internal.configentry.Condition.Resource:type_name -> hashicorp.consul.internal.configentry.ResourceReference
-	154, // 112: hashicorp.consul.internal.configentry.Condition.LastTransitionTime:type_name -> google.protobuf.Timestamp
-	8,   // 113: hashicorp.consul.internal.configentry.APIGatewayListener.Protocol:type_name -> hashicorp.consul.internal.configentry.APIGatewayListenerProtocol
-	75,  // 114: hashicorp.consul.internal.configentry.APIGatewayListener.TLS:type_name -> hashicorp.consul.internal.configentry.APIGatewayTLSConfiguration
-	76,  // 115: hashicorp.consul.internal.configentry.APIGatewayListener.Override:type_name -> hashicorp.consul.internal.configentry.APIGatewayPolicy
-	76,  // 116: hashicorp.consul.internal.configentry.APIGatewayListener.Default:type_name -> hashicorp.consul.internal.configentry.APIGatewayPolicy
-	80,  // 117: hashicorp.consul.internal.configentry.APIGatewayTLSConfiguration.Certificates:type_name -> hashicorp.consul.internal.configentry.ResourceReference
-	44,  // 118: hashicorp.consul.internal.configentry.APIGatewayTLSConfiguration.SDS:type_name -> hashicorp.consul.internal.configentry.GatewayTLSSDSConfig
-	77,  // 119: hashicorp.consul.internal.configentry.APIGatewayPolicy.JWT:type_name -> hashicorp.consul.internal.configentry.APIGatewayJWTRequirement
-	78,  // 120: hashicorp.consul.internal.configentry.APIGatewayJWTRequirement.Providers:type_name -> hashicorp.consul.internal.configentry.APIGatewayJWTProvider
-	79,  // 121: hashicorp.consul.internal.configentry.APIGatewayJWTProvider.VerifyClaims:type_name -> hashicorp.consul.internal.configentry.APIGatewayJWTClaimVerification
-	151, // 122: hashicorp.consul.internal.configentry.ResourceReference.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
-	140, // 123: hashicorp.consul.internal.configentry.BoundAPIGateway.Meta:type_name -> hashicorp.consul.internal.configentry.BoundAPIGateway.MetaEntry
-	83,  // 124: hashicorp.consul.internal.configentry.BoundAPIGateway.Listeners:type_name -> hashicorp.consul.internal.configentry.BoundAPIGatewayListener
-	141, // 125: hashicorp.consul.internal.configentry.BoundAPIGateway.Services:type_name -> hashicorp.consul.internal.configentry.BoundAPIGateway.ServicesEntry
-	80,  // 126: hashicorp.consul.internal.configentry.ListOfResourceReference.Ref:type_name -> hashicorp.consul.internal.configentry.ResourceReference
-	80,  // 127: hashicorp.consul.internal.configentry.BoundAPIGatewayListener.Certificates:type_name -> hashicorp.consul.internal.configentry.ResourceReference
-	80,  // 128: hashicorp.consul.internal.configentry.BoundAPIGatewayListener.Routes:type_name -> hashicorp.consul.internal.configentry.ResourceReference
-	8,   // 129: hashicorp.consul.internal.configentry.BoundAPIGatewayListener.Protocol:type_name -> hashicorp.consul.internal.configentry.APIGatewayListenerProtocol
-	75,  // 130: hashicorp.consul.internal.configentry.BoundAPIGatewayListener.TLS:type_name -> hashicorp.consul.internal.configentry.APIGatewayTLSConfiguration
-	76,  // 131: hashicorp.consul.internal.configentry.BoundAPIGatewayListener.Override:type_name -> hashicorp.consul.internal.configentry.APIGatewayPolicy
-	76,  // 132: hashicorp.consul.internal.configentry.BoundAPIGatewayListener.Default:type_name -> hashicorp.consul.internal.configentry.APIGatewayPolicy
-	142, // 133: hashicorp.consul.internal.configentry.FileSystemCertificate.Meta:type_name -> hashicorp.consul.internal.configentry.FileSystemCertificate.MetaEntry
-	143, // 134: hashicorp.consul.internal.configentry.InlineCertificate.Meta:type_name -> hashicorp.consul.internal.configentry.InlineCertificate.MetaEntry
-	144, // 135: hashicorp.consul.internal.configentry.HTTPRoute.Meta:type_name -> hashicorp.consul.internal.configentry.HTTPRoute.MetaEntry
-	80,  // 136: hashicorp.consul.internal.configentry.HTTPRoute.Parents:type_name -> hashicorp.consul.internal.configentry.ResourceReference
-	87,  // 137: hashicorp.consul.internal.configentry.HTTPRoute.Rules:type_name -> hashicorp.consul.internal.configentry.HTTPRouteRule
-	72,  // 138: hashicorp.consul.internal.configentry.HTTPRoute.Status:type_name -> hashicorp.consul.internal.configentry.Status
-	92,  // 139: hashicorp.consul.internal.configentry.HTTPRouteRule.Filters:type_name -> hashicorp.consul.internal.configentry.HTTPFilters
-	88,  // 140: hashicorp.consul.internal.configentry.HTTPRouteRule.Matches:type_name -> hashicorp.consul.internal.configentry.HTTPMatch
-	104, // 141: hashicorp.consul.internal.configentry.HTTPRouteRule.Services:type_name -> hashicorp.consul.internal.configentry.HTTPService
-	98,  // 142: hashicorp.consul.internal.configentry.HTTPRouteRule.ResponseFilters:type_name -> hashicorp.consul.internal.configentry.HTTPResponseFilters
-	89,  // 143: hashicorp.consul.internal.configentry.HTTPMatch.Headers:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderMatch
-	9,   // 144: hashicorp.consul.internal.configentry.HTTPMatch.Method:type_name -> hashicorp.consul.internal.configentry.HTTPMatchMethod
-	90,  // 145: hashicorp.consul.internal.configentry.HTTPMatch.Path:type_name -> hashicorp.consul.internal.configentry.HTTPPathMatch
-	91,  // 146: hashicorp.consul.internal.configentry.HTTPMatch.Query:type_name -> hashicorp.consul.internal.configentry.HTTPQueryMatch
-	10,  // 147: hashicorp.consul.internal.configentry.HTTPHeaderMatch.Match:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderMatchType
-	11,  // 148: hashicorp.consul.internal.configentry.HTTPPathMatch.Match:type_name -> hashicorp.consul.internal.configentry.HTTPPathMatchType
-	12,  // 149: hashicorp.consul.internal.configentry.HTTPQueryMatch.Match:type_name -> hashicorp.consul.internal.configentry.HTTPQueryMatchType
-	103, // 150: hashicorp.consul.internal.configentry.HTTPFilters.Headers:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderFilter
-	99,  // 151: hashicorp.consul.internal.configentry.HTTPFilters.URLRewrite:type_name -> hashicorp.consul.internal.configentry.URLRewrite
-	100, // 152: hashicorp.consul.internal.configentry.HTTPFilters.RetryFilter:type_name -> hashicorp.consul.internal.configentry.RetryFilter
-	101, // 153: hashicorp.consul.internal.configentry.HTTPFilters.TimeoutFilter:type_name -> hashicorp.consul.internal.configentry.TimeoutFilter
-	102, // 154: hashicorp.consul.internal.configentry.HTTPFilters.JWT:type_name -> hashicorp.consul.internal.configentry.JWTFilter
-	97,  // 155: hashicorp.consul.internal.configentry.HTTPFilters.ExtAuthz:type_name -> hashicorp.consul.internal.configentry.HTTPRouteExtAuthzFilter
-	93,  // 156: hashicorp.consul.internal.configentry.HTTPFilters.ExtProc:type_name -> hashicorp.consul.internal.configentry.ExtProcFilter
-	94,  // 157: hashicorp.consul.internal.configentry.ExtProcFilter.Overrides:type_name -> hashicorp.consul.internal.configentry.ExtProcOverrides
-	95,  // 158: hashicorp.consul.internal.configentry.ExtProcOverrides.Processing:type_name -> hashicorp.consul.internal.configentry.ExtProcProcessing
-	96,  // 159: hashicorp.consul.internal.configentry.ExtProcProcessing.Request:type_name -> hashicorp.consul.internal.configentry.ExtProcProcessingDirection
-	96,  // 160: hashicorp.consul.internal.configentry.ExtProcProcessing.Response:type_name -> hashicorp.consul.internal.configentry.ExtProcProcessingDirection
-	103, // 161: hashicorp.consul.internal.configentry.HTTPResponseFilters.Headers:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderFilter
-	153, // 162: hashicorp.consul.internal.configentry.TimeoutFilter.RequestTimeout:type_name -> google.protobuf.Duration
-	153, // 163: hashicorp.consul.internal.configentry.TimeoutFilter.IdleTimeout:type_name -> google.protobuf.Duration
-	78,  // 164: hashicorp.consul.internal.configentry.JWTFilter.Providers:type_name -> hashicorp.consul.internal.configentry.APIGatewayJWTProvider
-	145, // 165: hashicorp.consul.internal.configentry.HTTPHeaderFilter.Add:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderFilter.AddEntry
-	146, // 166: hashicorp.consul.internal.configentry.HTTPHeaderFilter.Set:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderFilter.SetEntry
-	92,  // 167: hashicorp.consul.internal.configentry.HTTPService.Filters:type_name -> hashicorp.consul.internal.configentry.HTTPFilters
-	151, // 168: hashicorp.consul.internal.configentry.HTTPService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
-	98,  // 169: hashicorp.consul.internal.configentry.HTTPService.ResponseFilters:type_name -> hashicorp.consul.internal.configentry.HTTPResponseFilters
-	47,  // 170: hashicorp.consul.internal.configentry.HTTPService.TLS:type_name -> hashicorp.consul.internal.configentry.GatewayServiceTLSConfig
-	64,  // 171: hashicorp.consul.internal.configentry.HTTPService.Limits:type_name -> hashicorp.consul.internal.configentry.UpstreamLimits
-	147, // 172: hashicorp.consul.internal.configentry.TCPRoute.Meta:type_name -> hashicorp.consul.internal.configentry.TCPRoute.MetaEntry
-	80,  // 173: hashicorp.consul.internal.configentry.TCPRoute.Parents:type_name -> hashicorp.consul.internal.configentry.ResourceReference
-	106, // 174: hashicorp.consul.internal.configentry.TCPRoute.Services:type_name -> hashicorp.consul.internal.configentry.TCPService
-	72,  // 175: hashicorp.consul.internal.configentry.TCPRoute.Status:type_name -> hashicorp.consul.internal.configentry.Status
-	151, // 176: hashicorp.consul.internal.configentry.TCPService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
-	47,  // 177: hashicorp.consul.internal.configentry.TCPService.TLS:type_name -> hashicorp.consul.internal.configentry.GatewayServiceTLSConfig
-	64,  // 178: hashicorp.consul.internal.configentry.TCPService.Limits:type_name -> hashicorp.consul.internal.configentry.UpstreamLimits
-	108, // 179: hashicorp.consul.internal.configentry.SamenessGroup.Members:type_name -> hashicorp.consul.internal.configentry.SamenessGroupMember
-	148, // 180: hashicorp.consul.internal.configentry.SamenessGroup.Meta:type_name -> hashicorp.consul.internal.configentry.SamenessGroup.MetaEntry
-	151, // 181: hashicorp.consul.internal.configentry.SamenessGroup.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
-	110, // 182: hashicorp.consul.internal.configentry.JWTProvider.JSONWebKeySet:type_name -> hashicorp.consul.internal.configentry.JSONWebKeySet
-	119, // 183: hashicorp.consul.internal.configentry.JWTProvider.Locations:type_name -> hashicorp.consul.internal.configentry.JWTLocation
-	123, // 184: hashicorp.consul.internal.configentry.JWTProvider.Forwarding:type_name -> hashicorp.consul.internal.configentry.JWTForwardingConfig
-	124, // 185: hashicorp.consul.internal.configentry.JWTProvider.CacheConfig:type_name -> hashicorp.consul.internal.configentry.JWTCacheConfig
-	149, // 186: hashicorp.consul.internal.configentry.JWTProvider.Meta:type_name -> hashicorp.consul.internal.configentry.JWTProvider.MetaEntry
-	111, // 187: hashicorp.consul.internal.configentry.JSONWebKeySet.Local:type_name -> hashicorp.consul.internal.configentry.LocalJWKS
-	112, // 188: hashicorp.consul.internal.configentry.JSONWebKeySet.Remote:type_name -> hashicorp.consul.internal.configentry.RemoteJWKS
-	153, // 189: hashicorp.consul.internal.configentry.RemoteJWKS.CacheDuration:type_name -> google.protobuf.Duration
-	117, // 190: hashicorp.consul.internal.configentry.RemoteJWKS.RetryPolicy:type_name -> hashicorp.consul.internal.configentry.JWKSRetryPolicy
-	113, // 191: hashicorp.consul.internal.configentry.RemoteJWKS.JWKSCluster:type_name -> hashicorp.consul.internal.configentry.JWKSCluster
-	114, // 192: hashicorp.consul.internal.configentry.JWKSCluster.TLSCertificates:type_name -> hashicorp.consul.internal.configentry.JWKSTLSCertificate
-	153, // 193: hashicorp.consul.internal.configentry.JWKSCluster.ConnectTimeout:type_name -> google.protobuf.Duration
-	115, // 194: hashicorp.consul.internal.configentry.JWKSTLSCertificate.CaCertificateProviderInstance:type_name -> hashicorp.consul.internal.configentry.JWKSTLSCertProviderInstance
-	116, // 195: hashicorp.consul.internal.configentry.JWKSTLSCertificate.TrustedCA:type_name -> hashicorp.consul.internal.configentry.JWKSTLSCertTrustedCA
-	118, // 196: hashicorp.consul.internal.configentry.JWKSRetryPolicy.RetryPolicyBackOff:type_name -> hashicorp.consul.internal.configentry.RetryPolicyBackOff
-	153, // 197: hashicorp.consul.internal.configentry.RetryPolicyBackOff.BaseInterval:type_name -> google.protobuf.Duration
-	153, // 198: hashicorp.consul.internal.configentry.RetryPolicyBackOff.MaxInterval:type_name -> google.protobuf.Duration
-	120, // 199: hashicorp.consul.internal.configentry.JWTLocation.Header:type_name -> hashicorp.consul.internal.configentry.JWTLocationHeader
-	121, // 200: hashicorp.consul.internal.configentry.JWTLocation.QueryParam:type_name -> hashicorp.consul.internal.configentry.JWTLocationQueryParam
-	122, // 201: hashicorp.consul.internal.configentry.JWTLocation.Cookie:type_name -> hashicorp.consul.internal.configentry.JWTLocationCookie
-	151, // 202: hashicorp.consul.internal.configentry.ExportedServices.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
-	150, // 203: hashicorp.consul.internal.configentry.ExportedServices.Meta:type_name -> hashicorp.consul.internal.configentry.ExportedServices.MetaEntry
-	126, // 204: hashicorp.consul.internal.configentry.ExportedServices.Services:type_name -> hashicorp.consul.internal.configentry.ExportedServicesService
-	127, // 205: hashicorp.consul.internal.configentry.ExportedServicesService.Consumers:type_name -> hashicorp.consul.internal.configentry.ExportedServicesConsumer
-	30,  // 206: hashicorp.consul.internal.configentry.ServiceResolver.SubsetsEntry.value:type_name -> hashicorp.consul.internal.configentry.ServiceResolverSubset
-	32,  // 207: hashicorp.consul.internal.configentry.ServiceResolver.FailoverEntry.value:type_name -> hashicorp.consul.internal.configentry.ServiceResolverFailover
-	82,  // 208: hashicorp.consul.internal.configentry.BoundAPIGateway.ServicesEntry.value:type_name -> hashicorp.consul.internal.configentry.ListOfResourceReference
-	13,  // 209: hashicorp.consul.internal.configentry.ConfigEntryService.GetResolvedExportedServices:input_type -> hashicorp.consul.internal.configentry.GetResolvedExportedServicesRequest
-	17,  // 210: hashicorp.consul.internal.configentry.ConfigEntryService.GetImportedServices:input_type -> hashicorp.consul.internal.configentry.GetImportedServicesRequest
-	14,  // 211: hashicorp.consul.internal.configentry.ConfigEntryService.GetResolvedExportedServices:output_type -> hashicorp.consul.internal.configentry.GetResolvedExportedServicesResponse
-	18,  // 212: hashicorp.consul.internal.configentry.ConfigEntryService.GetImportedServices:output_type -> hashicorp.consul.internal.configentry.GetImportedServicesResponse
-	211, // [211:213] is the sub-list for method output_type
-	209, // [209:211] is the sub-list for method input_type
-	209, // [209:209] is the sub-list for extension type_name
-	209, // [209:209] is the sub-list for extension extendee
-	0,   // [0:209] is the sub-list for field type_name
+	171, // 6: hashicorp.consul.internal.configentry.ConfigEntry.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	172, // 7: hashicorp.consul.internal.configentry.ConfigEntry.RaftIndex:type_name -> hashicorp.consul.internal.common.RaftIndex
+	23,  // 8: hashicorp.consul.internal.configentry.ConfigEntry.MeshConfig:type_name -> hashicorp.consul.internal.configentry.MeshConfig
+	31,  // 9: hashicorp.consul.internal.configentry.ConfigEntry.ServiceResolver:type_name -> hashicorp.consul.internal.configentry.ServiceResolver
+	43,  // 10: hashicorp.consul.internal.configentry.ConfigEntry.IngressGateway:type_name -> hashicorp.consul.internal.configentry.IngressGateway
+	55,  // 11: hashicorp.consul.internal.configentry.ConfigEntry.ServiceIntentions:type_name -> hashicorp.consul.internal.configentry.ServiceIntentions
+	63,  // 12: hashicorp.consul.internal.configentry.ConfigEntry.ServiceDefaults:type_name -> hashicorp.consul.internal.configentry.ServiceDefaults
+	76,  // 13: hashicorp.consul.internal.configentry.ConfigEntry.APIGateway:type_name -> hashicorp.consul.internal.configentry.APIGateway
+	87,  // 14: hashicorp.consul.internal.configentry.ConfigEntry.BoundAPIGateway:type_name -> hashicorp.consul.internal.configentry.BoundAPIGateway
+	112, // 15: hashicorp.consul.internal.configentry.ConfigEntry.TCPRoute:type_name -> hashicorp.consul.internal.configentry.TCPRoute
+	92,  // 16: hashicorp.consul.internal.configentry.ConfigEntry.HTTPRoute:type_name -> hashicorp.consul.internal.configentry.HTTPRoute
+	91,  // 17: hashicorp.consul.internal.configentry.ConfigEntry.InlineCertificate:type_name -> hashicorp.consul.internal.configentry.InlineCertificate
+	114, // 18: hashicorp.consul.internal.configentry.ConfigEntry.SamenessGroup:type_name -> hashicorp.consul.internal.configentry.SamenessGroup
+	116, // 19: hashicorp.consul.internal.configentry.ConfigEntry.JWTProvider:type_name -> hashicorp.consul.internal.configentry.JWTProvider
+	132, // 20: hashicorp.consul.internal.configentry.ConfigEntry.ExportedServices:type_name -> hashicorp.consul.internal.configentry.ExportedServices
+	90,  // 21: hashicorp.consul.internal.configentry.ConfigEntry.FileSystemCertificate:type_name -> hashicorp.consul.internal.configentry.FileSystemCertificate
+	135, // 22: hashicorp.consul.internal.configentry.ConfigEntry.InferenceGateway:type_name -> hashicorp.consul.internal.configentry.InferenceGateway
+	49,  // 23: hashicorp.consul.internal.configentry.ConfigEntry.TerminatingGateway:type_name -> hashicorp.consul.internal.configentry.TerminatingGateway
+	24,  // 24: hashicorp.consul.internal.configentry.MeshConfig.TransparentProxy:type_name -> hashicorp.consul.internal.configentry.TransparentProxyMeshConfig
+	25,  // 25: hashicorp.consul.internal.configentry.MeshConfig.TLS:type_name -> hashicorp.consul.internal.configentry.MeshTLSConfig
+	27,  // 26: hashicorp.consul.internal.configentry.MeshConfig.HTTP:type_name -> hashicorp.consul.internal.configentry.MeshHTTPConfig
+	146, // 27: hashicorp.consul.internal.configentry.MeshConfig.Meta:type_name -> hashicorp.consul.internal.configentry.MeshConfig.MetaEntry
+	29,  // 28: hashicorp.consul.internal.configentry.MeshConfig.Peering:type_name -> hashicorp.consul.internal.configentry.PeeringMeshConfig
+	26,  // 29: hashicorp.consul.internal.configentry.MeshTLSConfig.Incoming:type_name -> hashicorp.consul.internal.configentry.MeshDirectionalTLSConfig
+	26,  // 30: hashicorp.consul.internal.configentry.MeshTLSConfig.Outgoing:type_name -> hashicorp.consul.internal.configentry.MeshDirectionalTLSConfig
+	28,  // 31: hashicorp.consul.internal.configentry.MeshHTTPConfig.Incoming:type_name -> hashicorp.consul.internal.configentry.MeshDirectionalHTTPConfig
+	30,  // 32: hashicorp.consul.internal.configentry.MeshDirectionalHTTPConfig.RequestNormalization:type_name -> hashicorp.consul.internal.configentry.RequestNormalizationMeshConfig
+	1,   // 33: hashicorp.consul.internal.configentry.RequestNormalizationMeshConfig.PathWithEscapedSlashesAction:type_name -> hashicorp.consul.internal.configentry.PathWithEscapedSlashesAction
+	2,   // 34: hashicorp.consul.internal.configentry.RequestNormalizationMeshConfig.HeadersWithUnderscoresAction:type_name -> hashicorp.consul.internal.configentry.HeadersWithUnderscoresAction
+	147, // 35: hashicorp.consul.internal.configentry.ServiceResolver.Subsets:type_name -> hashicorp.consul.internal.configentry.ServiceResolver.SubsetsEntry
+	33,  // 36: hashicorp.consul.internal.configentry.ServiceResolver.Redirect:type_name -> hashicorp.consul.internal.configentry.ServiceResolverRedirect
+	148, // 37: hashicorp.consul.internal.configentry.ServiceResolver.Failover:type_name -> hashicorp.consul.internal.configentry.ServiceResolver.FailoverEntry
+	173, // 38: hashicorp.consul.internal.configentry.ServiceResolver.ConnectTimeout:type_name -> google.protobuf.Duration
+	38,  // 39: hashicorp.consul.internal.configentry.ServiceResolver.LoadBalancer:type_name -> hashicorp.consul.internal.configentry.LoadBalancer
+	149, // 40: hashicorp.consul.internal.configentry.ServiceResolver.Meta:type_name -> hashicorp.consul.internal.configentry.ServiceResolver.MetaEntry
+	173, // 41: hashicorp.consul.internal.configentry.ServiceResolver.RequestTimeout:type_name -> google.protobuf.Duration
+	36,  // 42: hashicorp.consul.internal.configentry.ServiceResolver.PrioritizeByLocality:type_name -> hashicorp.consul.internal.configentry.ServiceResolverPrioritizeByLocality
+	37,  // 43: hashicorp.consul.internal.configentry.ServiceResolverFailover.Targets:type_name -> hashicorp.consul.internal.configentry.ServiceResolverFailoverTarget
+	35,  // 44: hashicorp.consul.internal.configentry.ServiceResolverFailover.Policy:type_name -> hashicorp.consul.internal.configentry.ServiceResolverFailoverPolicy
+	39,  // 45: hashicorp.consul.internal.configentry.LoadBalancer.RingHashConfig:type_name -> hashicorp.consul.internal.configentry.RingHashConfig
+	40,  // 46: hashicorp.consul.internal.configentry.LoadBalancer.LeastRequestConfig:type_name -> hashicorp.consul.internal.configentry.LeastRequestConfig
+	41,  // 47: hashicorp.consul.internal.configentry.LoadBalancer.HashPolicies:type_name -> hashicorp.consul.internal.configentry.HashPolicy
+	42,  // 48: hashicorp.consul.internal.configentry.HashPolicy.CookieConfig:type_name -> hashicorp.consul.internal.configentry.CookieConfig
+	173, // 49: hashicorp.consul.internal.configentry.CookieConfig.TTL:type_name -> google.protobuf.Duration
+	45,  // 50: hashicorp.consul.internal.configentry.IngressGateway.TLS:type_name -> hashicorp.consul.internal.configentry.GatewayTLSConfig
+	47,  // 51: hashicorp.consul.internal.configentry.IngressGateway.Listeners:type_name -> hashicorp.consul.internal.configentry.IngressListener
+	150, // 52: hashicorp.consul.internal.configentry.IngressGateway.Meta:type_name -> hashicorp.consul.internal.configentry.IngressGateway.MetaEntry
+	44,  // 53: hashicorp.consul.internal.configentry.IngressGateway.Defaults:type_name -> hashicorp.consul.internal.configentry.IngressServiceConfig
+	71,  // 54: hashicorp.consul.internal.configentry.IngressServiceConfig.PassiveHealthCheck:type_name -> hashicorp.consul.internal.configentry.PassiveHealthCheck
+	46,  // 55: hashicorp.consul.internal.configentry.GatewayTLSConfig.SDS:type_name -> hashicorp.consul.internal.configentry.GatewayTLSSDSConfig
+	48,  // 56: hashicorp.consul.internal.configentry.IngressListener.Services:type_name -> hashicorp.consul.internal.configentry.IngressService
+	45,  // 57: hashicorp.consul.internal.configentry.IngressListener.TLS:type_name -> hashicorp.consul.internal.configentry.GatewayTLSConfig
+	53,  // 58: hashicorp.consul.internal.configentry.IngressService.TLS:type_name -> hashicorp.consul.internal.configentry.GatewayServiceTLSConfig
+	54,  // 59: hashicorp.consul.internal.configentry.IngressService.RequestHeaders:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderModifiers
+	54,  // 60: hashicorp.consul.internal.configentry.IngressService.ResponseHeaders:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderModifiers
+	151, // 61: hashicorp.consul.internal.configentry.IngressService.Meta:type_name -> hashicorp.consul.internal.configentry.IngressService.MetaEntry
+	171, // 62: hashicorp.consul.internal.configentry.IngressService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	71,  // 63: hashicorp.consul.internal.configentry.IngressService.PassiveHealthCheck:type_name -> hashicorp.consul.internal.configentry.PassiveHealthCheck
+	50,  // 64: hashicorp.consul.internal.configentry.TerminatingGateway.Services:type_name -> hashicorp.consul.internal.configentry.LinkedService
+	51,  // 65: hashicorp.consul.internal.configentry.TerminatingGateway.CredentialInjection:type_name -> hashicorp.consul.internal.configentry.GatewayCredentialInjection
+	152, // 66: hashicorp.consul.internal.configentry.TerminatingGateway.Meta:type_name -> hashicorp.consul.internal.configentry.TerminatingGateway.MetaEntry
+	171, // 67: hashicorp.consul.internal.configentry.LinkedService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	52,  // 68: hashicorp.consul.internal.configentry.LinkedService.Credential:type_name -> hashicorp.consul.internal.configentry.GatewayServiceCredential
+	46,  // 69: hashicorp.consul.internal.configentry.GatewayServiceTLSConfig.SDS:type_name -> hashicorp.consul.internal.configentry.GatewayTLSSDSConfig
+	153, // 70: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.Add:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderModifiers.AddEntry
+	154, // 71: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.Set:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderModifiers.SetEntry
+	59,  // 72: hashicorp.consul.internal.configentry.ServiceIntentions.Sources:type_name -> hashicorp.consul.internal.configentry.SourceIntention
+	155, // 73: hashicorp.consul.internal.configentry.ServiceIntentions.Meta:type_name -> hashicorp.consul.internal.configentry.ServiceIntentions.MetaEntry
+	56,  // 74: hashicorp.consul.internal.configentry.ServiceIntentions.JWT:type_name -> hashicorp.consul.internal.configentry.IntentionJWTRequirement
+	57,  // 75: hashicorp.consul.internal.configentry.IntentionJWTRequirement.Providers:type_name -> hashicorp.consul.internal.configentry.IntentionJWTProvider
+	58,  // 76: hashicorp.consul.internal.configentry.IntentionJWTProvider.VerifyClaims:type_name -> hashicorp.consul.internal.configentry.IntentionJWTClaimVerification
+	3,   // 77: hashicorp.consul.internal.configentry.SourceIntention.Action:type_name -> hashicorp.consul.internal.configentry.IntentionAction
+	60,  // 78: hashicorp.consul.internal.configentry.SourceIntention.Permissions:type_name -> hashicorp.consul.internal.configentry.IntentionPermission
+	4,   // 79: hashicorp.consul.internal.configentry.SourceIntention.Type:type_name -> hashicorp.consul.internal.configentry.IntentionSourceType
+	156, // 80: hashicorp.consul.internal.configentry.SourceIntention.LegacyMeta:type_name -> hashicorp.consul.internal.configentry.SourceIntention.LegacyMetaEntry
+	174, // 81: hashicorp.consul.internal.configentry.SourceIntention.LegacyCreateTime:type_name -> google.protobuf.Timestamp
+	174, // 82: hashicorp.consul.internal.configentry.SourceIntention.LegacyUpdateTime:type_name -> google.protobuf.Timestamp
+	171, // 83: hashicorp.consul.internal.configentry.SourceIntention.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	3,   // 84: hashicorp.consul.internal.configentry.IntentionPermission.Action:type_name -> hashicorp.consul.internal.configentry.IntentionAction
+	61,  // 85: hashicorp.consul.internal.configentry.IntentionPermission.HTTP:type_name -> hashicorp.consul.internal.configentry.IntentionHTTPPermission
+	56,  // 86: hashicorp.consul.internal.configentry.IntentionPermission.JWT:type_name -> hashicorp.consul.internal.configentry.IntentionJWTRequirement
+	62,  // 87: hashicorp.consul.internal.configentry.IntentionHTTPPermission.Header:type_name -> hashicorp.consul.internal.configentry.IntentionHTTPHeaderPermission
+	5,   // 88: hashicorp.consul.internal.configentry.ServiceDefaults.Mode:type_name -> hashicorp.consul.internal.configentry.ProxyMode
+	64,  // 89: hashicorp.consul.internal.configentry.ServiceDefaults.TransparentProxy:type_name -> hashicorp.consul.internal.configentry.TransparentProxyConfig
+	65,  // 90: hashicorp.consul.internal.configentry.ServiceDefaults.MeshGateway:type_name -> hashicorp.consul.internal.configentry.MeshGatewayConfig
+	66,  // 91: hashicorp.consul.internal.configentry.ServiceDefaults.Expose:type_name -> hashicorp.consul.internal.configentry.ExposeConfig
+	68,  // 92: hashicorp.consul.internal.configentry.ServiceDefaults.UpstreamConfig:type_name -> hashicorp.consul.internal.configentry.UpstreamConfiguration
+	72,  // 93: hashicorp.consul.internal.configentry.ServiceDefaults.Destination:type_name -> hashicorp.consul.internal.configentry.DestinationConfig
+	73,  // 94: hashicorp.consul.internal.configentry.ServiceDefaults.RateLimits:type_name -> hashicorp.consul.internal.configentry.RateLimits
+	157, // 95: hashicorp.consul.internal.configentry.ServiceDefaults.Meta:type_name -> hashicorp.consul.internal.configentry.ServiceDefaults.MetaEntry
+	175, // 96: hashicorp.consul.internal.configentry.ServiceDefaults.EnvoyExtensions:type_name -> hashicorp.consul.internal.common.EnvoyExtension
+	6,   // 97: hashicorp.consul.internal.configentry.ServiceDefaults.MutualTLSMode:type_name -> hashicorp.consul.internal.configentry.MutualTLSMode
+	7,   // 98: hashicorp.consul.internal.configentry.MeshGatewayConfig.Mode:type_name -> hashicorp.consul.internal.configentry.MeshGatewayMode
+	67,  // 99: hashicorp.consul.internal.configentry.ExposeConfig.Paths:type_name -> hashicorp.consul.internal.configentry.ExposePath
+	69,  // 100: hashicorp.consul.internal.configentry.UpstreamConfiguration.Overrides:type_name -> hashicorp.consul.internal.configentry.UpstreamConfig
+	69,  // 101: hashicorp.consul.internal.configentry.UpstreamConfiguration.Defaults:type_name -> hashicorp.consul.internal.configentry.UpstreamConfig
+	171, // 102: hashicorp.consul.internal.configentry.UpstreamConfig.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	70,  // 103: hashicorp.consul.internal.configentry.UpstreamConfig.Limits:type_name -> hashicorp.consul.internal.configentry.UpstreamLimits
+	71,  // 104: hashicorp.consul.internal.configentry.UpstreamConfig.PassiveHealthCheck:type_name -> hashicorp.consul.internal.configentry.PassiveHealthCheck
+	65,  // 105: hashicorp.consul.internal.configentry.UpstreamConfig.MeshGateway:type_name -> hashicorp.consul.internal.configentry.MeshGatewayConfig
+	71,  // 106: hashicorp.consul.internal.configentry.UpstreamLimits.PassiveHealthCheck:type_name -> hashicorp.consul.internal.configentry.PassiveHealthCheck
+	173, // 107: hashicorp.consul.internal.configentry.PassiveHealthCheck.Interval:type_name -> google.protobuf.Duration
+	173, // 108: hashicorp.consul.internal.configentry.PassiveHealthCheck.BaseEjectionTime:type_name -> google.protobuf.Duration
+	74,  // 109: hashicorp.consul.internal.configentry.RateLimits.InstanceLevel:type_name -> hashicorp.consul.internal.configentry.InstanceLevelRateLimits
+	75,  // 110: hashicorp.consul.internal.configentry.InstanceLevelRateLimits.Routes:type_name -> hashicorp.consul.internal.configentry.InstanceLevelRouteRateLimits
+	158, // 111: hashicorp.consul.internal.configentry.APIGateway.Meta:type_name -> hashicorp.consul.internal.configentry.APIGateway.MetaEntry
+	80,  // 112: hashicorp.consul.internal.configentry.APIGateway.Listeners:type_name -> hashicorp.consul.internal.configentry.APIGatewayListener
+	78,  // 113: hashicorp.consul.internal.configentry.APIGateway.Status:type_name -> hashicorp.consul.internal.configentry.Status
+	45,  // 114: hashicorp.consul.internal.configentry.APIGateway.TLS:type_name -> hashicorp.consul.internal.configentry.GatewayTLSConfig
+	70,  // 115: hashicorp.consul.internal.configentry.APIGateway.Defaults:type_name -> hashicorp.consul.internal.configentry.UpstreamLimits
+	77,  // 116: hashicorp.consul.internal.configentry.APIGateway.ExtAuthz:type_name -> hashicorp.consul.internal.configentry.APIGatewayExtAuthz
+	79,  // 117: hashicorp.consul.internal.configentry.Status.Conditions:type_name -> hashicorp.consul.internal.configentry.Condition
+	86,  // 118: hashicorp.consul.internal.configentry.Condition.Resource:type_name -> hashicorp.consul.internal.configentry.ResourceReference
+	174, // 119: hashicorp.consul.internal.configentry.Condition.LastTransitionTime:type_name -> google.protobuf.Timestamp
+	8,   // 120: hashicorp.consul.internal.configentry.APIGatewayListener.Protocol:type_name -> hashicorp.consul.internal.configentry.APIGatewayListenerProtocol
+	81,  // 121: hashicorp.consul.internal.configentry.APIGatewayListener.TLS:type_name -> hashicorp.consul.internal.configentry.APIGatewayTLSConfiguration
+	82,  // 122: hashicorp.consul.internal.configentry.APIGatewayListener.Override:type_name -> hashicorp.consul.internal.configentry.APIGatewayPolicy
+	82,  // 123: hashicorp.consul.internal.configentry.APIGatewayListener.Default:type_name -> hashicorp.consul.internal.configentry.APIGatewayPolicy
+	86,  // 124: hashicorp.consul.internal.configentry.APIGatewayTLSConfiguration.Certificates:type_name -> hashicorp.consul.internal.configentry.ResourceReference
+	46,  // 125: hashicorp.consul.internal.configentry.APIGatewayTLSConfiguration.SDS:type_name -> hashicorp.consul.internal.configentry.GatewayTLSSDSConfig
+	83,  // 126: hashicorp.consul.internal.configentry.APIGatewayPolicy.JWT:type_name -> hashicorp.consul.internal.configentry.APIGatewayJWTRequirement
+	84,  // 127: hashicorp.consul.internal.configentry.APIGatewayJWTRequirement.Providers:type_name -> hashicorp.consul.internal.configentry.APIGatewayJWTProvider
+	85,  // 128: hashicorp.consul.internal.configentry.APIGatewayJWTProvider.VerifyClaims:type_name -> hashicorp.consul.internal.configentry.APIGatewayJWTClaimVerification
+	171, // 129: hashicorp.consul.internal.configentry.ResourceReference.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	159, // 130: hashicorp.consul.internal.configentry.BoundAPIGateway.Meta:type_name -> hashicorp.consul.internal.configentry.BoundAPIGateway.MetaEntry
+	89,  // 131: hashicorp.consul.internal.configentry.BoundAPIGateway.Listeners:type_name -> hashicorp.consul.internal.configentry.BoundAPIGatewayListener
+	160, // 132: hashicorp.consul.internal.configentry.BoundAPIGateway.Services:type_name -> hashicorp.consul.internal.configentry.BoundAPIGateway.ServicesEntry
+	86,  // 133: hashicorp.consul.internal.configentry.ListOfResourceReference.Ref:type_name -> hashicorp.consul.internal.configentry.ResourceReference
+	86,  // 134: hashicorp.consul.internal.configentry.BoundAPIGatewayListener.Certificates:type_name -> hashicorp.consul.internal.configentry.ResourceReference
+	86,  // 135: hashicorp.consul.internal.configentry.BoundAPIGatewayListener.Routes:type_name -> hashicorp.consul.internal.configentry.ResourceReference
+	8,   // 136: hashicorp.consul.internal.configentry.BoundAPIGatewayListener.Protocol:type_name -> hashicorp.consul.internal.configentry.APIGatewayListenerProtocol
+	81,  // 137: hashicorp.consul.internal.configentry.BoundAPIGatewayListener.TLS:type_name -> hashicorp.consul.internal.configentry.APIGatewayTLSConfiguration
+	82,  // 138: hashicorp.consul.internal.configentry.BoundAPIGatewayListener.Override:type_name -> hashicorp.consul.internal.configentry.APIGatewayPolicy
+	82,  // 139: hashicorp.consul.internal.configentry.BoundAPIGatewayListener.Default:type_name -> hashicorp.consul.internal.configentry.APIGatewayPolicy
+	161, // 140: hashicorp.consul.internal.configentry.FileSystemCertificate.Meta:type_name -> hashicorp.consul.internal.configentry.FileSystemCertificate.MetaEntry
+	162, // 141: hashicorp.consul.internal.configentry.InlineCertificate.Meta:type_name -> hashicorp.consul.internal.configentry.InlineCertificate.MetaEntry
+	163, // 142: hashicorp.consul.internal.configentry.HTTPRoute.Meta:type_name -> hashicorp.consul.internal.configentry.HTTPRoute.MetaEntry
+	86,  // 143: hashicorp.consul.internal.configentry.HTTPRoute.Parents:type_name -> hashicorp.consul.internal.configentry.ResourceReference
+	93,  // 144: hashicorp.consul.internal.configentry.HTTPRoute.Rules:type_name -> hashicorp.consul.internal.configentry.HTTPRouteRule
+	78,  // 145: hashicorp.consul.internal.configentry.HTTPRoute.Status:type_name -> hashicorp.consul.internal.configentry.Status
+	98,  // 146: hashicorp.consul.internal.configentry.HTTPRouteRule.Filters:type_name -> hashicorp.consul.internal.configentry.HTTPFilters
+	94,  // 147: hashicorp.consul.internal.configentry.HTTPRouteRule.Matches:type_name -> hashicorp.consul.internal.configentry.HTTPMatch
+	111, // 148: hashicorp.consul.internal.configentry.HTTPRouteRule.Services:type_name -> hashicorp.consul.internal.configentry.HTTPService
+	105, // 149: hashicorp.consul.internal.configentry.HTTPRouteRule.ResponseFilters:type_name -> hashicorp.consul.internal.configentry.HTTPResponseFilters
+	95,  // 150: hashicorp.consul.internal.configentry.HTTPMatch.Headers:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderMatch
+	9,   // 151: hashicorp.consul.internal.configentry.HTTPMatch.Method:type_name -> hashicorp.consul.internal.configentry.HTTPMatchMethod
+	96,  // 152: hashicorp.consul.internal.configentry.HTTPMatch.Path:type_name -> hashicorp.consul.internal.configentry.HTTPPathMatch
+	97,  // 153: hashicorp.consul.internal.configentry.HTTPMatch.Query:type_name -> hashicorp.consul.internal.configentry.HTTPQueryMatch
+	10,  // 154: hashicorp.consul.internal.configentry.HTTPHeaderMatch.Match:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderMatchType
+	11,  // 155: hashicorp.consul.internal.configentry.HTTPPathMatch.Match:type_name -> hashicorp.consul.internal.configentry.HTTPPathMatchType
+	12,  // 156: hashicorp.consul.internal.configentry.HTTPQueryMatch.Match:type_name -> hashicorp.consul.internal.configentry.HTTPQueryMatchType
+	110, // 157: hashicorp.consul.internal.configentry.HTTPFilters.Headers:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderFilter
+	106, // 158: hashicorp.consul.internal.configentry.HTTPFilters.URLRewrite:type_name -> hashicorp.consul.internal.configentry.URLRewrite
+	107, // 159: hashicorp.consul.internal.configentry.HTTPFilters.RetryFilter:type_name -> hashicorp.consul.internal.configentry.RetryFilter
+	108, // 160: hashicorp.consul.internal.configentry.HTTPFilters.TimeoutFilter:type_name -> hashicorp.consul.internal.configentry.TimeoutFilter
+	109, // 161: hashicorp.consul.internal.configentry.HTTPFilters.JWT:type_name -> hashicorp.consul.internal.configentry.JWTFilter
+	104, // 162: hashicorp.consul.internal.configentry.HTTPFilters.ExtAuthz:type_name -> hashicorp.consul.internal.configentry.HTTPRouteExtAuthzFilter
+	99,  // 163: hashicorp.consul.internal.configentry.HTTPFilters.ExtProc:type_name -> hashicorp.consul.internal.configentry.ExtProcFilter
+	100, // 164: hashicorp.consul.internal.configentry.ExtProcFilter.Overrides:type_name -> hashicorp.consul.internal.configentry.ExtProcOverrides
+	102, // 165: hashicorp.consul.internal.configentry.ExtProcOverrides.Processing:type_name -> hashicorp.consul.internal.configentry.ExtProcProcessing
+	101, // 166: hashicorp.consul.internal.configentry.ExtProcOverrides.GRPCInitialMetadata:type_name -> hashicorp.consul.internal.configentry.ExtProcMetadataKV
+	103, // 167: hashicorp.consul.internal.configentry.ExtProcProcessing.Request:type_name -> hashicorp.consul.internal.configentry.ExtProcProcessingDirection
+	103, // 168: hashicorp.consul.internal.configentry.ExtProcProcessing.Response:type_name -> hashicorp.consul.internal.configentry.ExtProcProcessingDirection
+	110, // 169: hashicorp.consul.internal.configentry.HTTPResponseFilters.Headers:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderFilter
+	173, // 170: hashicorp.consul.internal.configentry.TimeoutFilter.RequestTimeout:type_name -> google.protobuf.Duration
+	173, // 171: hashicorp.consul.internal.configentry.TimeoutFilter.IdleTimeout:type_name -> google.protobuf.Duration
+	84,  // 172: hashicorp.consul.internal.configentry.JWTFilter.Providers:type_name -> hashicorp.consul.internal.configentry.APIGatewayJWTProvider
+	164, // 173: hashicorp.consul.internal.configentry.HTTPHeaderFilter.Add:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderFilter.AddEntry
+	165, // 174: hashicorp.consul.internal.configentry.HTTPHeaderFilter.Set:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderFilter.SetEntry
+	98,  // 175: hashicorp.consul.internal.configentry.HTTPService.Filters:type_name -> hashicorp.consul.internal.configentry.HTTPFilters
+	171, // 176: hashicorp.consul.internal.configentry.HTTPService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	105, // 177: hashicorp.consul.internal.configentry.HTTPService.ResponseFilters:type_name -> hashicorp.consul.internal.configentry.HTTPResponseFilters
+	53,  // 178: hashicorp.consul.internal.configentry.HTTPService.TLS:type_name -> hashicorp.consul.internal.configentry.GatewayServiceTLSConfig
+	70,  // 179: hashicorp.consul.internal.configentry.HTTPService.Limits:type_name -> hashicorp.consul.internal.configentry.UpstreamLimits
+	166, // 180: hashicorp.consul.internal.configentry.TCPRoute.Meta:type_name -> hashicorp.consul.internal.configentry.TCPRoute.MetaEntry
+	86,  // 181: hashicorp.consul.internal.configentry.TCPRoute.Parents:type_name -> hashicorp.consul.internal.configentry.ResourceReference
+	113, // 182: hashicorp.consul.internal.configentry.TCPRoute.Services:type_name -> hashicorp.consul.internal.configentry.TCPService
+	78,  // 183: hashicorp.consul.internal.configentry.TCPRoute.Status:type_name -> hashicorp.consul.internal.configentry.Status
+	171, // 184: hashicorp.consul.internal.configentry.TCPService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	53,  // 185: hashicorp.consul.internal.configentry.TCPService.TLS:type_name -> hashicorp.consul.internal.configentry.GatewayServiceTLSConfig
+	70,  // 186: hashicorp.consul.internal.configentry.TCPService.Limits:type_name -> hashicorp.consul.internal.configentry.UpstreamLimits
+	115, // 187: hashicorp.consul.internal.configentry.SamenessGroup.Members:type_name -> hashicorp.consul.internal.configentry.SamenessGroupMember
+	167, // 188: hashicorp.consul.internal.configentry.SamenessGroup.Meta:type_name -> hashicorp.consul.internal.configentry.SamenessGroup.MetaEntry
+	171, // 189: hashicorp.consul.internal.configentry.SamenessGroup.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	117, // 190: hashicorp.consul.internal.configentry.JWTProvider.JSONWebKeySet:type_name -> hashicorp.consul.internal.configentry.JSONWebKeySet
+	126, // 191: hashicorp.consul.internal.configentry.JWTProvider.Locations:type_name -> hashicorp.consul.internal.configentry.JWTLocation
+	130, // 192: hashicorp.consul.internal.configentry.JWTProvider.Forwarding:type_name -> hashicorp.consul.internal.configentry.JWTForwardingConfig
+	131, // 193: hashicorp.consul.internal.configentry.JWTProvider.CacheConfig:type_name -> hashicorp.consul.internal.configentry.JWTCacheConfig
+	168, // 194: hashicorp.consul.internal.configentry.JWTProvider.Meta:type_name -> hashicorp.consul.internal.configentry.JWTProvider.MetaEntry
+	118, // 195: hashicorp.consul.internal.configentry.JSONWebKeySet.Local:type_name -> hashicorp.consul.internal.configentry.LocalJWKS
+	119, // 196: hashicorp.consul.internal.configentry.JSONWebKeySet.Remote:type_name -> hashicorp.consul.internal.configentry.RemoteJWKS
+	173, // 197: hashicorp.consul.internal.configentry.RemoteJWKS.CacheDuration:type_name -> google.protobuf.Duration
+	124, // 198: hashicorp.consul.internal.configentry.RemoteJWKS.RetryPolicy:type_name -> hashicorp.consul.internal.configentry.JWKSRetryPolicy
+	120, // 199: hashicorp.consul.internal.configentry.RemoteJWKS.JWKSCluster:type_name -> hashicorp.consul.internal.configentry.JWKSCluster
+	121, // 200: hashicorp.consul.internal.configentry.JWKSCluster.TLSCertificates:type_name -> hashicorp.consul.internal.configentry.JWKSTLSCertificate
+	173, // 201: hashicorp.consul.internal.configentry.JWKSCluster.ConnectTimeout:type_name -> google.protobuf.Duration
+	122, // 202: hashicorp.consul.internal.configentry.JWKSTLSCertificate.CaCertificateProviderInstance:type_name -> hashicorp.consul.internal.configentry.JWKSTLSCertProviderInstance
+	123, // 203: hashicorp.consul.internal.configentry.JWKSTLSCertificate.TrustedCA:type_name -> hashicorp.consul.internal.configentry.JWKSTLSCertTrustedCA
+	125, // 204: hashicorp.consul.internal.configentry.JWKSRetryPolicy.RetryPolicyBackOff:type_name -> hashicorp.consul.internal.configentry.RetryPolicyBackOff
+	173, // 205: hashicorp.consul.internal.configentry.RetryPolicyBackOff.BaseInterval:type_name -> google.protobuf.Duration
+	173, // 206: hashicorp.consul.internal.configentry.RetryPolicyBackOff.MaxInterval:type_name -> google.protobuf.Duration
+	127, // 207: hashicorp.consul.internal.configentry.JWTLocation.Header:type_name -> hashicorp.consul.internal.configentry.JWTLocationHeader
+	128, // 208: hashicorp.consul.internal.configentry.JWTLocation.QueryParam:type_name -> hashicorp.consul.internal.configentry.JWTLocationQueryParam
+	129, // 209: hashicorp.consul.internal.configentry.JWTLocation.Cookie:type_name -> hashicorp.consul.internal.configentry.JWTLocationCookie
+	171, // 210: hashicorp.consul.internal.configentry.ExportedServices.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	169, // 211: hashicorp.consul.internal.configentry.ExportedServices.Meta:type_name -> hashicorp.consul.internal.configentry.ExportedServices.MetaEntry
+	133, // 212: hashicorp.consul.internal.configentry.ExportedServices.Services:type_name -> hashicorp.consul.internal.configentry.ExportedServicesService
+	134, // 213: hashicorp.consul.internal.configentry.ExportedServicesService.Consumers:type_name -> hashicorp.consul.internal.configentry.ExportedServicesConsumer
+	144, // 214: hashicorp.consul.internal.configentry.InferenceGateway.Processor:type_name -> hashicorp.consul.internal.configentry.InferenceGatewayProcessor
+	170, // 215: hashicorp.consul.internal.configentry.InferenceGateway.Meta:type_name -> hashicorp.consul.internal.configentry.InferenceGateway.MetaEntry
+	145, // 216: hashicorp.consul.internal.configentry.InferenceGateway.Failover:type_name -> hashicorp.consul.internal.configentry.InferenceGatewayFailover
+	136, // 217: hashicorp.consul.internal.configentry.InferenceGateway.PII:type_name -> hashicorp.consul.internal.configentry.InferenceGatewayPII
+	139, // 218: hashicorp.consul.internal.configentry.InferenceGateway.Observability:type_name -> hashicorp.consul.internal.configentry.InferenceGatewayObservability
+	13,  // 219: hashicorp.consul.internal.configentry.InferenceGatewayPII.Scope:type_name -> hashicorp.consul.internal.configentry.InferenceGatewayPIIScope
+	14,  // 220: hashicorp.consul.internal.configentry.InferenceGatewayPII.DefaultAction:type_name -> hashicorp.consul.internal.configentry.InferenceGatewayPIIAction
+	137, // 221: hashicorp.consul.internal.configentry.InferenceGatewayPII.Mask:type_name -> hashicorp.consul.internal.configentry.InferenceGatewayPIIMask
+	138, // 222: hashicorp.consul.internal.configentry.InferenceGatewayPII.Detectors:type_name -> hashicorp.consul.internal.configentry.InferenceGatewayPIIDetector
+	14,  // 223: hashicorp.consul.internal.configentry.InferenceGatewayPIIDetector.Action:type_name -> hashicorp.consul.internal.configentry.InferenceGatewayPIIAction
+	140, // 224: hashicorp.consul.internal.configentry.InferenceGatewayObservability.Metrics:type_name -> hashicorp.consul.internal.configentry.InferenceGatewayMetrics
+	142, // 225: hashicorp.consul.internal.configentry.InferenceGatewayObservability.Tracing:type_name -> hashicorp.consul.internal.configentry.InferenceGatewayTracing
+	176, // 226: hashicorp.consul.internal.configentry.InferenceGatewayMetrics.Enabled:type_name -> google.protobuf.BoolValue
+	141, // 227: hashicorp.consul.internal.configentry.InferenceGatewayMetrics.Prometheus:type_name -> hashicorp.consul.internal.configentry.InferenceGatewayMetricsPrometheus
+	143, // 228: hashicorp.consul.internal.configentry.InferenceGatewayMetrics.OTLP:type_name -> hashicorp.consul.internal.configentry.InferenceGatewayOTLPExport
+	177, // 229: hashicorp.consul.internal.configentry.InferenceGatewayMetricsPrometheus.Port:type_name -> google.protobuf.Int32Value
+	143, // 230: hashicorp.consul.internal.configentry.InferenceGatewayTracing.OTLP:type_name -> hashicorp.consul.internal.configentry.InferenceGatewayOTLPExport
+	32,  // 231: hashicorp.consul.internal.configentry.ServiceResolver.SubsetsEntry.value:type_name -> hashicorp.consul.internal.configentry.ServiceResolverSubset
+	34,  // 232: hashicorp.consul.internal.configentry.ServiceResolver.FailoverEntry.value:type_name -> hashicorp.consul.internal.configentry.ServiceResolverFailover
+	88,  // 233: hashicorp.consul.internal.configentry.BoundAPIGateway.ServicesEntry.value:type_name -> hashicorp.consul.internal.configentry.ListOfResourceReference
+	15,  // 234: hashicorp.consul.internal.configentry.ConfigEntryService.GetResolvedExportedServices:input_type -> hashicorp.consul.internal.configentry.GetResolvedExportedServicesRequest
+	19,  // 235: hashicorp.consul.internal.configentry.ConfigEntryService.GetImportedServices:input_type -> hashicorp.consul.internal.configentry.GetImportedServicesRequest
+	16,  // 236: hashicorp.consul.internal.configentry.ConfigEntryService.GetResolvedExportedServices:output_type -> hashicorp.consul.internal.configentry.GetResolvedExportedServicesResponse
+	20,  // 237: hashicorp.consul.internal.configentry.ConfigEntryService.GetImportedServices:output_type -> hashicorp.consul.internal.configentry.GetImportedServicesResponse
+	236, // [236:238] is the sub-list for method output_type
+	234, // [234:236] is the sub-list for method input_type
+	234, // [234:234] is the sub-list for extension type_name
+	234, // [234:234] is the sub-list for extension extendee
+	0,   // [0:234] is the sub-list for field type_name
 }
 
 func init() { file_private_pbconfigentry_config_entry_proto_init() }
@@ -10292,17 +11675,19 @@ func file_private_pbconfigentry_config_entry_proto_init() {
 		(*ConfigEntry_JWTProvider)(nil),
 		(*ConfigEntry_ExportedServices)(nil),
 		(*ConfigEntry_FileSystemCertificate)(nil),
+		(*ConfigEntry_InferenceGateway)(nil),
+		(*ConfigEntry_TerminatingGateway)(nil),
 	}
-	file_private_pbconfigentry_config_entry_proto_msgTypes[44].OneofWrappers = []any{}
-	file_private_pbconfigentry_config_entry_proto_msgTypes[61].OneofWrappers = []any{}
-	file_private_pbconfigentry_config_entry_proto_msgTypes[70].OneofWrappers = []any{}
+	file_private_pbconfigentry_config_entry_proto_msgTypes[48].OneofWrappers = []any{}
+	file_private_pbconfigentry_config_entry_proto_msgTypes[65].OneofWrappers = []any{}
+	file_private_pbconfigentry_config_entry_proto_msgTypes[74].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_private_pbconfigentry_config_entry_proto_rawDesc), len(file_private_pbconfigentry_config_entry_proto_rawDesc)),
-			NumEnums:      13,
-			NumMessages:   138,
+			NumEnums:      15,
+			NumMessages:   156,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

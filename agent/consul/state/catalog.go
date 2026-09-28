@@ -4088,7 +4088,8 @@ func terminatingConfigGatewayServices(
 		return false, nil, fmt.Errorf("failed to get config entry: %v", err)
 	}
 	if cfg, ok := c.(*structs.TerminatingGatewayConfigEntry); ok && cfg != nil {
-		if reflect.DeepEqual(cfg.Services, entry.Services) {
+		if reflect.DeepEqual(cfg.Services, entry.Services) &&
+			reflect.DeepEqual(cfg.CredentialInjection, entry.CredentialInjection) {
 			// Services are the same, nothing to update
 			return true, nil, nil
 		}
@@ -4101,20 +4102,38 @@ func terminatingConfigGatewayServices(
 			return false, nil, fmt.Errorf("failed to get gateway service kind for service %s: %v", svc.Name, err)
 		}
 		mapping := &structs.GatewayService{
-			Gateway:         gateway,
-			Service:         structs.NewServiceName(svc.Name, &svc.EnterpriseMeta),
-			GatewayKind:     structs.ServiceKindTerminatingGateway,
-			KeyFile:         svc.KeyFile,
-			CertFile:        svc.CertFile,
-			CAFile:          svc.CAFile,
-			SNI:             svc.SNI,
-			ServiceKind:     kind,
-			AutoHostRewrite: !svc.DisableAutoHostRewrite,
+			Gateway:             gateway,
+			Service:             structs.NewServiceName(svc.Name, &svc.EnterpriseMeta),
+			GatewayKind:         structs.ServiceKindTerminatingGateway,
+			KeyFile:             svc.KeyFile,
+			CertFile:            svc.CertFile,
+			CAFile:              svc.CAFile,
+			SNI:                 svc.SNI,
+			ServiceKind:         kind,
+			AutoHostRewrite:     !svc.DisableAutoHostRewrite,
+			CredentialInjection: cloneGatewayCredentialInjection(entry.CredentialInjection),
+			Credential:          cloneGatewayServiceCredential(svc.Credential),
 		}
 
 		gatewayServices = append(gatewayServices, mapping)
 	}
 	return false, gatewayServices, nil
+}
+
+func cloneGatewayCredentialInjection(in *structs.GatewayCredentialInjection) *structs.GatewayCredentialInjection {
+	if in == nil {
+		return nil
+	}
+	out := *in
+	return &out
+}
+
+func cloneGatewayServiceCredential(in *structs.GatewayServiceCredential) *structs.GatewayServiceCredential {
+	if in == nil {
+		return nil
+	}
+	out := *in
+	return &out
 }
 
 func GatewayServiceKind(tx ReadTxn, name string, entMeta *acl.EnterpriseMeta) (structs.GatewayServiceKind, error) {

@@ -820,6 +820,9 @@ func restoreConfigEntry(header *SnapshotHeader, restore *state.Restore, decoder 
 	if err := decoder.Decode(&req); err != nil {
 		return err
 	}
+	if structs.CEDowngrade {
+		stripEnterpriseOnlyConfigEntryFields(req.Entry)
+	}
 	return restore.ConfigEntry(req.Entry)
 }
 
