@@ -456,9 +456,9 @@ func TestSecretsFromSnapshot_ConnectProxyReturnsLeafAndRootSecrets(t *testing.T)
 // is not fully present: a mesh gateway whose leaf watch has not returned yet,
 // and a root watch that has produced no CA roots.
 //
-// Both secrets must be withheld as a pair. Emitting a validation context with
-// an empty trusted CA would be NACKed by Envoy, and reading a nil leaf would
-// panic (which is what the previous inline implementation did).
+// Each secret is emitted independently when its material is available.
+// A nil leaf omits only connect-leaf, while empty roots omit only connect-root;
+// neither case should panic or emit an invalid empty PEM.
 func TestSecretsFromSnapshot_ConnectProxyEmitsEachSecretIndependently(t *testing.T) {
 	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
 
