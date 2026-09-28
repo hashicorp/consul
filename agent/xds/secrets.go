@@ -147,8 +147,75 @@ func (s *ResourceGenerator) secretsFromSnapshotAPIGateway(cfgSnap *proxycfg.Conf
 	return resources
 }
 
+// terminatingGatewayLeafSecretName returns the SDS name for a linked service's
+// Connect leaf certificate.
+//
+// Terminating gateways hold a separate leaf per linked service, so unlike a
+// connect proxy the leaf name has to be per-service. ServiceName.String()
+// is used rather than the bare name so that services with the same name in
+// different namespaces or partitions cannot collide. The "-connect-leaf"
+// suffix keeps these distinct from the "-cert"/"-ca" secrets, which carry the
+// operator-supplied files used for the gateway's *upstream* connections.
+func terminatingGatewayLeafSecretName(sn structs.ServiceName) string {
+	return sn.String() + "-connect-leaf"
+}
+
 func (s *ResourceGenerator) secretsFromSnapshotTerminatingGateway(cfgSnap *proxycfg.ConfigSnapshot) []proto.Message {
 	var resources []proto.Message
+
+	// Downstream mTLS material for the gateway's own public listener. These are
+	// Connect leaves on an automatic rotation timer, so they are delivered as
+	// SDS secrets to keep the listener bytes stable across a rotation.
+	//
+	// ValidServices and ValidDestinations both skip services without a leaf, so
+	// this emits secrets for exactly the services that get a filter chain.
+	seen := make(map[structs.ServiceName]struct{})
+	for _, svc := range append(cfgSnap.TerminatingGateway.ValidServices(), cfgSnap.TerminatingGateway.ValidDestinations()...) {
+		if _, ok := seen[svc]; ok {
+			continue
+		}
+		seen[svc] = struct{}{}
+
+		leaf := cfgSnap.TerminatingGateway.ServiceLeaves[svc]
+		if leaf == nil {
+			continue
+		}
+		resources = append(resources, &envoy_tls_v3.Secret{
+			Name: terminatingGatewayLeafSecretName(svc),
+			Type: &envoy_tls_v3.Secret_TlsCertificate{
+				TlsCertificate: &envoy_tls_v3.TlsCertificate{
+					CertificateChain: &envoy_core_v3.DataSource{
+						Specifier: &envoy_core_v3.DataSource_InlineString{
+							InlineString: lib.EnsureTrailingNewline(leaf.CertPEM),
+						},
+					},
+					PrivateKey: &envoy_core_v3.DataSource{
+						Specifier: &envoy_core_v3.DataSource_InlineString{
+							InlineString: lib.EnsureTrailingNewline(leaf.PrivateKeyPEM),
+						},
+					},
+				},
+			},
+		})
+	}
+
+	// The CA roots are common to every filter chain, so a single shared secret
+	// backs them all.
+	if rootPEMs := cfgSnap.RootPEMs(); rootPEMs != "" && len(seen) > 0 {
+		resources = append(resources, &envoy_tls_v3.Secret{
+			Name: connectRootSecretName,
+			Type: &envoy_tls_v3.Secret_ValidationContext{
+				ValidationContext: &envoy_tls_v3.CertificateValidationContext{
+					TrustedCa: &envoy_core_v3.DataSource{
+						Specifier: &envoy_core_v3.DataSource_InlineString{
+							InlineString: rootPEMs,
+						},
+					},
+				},
+			},
+		})
+	}
+
 	for _, detail := range cfgSnap.TerminatingGateway.GatewayServices {
 		if detail.CertFile != "" && detail.KeyFile != "" {
 			resources = append(resources, &envoy_tls_v3.Secret{

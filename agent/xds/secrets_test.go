@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
@@ -18,6 +19,31 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/private/prototest"
 )
+
+// fileBasedSecrets keeps only the secrets whose material comes from
+// operator-supplied files. A terminating gateway now also emits Connect leaf
+// and root secrets for its own downstream listener; the tests below target the
+// upstream credential-injection secrets, so the Connect ones are filtered out.
+func fileBasedSecrets(resources []proto.Message) []proto.Message {
+	var out []proto.Message
+	for _, res := range resources {
+		secret, ok := res.(*envoy_tls_v3.Secret)
+		if !ok {
+			continue
+		}
+		switch t := secret.Type.(type) {
+		case *envoy_tls_v3.Secret_TlsCertificate:
+			if t.TlsCertificate.GetCertificateChain().GetFilename() != "" {
+				out = append(out, res)
+			}
+		case *envoy_tls_v3.Secret_ValidationContext:
+			if t.ValidationContext.GetTrustedCa().GetFilename() != "" {
+				out = append(out, res)
+			}
+		}
+	}
+	return out
+}
 
 func TestSecretsFromSnapshotTerminatingGateway_NilSnapshot(t *testing.T) {
 	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
@@ -31,6 +57,7 @@ func TestSecretsFromSnapshotTerminatingGateway_NoServices(t *testing.T) {
 
 	resources, err := s.secretsFromSnapshot(snap)
 	require.NoError(t, err)
+	resources = fileBasedSecrets(resources)
 	require.Empty(t, resources)
 }
 
@@ -49,6 +76,7 @@ func TestSecretsFromSnapshotTerminatingGateway_ServiceWithNoCerts(t *testing.T) 
 
 	resources, err := s.secretsFromSnapshot(snap)
 	require.NoError(t, err)
+	resources = fileBasedSecrets(resources)
 	require.Empty(t, resources)
 }
 
@@ -66,6 +94,7 @@ func TestSecretsFromSnapshotTerminatingGateway_ServiceWithCAOnly(t *testing.T) {
 
 	resources, err := s.secretsFromSnapshot(snap)
 	require.NoError(t, err)
+	resources = fileBasedSecrets(resources)
 	require.Len(t, resources, 1)
 
 	secret, ok := resources[0].(*envoy_tls_v3.Secret)
@@ -92,6 +121,7 @@ func TestSecretsFromSnapshotTerminatingGateway_ServiceWithCertAndKeyOnly(t *test
 
 	resources, err := s.secretsFromSnapshot(snap)
 	require.NoError(t, err)
+	resources = fileBasedSecrets(resources)
 	require.Len(t, resources, 1)
 
 	secret, ok := resources[0].(*envoy_tls_v3.Secret)
@@ -120,6 +150,7 @@ func TestSecretsFromSnapshotTerminatingGateway_ServiceWithAllCerts(t *testing.T)
 
 	resources, err := s.secretsFromSnapshot(snap)
 	require.NoError(t, err)
+	resources = fileBasedSecrets(resources)
 	require.Len(t, resources, 2)
 
 	secretNames := make(map[string]*envoy_tls_v3.Secret, 2)
@@ -169,6 +200,7 @@ func TestSecretsFromSnapshotTerminatingGateway_MultipleServices(t *testing.T) {
 
 	resources, err := s.secretsFromSnapshot(snap)
 	require.NoError(t, err)
+	resources = fileBasedSecrets(resources)
 	// web contributes 1 (ca), api contributes 2 (cert+ca), db contributes 0
 	require.Len(t, resources, 3)
 
@@ -197,6 +229,7 @@ func TestSecretsFromSnapshotTerminatingGateway_CertFileWithoutKeyFileProducesNoS
 
 	resources, err := s.secretsFromSnapshot(snap)
 	require.NoError(t, err)
+	resources = fileBasedSecrets(resources)
 	require.Empty(t, resources)
 }
 
@@ -215,6 +248,7 @@ func TestSecretsFromSnapshotTerminatingGateway_KeyFileWithoutCertFileProducesNoS
 
 	resources, err := s.secretsFromSnapshot(snap)
 	require.NoError(t, err)
+	resources = fileBasedSecrets(resources)
 	require.Empty(t, resources)
 }
 
@@ -234,6 +268,7 @@ func TestSecretsFromSnapshotTerminatingGateway_SecretNamesUsesServiceName(t *tes
 
 	resources, err := s.secretsFromSnapshot(snap)
 	require.NoError(t, err)
+	resources = fileBasedSecrets(resources)
 	require.Len(t, resources, 2)
 
 	names := make(map[string]struct{}, 2)
@@ -556,4 +591,88 @@ func TestSecretsFromSnapshot_InvalidKindReturnsError(t *testing.T) {
 
 	_, err := s.secretsFromSnapshot(snap)
 	require.Error(t, err)
+}
+
+// TestSecretsFromSnapshotTerminatingGateway_EmitsDownstreamConnectSecrets
+// covers the gateway's own public listener. Each linked service presents its
+// own Connect leaf, so there is one leaf secret per service plus a single
+// shared root secret, and every name the listener references must be backed by
+// an emitted secret.
+func TestSecretsFromSnapshotTerminatingGateway_EmitsDownstreamConnectSecrets(t *testing.T) {
+	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
+	snap := proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
+
+	resources, err := s.secretsFromSnapshot(snap)
+	require.NoError(t, err)
+
+	emitted := make(map[string]*envoy_tls_v3.Secret)
+	for _, res := range resources {
+		secret, ok := res.(*envoy_tls_v3.Secret)
+		require.True(t, ok)
+		emitted[secret.Name] = secret
+	}
+
+	// One leaf per linked service, carrying that service's own certificate.
+	services := snap.TerminatingGateway.ValidServices()
+	require.NotEmpty(t, services)
+	for _, svc := range services {
+		name := terminatingGatewayLeafSecretName(svc)
+		secret, ok := emitted[name]
+		require.True(t, ok, "expected a leaf secret named %q", name)
+
+		cert, ok := secret.Type.(*envoy_tls_v3.Secret_TlsCertificate)
+		require.True(t, ok)
+		leaf := snap.TerminatingGateway.ServiceLeaves[svc]
+		require.Equal(t, leaf.CertPEM, cert.TlsCertificate.CertificateChain.GetInlineString())
+		require.Equal(t, leaf.PrivateKeyPEM, cert.TlsCertificate.PrivateKey.GetInlineString())
+	}
+
+	// The roots are common to every chain, so exactly one shared secret backs them.
+	root, ok := emitted[connectRootSecretName]
+	require.True(t, ok, "expected a shared root secret")
+	vc, ok := root.Type.(*envoy_tls_v3.Secret_ValidationContext)
+	require.True(t, ok)
+	require.Equal(t, snap.RootPEMs(), vc.ValidationContext.TrustedCa.GetInlineString())
+
+	// Guard against a listener referring to a secret that is never delivered.
+	listeners, err := s.listenersFromSnapshot(snap)
+	require.NoError(t, err)
+	referenced := 0
+	for _, l := range listeners {
+		for _, name := range sdsSecretNamesInListener(t, l) {
+			require.Contains(t, emitted, name, "listener references undelivered secret %q", name)
+			referenced++
+		}
+	}
+	require.NotZero(t, referenced, "expected the gateway listener to reference SDS secrets")
+}
+
+// sdsSecretNamesInListener returns every SDS secret name referenced by a
+// listener's downstream transport sockets.
+func sdsSecretNamesInListener(t *testing.T, res proto.Message) []string {
+	t.Helper()
+
+	l, ok := res.(*envoy_listener_v3.Listener)
+	if !ok {
+		return nil
+	}
+
+	var names []string
+	for _, fc := range l.FilterChains {
+		ts := fc.GetTransportSocket()
+		if ts == nil {
+			continue
+		}
+		var downstream envoy_tls_v3.DownstreamTlsContext
+		require.NoError(t, ts.GetTypedConfig().UnmarshalTo(&downstream))
+
+		ctx := downstream.GetCommonTlsContext()
+		for _, sc := range ctx.GetTlsCertificateSdsSecretConfigs() {
+			names = append(names, sc.Name)
+		}
+		if vc := ctx.GetValidationContextSdsSecretConfig(); vc != nil {
+			names = append(names, vc.Name)
+		}
+	}
+	return names
 }

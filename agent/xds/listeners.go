@@ -1429,6 +1429,7 @@ func createDownstreamTransportSocketForConnectTLS(cfgSnap *proxycfg.ConfigSnapsh
 	// See secretsFromSnapshotConnectProxy for why gating here would
 	// reintroduce connection draining.
 	tlsContext := makeCommonConnectTLSContext(
+		connectLeafSecretName,
 		makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSIncoming()),
 		fetchTimeout,
 	)
@@ -2101,11 +2102,15 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 	// We need to at least match the SNI and use the root PEMs from the local cluster
 	sniMatches := []string{tgtwyOpts.cluster}
 
+	// The gateway presents a Connect leaf per linked service on this chain.
+	// Those leaves rotate automatically, so they are referenced by SDS name
+	// rather than inlined, which keeps the filter chain hash stable across a
+	// rotation and avoids draining the service's connections.
 	tlsContext := &envoy_tls_v3.DownstreamTlsContext{
-		CommonTlsContext: makeCommonTLSContext(
-			cfgSnap.TerminatingGateway.ServiceLeaves[tgtwyOpts.service],
-			cfgSnap.RootPEMs(),
+		CommonTlsContext: makeCommonConnectTLSContext(
+			terminatingGatewayLeafSecretName(tgtwyOpts.service),
 			makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSIncoming()),
+			cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
 		),
 		RequireClientCertificate: &wrapperspb.BoolValue{Value: true},
 	}
@@ -3173,7 +3178,16 @@ func makeCommonTLSContext(
 	}
 }
 
-func makeCommonConnectTLSContext(tlsParams *envoy_tls_v3.TlsParameters, fetchTimeout *durationpb.Duration) *envoy_tls_v3.CommonTlsContext {
+// makeCommonConnectTLSContext builds a downstream TLS context that refers to
+// its leaf and CA roots by SDS name instead of embedding the PEMs. Because the
+// listener then carries only names, a certificate rotation changes just the
+// Secret resources and leaves the filter chain hash untouched, so Envoy does
+// not drain established connections.
+//
+// leafSecretName is a parameter because terminating gateways hold a separate
+// leaf per linked service, while a connect proxy has exactly one. The CA roots
+// are shared in both cases.
+func makeCommonConnectTLSContext(leafSecretName string, tlsParams *envoy_tls_v3.TlsParameters, fetchTimeout *durationpb.Duration) *envoy_tls_v3.CommonTlsContext {
 	if tlsParams == nil {
 		tlsParams = &envoy_tls_v3.TlsParameters{}
 	}
@@ -3181,7 +3195,7 @@ func makeCommonConnectTLSContext(tlsParams *envoy_tls_v3.TlsParameters, fetchTim
 	return &envoy_tls_v3.CommonTlsContext{
 		TlsParams: tlsParams,
 		TlsCertificateSdsSecretConfigs: []*envoy_tls_v3.SdsSecretConfig{
-			makeADSSecretConfig(connectLeafSecretName, fetchTimeout),
+			makeADSSecretConfig(leafSecretName, fetchTimeout),
 		},
 		ValidationContextType: &envoy_tls_v3.CommonTlsContext_ValidationContextSdsSecretConfig{
 			ValidationContextSdsSecretConfig: makeADSSecretConfig(connectRootSecretName, fetchTimeout),
