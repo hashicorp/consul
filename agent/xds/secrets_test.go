@@ -451,10 +451,11 @@ func TestSecretsFromSnapshot_ConnectProxyReturnsLeafAndRootSecrets(t *testing.T)
 	require.Equal(t, snap.RootPEMs(), rootCA.ValidationContext.TrustedCa.GetInlineString())
 }
 
-// TestSecretsFromSnapshot_ConnectProxyWithdrawsSecretsWhenMaterialIncomplete
-// covers the degraded states where the snapshot is valid but the mTLS material
-// is not fully present: a mesh gateway whose leaf watch has not returned yet,
-// and a root watch that has produced no CA roots.
+// TestSecretsFromSnapshot_ConnectProxyEmitsEachSecretIndependently covers the
+// degraded states where the snapshot is valid but only part of the mTLS
+// material is present: a mesh gateway with no exported services (which cancels
+// its leaf watch and sets Leaf to nil while keeping valid CA roots), and a root
+// watch that has produced no CA roots.
 //
 // Each secret is emitted independently when its material is available.
 // A nil leaf omits only connect-leaf, while empty roots omit only connect-root;
@@ -528,7 +529,7 @@ func TestCreateDownstreamTransportSocketForConnectTLS_StableWhileMaterialMissing
 			mutate(snap)
 		}
 
-		ts, err := createDownstreamTransportSocketForConnectTLS(snap, &config.ProxyConfig{Protocol: "tcp"}, nil)
+		ts, err := createDownstreamTransportSocketForConnectTLS(snap, &config.ProxyConfig{Protocol: "tcp"}, nil, nil)
 		require.NoError(t, err)
 		require.NotNil(t, ts, "public listener must still be given a TLS transport socket")
 		return ts

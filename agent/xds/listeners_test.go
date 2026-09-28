@@ -905,7 +905,7 @@ func TestCreateDownstreamTransportSocketForConnectTLS_UsesSDSSecrets(t *testing.
 		Roots: roots,
 	}
 
-	ts, err := createDownstreamTransportSocketForConnectTLS(snap, &config.ProxyConfig{Protocol: "tcp"}, nil)
+	ts, err := createDownstreamTransportSocketForConnectTLS(snap, &config.ProxyConfig{Protocol: "tcp"}, nil, nil)
 	require.NoError(t, err)
 	require.NotNil(t, ts)
 

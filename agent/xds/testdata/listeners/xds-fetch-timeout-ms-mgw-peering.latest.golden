@@ -67,6 +67,7 @@
                     "name": "connect-leaf",
                     "sdsConfig": {
                       "ads": {},
+                      "initialFetchTimeout": "9.999s",
                       "resourceApiVersion": "V3"
                     }
                   }
@@ -156,6 +157,7 @@
                     "name": "connect-leaf",
                     "sdsConfig": {
                       "ads": {},
+                      "initialFetchTimeout": "9.999s",
                       "resourceApiVersion": "V3"
                     }
                   }
@@ -245,6 +247,7 @@
                     "name": "connect-leaf",
                     "sdsConfig": {
                       "ads": {},
+                      "initialFetchTimeout": "9.999s",
                       "resourceApiVersion": "V3"
                     }
                   }

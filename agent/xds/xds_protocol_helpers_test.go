@@ -303,7 +303,7 @@ func xdsNewTransportSocket(
 	if downstream {
 		// Downstream (public listener) Connect TLS is served via SDS so that
 		// leaf rotation does not rewrite the listener.
-		commonTLSContext = makeCommonConnectTLSContext(&envoy_tls_v3.TlsParameters{})
+		commonTLSContext = makeCommonConnectTLSContext(&envoy_tls_v3.TlsParameters{}, nil)
 	} else {
 		commonTLSContext = &envoy_tls_v3.CommonTlsContext{
 			TlsParams: &envoy_tls_v3.TlsParameters{},

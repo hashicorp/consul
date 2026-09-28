@@ -1378,7 +1378,7 @@ func injectRequestNormalizationOnFilterChains(
 // since TLS validation will be done against root certs for all peers
 // that might dial this proxy.
 func (s *ResourceGenerator) injectConnectTLSForPublicListener(cfgSnap *proxycfg.ConfigSnapshot, listener *envoy_listener_v3.Listener) error {
-	transportSocket, err := createDownstreamTransportSocketForConnectTLS(cfgSnap, cfgSnap.GetProxyConfig(s.Logger), cfgSnap.PeeringTrustBundles())
+	transportSocket, err := createDownstreamTransportSocketForConnectTLS(cfgSnap, cfgSnap.GetProxyConfig(s.Logger), cfgSnap.PeeringTrustBundles(), cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout())
 	if err != nil {
 		return err
 	}
@@ -1412,7 +1412,7 @@ func getConnectTLSAlpnProtocols(cfgSnap *proxycfg.ConfigSnapshot, protocol strin
 	return alpnProtocols
 }
 
-func createDownstreamTransportSocketForConnectTLS(cfgSnap *proxycfg.ConfigSnapshot, proxyCfg *config.ProxyConfig, peerBundles []*pbpeering.PeeringTrustBundle) (*envoy_core_v3.TransportSocket, error) {
+func createDownstreamTransportSocketForConnectTLS(cfgSnap *proxycfg.ConfigSnapshot, proxyCfg *config.ProxyConfig, peerBundles []*pbpeering.PeeringTrustBundle, fetchTimeout *durationpb.Duration) (*envoy_core_v3.TransportSocket, error) {
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
 	case structs.ServiceKindMeshGateway:
@@ -1430,6 +1430,7 @@ func createDownstreamTransportSocketForConnectTLS(cfgSnap *proxycfg.ConfigSnapsh
 	// reintroduce connection draining.
 	tlsContext := makeCommonConnectTLSContext(
 		makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSIncoming()),
+		fetchTimeout,
 	)
 
 	if tlsContext != nil {
@@ -2593,7 +2594,7 @@ func (s *ResourceGenerator) makeMeshGatewayPeerFilterChains(
 			}
 		}
 
-		peeredTransportSocket, err = createDownstreamTransportSocketForConnectTLS(cfgSnap, cfgSnap.GetProxyConfig(s.Logger), peerBundles)
+		peeredTransportSocket, err = createDownstreamTransportSocketForConnectTLS(cfgSnap, cfgSnap.GetProxyConfig(s.Logger), peerBundles, cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout())
 		if err != nil {
 			return nil, err
 		}
@@ -3172,7 +3173,7 @@ func makeCommonTLSContext(
 	}
 }
 
-func makeCommonConnectTLSContext(tlsParams *envoy_tls_v3.TlsParameters) *envoy_tls_v3.CommonTlsContext {
+func makeCommonConnectTLSContext(tlsParams *envoy_tls_v3.TlsParameters, fetchTimeout *durationpb.Duration) *envoy_tls_v3.CommonTlsContext {
 	if tlsParams == nil {
 		tlsParams = &envoy_tls_v3.TlsParameters{}
 	}
@@ -3180,22 +3181,23 @@ func makeCommonConnectTLSContext(tlsParams *envoy_tls_v3.TlsParameters) *envoy_t
 	return &envoy_tls_v3.CommonTlsContext{
 		TlsParams: tlsParams,
 		TlsCertificateSdsSecretConfigs: []*envoy_tls_v3.SdsSecretConfig{
-			makeADSSecretConfig(connectLeafSecretName),
+			makeADSSecretConfig(connectLeafSecretName, fetchTimeout),
 		},
 		ValidationContextType: &envoy_tls_v3.CommonTlsContext_ValidationContextSdsSecretConfig{
-			ValidationContextSdsSecretConfig: makeADSSecretConfig(connectRootSecretName),
+			ValidationContextSdsSecretConfig: makeADSSecretConfig(connectRootSecretName, fetchTimeout),
 		},
 	}
 }
 
-func makeADSSecretConfig(name string) *envoy_tls_v3.SdsSecretConfig {
+func makeADSSecretConfig(name string, fetchTimeout *durationpb.Duration) *envoy_tls_v3.SdsSecretConfig {
 	return &envoy_tls_v3.SdsSecretConfig{
 		Name: name,
 		SdsConfig: &envoy_core_v3.ConfigSource{
 			ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
 				Ads: &envoy_core_v3.AggregatedConfigSource{},
 			},
-			ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
+			ResourceApiVersion:  envoy_core_v3.ApiVersion_V3,
+			InitialFetchTimeout: fetchTimeout,
 		},
 	}
 }
