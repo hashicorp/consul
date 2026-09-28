@@ -14,8 +14,8 @@ require (
 	github.com/envoyproxy/go-control-plane v0.14.0
 	github.com/envoyproxy/go-control-plane/envoy v1.37.0
 	github.com/google/go-cmp v0.7.0
-	github.com/hashicorp/consul/api v1.34.3
-	github.com/hashicorp/consul/sdk v0.18.1
+	github.com/hashicorp/consul/api v1.35.0-rc1
+	github.com/hashicorp/consul/sdk v0.19.0-rc1
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-version v1.9.0

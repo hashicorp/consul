@@ -48,11 +48,11 @@ require (
 	github.com/hashicorp/cap v0.13.0
 	github.com/hashicorp/consul-awsauth v0.0.0-20260422051333-7081e010a74d
 	github.com/hashicorp/consul-net-rpc v0.0.0-20260422052036-0160352460d6
-	github.com/hashicorp/consul/api v1.34.3
-	github.com/hashicorp/consul/envoyextensions v0.10.3
+	github.com/hashicorp/consul/api v1.35.0-rc1
+	github.com/hashicorp/consul/envoyextensions v0.11.0-rc1
 	github.com/hashicorp/consul/proto-public v0.8.1
-	github.com/hashicorp/consul/sdk v0.18.1
-	github.com/hashicorp/consul/troubleshoot v0.0.0-00010101000000-000000000000
+	github.com/hashicorp/consul/sdk v0.19.0-rc1
+	github.com/hashicorp/consul/troubleshoot v0.10.0-rc1
 	github.com/hashicorp/go-bexpr v0.1.2
 	github.com/hashicorp/go-checkpoint v0.5.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
