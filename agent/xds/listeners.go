@@ -1422,6 +1422,12 @@ func createDownstreamTransportSocketForConnectTLS(cfgSnap *proxycfg.ConfigSnapsh
 
 	// Use SDS-backed secrets for the default Connect leaf/root pair so leaf
 	// rotations update Secret resources rather than rebuilding listeners.
+	//
+	// This is intentionally not gated on whether the leaf and roots are
+	// actually present in the snapshot: the context only carries secret
+	// *names*, so it stays byte-identical even while either is unavailable.
+	// See secretsFromSnapshotConnectProxy for why gating here would
+	// reintroduce connection draining.
 	tlsContext := makeCommonConnectTLSContext(
 		makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSIncoming()),
 	)

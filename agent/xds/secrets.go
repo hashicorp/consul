@@ -44,42 +44,76 @@ const (
 	connectRootSecretName = "connect-root"
 )
 
+// secretsFromSnapshotConnectProxy returns the leaf certificate and CA root
+// secrets that the public listener's TLS context refers to by name.
+//
+// Each secret is emitted on its own guard rather than as an all-or-nothing
+// pair, matching the terminating gateway behaviour where a CA-only service
+// yields a validation context with no tls_certificate. The two halves have
+// genuinely independent lifetimes: a mesh gateway with no exported services
+// holds valid CA roots but has its leaf watch cancelled and Leaf set to nil
+// (see agent/proxycfg/mesh_gateway.go), and during a CA rotation the new roots
+// must reach Envoy even if the re-signed leaf has not landed in the snapshot
+// yet, otherwise inbound connections presenting a cert from the new CA fail
+// validation.
+//
+// The guards themselves are still required: reading the leaf when it is nil
+// would panic, and a validation context whose trusted CA is an empty string is
+// rejected by Envoy.
+//
+// Note that the public listener is generated regardless of what is emitted
+// here, because it only ever refers to these secrets by name. That asymmetry
+// is deliberate:
+//
+//   - During a transient gap the listener stays byte-identical, so its filter
+//     chain hash does not change, Envoy keeps serving with the secrets it
+//     already holds, and no connections are drained. Gating the listener on
+//     material readiness instead would rewrite the listener and drain every
+//     established connection, which is the exact failure this SDS change
+//     exists to remove.
+//
+//   - On a cold start the secrets never arrive, so the listener stays in
+//     warming and never accepts traffic. That fails closed, which is the
+//     correct outcome when there is no material to authenticate peers with.
 func (s *ResourceGenerator) secretsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) []proto.Message {
-	if cfgSnap.Leaf() == nil || cfgSnap.RootPEMs() == "" {
-		return nil
-	}
+	var resources []proto.Message
 
-	return []proto.Message{
-		&envoy_tls_v3.Secret{
+	if leaf := cfgSnap.Leaf(); leaf != nil {
+		resources = append(resources, &envoy_tls_v3.Secret{
 			Name: connectLeafSecretName,
 			Type: &envoy_tls_v3.Secret_TlsCertificate{
 				TlsCertificate: &envoy_tls_v3.TlsCertificate{
 					CertificateChain: &envoy_core_v3.DataSource{
 						Specifier: &envoy_core_v3.DataSource_InlineString{
-							InlineString: lib.EnsureTrailingNewline(cfgSnap.Leaf().CertPEM),
+							InlineString: lib.EnsureTrailingNewline(leaf.CertPEM),
 						},
 					},
 					PrivateKey: &envoy_core_v3.DataSource{
 						Specifier: &envoy_core_v3.DataSource_InlineString{
-							InlineString: lib.EnsureTrailingNewline(cfgSnap.Leaf().PrivateKeyPEM),
+							InlineString: lib.EnsureTrailingNewline(leaf.PrivateKeyPEM),
 						},
 					},
 				},
 			},
-		},
-		&envoy_tls_v3.Secret{
+		})
+	}
+
+	if rootPEMs := cfgSnap.RootPEMs(); rootPEMs != "" {
+		resources = append(resources, &envoy_tls_v3.Secret{
 			Name: connectRootSecretName,
 			Type: &envoy_tls_v3.Secret_ValidationContext{
 				ValidationContext: &envoy_tls_v3.CertificateValidationContext{
 					TrustedCa: &envoy_core_v3.DataSource{
 						Specifier: &envoy_core_v3.DataSource_InlineString{
-							InlineString: cfgSnap.RootPEMs(),
+							InlineString: rootPEMs,
 						},
 					},
 				},
 			},
-		},
+		})
 	}
+
+	return resources
 }
 
 // secretsFromSnapshotAPIGateway returns the "secrets" for an api-gateway service
