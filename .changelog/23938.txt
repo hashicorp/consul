@@ -1,0 +1,6 @@
+```release-note:improvement
+connect: deliver the sidecar proxy's leaf certificate and CA roots to Envoy over SDS instead of embedding them inline in the public listener. Leaf certificate rotation is now a hitless hot-swap that no longer changes the listener filter chain hash, so established connections (notably long-lived TCP sessions) are no longer drained and terminated on every rotation.
+```
+```release-note:improvement
+terminating-gateway: deliver each linked service's Connect leaf certificate and the shared CA roots to Envoy over SDS instead of embedding them inline in the gateway's downstream filter chains. Leaf rotation no longer changes the filter chain hash, so established connections through the gateway are no longer drained.
+```

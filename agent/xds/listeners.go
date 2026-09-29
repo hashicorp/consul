@@ -1378,7 +1378,7 @@ func injectRequestNormalizationOnFilterChains(
 // since TLS validation will be done against root certs for all peers
 // that might dial this proxy.
 func (s *ResourceGenerator) injectConnectTLSForPublicListener(cfgSnap *proxycfg.ConfigSnapshot, listener *envoy_listener_v3.Listener) error {
-	transportSocket, err := createDownstreamTransportSocketForConnectTLS(cfgSnap, cfgSnap.GetProxyConfig(s.Logger), cfgSnap.PeeringTrustBundles())
+	transportSocket, err := createDownstreamTransportSocketForConnectTLS(cfgSnap, cfgSnap.GetProxyConfig(s.Logger), cfgSnap.PeeringTrustBundles(), cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout())
 	if err != nil {
 		return err
 	}
@@ -1412,7 +1412,7 @@ func getConnectTLSAlpnProtocols(cfgSnap *proxycfg.ConfigSnapshot, protocol strin
 	return alpnProtocols
 }
 
-func createDownstreamTransportSocketForConnectTLS(cfgSnap *proxycfg.ConfigSnapshot, proxyCfg *config.ProxyConfig, peerBundles []*pbpeering.PeeringTrustBundle) (*envoy_core_v3.TransportSocket, error) {
+func createDownstreamTransportSocketForConnectTLS(cfgSnap *proxycfg.ConfigSnapshot, proxyCfg *config.ProxyConfig, peerBundles []*pbpeering.PeeringTrustBundle, fetchTimeout *durationpb.Duration) (*envoy_core_v3.TransportSocket, error) {
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
 	case structs.ServiceKindMeshGateway:
@@ -1420,11 +1420,18 @@ func createDownstreamTransportSocketForConnectTLS(cfgSnap *proxycfg.ConfigSnapsh
 		return nil, fmt.Errorf("cannot inject peering trust bundles for kind %q", cfgSnap.Kind)
 	}
 
-	// Create TLS validation context for mTLS with leaf certificate and root certs.
-	tlsContext := makeCommonTLSContext(
-		cfgSnap.Leaf(),
-		cfgSnap.RootPEMs(),
+	// Use SDS-backed secrets for the default Connect leaf/root pair so leaf
+	// rotations update Secret resources rather than rebuilding listeners.
+	//
+	// This is intentionally not gated on whether the leaf and roots are
+	// actually present in the snapshot: the context only carries secret
+	// *names*, so it stays byte-identical even while either is unavailable.
+	// See secretsFromSnapshotConnectProxy for why gating here would
+	// reintroduce connection draining.
+	tlsContext := makeCommonConnectTLSContext(
+		connectLeafSecretName,
 		makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSIncoming()),
+		fetchTimeout,
 	)
 
 	if tlsContext != nil {
@@ -1452,6 +1459,16 @@ func injectSpiffeValidatorConfigForPeers(cfgSnap *proxycfg.ConfigSnapshot, tlsCo
 	spiffeConfig, err := makeSpiffeValidatorConfig(cfgSnap.Roots.TrustDomain, cfgSnap.RootPEMs(), peerBundles)
 	if err != nil {
 		return err
+	}
+
+	// Connect downstream contexts fetch their trust bundle over SDS. The SPIFFE
+	// validator has to carry the per-trust-domain roots itself, so replace the
+	// SDS validation context with an inline one for these proxies. The leaf
+	// certificate keeps using SDS, which is what makes rotation hitless.
+	if _, isSDS := tlsContext.ValidationContextType.(*envoy_tls_v3.CommonTlsContext_ValidationContextSdsSecretConfig); isSDS {
+		tlsContext.ValidationContextType = &envoy_tls_v3.CommonTlsContext_ValidationContext{
+			ValidationContext: &envoy_tls_v3.CertificateValidationContext{},
+		}
 	}
 
 	typ, ok := tlsContext.ValidationContextType.(*envoy_tls_v3.CommonTlsContext_ValidationContext)
@@ -2085,11 +2102,15 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 	// We need to at least match the SNI and use the root PEMs from the local cluster
 	sniMatches := []string{tgtwyOpts.cluster}
 
+	// The gateway presents a Connect leaf per linked service on this chain.
+	// Those leaves rotate automatically, so they are referenced by SDS name
+	// rather than inlined, which keeps the filter chain hash stable across a
+	// rotation and avoids draining the service's connections.
 	tlsContext := &envoy_tls_v3.DownstreamTlsContext{
-		CommonTlsContext: makeCommonTLSContext(
-			cfgSnap.TerminatingGateway.ServiceLeaves[tgtwyOpts.service],
-			cfgSnap.RootPEMs(),
+		CommonTlsContext: makeCommonConnectTLSContext(
+			terminatingGatewayLeafSecretName(tgtwyOpts.service),
 			makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSIncoming()),
+			cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
 		),
 		RequireClientCertificate: &wrapperspb.BoolValue{Value: true},
 	}
@@ -2578,7 +2599,7 @@ func (s *ResourceGenerator) makeMeshGatewayPeerFilterChains(
 			}
 		}
 
-		peeredTransportSocket, err = createDownstreamTransportSocketForConnectTLS(cfgSnap, cfgSnap.GetProxyConfig(s.Logger), peerBundles)
+		peeredTransportSocket, err = createDownstreamTransportSocketForConnectTLS(cfgSnap, cfgSnap.GetProxyConfig(s.Logger), peerBundles, cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout())
 		if err != nil {
 			return nil, err
 		}
@@ -3153,6 +3174,44 @@ func makeCommonTLSContext(
 					},
 				},
 			},
+		},
+	}
+}
+
+// makeCommonConnectTLSContext builds a downstream TLS context that refers to
+// its leaf and CA roots by SDS name instead of embedding the PEMs. Because the
+// listener then carries only names, a certificate rotation changes just the
+// Secret resources and leaves the filter chain hash untouched, so Envoy does
+// not drain established connections.
+//
+// leafSecretName is a parameter because terminating gateways hold a separate
+// leaf per linked service, while a connect proxy has exactly one. The CA roots
+// are shared in both cases.
+func makeCommonConnectTLSContext(leafSecretName string, tlsParams *envoy_tls_v3.TlsParameters, fetchTimeout *durationpb.Duration) *envoy_tls_v3.CommonTlsContext {
+	if tlsParams == nil {
+		tlsParams = &envoy_tls_v3.TlsParameters{}
+	}
+
+	return &envoy_tls_v3.CommonTlsContext{
+		TlsParams: tlsParams,
+		TlsCertificateSdsSecretConfigs: []*envoy_tls_v3.SdsSecretConfig{
+			makeADSSecretConfig(leafSecretName, fetchTimeout),
+		},
+		ValidationContextType: &envoy_tls_v3.CommonTlsContext_ValidationContextSdsSecretConfig{
+			ValidationContextSdsSecretConfig: makeADSSecretConfig(connectRootSecretName, fetchTimeout),
+		},
+	}
+}
+
+func makeADSSecretConfig(name string, fetchTimeout *durationpb.Duration) *envoy_tls_v3.SdsSecretConfig {
+	return &envoy_tls_v3.SdsSecretConfig{
+		Name: name,
+		SdsConfig: &envoy_core_v3.ConfigSource{
+			ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
+				Ads: &envoy_core_v3.AggregatedConfigSource{},
+			},
+			ResourceApiVersion:  envoy_core_v3.ApiVersion_V3,
+			InitialFetchTimeout: fetchTimeout,
 		},
 	}
 }
