@@ -1,7 +1,7 @@
  # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
-name: Nightly test-integrations 2.0.x
+name: Nightly test-integrations 2.1.x
 
 on:
   schedule:
@@ -19,8 +19,8 @@ env:
   # strip the hashicorp/ off the front of github.repository for consul
   CONSUL_LATEST_IMAGE_NAME: ${{ endsWith(github.repository, '-enterprise') && github.repository || 'hashicorp/consul' }}
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
-  BRANCH: "release/2.0.x"
-  BRANCH_NAME: "release-2.0.x"   # Used for naming artifacts
+  BRANCH: "release/2.1.x"
+  BRANCH_NAME: "release-2.1.x"   # Used for naming artifacts
 
 jobs:
   setup:
@@ -43,12 +43,12 @@ jobs:
   get-go-version:
     uses: ./.github/workflows/reusable-get-go-version.yml
     with:
-      ref: release/2.0.x
+      ref: release/2.1.x
 
   get-envoy-versions:
     uses: ./.github/workflows/reusable-get-envoy-versions.yml
     with:
-      ref: release/2.0.x
+      ref: release/2.1.x
 
   dev-build:
     needs:
@@ -59,7 +59,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       uploaded-binary-name: 'consul-bin'
-      branch-name: "release/2.0.x"
+      branch-name: "release/2.1.x"
       go-version: ${{ needs.get-go-version.outputs.go-version }}
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
