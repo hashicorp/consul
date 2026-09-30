@@ -6,7 +6,7 @@ settings:
 
 overrides:
   clean-css@<4.1.11: '>=4.1.11'
-  markdown-it@<14.2.0: '>=14.2.0'
+  markdown-it@<14.3.1: ^14.3.1
   js-yaml@<4.3.2: 4.3.2
   shell-quote@<1.9.0: '>=1.9.0'
   json5@<1.0.2: '>=1.0.2'
@@ -34,7 +34,7 @@ overrides:
   handlebars@<4.7.9: '>=4.7.9'
   yaml@>=2.0.0 <2.8.3: '>=2.8.3'
   picomatch@<2.3.2: ^2.3.2
-  brace-expansion: ^5.0.9
+  brace-expansion: ^5.0.12
   ajv@<6.14.0: ^6.14.0
   ajv@>=7.0.0-alpha.0 <8.18.0: ^8.18.0
   lodash@>=4.0.0 <=4.17.22: ^4.18.0
@@ -54,23 +54,23 @@ overrides:
   uuid@<14.0.0: '>=14.0.0'
   postcss@<8.5.18: '>=8.5.18'
   nanoid@<3.3.18: 3.3.18
-  fast-uri@<4.1.3: '>=4.1.3'
+  fast-uri@<4.1.5: '>=4.1.5'
   '@babel/plugin-transform-modules-systemjs@>=7.12.0 <=7.29.3': ^7.29.4
   ws@<8.21.0: '>=8.21.0'
   '@babel/core@<7.29.6': ^7.29.6
   websocket-driver@<0.7.5: '>=0.7.5'
-  engine.io@<6.6.7: '>=6.6.7'
+  engine.io@<6.6.10: '>=6.6.10'
   linkify-it@<=5.0.1: '>=5.0.2'
-  morgan@<1.12.0: '>=1.12.0'
+  morgan@<1.12.1: '>=1.12.1'
   browserslist@<4.28.7: '>=4.28.7'
   decode-uri-component@<0.5.0: '>=0.5.0'
   postcss-selector-parser@>=6.1.0 <6.1.3: ^6.1.3
   '@ember/test-waiters': 3.1.0
 
 patchedDependencies:
-  brace-expansion@5.0.9:
-    hash: e58de2ab8e032ed8cc45661640a3b51cde9861d6c175610338b677917e57d105
-    path: patches/brace-expansion@5.0.9.patch
+  brace-expansion@5.0.12:
+    hash: 1f560509a524f992368e82e77f7b0a0cb5ff21dfafbb8e112a0691a4e3807868
+    path: patches/brace-expansion@5.0.12.patch
   js-yaml@4.3.2:
     hash: 6b54952aa3f509cb42ade844ea9fd31217552fb5cc9f293bb92fbdb6c9675ab2
     path: patches/js-yaml@4.3.2.patch
@@ -2608,8 +2608,8 @@ packages:
   body@5.1.0:
     resolution: {integrity: sha512-chUsBxGRtuElD6fmw1gHLpvnKdVLK302peeFa9ZqAEk8TyzZ3fygLyUEDDPTJvL9+Bor0dIwn6ePOsRM2y0zQQ==}
 
-  brace-expansion@5.0.9:
-    resolution: {integrity: sha512-ScQ4IuvIEF1TMlP7Zt+vjJ//9zlPb2SDcxWxM3bk8s6t6GGdJ7KO1dCcTidOPJKePW30LE/2cT7wCyPho9/Wxg==}
+  brace-expansion@5.0.12:
+    resolution: {integrity: sha512-YovQ3rzhaLMIrDjNDMkNS01tea93qhEhG5xy8f6+R0l+dw3Ki+5sCoIoI942iuLZTHWogWktgwVDhU09iNEimQ==}
     engines: {node: 20 || >=22}
 
   braces@3.0.3:
@@ -4120,8 +4120,8 @@ packages:
     resolution: {integrity: sha512-RcyUFKA93/CXH20l4SoVvzZfrSDMOTUS3bWVpTt2FuFP+XYrL8i8oonHP7WInRyVHXh0n/ORtoeiE1os+8qkSw==}
     engines: {node: '>=10.0.0'}
 
-  engine.io@6.6.9:
-    resolution: {integrity: sha512-clKkw4C7nJ22mGgoVcCg6V/W/TxdNyIOTr89k2ONZu81qqkddPFDF0LXcbAwhzPD8DjkiRCjzuiO6Y+fkpD4vg==}
+  engine.io@6.6.11:
+    resolution: {integrity: sha512-z34mGpLoY/82ZbkX1LqGMIaf3wjVMPL6gVC681QDqnmzJ26synI8qAE32P+a7UazmpJZ8UGrFIeAavgRfXzYrg==}
     engines: {node: '>=10.2.0'}
 
   enhanced-resolve@5.20.1:
@@ -4416,8 +4416,8 @@ packages:
     resolution: {integrity: sha512-7h9/x25c6AQwdU3mA8MZDUMR3UCy50f237egBrBkuwjnUZSmfu4ptCf91PZSKzON2Uh5VvIHozYKWcPPgcjxIw==}
     engines: {node: 10.* || >= 12.*}
 
-  fast-uri@4.1.4:
-    resolution: {integrity: sha512-dODXrIxlS9JSdgAnhIUKOosKV1oMtU2VtVw87QRaHzyl5jxO290Ii5tEZfCfzfWNHi3jKWwBSdQj0qIyshdZdQ==}
+  fast-uri@4.2.1:
+    resolution: {integrity: sha512-TmHQgewjHtMq1E5QKA0tOE0yeYGQs25KZC/ziJpubRtWI15W92e6vPFydWOeZBVROSHBYw/QhD9d5OefdD6LDg==}
 
   fastq@1.17.1:
     resolution: {integrity: sha512-sRVD3lWVIXWg6By68ZN7vho9a1pQcN/WBFaAAsDDFzlJjvoGx0P8z7V1t72grFJfJhu3YPZBuu25f7Kaw2jN1w==}
@@ -5351,8 +5351,8 @@ packages:
   line-column@1.0.2:
     resolution: {integrity: sha512-Ktrjk5noGYlHsVnYWh62FLVs4hTb8A3e+vucNZMgPeAOITdshMSgv4cCZQeRDjm7+goqmo6+liZwTXo+U3sVww==}
 
-  linkify-it@6.1.0:
-    resolution: {integrity: sha512-wJ/TwpSDTLepCrQoYWYIExIKg5Zchex2Nn5yk2mFnB+6PtdkHtyLx742md9csRjjOnGkKIS/RrbY7l8D6gT9Vw==}
+  linkify-it@5.0.2:
+    resolution: {integrity: sha512-ONTm2jCMAVZjgQa/Fy1kScXsuOoF5NPTsoFBdE1KVIZ2vAh/r9+Bqo+0jINCBYnavTPQZz38QzFTme79ENoN3Q==}
 
   lint-staged@16.2.6:
     resolution: {integrity: sha512-s1gphtDbV4bmW1eylXpVMk2u7is7YsrLl8hzrtvC70h4ByhcMLZFY01Fx05ZUDNuv1H8HO4E+e2zgejV1jVwNw==}
@@ -5509,10 +5509,10 @@ packages:
   markdown-it-terminal@0.4.0:
     resolution: {integrity: sha512-NeXtgpIK6jBciHTm9UhiPnyHDdqyVIdRPJ+KdQtZaf/wR74gvhCNbw5li4TYsxRp5u3ZoHEF4DwpECeZqyCw+w==}
     peerDependencies:
-      markdown-it: '>=14.2.0'
+      markdown-it: ^14.3.1
 
-  markdown-it@14.2.0:
-    resolution: {integrity: sha512-1TGiQiJVRQ3NPmZH6sx5Cfnmg6GQm9jvC1ch4TK511NjSJvjzKLzn5pPfZRNZkRPZP0HqCioSndqH8v2nRaWVQ==}
+  markdown-it@14.3.2:
+    resolution: {integrity: sha512-sHHjZ5fJKlgrG4qns2YwVcdNep35h5fERrfkD2YNsb9UFk0UIHarbiTaHKVMlPuWAoiilyK8Fv/jAm11slsY7Q==}
     hasBin: true
 
   markdown-table@2.0.0:
@@ -7260,9 +7260,6 @@ packages:
 
   uc.micro@2.1.0:
     resolution: {integrity: sha512-ARDJmphmdvUk6Glw7y9DQ2bFkKBHwQHLi2lsaH6PPmz/Ka9sFOBsBluozhDltWmnv9u/cF6Rt87znRTPV+yp/A==}
-
-  uc.micro@3.0.0:
-    resolution: {integrity: sha512-U3PppEkleoTnIfi8BozMx3yju3qc/L6SwqWo2Sw+54PX+PX0q9I+r1Um5HCmqD7n9VDX5/v3vQH/AjA6deDdtw==}
 
   uglify-js@3.18.0:
     resolution: {integrity: sha512-SyVVbcNBCk0dzr9XL/R/ySrmYf0s372K6/hFklzgcp2lBFyXtw4I7BOdDjlLhE1aVqaI/SHWXWmYdlZxuyF38A==}
@@ -10176,7 +10173,7 @@ snapshots:
   ajv@8.18.0:
     dependencies:
       fast-deep-equal: 3.1.3
-      fast-uri: 4.1.4
+      fast-uri: 4.2.1
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
 
@@ -10527,7 +10524,7 @@ snapshots:
       raw-body: 1.1.7
       safe-json-parse: 1.0.1
 
-  brace-expansion@5.0.9(patch_hash=e58de2ab8e032ed8cc45661640a3b51cde9861d6c175610338b677917e57d105):
+  brace-expansion@5.0.12(patch_hash=1f560509a524f992368e82e77f7b0a0cb5ff21dfafbb8e112a0691a4e3807868):
     dependencies:
       balanced-match: 4.0.4
 
@@ -12167,8 +12164,8 @@ snapshots:
       is-language-code: 3.1.0
       isbinaryfile: 5.0.6
       lodash: 4.18.1
-      markdown-it: 14.2.0
-      markdown-it-terminal: 0.4.0(markdown-it@14.2.0)
+      markdown-it: 14.3.2
+      markdown-it-terminal: 0.4.0(markdown-it@14.3.2)
       minimatch: 7.4.9
       morgan: 1.12.1
       nopt: 3.0.6
@@ -12885,13 +12882,12 @@ snapshots:
 
   engine.io-parser@5.2.2: {}
 
-  engine.io@6.6.9:
+  engine.io@6.6.11:
     dependencies:
       '@types/cors': 2.8.17
       '@types/node': 24.5.2
       '@types/ws': 8.18.1
       accepts: 1.3.8
-      base64id: 2.0.0
       cookie: 0.7.2
       cors: 2.8.5
       debug: 4.4.3
@@ -13374,7 +13370,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  fast-uri@4.1.4: {}
+  fast-uri@4.2.1: {}
 
   fastq@1.17.1:
     dependencies:
@@ -14465,9 +14461,9 @@ snapshots:
       isarray: 1.0.0
       isobject: 2.1.0
 
-  linkify-it@6.1.0:
+  linkify-it@5.0.2:
     dependencies:
-      uc.micro: 3.0.0
+      uc.micro: 2.1.0
 
   lint-staged@16.2.6:
     dependencies:
@@ -14628,19 +14624,19 @@ snapshots:
     dependencies:
       p-defer: 1.0.0
 
-  markdown-it-terminal@0.4.0(markdown-it@14.2.0):
+  markdown-it-terminal@0.4.0(markdown-it@14.3.2):
     dependencies:
       ansi-styles: 3.2.1
       cardinal: 1.0.0
       cli-table: 0.3.11
       lodash.merge: 4.6.2
-      markdown-it: 14.2.0
+      markdown-it: 14.3.2
 
-  markdown-it@14.2.0:
+  markdown-it@14.3.2:
     dependencies:
       argparse: 2.0.1
       entities: 4.5.0
-      linkify-it: 6.1.0
+      linkify-it: 5.0.2
       mdurl: 2.0.0
       punycode.js: 2.3.1
       uc.micro: 2.1.0
@@ -14896,23 +14892,23 @@ snapshots:
 
   minimatch@3.1.5:
     dependencies:
-      brace-expansion: 5.0.9(patch_hash=e58de2ab8e032ed8cc45661640a3b51cde9861d6c175610338b677917e57d105)
+      brace-expansion: 5.0.12(patch_hash=1f560509a524f992368e82e77f7b0a0cb5ff21dfafbb8e112a0691a4e3807868)
 
   minimatch@5.1.9:
     dependencies:
-      brace-expansion: 5.0.9(patch_hash=e58de2ab8e032ed8cc45661640a3b51cde9861d6c175610338b677917e57d105)
+      brace-expansion: 5.0.12(patch_hash=1f560509a524f992368e82e77f7b0a0cb5ff21dfafbb8e112a0691a4e3807868)
 
   minimatch@7.4.9:
     dependencies:
-      brace-expansion: 5.0.9(patch_hash=e58de2ab8e032ed8cc45661640a3b51cde9861d6c175610338b677917e57d105)
+      brace-expansion: 5.0.12(patch_hash=1f560509a524f992368e82e77f7b0a0cb5ff21dfafbb8e112a0691a4e3807868)
 
   minimatch@8.0.7:
     dependencies:
-      brace-expansion: 5.0.9(patch_hash=e58de2ab8e032ed8cc45661640a3b51cde9861d6c175610338b677917e57d105)
+      brace-expansion: 5.0.12(patch_hash=1f560509a524f992368e82e77f7b0a0cb5ff21dfafbb8e112a0691a4e3807868)
 
   minimatch@9.0.7:
     dependencies:
-      brace-expansion: 5.0.9(patch_hash=e58de2ab8e032ed8cc45661640a3b51cde9861d6c175610338b677917e57d105)
+      brace-expansion: 5.0.12(patch_hash=1f560509a524f992368e82e77f7b0a0cb5ff21dfafbb8e112a0691a4e3807868)
 
   minimist@1.2.8: {}
 
@@ -16083,7 +16079,7 @@ snapshots:
       base64id: 2.0.0
       cors: 2.8.5
       debug: 4.3.7
-      engine.io: 6.6.9
+      engine.io: 6.6.11
       socket.io-adapter: 2.5.5
       socket.io-parser: 4.2.7
     transitivePeerDependencies:
@@ -16695,8 +16691,6 @@ snapshots:
   typescript-memoize@1.1.1: {}
 
   uc.micro@2.1.0: {}
-
-  uc.micro@3.0.0: {}
 
   uglify-js@3.18.0:
     optional: true
