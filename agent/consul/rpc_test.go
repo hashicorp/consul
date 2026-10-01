@@ -1777,3 +1777,77 @@ func rpcBlockingQueryTestHarness(
 
 	require.Equal(t, 1, count, "if this fails, then the timer likely needs to be increased above")
 }
+
+// TestRPC_PooledConnectionIdleTimeout verifies that pooled RPC connections
+// can remain idle longer than RPCHandshakeTimeout without timing out.
+// This is a regression test for the issue where the per-request read deadline
+// was incorrectly covering idle time between requests on established pooled streams.
+// See: https://github.com/hashicorp/consul/pull/23940
+func TestRPC_PooledConnectionIdleTimeout(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	// Configure server with a short RPCHandshakeTimeout to make the test faster
+	shortTimeout := 100 * time.Millisecond
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.RPCHandshakeTimeout = shortTimeout
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	// Establish pooled RPC connection
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	// First request: register a node
+	arg1 := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "node1",
+		Address:    "127.0.0.1",
+	}
+	var out struct{}
+
+	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg1, &out)
+	require.NoError(t, err, "first registration should succeed")
+
+	// Let the connection idle for longer than RPCHandshakeTimeout
+	// This simulates a pooled connection waiting for the next request
+	time.Sleep(shortTimeout * 2)
+
+	// Second request on the same pooled connection after idle time
+	// This should succeed without any timeout or EOF errors
+	arg2 := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "node2",
+		Address:    "127.0.0.2",
+	}
+
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg2, &out)
+	require.NoError(t, err, "registration after idle should succeed without timeout")
+
+	// Verify both registrations succeeded by querying
+	queryArg := structs.NodeSpecificRequest{
+		Datacenter: "dc1",
+		Node:       "node1",
+	}
+	var queryOut structs.IndexedNodeDump
+	err = msgpackrpc.CallWithCodec(codec, "Internal.NodeDump", &queryArg, &queryOut)
+	require.NoError(t, err)
+
+	// We should be able to make multiple requests on the same connection
+	// with idle periods exceeding RPCHandshakeTimeout
+	for i := 3; i <= 5; i++ {
+		time.Sleep(shortTimeout * 2)
+
+		arg := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       fmt.Sprintf("node%d", i),
+			Address:    fmt.Sprintf("127.0.0.%d", i),
+		}
+		err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
+		require.NoError(t, err, "registration on pooled connection should work after multiple idle periods")
+	}
+}

@@ -424,8 +424,6 @@ func (s *Server) handleMultiplexV2(conn net.Conn) {
 func (s *Server) handleConsulConn(conn net.Conn) {
 	defer conn.Close()
 
-	rpcCodec := newBoundedHeaderCodec(conn, structs.MsgpackHandle, int(s.rpcMaxHeaderBytes.Load()))
-
 	for {
 		select {
 		case <-s.shutdownCh:
@@ -433,22 +431,32 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 		default:
 		}
 
-		// Apply a per-request read deadline so that a slow attacker
-		// trickling an oversized header cannot hold a goroutine and
-		// retain logical heap indefinitely. We reuse RPCHandshakeTimeout
-		// as a reasonable bound; if it is not set we skip the deadline.
-		if s.config.RPCHandshakeTimeout > 0 {
-			conn.SetReadDeadline(time.Now().Add(s.config.RPCHandshakeTimeout))
-		}
+		// For pooled RPC connections, we intentionally do NOT set a read deadline
+		// on the connection itself. While this removes the per-request timeout protection,
+		// it is necessary because:
+		//
+		// 1. A deadline set before ServeRequest() covers BOTH waiting for the next
+		//    request to arrive (idle time) AND reading the request itself.
+		//
+		// 2. On pooled connections, clients may legitimately wait an unbounded time
+		//    before sending the next request. If we set a deadline, these legitimate
+		//    idle periods would trigger timeouts.
+		//
+		// 3. Slow-reader protection is still provided by:
+		//    - rpcMaxHeaderBytes limit (prevents large allocations)
+		//    - conn limiter (limits total goroutines per client)
+		//    - OS-level TCP timeouts (keep-alives)
+		//
+		// For a proper per-request timeout that only applies after data arrives,
+		// a more sophisticated approach would be needed (e.g., context with timeout
+		// through the entire RPC stack, or detecting data availability first).
+		// This is tracked as a follow-up improvement.
 
+		rpcCodec := newBoundedHeaderCodec(conn, structs.MsgpackHandle, int(s.rpcMaxHeaderBytes.Load()))
 		err := s.rpcServer.ServeRequest(rpcCodec)
 
-		// Clear the deadline regardless of outcome so long-running
-		// blocking queries (which are handled further up the stack) are
-		// not cut off.
-		if s.config.RPCHandshakeTimeout > 0 {
-			conn.SetReadDeadline(time.Time{})
-		}
+		// Clear any deadline to ensure blocking queries are not affected
+		conn.SetReadDeadline(time.Time{})
 
 		if err != nil {
 			//EOF or closed are not considered as errors.
@@ -476,8 +484,6 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 func (s *Server) handleInsecureConn(conn net.Conn) {
 	defer conn.Close()
 
-	rpcCodec := newBoundedHeaderCodec(conn, structs.MsgpackHandle, int(s.rpcMaxHeaderBytes.Load()))
-
 	for {
 		select {
 		case <-s.shutdownCh:
@@ -485,15 +491,14 @@ func (s *Server) handleInsecureConn(conn net.Conn) {
 		default:
 		}
 
-		if s.config.RPCHandshakeTimeout > 0 {
-			conn.SetReadDeadline(time.Now().Add(s.config.RPCHandshakeTimeout))
-		}
+		// For pooled insecure RPC connections, we intentionally do NOT set a read deadline.
+		// See handleConsulConn for detailed rationale.
 
+		rpcCodec := newBoundedHeaderCodec(conn, structs.MsgpackHandle, int(s.rpcMaxHeaderBytes.Load()))
 		err := s.insecureRPCServer.ServeRequest(rpcCodec)
 
-		if s.config.RPCHandshakeTimeout > 0 {
-			conn.SetReadDeadline(time.Time{})
-		}
+		// Clear any deadline to ensure long-running operations are not affected
+		conn.SetReadDeadline(time.Time{})
 
 		if err != nil {
 			if err != io.EOF && !strings.Contains(err.Error(), "closed") {

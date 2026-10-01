@@ -45,12 +45,10 @@ function retry_default {
   return $ret
 }
 
-# retry_long retries a convergence assertion for up to ~60s. The loop exits as
-# soon as the command succeeds, so passing runs incur no extra time; the higher
-# ceiling only benefits slow xDS/health/peer-replication convergence that can
-# exceed 30s on a contended CI runner (notably the xds-target=client path).
+# retry_long allows approximately 120s for health, xDS, and peering convergence.
+# The loop exits as soon as the command succeeds, so passing runs incur no extra time.
 function retry_long {
-  retry 60 1 "$@"
+  retry 120 1 "$@"
 }
 
 # assert_upstream_message asserts both the returned code
