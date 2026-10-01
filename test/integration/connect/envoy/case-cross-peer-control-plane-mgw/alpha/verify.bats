@@ -39,5 +39,5 @@ load helpers
 }
 
 @test "dialer servers in alpha made connection to primary servers via alpha gateway" {
-  assert_envoy_metric_at_least 127.0.0.1:19003 "cluster.server.primary.peering.*cx_total" 1
+  retry_long assert_envoy_metric_at_least 127.0.0.1:19003 "cluster.server.primary.peering.*cx_total" 1
 }

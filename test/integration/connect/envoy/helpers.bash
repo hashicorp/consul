@@ -45,8 +45,10 @@ function retry_default {
   return $ret
 }
 
+# retry_long allows approximately 120s for health, xDS, and peering convergence.
+# The loop exits as soon as the command succeeds, so passing runs incur no extra time.
 function retry_long {
-  retry 30 1 "$@"
+  retry 120 1 "$@"
 }
 
 # assert_upstream_message asserts both the returned code

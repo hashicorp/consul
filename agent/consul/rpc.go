@@ -244,8 +244,23 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 			conn.Close()
 			return
 		}
-		conn = tls.Server(conn, s.tlsConfigurator.IncomingInsecureRPCConfig())
-		s.handleInsecureConn(conn)
+		tlsConn := tls.Server(conn, s.tlsConfigurator.IncomingInsecureRPCConfig())
+		// This protocol enters TLS without another magic-byte read to bound the handshake.
+		ctx := context.Background()
+		var cancel context.CancelFunc
+		if s.config.RPCHandshakeTimeout > 0 {
+			ctx, cancel = context.WithTimeout(ctx, s.config.RPCHandshakeTimeout)
+		}
+		err := tlsConn.HandshakeContext(ctx)
+		if cancel != nil {
+			cancel()
+		}
+		if err != nil {
+			s.rpcLogger().Error("TLS handshake failed", "conn", logConn(conn), "error", err)
+			tlsConn.Close()
+			return
+		}
+		s.handleInsecureConn(tlsConn)
 
 	case pool.RPCGRPC:
 		s.internalGRPCHandler.Handle(conn)
@@ -424,7 +439,8 @@ func (s *Server) handleMultiplexV2(conn net.Conn) {
 func (s *Server) handleConsulConn(conn net.Conn) {
 	defer conn.Close()
 
-	rpcCodec := newBoundedHeaderCodec(conn, structs.MsgpackHandle, int(s.rpcMaxHeaderBytes.Load()))
+	// Preserve read-ahead bytes across requests on the same connection.
+	rpcCodec := newBoundedHeaderCodec(conn, structs.MsgpackHandle, int(s.rpcMaxHeaderBytes.Load()), s.config.RPCHandshakeTimeout)
 
 	for {
 		select {
@@ -433,22 +449,7 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 		default:
 		}
 
-		// Apply a per-request read deadline so that a slow attacker
-		// trickling an oversized header cannot hold a goroutine and
-		// retain logical heap indefinitely. We reuse RPCHandshakeTimeout
-		// as a reasonable bound; if it is not set we skip the deadline.
-		if s.config.RPCHandshakeTimeout > 0 {
-			conn.SetReadDeadline(time.Now().Add(s.config.RPCHandshakeTimeout))
-		}
-
 		err := s.rpcServer.ServeRequest(rpcCodec)
-
-		// Clear the deadline regardless of outcome so long-running
-		// blocking queries (which are handled further up the stack) are
-		// not cut off.
-		if s.config.RPCHandshakeTimeout > 0 {
-			conn.SetReadDeadline(time.Time{})
-		}
 
 		if err != nil {
 			//EOF or closed are not considered as errors.
@@ -476,7 +477,7 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 func (s *Server) handleInsecureConn(conn net.Conn) {
 	defer conn.Close()
 
-	rpcCodec := newBoundedHeaderCodec(conn, structs.MsgpackHandle, int(s.rpcMaxHeaderBytes.Load()))
+	rpcCodec := newBoundedHeaderCodec(conn, structs.MsgpackHandle, int(s.rpcMaxHeaderBytes.Load()), s.config.RPCHandshakeTimeout)
 
 	for {
 		select {
@@ -485,15 +486,7 @@ func (s *Server) handleInsecureConn(conn net.Conn) {
 		default:
 		}
 
-		if s.config.RPCHandshakeTimeout > 0 {
-			conn.SetReadDeadline(time.Now().Add(s.config.RPCHandshakeTimeout))
-		}
-
 		err := s.insecureRPCServer.ServeRequest(rpcCodec)
-
-		if s.config.RPCHandshakeTimeout > 0 {
-			conn.SetReadDeadline(time.Time{})
-		}
 
 		if err != nil {
 			if err != io.EOF && !strings.Contains(err.Error(), "closed") {
