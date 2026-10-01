@@ -374,8 +374,8 @@ func TestRPC_TLSHandshakeTimeout(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.RPCHandshakeTimeout = 10 * time.Millisecond
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.RPCHandshakeTimeout = 200 * time.Millisecond
 		c.TLSConfig.InternalRPC.CAFile = "../../test/hostname/CertAuth.crt"
 		c.TLSConfig.InternalRPC.CertFile = "../../test/hostname/Alice.crt"
 		c.TLSConfig.InternalRPC.KeyFile = "../../test/hostname/Alice.key"
@@ -383,40 +383,35 @@ func TestRPC_TLSHandshakeTimeout(t *testing.T) {
 		c.TLSConfig.InternalRPC.VerifyOutgoing = true
 		c.TLSConfig.InternalRPC.VerifyIncoming = true
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
-	// Connect to the server with TLS magic byte delivered on time
-	addr := s1.config.RPCAdvertise
-	conn, err := net.DialTimeout("tcp", addr.String(), time.Second)
-	require.NoError(t, err)
-	defer conn.Close()
+	for _, protocol := range []struct {
+		name string
+		typ  pool.RPCType
+	}{
+		{name: "TLS", typ: pool.RPCTLS},
+		{name: "insecure TLS", typ: pool.RPCTLSInsecure},
+	} {
+		t.Run(protocol.name, func(t *testing.T) {
+			for _, tc := range []struct {
+				name string
+				data []byte
+			}{
+				{name: "no ClientHello"},
+				{name: "partial TLS record", data: []byte{0x16, 0x03, 0x03, 0x00, 0x10, 0x01}},
+			} {
+				t.Run(tc.name, func(t *testing.T) {
+					conn, err := net.DialTimeout("tcp", s1.config.RPCAdvertise.String(), time.Second)
+					require.NoError(t, err)
+					defer conn.Close()
+					require.NoError(t, conn.SetDeadline(time.Now().Add(5*time.Second)))
 
-	// Write TLS byte to avoid being closed by either the (outer) first byte
-	// timeout or the fact that server requires TLS
-	_, err = conn.Write([]byte{byte(pool.RPCTLS)})
-	require.NoError(t, err)
-
-	// Wait for more than the timeout before we start a TLS handshake. This is
-	// timing dependent so could fail if the CPU is super overloaded so the
-	// handler goroutine so I'm using a retry loop below to be sure but this feels
-	// like a pretty generous margin for error (10x the timeout and 100ms of
-	// scheduling time).
-	time.Sleep(100 * time.Millisecond)
-
-	// Set a read deadline on the Conn in case the timeout is not working we don't
-	// want the read below to block forever. Needs to be much longer than what we
-	// expect and the error should be different too.
-	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
-
-	retry.Run(t, func(r *retry.R) {
-		// Sanity check the conn was closed by attempting to read from it (a write
-		// might not detect the close).
-		buf := make([]byte, 10)
-		_, err = conn.Read(buf)
-		require.Error(r, err)
-		require.Contains(r, err.Error(), "EOF")
-	})
+					_, err = conn.Write(append([]byte{byte(protocol.typ)}, tc.data...))
+					require.NoError(t, err)
+					requireRPCConnectionClosed(t, conn)
+				})
+			}
+		})
+	}
 }
 
 // TestRPC_OversizedServiceMethod is a regression test for a pre-authorization
@@ -1778,76 +1773,80 @@ func rpcBlockingQueryTestHarness(
 	require.Equal(t, 1, count, "if this fails, then the timer likely needs to be increased above")
 }
 
-// TestRPC_PooledConnectionIdleTimeout verifies that pooled RPC connections
-// can remain idle longer than RPCHandshakeTimeout without timing out.
-// This is a regression test for the issue where the per-request read deadline
-// was incorrectly covering idle time between requests on established pooled streams.
-// See: https://github.com/hashicorp/consul/pull/23940
 func TestRPC_PooledConnectionIdleTimeout(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
 	t.Parallel()
-
-	// Configure server with a short RPCHandshakeTimeout to make the test faster
-	shortTimeout := 100 * time.Millisecond
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	const shortTimeout = 200 * time.Millisecond
+	_, s1 := testServerWithConfig(t, func(c *Config) {
 		c.RPCHandshakeTimeout = shortTimeout
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
-	// Establish pooled RPC connection
-	codec := rpcClient(t, s1)
-	defer codec.Close()
+	for _, transport := range []string{"raw", "yamux pool"} {
+		t.Run(transport, func(t *testing.T) {
+			var call func(string, interface{}, interface{}) error
+			if transport == "raw" {
+				conn, err := net.DialTimeout("tcp", s1.config.RPCAdvertise.String(), time.Second)
+				require.NoError(t, err)
+				defer conn.Close()
+				require.NoError(t, conn.SetDeadline(time.Now().Add(5*time.Second)))
+				_, err = conn.Write([]byte{byte(pool.RPCConsul)})
+				require.NoError(t, err)
+				clientCodec := msgpackrpc.NewCodecFromHandle(true, true, conn, structs.MsgpackHandle)
+				defer clientCodec.Close()
+				call = func(method string, args, reply interface{}) error {
+					require.NoError(t, conn.SetDeadline(time.Now().Add(5*time.Second)))
+					return msgpackrpc.CallWithCodec(clientCodec, method, args, reply)
+				}
+				// No application bytes have arrived yet, so this idle time is also unbounded.
+				time.Sleep(2 * shortTimeout)
+			} else {
+				connPool := &pool.ConnPool{
+					Datacenter:      "dc1",
+					MaxStreams:      1,
+					TLSConfigurator: s1.tlsConfigurator,
+					Logger:          s1.logger.StandardLogger(nil),
+				}
+				defer connPool.Shutdown()
+				connPool.SetRPCClientTimeout(5 * time.Second)
+				call = func(method string, args, reply interface{}) error {
+					return connPool.RPC("dc1", s1.config.NodeName, s1.config.RPCAdvertise, method, args, reply)
+				}
+			}
 
-	// First request: register a node
-	arg1 := structs.RegisterRequest{
-		Datacenter: "dc1",
-		Node:       "node1",
-		Address:    "127.0.0.1",
+			for i := 0; i < 3; i++ {
+				if i > 0 {
+					time.Sleep(2 * shortTimeout)
+				}
+				arg := structs.RegisterRequest{
+					Datacenter: "dc1",
+					Node:       fmt.Sprintf("node-%d", i),
+					Address:    "127.0.0.1",
+				}
+				var out struct{}
+				require.NoError(t, call("Catalog.Register", &arg, &out),
+					"registration %d must succeed without retrying an idle connection", i)
+
+				query := structs.NodeSpecificRequest{Datacenter: "dc1", Node: arg.Node}
+				var nodes structs.IndexedNodeServices
+				require.NoError(t, call("Catalog.NodeServices", &query, &nodes))
+				require.NotNil(t, nodes.NodeServices)
+				require.NotNil(t, nodes.NodeServices.Node)
+				require.Equal(t, arg.Node, nodes.NodeServices.Node.Node)
+			}
+		})
 	}
-	var out struct{}
+}
 
-	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg1, &out)
-	require.NoError(t, err, "first registration should succeed")
 
-	// Let the connection idle for longer than RPCHandshakeTimeout
-	// This simulates a pooled connection waiting for the next request
-	time.Sleep(shortTimeout * 2)
-
-	// Second request on the same pooled connection after idle time
-	// This should succeed without any timeout or EOF errors
-	arg2 := structs.RegisterRequest{
-		Datacenter: "dc1",
-		Node:       "node2",
-		Address:    "127.0.0.2",
-	}
-
-	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg2, &out)
-	require.NoError(t, err, "registration after idle should succeed without timeout")
-
-	// Verify both registrations succeeded by querying
-	queryArg := structs.NodeSpecificRequest{
-		Datacenter: "dc1",
-		Node:       "node1",
-	}
-	var queryOut structs.IndexedNodeDump
-	err = msgpackrpc.CallWithCodec(codec, "Internal.NodeDump", &queryArg, &queryOut)
-	require.NoError(t, err)
-
-	// We should be able to make multiple requests on the same connection
-	// with idle periods exceeding RPCHandshakeTimeout
-	for i := 3; i <= 5; i++ {
-		time.Sleep(shortTimeout * 2)
-
-		arg := structs.RegisterRequest{
-			Datacenter: "dc1",
-			Node:       fmt.Sprintf("node%d", i),
-			Address:    fmt.Sprintf("127.0.0.%d", i),
-		}
-		err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
-		require.NoError(t, err, "registration on pooled connection should work after multiple idle periods")
-	}
+// requireRPCConnectionClosed verifies that a connection has been closed by the server.
+func requireRPCConnectionClosed(t *testing.T, conn net.Conn) {
+	t.Helper()
+	buf := make([]byte, 1)
+	conn.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
+	_, err := conn.Read(buf)
+	require.True(t, err != nil && (err == io.EOF || errors.Is(err, io.ErrClosedPipe)), "expected connection to be closed, got: %v", err)
 }
