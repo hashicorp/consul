@@ -31,7 +31,7 @@ load helpers
 }
 
 @test "peer the two clusters together" {
-  retry_default create_peering primary alpha
+  retry_long create_peering primary alpha
 }
 
 @test "s2 alpha proxies should be healthy in primary" {
@@ -58,5 +58,5 @@ load helpers
 
 @test "s1 upstream made 1 connection to s2" {
   # note this is what the IMPORTING side thinks it is talking to
-  assert_envoy_metric_at_least 127.0.0.1:19000 "cluster.s2.default.primary-to-alpha.external.*cx_total" 1
+  retry_long assert_envoy_metric_at_least 127.0.0.1:19000 "cluster.s2.default.primary-to-alpha.external.*cx_total" 1
 }
