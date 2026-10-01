@@ -1,0 +1,3 @@
+```release-note:bug
+state: do not treat short hex node names as UUID prefixes
+```
