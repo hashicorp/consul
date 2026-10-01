@@ -17,19 +17,36 @@ on:
 
 jobs:
   backport:
-    if: github.event.pull_request.merged
+    if: github.event.pull_request.merged && github.repository == 'hashicorp/consul'
     runs-on: ubuntu-latest
-    container: hashicorpdev/backport-assistant:v0.5.8
+    permissions:
+      contents: read
+    concurrency:
+      group: ce-backport-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
     steps:
-      - name: Run Backport Assistant for release branches
+      - name: Checkout trusted backport tooling
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Set up Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Check Git support
+        shell: bash
         run: |
-          backport-assistant backport -merge-method=squash
+          version="$(git version | awk '{print $3}')"
+          if [[ "$(printf '%s\n' '2.40.0' "$version" | sort -V | head -n 1)" != "2.40.0" ]]; then
+            echo "::error::The CE backport preflight requires Git 2.40 or newer."
+            exit 1
+          fi
+      - name: Backport missing changes to CE-active release branches
+        run: go run ./.github/scripts/ce-backport
         env:
-          BACKPORT_LABEL_REGEXP: "backport/(?P<target>\\d+\\.\\d+)"
-          BACKPORT_TARGET_TEMPLATE: "release/{{.target}}.x"
-          BACKPORT_MERGE_COMMIT: true
           GITHUB_TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN_WORKFLOW }}
-          ENABLE_VERSION_MANIFESTS: true
   backport-ent:
     if: github.event.pull_request.merged && contains(join(github.event.pull_request.labels.*.name), 'backport/ent')
     runs-on: ubuntu-latest
@@ -55,4 +72,3 @@ jobs:
             -X POST \
             -d "{ \"body\": \"${github_message}\"}" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.pull_request.number }}/comments"
-
