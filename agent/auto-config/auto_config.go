@@ -124,7 +124,7 @@ func (ac *AutoConfig) ReadConfig() (*config.RuntimeConfig, error) {
 }
 
 // InitialConfiguration will perform a one-time RPC request to the configured servers
-// to retrieve various cluster wide configurations. See the proto/pbautoconf/auto_config.proto
+// to retrieve various cluster wide configurations. See the proto/private/pbautoconf/auto_config.proto
 // file for a complete reference of what configurations can be applied in this manner.
 // The returned configuration will be the new configuration with any auto-config settings
 // already applied. If AutoConfig is not enabled this method will just parse any
