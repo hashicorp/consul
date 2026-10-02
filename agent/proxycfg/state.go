@@ -298,9 +298,10 @@ func (s *state) Watch() (<-chan ConfigSnapshot, error) {
 
 // Close discards the state and stops any long-running watches.
 func (s *state) Close(failed bool) error {
-	if s.stoppedRunning() {
-		return nil
-	}
+	// Note: this deliberately cancels even when the run loop has already
+	// stopped. run recovers panics, which leaves the loop dead but every watch
+	// it registered still running; cancelling the context is the only way to
+	// reclaim them.
 	if s.cancel != nil {
 		s.cancel()
 	}

@@ -263,26 +263,39 @@ func (s *handlerConnectProxy) setupWatchesForPeeredUpstream(
 	uid UpstreamID,
 	dc string,
 ) error {
-	s.logger.Trace("initializing watch of peered upstream", "upstream", uid)
-
 	// NOTE: An upstream that points to a peer by definition will
 	// only ever watch a single catalog query, so a map key of just
 	// "UID" is sufficient to cover the peer data watches here.
-	err := s.dataSources.Health.Notify(ctx, &structs.ServiceSpecificRequest{
-		PeerName:   uid.Peer,
-		Datacenter: dc,
-		QueryOptions: structs.QueryOptions{
-			Token: s.token,
-		},
-		ServiceName:    uid.Name,
-		Connect:        true,
-		Source:         *s.source,
-		EnterpriseMeta: uid.EnterpriseMeta,
-	}, upstreamPeerWatchIDPrefix+uid.String(), s.ch)
-	if err != nil {
-		return fmt.Errorf("failed to watch health for %s: %v", uid, err)
+	//
+	// Check whether a watch for this upstream exists to avoid duplicates. This
+	// runs again for every peered-upstreams update, and each registration
+	// starts a watcher goroutine that only its own context can reclaim, so
+	// re-registering strands one goroutine (and its materialized view) per
+	// update, per upstream. It would also discard the endpoints already stored
+	// for the upstream, since InitWatch resets the entry.
+	if !snapConnectProxy.PeerUpstreamEndpoints.IsWatched(uid) {
+		s.logger.Trace("initializing watch of peered upstream", "upstream", uid)
+
+		upstreamCtx, cancel := context.WithCancel(ctx)
+		err := s.dataSources.Health.Notify(upstreamCtx, &structs.ServiceSpecificRequest{
+			PeerName:   uid.Peer,
+			Datacenter: dc,
+			QueryOptions: structs.QueryOptions{
+				Token: s.token,
+			},
+			ServiceName:    uid.Name,
+			Connect:        true,
+			Source:         *s.source,
+			EnterpriseMeta: uid.EnterpriseMeta,
+		}, upstreamPeerWatchIDPrefix+uid.String(), s.ch)
+		if err != nil {
+			cancel()
+			return fmt.Errorf("failed to watch health for %s: %v", uid, err)
+		}
+		// Hand the cancel func to the snapshot so that reconcilePeeringWatches
+		// can reclaim the watcher once the upstream is no longer imported.
+		snapConnectProxy.PeerUpstreamEndpoints.InitWatch(uid, cancel)
 	}
-	snapConnectProxy.PeerUpstreamEndpoints.InitWatch(uid, nil)
 
 	// Check whether a watch for this peer exists to avoid duplicates.
 	if ok := snapConnectProxy.UpstreamPeerTrustBundles.IsWatched(uid.Peer); !ok {

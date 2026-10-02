@@ -212,18 +212,23 @@ func (m *Manager) Register(id ProxyID, ns *structs.NodeService, source ProxySour
 
 func (m *Manager) register(id ProxyID, ns *structs.NodeService, source ProxySource, token string, overwrite bool) error {
 	state, ok := m.proxies[id]
-	if ok && !state.stoppedRunning() {
-		if state.source != source && !overwrite {
-			// Registered by a different source, leave as-is.
-			return nil
+	if ok {
+		if !state.stoppedRunning() {
+			if state.source != source && !overwrite {
+				// Registered by a different source, leave as-is.
+				return nil
+			}
+
+			if !state.Changed(ns, token) {
+				// No change
+				return nil
+			}
 		}
 
-		if !state.Changed(ns, token) {
-			// No change
-			return nil
-		}
-
-		// We are updating the proxy, close its old state
+		// We are replacing the proxy's state, so close the old one. This also
+		// has to happen for a state whose run loop has already stopped (e.g.
+		// because it panicked): its watches are still running, and this is the
+		// last chance to reclaim them.
 		state.Close(false)
 	}
 
