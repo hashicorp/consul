@@ -796,13 +796,44 @@ func (h *handlerAPIGateway) watchIngressLeafCert(ctx context.Context, snap *Conf
 	return nil
 }
 
+// apiGatewayTLSServingEnabled returns true if downstream TLS termination is
+// active on the API gateway — either globally via the gateway-level TLS flag
+// (APIGatewayConfigEntry.TLS.Enabled) or on at least one bound listener (a
+// listener carries certificates or an SDS source).
+//
+// This mirrors connectTLSServingEnabled used by ingress gateways. DNS SANs are
+// only needed when the gateway actually terminates TLS for downstream clients.
+//
+// Note: the leaf cert itself is always requested (see watchIngressLeafCert)
+// because the gateway needs it as a client cert for outbound mTLS even when no
+// listener terminates downstream TLS. Only the DNS SAN set is gated here.
+func apiGatewayTLSServingEnabled(snap *ConfigSnapshot) bool {
+	// Gateway-level global TLS flag (APIGatewayConfigEntry.TLS.Enabled).
+	if snap.APIGateway.TLSConfig.Enabled {
+		return true
+	}
+
+	return false
+}
+
 // generateAPIGatewayDNSSANs returns the set of DNS Subject Alternative Names that
 // should be present on the API gateway's leaf certificate. This mirrors the
 // ingress gateway behavior (generateIngressDNSSANs) so that services exposed via
 // an API gateway can be reached over TLS using the auto-registered
 // "<service>.api-gateway.<domain>" DNS names, in addition to any explicit
 // hostnames configured on listeners or bound routes.
+//
+// DNS SANs are only injected when at least one listener terminates downstream
+// TLS. When all listeners are plain-text the leaf cert is still issued (for
+// outbound mTLS) but carries no DNS SANs, which avoids unnecessary XFCC
+// header fields on the outbound client certificate.
 func (h *handlerAPIGateway) generateAPIGatewayDNSSANs(snap *ConfigSnapshot) []string {
+	// Only inject DNS SANs when at least one listener terminates downstream TLS.
+	// This mirrors the connectTLSServingEnabled guard in generateIngressDNSSANs.
+	if !apiGatewayTLSServingEnabled(snap) {
+		return nil
+	}
+
 	var dnsNames []string
 
 	// Collect the tenancy (namespace + partition) of every fronted upstream so
