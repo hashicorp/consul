@@ -55,6 +55,7 @@ type Server struct {
 	customAudience    string
 	omitIDToken       bool
 	disableUserInfo   bool
+	disableEndSession bool
 }
 
 type TestingT interface {
@@ -170,6 +171,16 @@ func (s *Server) DisableUserInfo() {
 	s.disableUserInfo = true
 }
 
+// DisableEndSession omits the end_session_endpoint from the discovery config,
+// simulating an identity provider that does not support OIDC RP-Initiated
+// logout. Must be called before the authenticator is created,
+// since the discovery document is fetched and cached at that time.
+func (s *Server) DisableEndSession() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.disableEndSession = true
+}
+
 // Stop stops the running Server.
 func (s *Server) Stop() {
 	s.httpServer.Close()
@@ -201,20 +212,25 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 
 		reply := struct {
-			Issuer           string `json:"issuer"`
-			AuthEndpoint     string `json:"authorization_endpoint"`
-			TokenEndpoint    string `json:"token_endpoint"`
-			JWKSURI          string `json:"jwks_uri"`
-			UserinfoEndpoint string `json:"userinfo_endpoint,omitempty"`
+			Issuer             string `json:"issuer"`
+			AuthEndpoint       string `json:"authorization_endpoint"`
+			TokenEndpoint      string `json:"token_endpoint"`
+			JWKSURI            string `json:"jwks_uri"`
+			UserinfoEndpoint   string `json:"userinfo_endpoint,omitempty"`
+			EndSessionEndpoint string `json:"end_session_endpoint,omitempty"`
 		}{
-			Issuer:           s.Addr(),
-			AuthEndpoint:     s.Addr() + "/auth",
-			TokenEndpoint:    s.Addr() + "/token",
-			JWKSURI:          s.Addr() + "/certs",
-			UserinfoEndpoint: s.Addr() + "/userinfo",
+			Issuer:             s.Addr(),
+			AuthEndpoint:       s.Addr() + "/auth",
+			TokenEndpoint:      s.Addr() + "/token",
+			JWKSURI:            s.Addr() + "/certs",
+			UserinfoEndpoint:   s.Addr() + "/userinfo",
+			EndSessionEndpoint: s.Addr() + "/logout",
 		}
 		if s.disableUserInfo {
 			reply.UserinfoEndpoint = ""
+		}
+		if s.disableEndSession {
+			reply.EndSessionEndpoint = ""
 		}
 
 		if err := writeJSON(w, &reply); err != nil {
