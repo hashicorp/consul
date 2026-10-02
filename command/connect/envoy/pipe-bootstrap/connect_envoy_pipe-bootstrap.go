@@ -61,6 +61,7 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error(err.Error())
 		return 1
 	}
+	defer f.Close()
 
 	if _, err := buf.WriteTo(f); err != nil {
 		c.UI.Error(err.Error())
