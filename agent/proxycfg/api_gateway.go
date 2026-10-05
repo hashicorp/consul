@@ -814,8 +814,20 @@ func apiGatewayTLSServingEnabled(snap *ConfigSnapshot) bool {
 	}
 
 	// Check if any listener-level listener has TLS termination configured.
+	// This mirrors the xDS builder logic (listeners_apigateway.go:591):
+	// TLS is enabled if ANY of these are present:
+	// - Listener has custom certificates
+	// - Listener has SDS source
+	// - Listener has TLS parameters (MinVersion, MaxVersion, CipherSuites)
 	for _, listener := range snap.APIGateway.BoundListeners {
-		if len(listener.TLS.Certificates) > 0 || listener.TLS.SDS != nil {
+		tlsCfg := &listener.TLS
+		if len(tlsCfg.Certificates) > 0 {
+			return true
+		}
+		if tlsCfg.SDS != nil {
+			return true
+		}
+		if len(tlsCfg.MinVersion) > 0 || len(tlsCfg.MaxVersion) > 0 || len(tlsCfg.CipherSuites) > 0 {
 			return true
 		}
 	}

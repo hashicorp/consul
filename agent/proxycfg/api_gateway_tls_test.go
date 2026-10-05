@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/types"
 )
 
 // countingLeafSource is a minimal LeafCertificate data source that records how
@@ -305,6 +306,101 @@ func TestGenerateAPIGatewayDNSSANs_ListenerLevelSDS(t *testing.T) {
 	sans := h.generateAPIGatewayDNSSANs(snap)
 
 	require.NotNil(t, sans, "DNS SANs must be generated when listener has SDS source")
+	require.Contains(t, sans, "*.api-gateway.consul")
+	require.Contains(t, sans, "*.api-gateway.dc1.consul")
+}
+
+// TestGenerateAPIGatewayDNSSANs_ListenerLevelMinVersion verifies that DNS SANs are
+// injected when a listener has TLS MinVersion configured at the listener level,
+// even without custom certificates or SDS. This tests listener-level TLS parameter path.
+func TestGenerateAPIGatewayDNSSANs_ListenerLevelMinVersion(t *testing.T) {
+	snap := TestConfigSnapshotAPIGateway(t, "default", nil,
+		func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+			// No global TLS flag — entry.TLS.Enabled is false by default
+			entry.Listeners = []structs.APIGatewayListener{{
+				Name:     "https-listener",
+				Protocol: structs.ListenerProtocolHTTP,
+				Port:     8443,
+			}}
+			// BUT the listener has TLS MinVersion configured at listener level
+			bound.Listeners = []structs.BoundAPIGatewayListener{{
+				Name:     "https-listener",
+				Protocol: structs.ListenerProtocolHTTP,
+				Port:     8443,
+				TLS: structs.APIGatewayTLSConfiguration{
+					MinVersion: "TLSv1_2",
+				},
+			}}
+		}, nil, nil, nil)
+
+	h := testAPIGatewayHandler(t, nil)
+	sans := h.generateAPIGatewayDNSSANs(snap)
+
+	require.NotNil(t, sans, "DNS SANs must be generated when listener has TLS MinVersion")
+	require.Contains(t, sans, "*.api-gateway.consul")
+	require.Contains(t, sans, "*.api-gateway.dc1.consul")
+}
+
+// TestGenerateAPIGatewayDNSSANs_ListenerLevelMaxVersion verifies that DNS SANs are
+// injected when a listener has TLS MaxVersion configured at the listener level,
+// even without custom certificates or SDS.
+func TestGenerateAPIGatewayDNSSANs_ListenerLevelMaxVersion(t *testing.T) {
+	snap := TestConfigSnapshotAPIGateway(t, "default", nil,
+		func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+			// No global TLS flag — entry.TLS.Enabled is false by default
+			entry.Listeners = []structs.APIGatewayListener{{
+				Name:     "https-listener",
+				Protocol: structs.ListenerProtocolHTTP,
+				Port:     8443,
+			}}
+			// BUT the listener has TLS MaxVersion configured at listener level
+			bound.Listeners = []structs.BoundAPIGatewayListener{{
+				Name:     "https-listener",
+				Protocol: structs.ListenerProtocolHTTP,
+				Port:     8443,
+				TLS: structs.APIGatewayTLSConfiguration{
+					MaxVersion: "TLSv1_3",
+				},
+			}}
+		}, nil, nil, nil)
+
+	h := testAPIGatewayHandler(t, nil)
+	sans := h.generateAPIGatewayDNSSANs(snap)
+
+	require.NotNil(t, sans, "DNS SANs must be generated when listener has TLS MaxVersion")
+	require.Contains(t, sans, "*.api-gateway.consul")
+	require.Contains(t, sans, "*.api-gateway.dc1.consul")
+}
+
+// TestGenerateAPIGatewayDNSSANs_ListenerLevelCipherSuites verifies that DNS SANs are
+// injected when a listener has TLS CipherSuites configured at the listener level,
+// even without custom certificates or SDS.
+func TestGenerateAPIGatewayDNSSANs_ListenerLevelCipherSuites(t *testing.T) {
+	snap := TestConfigSnapshotAPIGateway(t, "default", nil,
+		func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+			// No global TLS flag — entry.TLS.Enabled is false by default
+			entry.Listeners = []structs.APIGatewayListener{{
+				Name:     "https-listener",
+				Protocol: structs.ListenerProtocolHTTP,
+				Port:     8443,
+			}}
+			// BUT the listener has TLS CipherSuites configured at listener level
+			bound.Listeners = []structs.BoundAPIGatewayListener{{
+				Name:     "https-listener",
+				Protocol: structs.ListenerProtocolHTTP,
+				Port:     8443,
+				TLS: structs.APIGatewayTLSConfiguration{
+					CipherSuites: []types.TLSCipherSuite{
+						types.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+					},
+				},
+			}}
+		}, nil, nil, nil)
+
+	h := testAPIGatewayHandler(t, nil)
+	sans := h.generateAPIGatewayDNSSANs(snap)
+
+	require.NotNil(t, sans, "DNS SANs must be generated when listener has TLS CipherSuites")
 	require.Contains(t, sans, "*.api-gateway.consul")
 	require.Contains(t, sans, "*.api-gateway.dc1.consul")
 }
