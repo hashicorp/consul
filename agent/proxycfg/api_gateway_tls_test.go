@@ -242,6 +242,73 @@ func TestWatchIngressLeafCert_NoTLSNoSANs(t *testing.T) {
 	require.Empty(t, leaf.lastReq.DNSSAN, "no DNS SANs should be requested when no listener terminates TLS")
 }
 
+// TestGenerateAPIGatewayDNSSANs_ListenerLevelCertificates verifies that DNS SANs are
+// injected when a listener has custom certificates configured at the listener level,
+// even without a global TLS.Enabled flag. This tests the listener-level certificate path.
+func TestGenerateAPIGatewayDNSSANs_ListenerLevelCertificates(t *testing.T) {
+	snap := TestConfigSnapshotAPIGateway(t, "default", nil,
+		func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+			// No global TLS flag — entry.TLS.Enabled is false by default
+			entry.Listeners = []structs.APIGatewayListener{{
+				Name:     "https-listener",
+				Protocol: structs.ListenerProtocolHTTP,
+				Port:     8443,
+			}}
+			// BUT the listener has custom certificates at the listener level
+			bound.Listeners = []structs.BoundAPIGatewayListener{{
+				Name:     "https-listener",
+				Protocol: structs.ListenerProtocolHTTP,
+				Port:     8443,
+				TLS: structs.APIGatewayTLSConfiguration{
+					Certificates: []structs.ResourceReference{{
+						Kind: structs.InlineCertificate,
+						Name: "custom-cert",
+					}},
+				},
+			}}
+		}, nil, nil, nil)
+
+	h := testAPIGatewayHandler(t, nil)
+	sans := h.generateAPIGatewayDNSSANs(snap)
+
+	require.NotNil(t, sans, "DNS SANs must be generated when listener has custom certificates")
+	require.Contains(t, sans, "*.api-gateway.consul")
+	require.Contains(t, sans, "*.api-gateway.dc1.consul")
+}
+
+// TestGenerateAPIGatewayDNSSANs_ListenerLevelSDS verifies that DNS SANs are
+// injected when a listener has an SDS source configured at the listener level,
+// even without a global TLS.Enabled flag. This tests the listener-level SDS path.
+func TestGenerateAPIGatewayDNSSANs_ListenerLevelSDS(t *testing.T) {
+	snap := TestConfigSnapshotAPIGateway(t, "default", nil,
+		func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+			// No global TLS flag — entry.TLS.Enabled is false by default
+			entry.Listeners = []structs.APIGatewayListener{{
+				Name:     "https-listener",
+				Protocol: structs.ListenerProtocolHTTP,
+				Port:     8443,
+			}}
+			// BUT the listener has SDS source at the listener level
+			bound.Listeners = []structs.BoundAPIGatewayListener{{
+				Name:     "https-listener",
+				Protocol: structs.ListenerProtocolHTTP,
+				Port:     8443,
+				TLS: structs.APIGatewayTLSConfiguration{
+					SDS: &structs.GatewayTLSSDSConfig{
+						ClusterName: "vault-sds",
+					},
+				},
+			}}
+		}, nil, nil, nil)
+
+	h := testAPIGatewayHandler(t, nil)
+	sans := h.generateAPIGatewayDNSSANs(snap)
+
+	require.NotNil(t, sans, "DNS SANs must be generated when listener has SDS source")
+	require.Contains(t, sans, "*.api-gateway.consul")
+	require.Contains(t, sans, "*.api-gateway.dc1.consul")
+}
+
 // newTestAPIGatewaySnapshot builds a minimal API gateway snapshot with the
 // gateway config loaded and empty route/upstream maps, sufficient to exercise
 // watchIngressLeafCert / generateAPIGatewayDNSSANs.
