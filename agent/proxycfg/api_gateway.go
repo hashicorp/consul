@@ -813,6 +813,13 @@ func apiGatewayTLSServingEnabled(snap *ConfigSnapshot) bool {
 		return true
 	}
 
+	// Check if any listener-level listener has TLS termination configured.
+	for _, listener := range snap.APIGateway.BoundListeners {
+		if len(listener.TLS.Certificates) > 0 || listener.TLS.SDS != nil {
+			return true
+		}
+	}
+
 	return false
 }
 
