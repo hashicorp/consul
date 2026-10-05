@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"reflect"
 	"regexp"
 	"sort"
 	"strconv"
@@ -1365,7 +1366,8 @@ type BoundAPIGatewayListener struct {
 	Certificates []ResourceReference
 
 	// The following fields are copied from the corresponding APIGatewayListener
-	// when the controller reconciles. They are read-only after that point.
+	// when the controller reconciles. Changes on the parent listener are
+	// propagated here on the next reconcile; see BoundAPIGatewayListener.IsSame.
 	Hostname            string
 	Port                int
 	Protocol            APIGatewayListenerProtocol
@@ -1373,6 +1375,21 @@ type BoundAPIGatewayListener struct {
 	Override            *APIGatewayPolicy `json:",omitempty"`
 	Default             *APIGatewayPolicy `json:",omitempty"`
 	MaxRequestHeadersKB *uint32           `json:",omitempty"`
+}
+
+// SetConfigFromListener copies the configuration fields of the given
+// APIGatewayListener onto the bound listener, leaving the bound state (routes
+// and certificates) untouched. Every code path that materializes a
+// BoundAPIGatewayListener must funnel through here so the copied fields cannot
+// drift from their parent listener.
+func (l *BoundAPIGatewayListener) SetConfigFromListener(listener APIGatewayListener) {
+	l.Hostname = listener.Hostname
+	l.Port = listener.Port
+	l.Protocol = listener.Protocol
+	l.TLS = listener.TLS
+	l.Override = listener.Override
+	l.Default = listener.Default
+	l.MaxRequestHeadersKB = listener.MaxRequestHeadersKB
 }
 
 // GetHostname returns the hostname for the listener, or "*" if unspecified.
@@ -1409,7 +1426,63 @@ func (l BoundAPIGatewayListener) IsSame(other BoundAPIGatewayListener) bool {
 	if !sameResources(l.Certificates, other.Certificates) {
 		return false
 	}
+	if !l.sameConfig(other) {
+		return false
+	}
 	return sameResources(l.Routes, other.Routes)
+}
+
+// sameConfig compares the listener configuration fields that are copied from
+// the parent APIGatewayListener. These must participate in IsSame so that an
+// edit to the APIGateway config entry which only changes listener
+// configuration (leaving routes and certificates untouched) is still persisted
+// to the bound entry by the reconciler.
+func (l BoundAPIGatewayListener) sameConfig(other BoundAPIGatewayListener) bool {
+	if l.Hostname != other.Hostname ||
+		l.Port != other.Port ||
+		l.Protocol != other.Protocol {
+		return false
+	}
+	if !l.TLS.isSame(&other.TLS) {
+		return false
+	}
+	if !l.Override.isSame(other.Override) || !l.Default.isSame(other.Default) {
+		return false
+	}
+	return pointerValuesEqual(l.MaxRequestHeadersKB, other.MaxRequestHeadersKB)
+}
+
+func pointerValuesEqual[T comparable](first, second *T) bool {
+	if first == nil || second == nil {
+		return first == second
+	}
+	return *first == *second
+}
+
+func (a *APIGatewayTLSConfiguration) isSame(other *APIGatewayTLSConfiguration) bool {
+	if a == nil || other == nil {
+		return a == other
+	}
+	if a.MaxVersion != other.MaxVersion || a.MinVersion != other.MinVersion {
+		return false
+	}
+	if !slices.Equal(a.CipherSuites, other.CipherSuites) {
+		return false
+	}
+	if !sameResources(a.Certificates, other.Certificates) {
+		return false
+	}
+	if a.SDS == nil || other.SDS == nil {
+		return a.SDS == other.SDS
+	}
+	return *a.SDS == *other.SDS
+}
+
+func (p *APIGatewayPolicy) isSame(other *APIGatewayPolicy) bool {
+	if p == nil || other == nil {
+		return p == other
+	}
+	return reflect.DeepEqual(p.JWT, other.JWT)
 }
 
 // BindRoute is used to create or update a route on the listener.
