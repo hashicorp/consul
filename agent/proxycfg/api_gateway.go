@@ -813,18 +813,33 @@ func apiGatewayTLSServingEnabled(snap *ConfigSnapshot) bool {
 		return true
 	}
 
+	// Check gateway-level TLS configuration. This mirrors the xDS builder logic
+	// (listeners_apigateway.go:644-649) which considers the config non-empty if:
+	// - SDS is configured with a CertResource
+	// - TLSMinVersion is set
+	// - TLSMaxVersion is set
+	// - CipherSuites is configured
+	gatewayTLSCfg := &snap.APIGateway.TLSConfig
+
+	// Check gateway-level SDS (must have CertResource to be valid)
+	if gatewayTLSCfg.SDS != nil && gatewayTLSCfg.SDS.CertResource != "" {
+		return true
+	}
+
+	// Check gateway-level TLS parameters
+	if len(gatewayTLSCfg.TLSMinVersion) > 0 || len(gatewayTLSCfg.TLSMaxVersion) > 0 || len(gatewayTLSCfg.CipherSuites) > 0 {
+		return true
+	}
+
 	// Check if any listener-level listener has TLS termination configured.
-	// This mirrors the xDS builder logic (listeners_apigateway.go:591):
-	// TLS is enabled if ANY of these are present:
-	// - Listener has custom certificates
-	// - Listener has SDS source
-	// - Listener has TLS parameters (MinVersion, MaxVersion, CipherSuites)
+	// This mirrors the xDS builder logic (listeners_apigateway.go:590-591).
 	for _, listener := range snap.APIGateway.BoundListeners {
 		tlsCfg := &listener.TLS
 		if len(tlsCfg.Certificates) > 0 {
 			return true
 		}
-		if tlsCfg.SDS != nil {
+		// Listener-level SDS must also have CertResource to be valid (mirrors hasSDSCert)
+		if tlsCfg.SDS != nil && tlsCfg.SDS.CertResource != "" {
 			return true
 		}
 		if len(tlsCfg.MinVersion) > 0 || len(tlsCfg.MaxVersion) > 0 || len(tlsCfg.CipherSuites) > 0 {

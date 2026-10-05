@@ -101,8 +101,124 @@ func TestGenerateAPIGatewayDNSSANs_GlobalTLSEnabled(t *testing.T) {
 	require.Contains(t, sans, "*.api-gateway.dc1.consul")
 }
 
-// TestGenerateAPIGatewayDNSSANs verifies the leaf-cert DNS SANs include the
-// "*.api-gateway.<domain>" wildcards plus explicit listener and route
+// TestGenerateAPIGatewayDNSSANs_GatewayLevelMinVersion verifies that DNS SANs are
+// injected when gateway-level TLS MinVersion is configured, even without the
+// global Enabled flag. This tests gateway-level TLS parameter path.
+func TestGenerateAPIGatewayDNSSANs_GatewayLevelMinVersion(t *testing.T) {
+	snap := TestConfigSnapshotAPIGateway(t, "default", nil,
+		func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+			// No global Enabled flag, but gateway has TLS MinVersion configured
+			entry.TLS = structs.GatewayTLSConfig{TLSMinVersion: "TLSv1_2"}
+			entry.Listeners = []structs.APIGatewayListener{{
+				Name:     "https-listener",
+				Protocol: structs.ListenerProtocolHTTP,
+				Port:     8443,
+			}}
+			bound.Listeners = []structs.BoundAPIGatewayListener{{
+				Name:     "https-listener",
+				Protocol: structs.ListenerProtocolHTTP,
+				Port:     8443,
+			}}
+		}, nil, nil, nil)
+
+	h := testAPIGatewayHandler(t, nil)
+	sans := h.generateAPIGatewayDNSSANs(snap)
+
+	require.NotNil(t, sans, "DNS SANs must be generated when gateway has TLS MinVersion")
+	require.Contains(t, sans, "*.api-gateway.consul")
+	require.Contains(t, sans, "*.api-gateway.dc1.consul")
+}
+
+// TestGenerateAPIGatewayDNSSANs_GatewayLevelMaxVersion verifies that DNS SANs are
+// injected when gateway-level TLS MaxVersion is configured.
+func TestGenerateAPIGatewayDNSSANs_GatewayLevelMaxVersion(t *testing.T) {
+	snap := TestConfigSnapshotAPIGateway(t, "default", nil,
+		func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+			// No global Enabled flag, but gateway has TLS MaxVersion configured
+			entry.TLS = structs.GatewayTLSConfig{TLSMaxVersion: "TLSv1_3"}
+			entry.Listeners = []structs.APIGatewayListener{{
+				Name:     "https-listener",
+				Protocol: structs.ListenerProtocolHTTP,
+				Port:     8443,
+			}}
+			bound.Listeners = []structs.BoundAPIGatewayListener{{
+				Name:     "https-listener",
+				Protocol: structs.ListenerProtocolHTTP,
+				Port:     8443,
+			}}
+		}, nil, nil, nil)
+
+	h := testAPIGatewayHandler(t, nil)
+	sans := h.generateAPIGatewayDNSSANs(snap)
+
+	require.NotNil(t, sans, "DNS SANs must be generated when gateway has TLS MaxVersion")
+	require.Contains(t, sans, "*.api-gateway.consul")
+	require.Contains(t, sans, "*.api-gateway.dc1.consul")
+}
+
+// TestGenerateAPIGatewayDNSSANs_GatewayLevelCipherSuites verifies that DNS SANs are
+// injected when gateway-level TLS CipherSuites is configured.
+func TestGenerateAPIGatewayDNSSANs_GatewayLevelCipherSuites(t *testing.T) {
+	snap := TestConfigSnapshotAPIGateway(t, "default", nil,
+		func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+			// No global Enabled flag, but gateway has CipherSuites configured
+			entry.TLS = structs.GatewayTLSConfig{
+				CipherSuites: []types.TLSCipherSuite{
+					types.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+				},
+			}
+			entry.Listeners = []structs.APIGatewayListener{{
+				Name:     "https-listener",
+				Protocol: structs.ListenerProtocolHTTP,
+				Port:     8443,
+			}}
+			bound.Listeners = []structs.BoundAPIGatewayListener{{
+				Name:     "https-listener",
+				Protocol: structs.ListenerProtocolHTTP,
+				Port:     8443,
+			}}
+		}, nil, nil, nil)
+
+	h := testAPIGatewayHandler(t, nil)
+	sans := h.generateAPIGatewayDNSSANs(snap)
+
+	require.NotNil(t, sans, "DNS SANs must be generated when gateway has TLS CipherSuites")
+	require.Contains(t, sans, "*.api-gateway.consul")
+	require.Contains(t, sans, "*.api-gateway.dc1.consul")
+}
+
+// TestGenerateAPIGatewayDNSSANs_GatewayLevelSDS verifies that DNS SANs are
+// injected when gateway-level TLS SDS is configured with a CertResource.
+func TestGenerateAPIGatewayDNSSANs_GatewayLevelSDS(t *testing.T) {
+	snap := TestConfigSnapshotAPIGateway(t, "default", nil,
+		func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+			// No global Enabled flag, but gateway has SDS configured with CertResource
+			entry.TLS = structs.GatewayTLSConfig{
+				SDS: &structs.GatewayTLSSDSConfig{
+					ClusterName:  "vault-sds",
+					CertResource: "secret/consul/tls",
+				},
+			}
+			entry.Listeners = []structs.APIGatewayListener{{
+				Name:     "https-listener",
+				Protocol: structs.ListenerProtocolHTTP,
+				Port:     8443,
+			}}
+			bound.Listeners = []structs.BoundAPIGatewayListener{{
+				Name:     "https-listener",
+				Protocol: structs.ListenerProtocolHTTP,
+				Port:     8443,
+			}}
+		}, nil, nil, nil)
+
+	h := testAPIGatewayHandler(t, nil)
+	sans := h.generateAPIGatewayDNSSANs(snap)
+
+	require.NotNil(t, sans, "DNS SANs must be generated when gateway has SDS with CertResource")
+	require.Contains(t, sans, "*.api-gateway.consul")
+	require.Contains(t, sans, "*.api-gateway.dc1.consul")
+}
+
 // hostnames, and that the result is sorted for deterministic cert requests.
 func TestGenerateAPIGatewayDNSSANs(t *testing.T) {
 	route := &structs.HTTPRouteConfigEntry{
@@ -289,14 +405,15 @@ func TestGenerateAPIGatewayDNSSANs_ListenerLevelSDS(t *testing.T) {
 				Protocol: structs.ListenerProtocolHTTP,
 				Port:     8443,
 			}}
-			// BUT the listener has SDS source at the listener level
+			// BUT the listener has SDS source with CertResource at the listener level
 			bound.Listeners = []structs.BoundAPIGatewayListener{{
 				Name:     "https-listener",
 				Protocol: structs.ListenerProtocolHTTP,
 				Port:     8443,
 				TLS: structs.APIGatewayTLSConfiguration{
 					SDS: &structs.GatewayTLSSDSConfig{
-						ClusterName: "vault-sds",
+						ClusterName:  "vault-sds",
+						CertResource: "secret/consul/listener-tls",
 					},
 				},
 			}}
@@ -305,7 +422,7 @@ func TestGenerateAPIGatewayDNSSANs_ListenerLevelSDS(t *testing.T) {
 	h := testAPIGatewayHandler(t, nil)
 	sans := h.generateAPIGatewayDNSSANs(snap)
 
-	require.NotNil(t, sans, "DNS SANs must be generated when listener has SDS source")
+	require.NotNil(t, sans, "DNS SANs must be generated when listener has SDS with CertResource")
 	require.Contains(t, sans, "*.api-gateway.consul")
 	require.Contains(t, sans, "*.api-gateway.dc1.consul")
 }
