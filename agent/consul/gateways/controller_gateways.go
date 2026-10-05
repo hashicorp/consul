@@ -629,6 +629,10 @@ func getAllGatewayMeta(store *state.Store) ([]*gatewayMeta, error) {
 		for _, g := range gateways {
 			gateway := g.(*structs.APIGatewayConfigEntry)
 			if bound.IsInitializedForGateway(gateway) {
+				// The stored bound entry may predate the current gateway
+				// config, so refresh the copied listener configuration before
+				// any route binding is written back.
+				syncBoundListenerConfig(bound, gateway)
 				meta = append(meta, (&gatewayMeta{
 					BoundGateway: bound,
 					Gateway:      gateway,
@@ -639,6 +643,26 @@ func getAllGatewayMeta(store *state.Store) ([]*gatewayMeta, error) {
 		}
 	}
 	return meta, nil
+}
+
+// syncBoundListenerConfig copies the listener configuration from the APIGateway
+// onto the matching listeners of its BoundAPIGateway, preserving the bound
+// routes and certificates. This keeps the route reconciliation path from
+// persisting a bound entry that carries listener config stale with respect to
+// its parent gateway.
+func syncBoundListenerConfig(bound *structs.BoundAPIGatewayConfigEntry, gateway *structs.APIGatewayConfigEntry) {
+	listeners := make(map[string]structs.APIGatewayListener, len(gateway.Listeners))
+	for _, listener := range gateway.Listeners {
+		listeners[listener.Name] = listener
+	}
+
+	for i := range bound.Listeners {
+		listener, ok := listeners[bound.Listeners[i].Name]
+		if !ok {
+			continue
+		}
+		bound.Listeners[i].SetConfigFromListener(listener)
+	}
 }
 
 // updateRouteBinding takes a BoundRoute and modifies the listeners on the
@@ -905,16 +929,9 @@ func newGatewayMeta(gateway *structs.APIGatewayConfigEntry, bound structs.Config
 	// so that BoundAPIGatewayListener is self-contained for proxycfg/xds consumers.
 	listeners := make([]structs.BoundAPIGatewayListener, 0, len(gateway.Listeners))
 	for _, listener := range gateway.Listeners {
-		listeners = append(listeners, structs.BoundAPIGatewayListener{
-			Name:                listener.Name,
-			Hostname:            listener.Hostname,
-			Port:                listener.Port,
-			Protocol:            listener.Protocol,
-			TLS:                 listener.TLS,
-			Override:            listener.Override,
-			Default:             listener.Default,
-			MaxRequestHeadersKB: listener.MaxRequestHeadersKB,
-		})
+		bound := structs.BoundAPIGatewayListener{Name: listener.Name}
+		bound.SetConfigFromListener(listener)
+		listeners = append(listeners, bound)
 	}
 
 	b.Listeners = listeners
