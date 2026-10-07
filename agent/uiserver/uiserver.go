@@ -26,7 +26,7 @@ import (
 const (
 	compiledProviderJSPath = "assets/compiled-metrics-providers.js"
 	// CSP header to mitigate XSS and data injection attacks while allowing required UI functionality.
-	cspHeader = "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none';"
+	cspHeader = "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';"
 )
 
 //go:embed dist
@@ -41,7 +41,7 @@ type cspResponseWriter struct {
 func (w *cspResponseWriter) WriteHeader(statusCode int) {
 	if !w.headerWritten {
 		// Check if this is an HTML response
-		if ct := w.Header().Get("Content-Type"); strings.Contains(ct, "text/html") {
+		if ct := w.Header().Get("Content-Type"); strings.Contains(ct, "text/html") && w.Header().Get("Content-Security-Policy") == "" {
 			w.Header().Set("Content-Security-Policy", cspHeader)
 			w.Header().Set("X-Frame-Options", "DENY")
 		}
@@ -53,7 +53,7 @@ func (w *cspResponseWriter) WriteHeader(statusCode int) {
 func (w *cspResponseWriter) Write(b []byte) (int, error) {
 	if !w.headerWritten {
 		// If headers haven't been written yet but we're writing body, infer HTML
-		if ct := w.Header().Get("Content-Type"); ct == "" || strings.Contains(ct, "text/html") {
+		if ct := w.Header().Get("Content-Type"); (ct == "" || strings.Contains(ct, "text/html")) && w.Header().Get("Content-Security-Policy") == "" {
 			w.Header().Set("Content-Security-Policy", cspHeader)
 			w.Header().Set("X-Frame-Options", "DENY")
 		}
