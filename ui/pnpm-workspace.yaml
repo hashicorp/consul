@@ -8,7 +8,7 @@ overrides:
   clean-css@<4.1.11: '>=4.1.11'
   markdown-it@<14.3.1: ^14.3.1
   js-yaml@<4.3.2: 4.3.2
-  shell-quote@<1.9.0: '>=1.9.0'
+  shell-quote@<1.11.0: ^1.11.0
   json5@<1.0.2: '>=1.0.2'
   braces@<3.0.3: '>=3.0.3'
   micromatch@<4.0.8: '>=4.0.8'
