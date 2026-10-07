@@ -41,11 +41,16 @@ func (op *Operator) FeatureGateGet(args *structs.FeatureGateQueryRequest, reply 
 		}
 	}
 
+	// Table indexes can move backwards across a snapshot restore. The cache
+	// records restored decisions at a newer index, so observing it releases
+	// blocked queries instead of leaving them on the abandoned store's index.
+	observed := op.srv.featureGateObservedNames(args.Name)
 	return op.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta, func(ws memdb.WatchSet, stateStore *state.Store) error {
 		index, policy, status, err := stateStore.FeatureGatePolicyAndStatus(ws)
 		if err != nil {
 			return err
 		}
+		index = op.srv.featureGateStore.ObserveNamesForQuery(ws, observed, index)
 		// Policy or status not yet initialized — return a well-formed empty
 		// response instead of an error.  Blocking queries will wake up once the
 		// leader commits the first policy/status generation.
@@ -160,6 +165,24 @@ func (s *Server) resolveFeatureGateStatus(policy *structs.FeatureGatePolicy) *st
 	return resolveFeatureGateStatus(s.featureGateRegistry, policy, func(minimum *version.Version) (bool, bool) {
 		return ServersInDCMeetMinimumVersion(s, s.config.Datacenter, minimum)
 	})
+}
+
+// featureGateObservedNames returns the registered feature names a query for
+// name depends on. Unknown names are skipped so callers cannot grow the
+// store's watch map.
+func (s *Server) featureGateObservedNames(name string) []string {
+	if name != "" {
+		if _, ok := s.featureGateRegistry.DefinitionForName(name); !ok {
+			return nil
+		}
+		return []string{name}
+	}
+	definitions := s.featureGateRegistry.Definitions()
+	names := make([]string, 0, len(definitions))
+	for _, definition := range definitions {
+		names = append(names, definition.Name)
+	}
+	return names
 }
 
 func (op *Operator) populateFeatureGateSetResponse(reply *structs.FeatureGateSetResponse, applied bool, name string, policy *structs.FeatureGatePolicy, status *structs.FeatureGateStatus) error {

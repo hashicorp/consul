@@ -288,3 +288,56 @@ func TestStoreReplace(t *testing.T) {
 		require.Equal(t, uint64(80), index)
 	})
 }
+
+func TestStoreObserveNamesForQuery(t *testing.T) {
+	fired := func(ws memdb.WatchSet) bool {
+		ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+		defer cancel()
+		return ws.WatchCtx(ctx) == nil
+	}
+
+	t.Run("nil store returns the index unchanged", func(t *testing.T) {
+		var s *Store
+		ws := memdb.NewWatchSet()
+		require.Equal(t, uint64(7), s.ObserveNamesForQuery(ws, []string{"a"}, 7))
+		require.Empty(t, ws)
+	})
+
+	t.Run("returns the newest change index of the observed names only", func(t *testing.T) {
+		var s Store
+		s.Publish(Snapshot{StatusIndex: 10, Features: map[string]bool{"a": true, "b": false, "c": false}})
+		s.Publish(Snapshot{StatusIndex: 20, Features: map[string]bool{"a": true, "b": true, "c": false}})
+		s.Publish(Snapshot{StatusIndex: 30, Features: map[string]bool{"a": true, "b": true, "c": true}})
+
+		require.Equal(t, uint64(10), s.ObserveNamesForQuery(nil, []string{"a"}, 0))
+		require.Equal(t, uint64(20), s.ObserveNamesForQuery(nil, []string{"a", "b"}, 0))
+		require.Equal(t, uint64(30), s.ObserveNamesForQuery(nil, []string{"a", "b", "c"}, 0))
+		require.Equal(t, uint64(99), s.ObserveNamesForQuery(nil, []string{"a", "b", "c"}, 99), "a newer table index is kept")
+		require.Equal(t, uint64(5), s.ObserveNamesForQuery(nil, nil, 5))
+	})
+
+	t.Run("wakes only for the observed names", func(t *testing.T) {
+		var s Store
+		s.Publish(Snapshot{StatusIndex: 10, Features: map[string]bool{"a": true, "b": true}})
+
+		ws := memdb.NewWatchSet()
+		s.ObserveNamesForQuery(ws, []string{"a"}, 0)
+		s.Publish(Snapshot{StatusIndex: 20, Features: map[string]bool{"a": true, "b": false}})
+		require.False(t, fired(ws), "an unobserved name must not wake the query")
+
+		s.Publish(Snapshot{StatusIndex: 30, Features: map[string]bool{"a": false, "b": false}})
+		require.True(t, fired(ws))
+	})
+
+	t.Run("a restore to an older generation is delivered at a newer index", func(t *testing.T) {
+		var s Store
+		s.Publish(Snapshot{StatusIndex: 1000, Features: map[string]bool{"a": true}})
+		ws := memdb.NewWatchSet()
+		returned := s.ObserveNamesForQuery(ws, []string{"a"}, 0)
+		require.Equal(t, uint64(1000), returned)
+
+		s.Replace(Snapshot{StatusIndex: 10, Features: map[string]bool{"a": false}}, 12)
+		require.True(t, fired(ws))
+		require.Greater(t, s.ObserveNamesForQuery(nil, []string{"a"}, 0), returned)
+	})
+}

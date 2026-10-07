@@ -177,24 +177,40 @@ func (s *Store) ObserveForQuery(ws memdb.WatchSet, feature Feature, index uint64
 		return false, index
 	}
 
+	// The watch is registered before Enabled loads the snapshot so a concurrent
+	// Publish is never missed.
+	index = s.ObserveNamesForQuery(ws, []string{feature.name}, index)
+	return s.Enabled(feature), index
+}
+
+// ObserveNamesForQuery is ObserveForQuery for a set of feature names, for
+// callers (such as the operator API) that only hold names. It registers one
+// channel per name on ws and returns max(index, the latest change index of any
+// of them). A nil store returns index unchanged.
+func (s *Store) ObserveNamesForQuery(ws memdb.WatchSet, names []string, index uint64) uint64 {
+	if s == nil {
+		return index
+	}
+
 	// Register the watch before loading so a concurrent Publish is never missed:
 	// the channel is closed only after the new snapshot is installed.
 	s.featureMu.Lock()
-	if ws != nil {
-		if s.featureWatchCh == nil {
-			s.featureWatchCh = make(map[string]chan struct{})
+	defer s.featureMu.Unlock()
+	for _, name := range names {
+		if ws != nil {
+			if s.featureWatchCh == nil {
+				s.featureWatchCh = make(map[string]chan struct{})
+			}
+			ch, ok := s.featureWatchCh[name]
+			if !ok {
+				ch = make(chan struct{})
+				s.featureWatchCh[name] = ch
+			}
+			ws.Add(ch)
 		}
-		ch, ok := s.featureWatchCh[feature.name]
-		if !ok {
-			ch = make(chan struct{})
-			s.featureWatchCh[feature.name] = ch
-		}
-		ws.Add(ch)
+		index = max(index, s.featureChangeIndex[name])
 	}
-	changeIndex := s.featureChangeIndex[feature.name]
-	s.featureMu.Unlock()
-
-	return s.Enabled(feature), max(index, changeIndex)
+	return index
 }
 
 // recordFeatureChanges notifies per-feature watchers for every feature whose

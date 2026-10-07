@@ -9,13 +9,19 @@ package consul
 // get/set, CAS mismatch, semantic no-op, and Raft-apply paths.
 
 import (
+	"bytes"
+	"fmt"
+	"io"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	"github.com/hashicorp/go-hclog"
 
+	"github.com/hashicorp/consul/agent/consul/fsm"
+	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/featuregate"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -305,4 +311,155 @@ func TestFeatureGateGet_NodeIdentityAllowed(t *testing.T) {
 	err = msgpackrpc.CallWithCodec(codec, "Operator.FeatureGateGet", args, &reply)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "Permission denied")
+}
+
+func TestFeatureGateGet_EffectiveNodeWriteAllowed(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	for _, roleIdentity := range []bool{false, true} {
+		t.Run(fmt.Sprintf("role_identity_%t", roleIdentity), func(t *testing.T) {
+			_, server, codec := testACLServerWithConfig(t, nil, false)
+			testrpc.WaitForLeader(t, server.RPC, "dc1")
+			waitForFeatureGateInit(t, server)
+			var policyID, roleID string
+			if roleIdentity {
+				role, err := upsertTestCustomizedRole(codec, TestDefaultInitialManagementToken, "dc1", func(role *structs.ACLRole) {
+					role.NodeIdentities = structs.ACLNodeIdentities{{NodeName: "client_one", Datacenter: "dc1"}}
+				})
+				require.NoError(t, err)
+				roleID = role.ID
+			} else {
+				policy, err := upsertTestPolicyWithRules(codec, TestDefaultInitialManagementToken, "dc1", `node "client_one" { policy = "write" }`)
+				require.NoError(t, err)
+				policyID = policy.ID
+			}
+			token, err := upsertTestToken(codec, TestDefaultInitialManagementToken, "dc1", func(token *structs.ACLToken) {
+				if roleIdentity {
+					token.Roles = []structs.ACLTokenRoleLink{{ID: roleID}}
+				} else {
+					token.Policies = []structs.ACLTokenPolicyLink{{ID: policyID}}
+				}
+			})
+			require.NoError(t, err)
+			args := &structs.FeatureGateQueryRequest{
+				Node: "client_one",
+				DCSpecificRequest: structs.DCSpecificRequest{
+					Datacenter:   "dc1",
+					QueryOptions: structs.QueryOptions{Token: token.SecretID},
+				},
+			}
+			var reply structs.FeatureGateQueryResponse
+			require.NoError(t, msgpackrpc.CallWithCodec(codec, "Operator.FeatureGateGet", args, &reply))
+			require.NotEmpty(t, reply.Features)
+			args.Node = "another_node"
+			err = msgpackrpc.CallWithCodec(codec, "Operator.FeatureGateGet", args, &reply)
+			require.ErrorContains(t, err, "Permission denied")
+		})
+	}
+}
+
+// featureGateSnapshot persists an FSM snapshot whose feature-gate status sits
+// at index with every registered feature set to enabled.
+func featureGateSnapshot(t *testing.T, index uint64, enabled bool) *bytes.Buffer {
+	t.Helper()
+	settings := map[string]structs.FeatureGateSetting{}
+	resolved := map[string]structs.ResolvedFeatureGate{}
+	for _, definition := range featuregate.DefaultRegistry().Definitions() {
+		settings[definition.Name] = structs.FeatureGateSetting{Enabled: enabled, Source: structs.FeatureGateSourceOperator}
+		resolved[definition.Name] = structs.ResolvedFeatureGate{DesiredEnabled: enabled, EffectiveEnabled: enabled, Eligible: true}
+	}
+	store := state.NewStateStore(nil)
+	ok, err := store.FeatureGateUpdate(index, &structs.FeatureGateUpdateRequest{
+		Policy: &structs.FeatureGatePolicy{Settings: settings},
+		Status: &structs.FeatureGateStatus{Features: resolved},
+	})
+	require.NoError(t, err)
+	require.True(t, ok)
+
+	snapshotFSM := fsm.NewFromDeps(fsm.Deps{
+		Logger:         hclog.NewNullLogger(),
+		NewStateStore:  func() *state.Store { return store },
+		StorageBackend: newTestRaftStorageBackend(t),
+	})
+	snap, err := snapshotFSM.Snapshot()
+	require.NoError(t, err)
+	sink := &bufferSnapshotSink{}
+	require.NoError(t, snap.Persist(sink))
+	return &sink.Buffer
+}
+
+// TestFeatureGateGet_RestoreReleasesBlockedQuery verifies a snapshot restore to
+// an older status that flips a gate releases an existing blocking query with the
+// restored decision, instead of leaving it blocked on the restored store's
+// lower table index until the query times out.
+func TestFeatureGateGet_RestoreReleasesBlockedQuery(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	_, s := testServer(t)
+	codec := rpcClient(t, s)
+	testrpc.WaitForLeader(t, s.RPC, "dc1")
+	waitForFeatureGateInit(t, s)
+	// The reconciler would otherwise rewrite the restored status mid-test.
+	s.stopFeatureGateReconciliation()
+
+	gate := featuregate.LocalizedDNS
+	restore := func(index uint64, enabled bool) {
+		require.NoError(t, s.fsm.Restore(io.NopCloser(featureGateSnapshot(t, index, enabled))))
+	}
+	get := func(minIndex uint64) (structs.FeatureGateQueryResponse, error) {
+		args := &structs.FeatureGateQueryRequest{
+			Name: gate.String(),
+			DCSpecificRequest: structs.DCSpecificRequest{
+				Datacenter:   "dc1",
+				QueryOptions: structs.QueryOptions{MinQueryIndex: minIndex, MaxQueryTime: 30 * time.Second},
+			},
+		}
+		var reply structs.FeatureGateQueryResponse
+		err := msgpackrpc.CallWithCodec(codec, "Operator.FeatureGateGet", args, &reply)
+		return reply, err
+	}
+
+	restore(1000, true)
+	require.Eventually(t, func() bool { return s.featureGateStore.Enabled(gate) }, 5*time.Second, 10*time.Millisecond)
+	before, err := get(0)
+	require.NoError(t, err)
+	require.Len(t, before.Features, 1)
+	require.True(t, before.Features[0].EffectiveEnabled)
+
+	type result struct {
+		reply structs.FeatureGateQueryResponse
+		err   error
+	}
+	done := make(chan result, 1)
+	go func() {
+		// Like the client loop: a response that still carries the old decision is
+		// followed by another poll at its index.
+		index := before.Index
+		for {
+			reply, err := get(index)
+			if err != nil || len(reply.Features) != 1 || !reply.Features[0].EffectiveEnabled {
+				done <- result{reply, err}
+				return
+			}
+			index = reply.Index
+		}
+	}()
+
+	restore(10, false)
+
+	select {
+	case got := <-done:
+		require.NoError(t, got.err)
+		require.Len(t, got.reply.Features, 1)
+		require.False(t, got.reply.Features[0].EffectiveEnabled)
+		require.Greater(t, got.reply.Index, before.Index)
+	case <-time.After(10 * time.Second):
+		t.Fatal("the restored decision did not release the blocked query")
+	}
 }
