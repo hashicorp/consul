@@ -4,8 +4,10 @@
 package get
 
 import (
+	"errors"
 	"flag"
 	"fmt"
+	"net/http"
 
 	"github.com/mitchellh/cli"
 
@@ -58,7 +60,10 @@ func (c *cmd) Run(args []string) int {
 	if err != nil {
 		// Surface a friendlier message when the leader has not yet initialized state.
 		c.UI.Error(fmt.Sprintf("Error querying feature gate: %s", err))
-		c.UI.Warn("If this is a new cluster, the feature-gate policy may not be initialized yet. Wait for the leader to complete reconciliation and retry.")
+		var statusErr api.StatusError
+		if !errors.As(err, &statusErr) || statusErr.Code != http.StatusNotFound {
+			c.UI.Warn("If this is a new cluster, the feature-gate policy may not be initialized yet. Wait for the leader to complete reconciliation and retry.")
+		}
 		return 1
 	}
 	out, err := operfeature.Format([]api.FeatureGate{*feature}, c.format)

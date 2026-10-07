@@ -274,3 +274,35 @@ func TestFeatureGateGet_ACLDenied(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "Permission denied")
 }
+
+func TestFeatureGateGet_NodeIdentityAllowed(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	_, s, codec := testACLServerWithConfig(t, nil, false)
+	testrpc.WaitForLeader(t, s.RPC, "dc1")
+	waitForFeatureGateInit(t, s)
+	token, err := upsertTestToken(codec, TestDefaultInitialManagementToken, "dc1", func(token *structs.ACLToken) {
+		token.NodeIdentities = structs.ACLNodeIdentities{{NodeName: "client-1", Datacenter: "dc1"}}
+	})
+	require.NoError(t, err)
+
+	args := &structs.FeatureGateQueryRequest{
+		Node: "client-1",
+		DCSpecificRequest: structs.DCSpecificRequest{
+			Datacenter:     "dc1",
+			QueryOptions:   structs.QueryOptions{Token: token.SecretID},
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		},
+	}
+	var reply structs.FeatureGateQueryResponse
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Operator.FeatureGateGet", args, &reply))
+	require.NotEmpty(t, reply.Features)
+
+	args.Node = "another-node"
+	err = msgpackrpc.CallWithCodec(codec, "Operator.FeatureGateGet", args, &reply)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "Permission denied")
+}
