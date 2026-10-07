@@ -63,6 +63,13 @@ func (w *cspResponseWriter) Write(b []byte) (int, error) {
 	return w.ResponseWriter.Write(b)
 }
 
+// Flush implements http.Flusher interface
+func (w *cspResponseWriter) Flush() {
+	if flusher, ok := w.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
+}
+
 // Handler is the http.Handler that serves the Consul UI. It may serve from the
 // embedded fs.FS or from an external directory. It provides a few important
 // transformations on the index.html file and includes a proxy for metrics
