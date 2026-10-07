@@ -35,10 +35,7 @@ func (op *Operator) FeatureGateGet(args *structs.FeatureGateQueryRequest, reply 
 		var authzContext acl.AuthorizerContext
 		args.FillAuthzContext(&authzContext)
 		if agentReadErr := allow.AgentReadAllowed(args.Node, &authzContext); agentReadErr != nil {
-			if !hasMatchingNodeIdentity(authz.Identity(), args.Node, args.Datacenter, &args.EnterpriseMeta) {
-				return err
-			}
-			if nodeReadErr := allow.NodeReadAllowed(args.Node, &authzContext); nodeReadErr != nil {
+			if nodeWriteErr := allow.NodeWriteAllowed(args.Node, &authzContext); nodeWriteErr != nil {
 				return err
 			}
 		}
