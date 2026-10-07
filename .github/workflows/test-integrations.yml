@@ -81,7 +81,7 @@ jobs:
       contents: read
     strategy:
       matrix:
-        nomad-version: ['v2.0.3']
+        nomad-version: ['v2.0.7']
     steps:
       - name: Checkout Nomad
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -168,7 +168,7 @@ jobs:
       contents: read
     strategy:
       matrix:
-        vault-version: ["2.0.3"]
+        vault-version: ["2.1.1"]
     env:
       VAULT_BINARY_VERSION: ${{ matrix.vault-version }}
     steps:
