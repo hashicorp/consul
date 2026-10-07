@@ -179,6 +179,15 @@ type PreparedQueryExecuteResponse struct {
 	Failovers int
 }
 
+// PreparedQueryExecuteResponse has the results of executing a query.
+type PreparedQueryExplainResponse struct {
+	// Query has the fully-rendered query.
+	Query PreparedQueryDefinition
+
+	// QueryMeta has freshness information about the query.
+	QueryMeta
+}
+
 // PreparedQuery can be used to query the prepared query endpoints.
 type PreparedQuery struct {
 	c *Client
@@ -262,6 +271,17 @@ func (c *PreparedQuery) Delete(queryID string, q *WriteOptions) (*WriteMeta, err
 func (c *PreparedQuery) Execute(queryIDOrName string, q *QueryOptions) (*PreparedQueryExecuteResponse, *QueryMeta, error) {
 	var out *PreparedQueryExecuteResponse
 	qm, err := c.c.query("/v1/query/"+queryIDOrName+"/execute", &out, q)
+	if err != nil {
+		return nil, nil, err
+	}
+	return out, qm, nil
+}
+
+// Explain is used to explain a specific prepared query. You can explain using
+// a query ID or name.
+func (c *PreparedQuery) Explain(queryIDOrName string, q *QueryOptions) (*PreparedQueryExplainResponse, *QueryMeta, error) {
+	var out *PreparedQueryExplainResponse
+	qm, err := c.c.query("/v1/query/"+queryIDOrName+"/explain", &out, q)
 	if err != nil {
 		return nil, nil, err
 	}
