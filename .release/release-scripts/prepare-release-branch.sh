@@ -38,6 +38,13 @@
 # Options:
 #   -n, --dry-run   Print the commands that would run; create/change/push nothing.
 #   -y, --yes       Non-interactive: skip the prompts and confirmation, use env values.
+#   -r, --rc        Cut a release candidate (e.g. release/1.23.0-rc1) instead of
+#                    a final release. The next rc number is computed from
+#                    existing vMAJOR.MINOR.PATCH-rcN tags for the target version
+#                    (rc1 if none exist yet). Each rc gets its own release branch
+#                    (release/<version>-rcN), cut fresh from CONSUL_SOURCE_BRANCH
+#                    (the long-lived release/<major>.<minor>.x branch), alongside
+#                    the eventual final release/<version> branch.
 #   -h, --help      Show this help and exit.
 #
 # The two inputs are prompted interactively with a [default]; press Enter to
@@ -46,13 +53,21 @@
 # CONSUL_RELEASE_DATE, REMOTE.
 #
 # Derived from the tags (not prompted):
-#   CONSUL_RELEASE_VERSION  next patch/minor computed from the tags
-#   CONSUL_PREVIOUS_VERSION newest prior release (changelog range)
-#   CONSUL_RELEASE_BRANCH   release/<CONSUL_RELEASE_VERSION>
-#   CONSUL_SOURCE_BRANCH    release/<major>.<minor-of-release-version>.x
+#   CONSUL_RELEASE_VERSION  next patch/minor computed from the tags (with a
+#                            -rcN suffix appended when -r/--rc is used)
+#   CONSUL_PREVIOUS_VERSION newest prior *final* release (changelog range). This
+#                            is always the last full release, even for rc2, rc3,
+#                            etc., so every rc's changelog is the full diff since
+#                            the last final release, not just since the prior rc.
+#   CONSUL_RELEASE_BRANCH   release/<CONSUL_RELEASE_VERSION> (includes the -rcN
+#                            suffix for a release candidate, so each rc gets its
+#                            own release branch)
+#   CONSUL_SOURCE_BRANCH    release/<major>.<minor-of-release-version>.x (never
+#                            has an -rcN suffix; shared by every rc and the final)
 #
-# The CHANGELOG entry uses a plain header (e.g. "## 1.22.10 (July 1, 2026)") and the
-# changelog range is taken from the previous release tag (e.g. v1.22.9).
+# The CHANGELOG entry uses a plain header (e.g. "## 1.22.10 (July 1, 2026)" or
+# "## 1.23.0-rc1 (July 1, 2026)" for a release candidate) and the changelog range
+# is taken from the previous final release tag (e.g. v1.22.9).
 
 set -euo pipefail
 
@@ -65,10 +80,12 @@ usage() {
 # -----------------------------------------------------------------------------
 DRY_RUN=false
 INTERACTIVE=true
+RELEASE_CANDIDATE="${RELEASE_CANDIDATE:-false}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -n | --dry-run) DRY_RUN=true ;;
     -y | --yes) INTERACTIVE=false ;;
+    -r | --rc) RELEASE_CANDIDATE=true ;;
     -h | --help)
       usage
       exit 0
@@ -245,10 +262,33 @@ else
   CONSUL_PREVIOUS_VERSION="$(tag_version "${prev_tag}")"
 fi
 
-# Long-lived source branch and point release branch derive from the resolved
-# release version: release/<major>.<minor>.x and release/<version>.
-CONSUL_RELEASE_BRANCH="release/${CONSUL_RELEASE_VERSION}"
+# The long-lived source branch always refers to the plain MAJOR.MINOR series
+# (never an -rcN suffix): every rc and the eventual final release for a version
+# are all cut from the same release/<major>.<minor>.x branch. Compute it from the
+# base version now, before any -rcN suffix is appended below.
 CONSUL_SOURCE_BRANCH="release/${CONSUL_RELEASE_VERSION%.*}.x"
+
+# -----------------------------------------------------------------------------
+# For a release candidate, append the next -rcN suffix to CONSUL_RELEASE_VERSION.
+# Each rc gets its own release branch (release/<version>-rcN, cut fresh from
+# CONSUL_SOURCE_BRANCH each time - see step 1 below), separate from the final
+# release/<version> branch. CONSUL_PREVIOUS_VERSION is left as-is: the changelog
+# range for every rc is always the diff since the last final release, not since
+# the prior rc.
+# -----------------------------------------------------------------------------
+if [[ "${RELEASE_CANDIDATE}" == "true" ]]; then
+  rc_base_version="${CONSUL_RELEASE_VERSION}"
+  last_rc="$(git tag --list "v${rc_base_version}-rc*" \
+    | grep -E "^v${rc_base_version//./\\.}-rc[0-9]+$" \
+    | sed -E 's/.*-rc([0-9]+)$/\1/' \
+    | sort -n | tail -n1 || true)"
+  next_rc="$(( ${last_rc:-0} + 1 ))"
+  CONSUL_RELEASE_VERSION="${rc_base_version}-rc${next_rc}"
+fi
+
+# The release branch is derived from the final (possibly -rcN-suffixed) version,
+# so each rc gets its own release branch alongside the final release/<version>.
+CONSUL_RELEASE_BRANCH="release/${CONSUL_RELEASE_VERSION}"
 
 # The CHANGELOG header and previous release tag both use a plain (non-"+ent") form.
 CHANGELOG_HEADER="## ${CONSUL_RELEASE_VERSION} (${CONSUL_RELEASE_DATE})"
@@ -274,6 +314,7 @@ fi
 cat <<EOF
 The following actions will be performed on remote '${REMOTE}':
 
+  Release candidate                    = ${RELEASE_CANDIDATE}
   Source branch (long-lived)           = ${CONSUL_SOURCE_BRANCH}
   Release branch (created/used)        = ${CONSUL_RELEASE_BRANCH}
   Prepare branch (new)                 = ${PREPARE_BRANCH}
@@ -390,7 +431,7 @@ run git push -u "${REMOTE}" "${PREPARE_BRANCH}"
 
 PR_TITLE="Prepare release ${CONSUL_RELEASE_VERSION}"
 PR_BODY="$(cat <<EOF
-Automated release preparation for consul ${CONSUL_RELEASE_VERSION}.
+Automated release preparation for consul ${CONSUL_RELEASE_VERSION}$( [[ "${RELEASE_CANDIDATE}" == "true" ]] && printf ' (release candidate)' ).
 
 Generated by \`release-scripts/prepare-release-branch.sh\`:
 - Bumped \`version/VERSION\` to ${CONSUL_RELEASE_VERSION}.
