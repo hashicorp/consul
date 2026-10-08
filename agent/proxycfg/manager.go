@@ -285,8 +285,8 @@ func (m *Manager) featureGateRefresher() {
 // refreshFeatureGates invalidates server-catalog API Gateway snapshots as
 // well as Connect proxy (sidecar) snapshots, which need feature-gate updates
 // regardless of source (e.g. LocalizedDNS applies to all sidecars). Local
-// agent registrations for API Gateway are Phase 1's explicit fail-closed
-// boundary and are excluded.
+// agent registrations for API Gateway are not affected by any gate and are
+// excluded.
 func (m *Manager) refreshFeatureGates() {
 	m.mu.Lock()
 	states := make([]*state, 0)

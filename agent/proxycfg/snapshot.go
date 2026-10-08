@@ -794,7 +794,7 @@ type configSnapshotAPIGateway struct {
 	BoundListeners map[string]structs.BoundAPIGatewayListener
 
 	// ComposeUpstreamRouting is the final committed feature decision captured
-	// for this snapshot. It is true only for the server-catalog path.
+	// for this snapshot. It is always true for agentful gateways.
 	ComposeUpstreamRouting bool
 }
 
