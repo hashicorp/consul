@@ -212,7 +212,11 @@ func (h *handlerAPIGateway) refreshRouteDiscoveryChainWatches(ctx context.Contex
 }
 
 func (h *handlerAPIGateway) composeUpstreamRoutingEnabled() bool {
-	return h.agentless && h.featureGate != nil && h.featureGate.Enabled(featuregate.APIGatewayUpstreamRouting)
+	// Agentful gateways always compose upstream routing; the gate only applies to agentless ones.
+	if !h.agentless {
+		return true
+	}
+	return h.featureGate != nil && h.featureGate.Enabled(featuregate.APIGatewayUpstreamRouting)
 }
 
 // handleRootCAUpdate responds to changes in the watched root CA for a gateway
