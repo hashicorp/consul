@@ -38,9 +38,22 @@ func TestCmd_Run(t *testing.T) {
 		require.Equal(t, featureName, got[0].Name)
 	})
 
-	t.Run("api error", func(t *testing.T) {
+	t.Run("unknown feature", func(t *testing.T) {
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			http.Error(w, `{"Errors":["unknown feature gate"]}`, http.StatusNotFound)
+		}))
+		defer srv.Close()
+
+		ui := cli.NewMockUi()
+		code := New(ui).Run([]string{"-http-addr=" + srv.URL, "missing"})
+		require.Equal(t, 1, code)
+		require.Contains(t, ui.ErrorWriter.String(), "Error querying feature gate")
+		require.NotContains(t, ui.ErrorWriter.String(), "may not be initialized yet")
+	})
+
+	t.Run("policy not initialized", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			http.Error(w, "feature-gate policy is not yet initialized", http.StatusServiceUnavailable)
 		}))
 		defer srv.Close()
 

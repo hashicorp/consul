@@ -4,6 +4,7 @@
 package agent
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -25,11 +26,13 @@ func newFeatureGateHTTPHandlers(t *testing.T, rpc func(*structs.FeatureGateQuery
 			rpc(args.Get(1).(*structs.FeatureGateQueryRequest), args.Get(2).(*structs.FeatureGateQueryResponse))
 		}).Return(nil)
 	t.Cleanup(func() { delegate.AssertExpectations(t) })
-	return &HTTPHandlers{agent: &Agent{
+	agent := &Agent{
 		config:   &config.RuntimeConfig{Datacenter: "dc1"},
 		tokens:   new(token.Store),
 		delegate: delegate,
-	}}
+	}
+	initializeFeatureGateHTTPTestAgent(t, agent)
+	return &HTTPHandlers{agent: agent}
 }
 
 func TestOperatorFeatureGateList_Uninitialized(t *testing.T) {
@@ -58,6 +61,32 @@ func TestOperatorFeatureGateGet_Uninitialized(t *testing.T) {
 	var httpErr HTTPError
 	require.ErrorAs(t, err, &httpErr)
 	require.Equal(t, http.StatusServiceUnavailable, httpErr.StatusCode)
+}
+
+func TestOperatorFeatureGateSet_UninitializedReturnsServiceUnavailable(t *testing.T) {
+	for name, rpcErr := range map[string]error{
+		"uninitialized policy":     fmt.Errorf("rpc error making call: %w", structs.ErrFeatureGatePolicyUninitialized),
+		"leader without gate RPCs": fmt.Errorf("rpc error making call: rpc: can't find method Operator.FeatureGateSet"),
+	} {
+		t.Run(name, func(t *testing.T) {
+			delegate := &delegateMock{}
+			delegate.On("RPC", "Operator.FeatureGateSet", mock.Anything, mock.Anything).Return(rpcErr)
+			t.Cleanup(func() { delegate.AssertExpectations(t) })
+			agent := &Agent{
+				config:   &config.RuntimeConfig{Datacenter: "dc1"},
+				tokens:   new(token.Store),
+				delegate: delegate,
+			}
+			initializeFeatureGateHTTPTestAgent(t, agent)
+			h := &HTTPHandlers{agent: agent}
+
+			req := httptest.NewRequest(http.MethodPut, "/v1/operator/feature/some-feature", strings.NewReader(`{"Enabled":true}`))
+			_, err := h.OperatorFeatureGate(httptest.NewRecorder(), req)
+			var httpErr HTTPError
+			require.ErrorAs(t, err, &httpErr)
+			require.Equal(t, http.StatusServiceUnavailable, httpErr.StatusCode)
+		})
+	}
 }
 
 func TestOperatorFeatureGate_InvalidName(t *testing.T) {

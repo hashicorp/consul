@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-version"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/featuregate"
 	"github.com/hashicorp/consul/agent/structs"
@@ -26,15 +27,30 @@ func (op *Operator) FeatureGateGet(args *structs.FeatureGateQueryRequest, reply 
 	if err := op.srv.validateEnterpriseToken(authz.Identity()); err != nil {
 		return err
 	}
-	if err := authz.ToAllowAuthorizer().OperatorReadAllowed(nil); err != nil {
-		return err
+	allow := authz.ToAllowAuthorizer()
+	if err := allow.OperatorReadAllowed(nil); err != nil {
+		if args.Node == "" {
+			return err
+		}
+		var authzContext acl.AuthorizerContext
+		args.FillAuthzContext(&authzContext)
+		if agentReadErr := allow.AgentReadAllowed(args.Node, &authzContext); agentReadErr != nil {
+			if nodeWriteErr := allow.NodeWriteAllowed(args.Node, &authzContext); nodeWriteErr != nil {
+				return err
+			}
+		}
 	}
 
+	// Table indexes can move backwards across a snapshot restore. The cache
+	// records restored decisions at a newer index, so observing it releases
+	// blocked queries instead of leaving them on the abandoned store's index.
+	observed := op.srv.featureGateObservedNames(args.Name)
 	return op.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta, func(ws memdb.WatchSet, stateStore *state.Store) error {
 		index, policy, status, err := stateStore.FeatureGatePolicyAndStatus(ws)
 		if err != nil {
 			return err
 		}
+		index = op.srv.featureGateStore.ObserveNamesForQuery(ws, observed, index)
 		// Policy or status not yet initialized — return a well-formed empty
 		// response instead of an error.  Blocking queries will wake up once the
 		// leader commits the first policy/status generation.
@@ -54,6 +70,22 @@ func (op *Operator) FeatureGateGet(args *structs.FeatureGateQueryRequest, reply 
 	})
 }
 
+func hasMatchingNodeIdentity(identity structs.ACLIdentity, node, datacenter string, entMeta *acl.EnterpriseMeta) bool {
+	identityMeta := identity.EnterpriseMetadata()
+	if identityMeta == nil {
+		identityMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
+	}
+	if !acl.EqualPartitions(identityMeta.PartitionOrDefault(), entMeta.PartitionOrDefault()) {
+		return false
+	}
+	for _, nodeIdentity := range identity.NodeIdentityList() {
+		if nodeIdentity.NodeName == node && nodeIdentity.Datacenter == datacenter {
+			return true
+		}
+	}
+	return false
+}
+
 func (op *Operator) FeatureGateSet(args *structs.FeatureGateSetRequest, reply *structs.FeatureGateSetResponse) error {
 	if done, err := op.srv.ForwardRPC("Operator.FeatureGateSet", args, reply); done {
 		return err
@@ -71,7 +103,7 @@ func (op *Operator) FeatureGateSet(args *structs.FeatureGateSetRequest, reply *s
 	}
 
 	if _, ok := op.srv.featureGateRegistry.DefinitionForName(args.Name); !ok {
-		return fmt.Errorf("unknown feature gate %q", args.Name)
+		return fmt.Errorf("%w %q", structs.ErrUnknownFeatureGate, args.Name)
 	}
 
 	_, policy, status, err := op.srv.fsm.State().FeatureGatePolicyAndStatus(nil)
@@ -79,7 +111,7 @@ func (op *Operator) FeatureGateSet(args *structs.FeatureGateSetRequest, reply *s
 		return err
 	}
 	if policy == nil || status == nil {
-		return fmt.Errorf("feature-gate policy is not initialized yet")
+		return structs.ErrFeatureGatePolicyUninitialized
 	}
 	if args.ExpectedPolicyIndex != 0 && args.ExpectedPolicyIndex != policy.ModifyIndex {
 		return op.populateFeatureGateSetResponse(reply, false, args.Name, policy, status)
@@ -135,6 +167,24 @@ func (s *Server) resolveFeatureGateStatus(policy *structs.FeatureGatePolicy) *st
 	})
 }
 
+// featureGateObservedNames returns the registered feature names a query for
+// name depends on. Unknown names are skipped so callers cannot grow the
+// store's watch map.
+func (s *Server) featureGateObservedNames(name string) []string {
+	if name != "" {
+		if _, ok := s.featureGateRegistry.DefinitionForName(name); !ok {
+			return nil
+		}
+		return []string{name}
+	}
+	definitions := s.featureGateRegistry.Definitions()
+	names := make([]string, 0, len(definitions))
+	for _, definition := range definitions {
+		names = append(names, definition.Name)
+	}
+	return names
+}
+
 func (op *Operator) populateFeatureGateSetResponse(reply *structs.FeatureGateSetResponse, applied bool, name string, policy *structs.FeatureGatePolicy, status *structs.FeatureGateStatus) error {
 	features, err := featureGateInfos(op.srv.featureGateRegistry, policy, status, name)
 	if err != nil {
@@ -152,7 +202,7 @@ func featureGateInfos(registry featuregate.Registry, policy *structs.FeatureGate
 	if name != "" {
 		definition, ok := registry.DefinitionForName(name)
 		if !ok {
-			return nil, fmt.Errorf("unknown feature gate %q", name)
+			return nil, fmt.Errorf("%w %q", structs.ErrUnknownFeatureGate, name)
 		}
 		info, err := featureGateInfo(definition, policy, status)
 		if err != nil {
