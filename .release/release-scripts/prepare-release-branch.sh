@@ -55,10 +55,11 @@
 # Derived from the tags (not prompted):
 #   CONSUL_RELEASE_VERSION  next patch/minor computed from the tags (with a
 #                            -rcN suffix appended when -r/--rc is used)
-#   CONSUL_PREVIOUS_VERSION newest prior *final* release (changelog range). This
-#                            is always the last full release, even for rc2, rc3,
-#                            etc., so every rc's changelog is the full diff since
-#                            the last final release, not just since the prior rc.
+#   CONSUL_PREVIOUS_VERSION previous release (changelog range): the newest prior
+#                            final release for a final release or rc1; the
+#                            previous rc for rc2, rc3, etc. (e.g. 2.1.0-rc1 for
+#                            2.1.0-rc2), so each rc only lists what changed
+#                            since the prior rc.
 #   CONSUL_RELEASE_BRANCH   release/<CONSUL_RELEASE_VERSION> (includes the -rcN
 #                            suffix for a release candidate, so each rc gets its
 #                            own release branch)
@@ -67,7 +68,7 @@
 #
 # The CHANGELOG entry uses a plain header (e.g. "## 1.22.10 (July 1, 2026)" or
 # "## 1.23.0-rc1 (July 1, 2026)" for a release candidate) and the changelog range
-# is taken from the previous final release tag (e.g. v1.22.9).
+# is taken from the previous release tag (e.g. v1.22.9, or v1.23.0-rc1 for rc2).
 
 set -euo pipefail
 
@@ -272,9 +273,8 @@ CONSUL_SOURCE_BRANCH="release/${CONSUL_RELEASE_VERSION%.*}.x"
 # For a release candidate, append the next -rcN suffix to CONSUL_RELEASE_VERSION.
 # Each rc gets its own release branch (release/<version>-rcN, cut fresh from
 # CONSUL_SOURCE_BRANCH each time - see step 1 below), separate from the final
-# release/<version> branch. CONSUL_PREVIOUS_VERSION is left as-is: the changelog
-# range for every rc is always the diff since the last final release, not since
-# the prior rc.
+# release/<version> branch. CONSUL_PREVIOUS_VERSION stays the last final release
+# for rc1; for rc2+ it becomes the previous rc so the changelog is incremental.
 # -----------------------------------------------------------------------------
 if [[ "${RELEASE_CANDIDATE}" == "true" ]]; then
   rc_base_version="${CONSUL_RELEASE_VERSION}"
@@ -284,6 +284,12 @@ if [[ "${RELEASE_CANDIDATE}" == "true" ]]; then
     | sort -n | tail -n1 || true)"
   next_rc="$(( ${last_rc:-0} + 1 ))"
   CONSUL_RELEASE_VERSION="${rc_base_version}-rc${next_rc}"
+  # rc2+ : the changelog only covers what changed since the previous rc (matches
+  # the existing CHANGELOG.md convention, e.g. 1.22.0-rc1 -> 1.22.0-rc2), so the
+  # previous rc's entries are not repeated. rc1 keeps the last final release.
+  if [[ -n "${last_rc}" ]]; then
+    CONSUL_PREVIOUS_VERSION="${rc_base_version}-rc${last_rc}"
+  fi
 fi
 
 # The release branch is derived from the final (possibly -rcN-suffixed) version,
