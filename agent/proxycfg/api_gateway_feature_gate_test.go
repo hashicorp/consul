@@ -33,10 +33,14 @@ func TestHandlerAPIGateway_ComposeUpstreamRoutingEnabled_AgentlessOnly(t *testin
 		featureGate: store,
 		agentless:   false,
 	}}}
-	require.False(t, agentful.composeUpstreamRoutingEnabled())
+	require.True(t, agentful.composeUpstreamRoutingEnabled())
 
 	require.True(t, store.Publish(featuregate.Snapshot{StatusIndex: 2}))
 	require.False(t, agentless.composeUpstreamRoutingEnabled())
+	require.True(t, agentful.composeUpstreamRoutingEnabled(), "the gate must not affect agentful gateways")
+
+	agentfulNoStore := &handlerAPIGateway{handlerState: handlerState{stateConfig: stateConfig{agentless: false}}}
+	require.True(t, agentfulNoStore.composeUpstreamRoutingEnabled())
 }
 
 func TestManager_RefreshFeatureGates_APIGatewayAndConnectProxy(t *testing.T) {
