@@ -6,6 +6,48 @@ ${[0].map(
     return `
 [
   ${
+    // A stable, always-present mesh-enabled service + its sidecar proxy
+    // (backed by the static fixtures under mock-api/v1/catalog/connect/backend,
+    // mock-api/v1/health/service/backend* and mock-api/v1/internal/ui/node/node)
+    // so there's a reliable way to reach populated Upstreams/Exposed Paths
+    // tabs regardless of what the random generation below produces.
+    //
+    // Opt-in only (CONSUL_MESH_SEED_ENABLE=1 pnpm start): unconditionally
+    // prepending these broke every acceptance test that assumes a specific
+    // service count/ordering/index (e.g. yaml-provided model overrides are
+    // merged onto the response by array index), since this endpoint is also
+    // what the test double serves under `ember test`.
+    (env('CONSUL_MESH_SEED_ENABLE', false) ? [
+      `
+      {
+        "Name": "backend",
+        "Tags": [],
+        "ConnectedWithProxy": true,
+        "ConnectedWithGateway": false,
+        "GatewayConfig": {},
+        "InstanceCount": 2,
+        "Nodes": ["node"],
+        "ChecksPassing": 2,
+        "ChecksWarning": 0,
+        "ChecksCritical": 0
+      }
+      `,
+      `
+      {
+        "Name": "backend-sidecar-proxy",
+        "Kind": "connect-proxy",
+        "Tags": [],
+        "ConnectedWithProxy": false,
+        "ConnectedWithGateway": false,
+        "GatewayConfig": {},
+        "InstanceCount": 2,
+        "Nodes": ["node"],
+        "ChecksPassing": 2,
+        "ChecksWarning": 0,
+        "ChecksCritical": 2
+      }
+      `,
+    ] : []).concat(
     range(
       env(
         'CONSUL_SERVICE_COUNT',
@@ -122,6 +164,7 @@ ${ fake.random.number({min: 1, max: 10}) > 2 ? `
           }
         `;
       }
+    )
     )
   }
 ]

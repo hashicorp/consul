@@ -69,7 +69,6 @@ func minimalAPIGatewaySnap() *ConfigSnapshot {
 			TCPRoutes:              watch.NewMap[structs.ResourceReference, *structs.TCPRouteConfigEntry](),
 			InlineCertificates:     watch.NewMap[structs.ResourceReference, *structs.InlineCertificateConfigEntry](),
 			FileSystemCertificates: watch.NewMap[structs.ResourceReference, *structs.FileSystemCertificateConfigEntry](),
-			Listeners:              make(map[string]structs.APIGatewayListener),
 			BoundListeners:         make(map[string]structs.BoundAPIGatewayListener),
 		},
 	}
@@ -167,17 +166,14 @@ func TestHandlerAPIGateway_HandleUpdate_FeatureGateDisabled(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// handleUpdate – agentful gateway ignores gate (composeUpstreamRoutingEnabled=false)
+// handleUpdate – agentful gateway ignores gate (composeUpstreamRoutingEnabled=true)
 // ---------------------------------------------------------------------------
 
 func TestHandlerAPIGateway_HandleUpdate_AgentfulIgnoresGate(t *testing.T) {
 	store := &featuregate.Store{}
-	store.Publish(featuregate.Snapshot{
-		StatusIndex: 1,
-		Features:    map[string]bool{featuregate.APIGatewayUpstreamRouting.String(): true},
-	})
+	store.Publish(featuregate.Snapshot{StatusIndex: 1})
 
-	// agentless=false → composeUpstreamRoutingEnabled() always returns false.
+	// agentless=false → composeUpstreamRoutingEnabled() is true whatever the gate says.
 	handler := &handlerAPIGateway{
 		handlerState: handlerState{
 			stateConfig: stateConfig{
@@ -189,7 +185,7 @@ func TestHandlerAPIGateway_HandleUpdate_AgentfulIgnoresGate(t *testing.T) {
 		},
 	}
 	snap := minimalAPIGatewaySnap()
-	snap.APIGateway.ComposeUpstreamRouting = false // should stay false
+	snap.APIGateway.ComposeUpstreamRouting = true
 
 	cancelCalled := false
 	snap.APIGateway.WatchedDiscoveryChains[UpstreamID{Name: "svc"}] = func() { cancelCalled = true }
@@ -198,8 +194,7 @@ func TestHandlerAPIGateway_HandleUpdate_AgentfulIgnoresGate(t *testing.T) {
 	err := handler.handleUpdate(context.Background(), event, snap)
 	require.NoError(t, err)
 
-	// agentful: gate effectively disabled → no change, no cancel.
-	require.False(t, snap.APIGateway.ComposeUpstreamRouting)
+	require.True(t, snap.APIGateway.ComposeUpstreamRouting)
 	require.False(t, cancelCalled, "agentful gateway must not cancel watches on gate update")
 }
 

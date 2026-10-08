@@ -1,0 +1,81 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+.consul-intention-view {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+// Side-by-side Source / Destination cards
+.consul-intention-view__cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.consul-intention-view__card {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.consul-intention-view__card-title {
+  font-size: var(--token-typography-display-200-font-size);
+  font-weight: var(--token-typography-font-weight-semibold);
+  line-height: var(--token-typography-display-200-line-height);
+  color: var(--token-color-foreground-strong);
+  margin: 0;
+}
+
+// Key/value definition list inside each card
+.consul-intention-view__dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 32px;
+  row-gap: 16px;
+  margin: 0;
+}
+
+.consul-intention-view__dl dt {
+  font-size: var(--token-typography-body-300-font-size);
+  font-weight: var(--token-typography-font-weight-semibold);
+  line-height: var(--token-typography-body-300-line-height);
+  color: var(--token-color-foreground-primary);
+  white-space: nowrap;
+}
+
+.consul-intention-view__dl dd {
+  font-size: var(--token-typography-body-300-font-size);
+  font-weight: var(--token-typography-font-weight-regular);
+  line-height: var(--token-typography-body-300-line-height);
+  color: var(--token-color-foreground-primary);
+  margin: 0;
+  word-break: break-word;
+}
+
+// Action / Description field rows
+.consul-intention-view__field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.consul-intention-view__field-label {
+  font-size: var(--token-typography-body-300-font-size);
+  font-weight: var(--token-typography-font-weight-semibold);
+  line-height: var(--token-typography-body-300-line-height);
+  color: var(--token-color-foreground-primary);
+}
+
+.consul-intention-view__field-value {
+  font-size: var(--token-typography-body-300-font-size);
+  font-weight: var(--token-typography-font-weight-regular);
+  line-height: var(--token-typography-body-300-line-height);
+  color: var(--token-color-foreground-primary);
+  margin: 0;
+}

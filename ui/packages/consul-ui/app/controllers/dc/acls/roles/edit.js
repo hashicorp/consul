@@ -11,6 +11,9 @@ export default class EditController extends Controller {
   @service('form')
   builder;
 
+  @service('dom')
+  dom;
+
   items = [];
 
   constructor() {
@@ -30,6 +33,21 @@ export default class EditController extends Controller {
         return prev;
       }, model)
     );
+  }
+
+  @action
+  change(e, value, item) {
+    const event = this.dom.normalizeEvent(e, value);
+    const form = this.form;
+    try {
+      form.handleEvent(event);
+    } catch (err) {
+      const target = event.target;
+      switch (target.name) {
+        default:
+          throw err;
+      }
+    }
   }
 
   // Forwarders replacing route-action helper usage

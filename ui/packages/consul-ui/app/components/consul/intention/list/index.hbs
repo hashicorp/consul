@@ -9,7 +9,7 @@
   {{did-update this.updateCRDManagement @items}}
 >
 {{yield (hash
-  Table=(component 'consul/intention/list/table' delete=@delete items=this.items)
+  Table=(component 'consul/intention/list/table' delete=@delete items=this.items card=@card)
   CheckNotice=(if this.checkedItem
     (component 'consul/intention/list/check' item=this.checkedItem)
     ''
@@ -18,5 +18,6 @@
     (component 'consul/intention/notice/custom-resource')
     ''
   )
+  isManagedByCRDs=this.isManagedByCRDs
 )}}
 </div>

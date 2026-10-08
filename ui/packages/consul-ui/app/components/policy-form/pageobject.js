@@ -4,16 +4,16 @@
  */
 
 export default (submitable, cancelable, radiogroup, text) =>
-  (scope = '[data-test-policy-form]') => {
+  (scope = '[data-test-policy-form]', actionScope = '', prefix = 'policy') => {
     return {
       // this should probably be settable
       resetScope: true,
       scope: scope,
       get prefix() {
-        return 'policy';
+        return prefix;
       },
-      ...submitable(),
-      ...cancelable(),
+      ...submitable({}, actionScope),
+      ...cancelable({}, actionScope),
       ...radiogroup('template', ['', 'service-identity', 'node-identity'], 'policy'),
       rules: {
         error: text('[data-test-rules] strong'),

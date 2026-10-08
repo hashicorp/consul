@@ -3,6 +3,25 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
+// Give the <form> a 24px top margin so there is breathing room between the
+// CRD warning alert (or the cross-partition alert) and the fieldsets below.
+// When no alert is present the margin simply adds consistent spacing below
+// the page title. Also use flex-column with gap so every direct child
+// (fieldsets component + button row) has consistent 24px separation regardless
+// of which sections are visible.
+.consul-intention > form {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.consul-intention-form__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .consul-intention-action-warn-modal {
   .modal-dialog-window {
     max-width: 450px;

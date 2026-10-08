@@ -104,6 +104,12 @@ type ConfigSnapshotUpstreams struct {
 	PeerUpstreamEndpoints watch.Map[UpstreamID, structs.CheckServiceNodes]
 
 	PeerUpstreamEndpointsUseHostnames map[UpstreamID]struct{}
+
+	// PeeredPortUpstreamVIPs maps a peered UpstreamID (including synthetic per-port
+	// entries with name "<portName>.<serviceName>") to the virtual IP assigned
+	// to it locally. Enterprise multiport peering uses this to emit a distinct
+	// outbound filter chain per named port on the dialing proxy.
+	PeeredPortUpstreamVIPs map[UpstreamID]string
 }
 
 // indexedTarget is used to associate the Raft modify index of a resource
@@ -385,6 +391,7 @@ type PeerServersValue struct {
 
 type PeeringServiceValue struct {
 	Nodes  structs.CheckServiceNodes
+	Ports  []string
 	UseCDS bool
 }
 
@@ -509,7 +516,9 @@ type configSnapshotMeshGateway struct {
 	// bundles has completed at least once.
 	PeeringTrustBundlesSet bool
 
-	// ServicePorts tracks which ports each service exposes.
+	// ServicePorts tracks which ports each local/exported service exposes.
+	// Imported peered services must not be stored here: sender mesh gateways
+	// preserve named-port ALPN through the existing SNI passthrough path.
 	// Maps ServiceName -> []portName
 	// This is populated from service metadata with key "ports" in format "name:number,name:number"
 	// Only port names are stored; port numbers are not needed for mesh gateway routing.
@@ -772,18 +781,100 @@ type configSnapshotAPIGateway struct {
 	// leaf cert watch with different parameters.
 	LeafCertWatchCancel context.CancelFunc
 
-	// Listeners is the original listener config from the api-gateway config
-	// entry to save us trying to pass fields through Upstreams
-	Listeners map[string]structs.APIGatewayListener
+	// LeafCertDNSSANs is the sorted set of DNS Subject Alternative Names most
+	// recently requested for the gateway's leaf certificate. It is used to avoid
+	// re-establishing the leaf cert watch when the computed SANs have not changed
+	// (e.g. on unrelated route updates), preventing needless cert churn.
+	LeafCertDNSSANs []string
 
+	// BoundListeners is the reconciled listener state from the bound-api-gateway
+	// config entry. Each entry carries both the controller-managed route/cert
+	// bindings AND the operator-configured fields (Port, Protocol, TLS, etc.)
+	// copied from the corresponding APIGatewayListener at reconcile time.
 	BoundListeners map[string]structs.BoundAPIGatewayListener
 
 	// ComposeUpstreamRouting is the final committed feature decision captured
-	// for this snapshot. It is true only for the server-catalog path.
+	// for this snapshot. It is always true for agentful gateways.
 	ComposeUpstreamRouting bool
 }
 
-func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, listener structs.APIGatewayListener, boundListener structs.BoundAPIGatewayListener) ([]structs.IngressService, structs.Upstreams, []*structs.CompiledDiscoveryChain, error) {
+// activeUpstreamIDs returns the set of UpstreamIDs that will actually be
+// rendered into CDS clusters for this gateway. discoveryChainsMissingEndpoints
+// uses it to decide which discovery chains may hold the first push.
+//
+// The traversal mirrors getReadyListeners (agent/xds/listeners_apigateway.go),
+// which is what route-backed cluster generation walks. Anything it excludes
+// emits no CDS cluster, so gating on it would withhold config for a cluster that
+// is never published — at best a stall until the bootstrap-gate timeout. Four
+// exclusions matter:
+//
+//   - Listeners the controller has not finished reconciling: Port 0 or empty
+//     Protocol means the APIGatewayListener fields have not been copied onto the
+//     BoundAPIGatewayListener yet, so no listener key (and no cluster) is built.
+//   - Listeners with a Conflicted status (ListenerIsReady is false).
+//   - Routes bound to a listener whose config entry has not been received.
+//   - Routes that declare a parent reference to this gateway but were never
+//     bound to the listener by the controller. Upstreams is populated from the
+//     route's declared parentRefs (referenceIsForListener), and a parentRef with
+//     no sectionName matches EVERY listener, so Upstreams is a superset of what
+//     actually binds. BoundListeners is the authoritative binding result.
+//
+// The remaining chains are the ones the gate may legitimately wait on. Chains
+// absent from the set entirely are orphans (a backend registered as a watch
+// target that never resolved to a served upstream, e.g. a BackendRef whose
+// namespace does not exist) or synthesized chains, which carry no EDS targets.
+//
+// The set is built once per predicate call rather than rescanned per chain. The
+// gate evaluates this on every snapshot of every gateway stream until it opens,
+// so a per-chain scan would be quadratic in route count on exactly the
+// mass-reconnect cold start the gate exists to protect.
+//
+// TODO(CSL-11921): this covers only route-backed clusters. clustersFromSnapshotAPIGateway
+// also emits EDS clusters that getReadyListeners does not walk: makeExtProcUpstreamClusters
+// (ext-proc-referenced mesh services) and makeAPIGatewayExtAuthzClusters (ext-authz mesh
+// targets, enterprise). A gateway reaching an ext-proc/ext-authz-only mesh target through a
+// service-resolver failover could therefore still take a first push with a CDS cluster but no
+// matching EDS for that target. Deliberately not addressed here: the ITCO-15826 customer uses
+// neither filter, and widening the gated set needs validation in that environment first. To
+// close it, union extProcUpstreamIDs (+ the enterprise ext-authz uids) into this set — their
+// endpoints already flow through WatchedUpstreamEndpoints[uid], which the predicate reads.
+func (c *configSnapshotAPIGateway) activeUpstreamIDs() map[UpstreamID]struct{} {
+	active := make(map[UpstreamID]struct{})
+	if c.GatewayConfig == nil {
+		return active
+	}
+	for _, boundListener := range c.BoundListeners {
+		// A listener the controller has not finished reconciling (no Port or
+		// Protocol copied onto the bound listener yet) produces no cluster;
+		// getReadyListeners skips it, so gating on it would only stall.
+		if boundListener.Port == 0 || boundListener.Protocol == "" {
+			continue
+		}
+		if !c.GatewayConfig.ListenerIsReady(boundListener.Name) {
+			continue
+		}
+		listenerKey := APIGatewayListenerKeyFromBoundListener(boundListener)
+		for _, routeRef := range boundListener.Routes {
+			switch routeRef.Kind {
+			case structs.HTTPRoute:
+				if _, ok := c.HTTPRoutes.Get(routeRef); !ok {
+					continue
+				}
+			case structs.TCPRoute:
+				if _, ok := c.TCPRoutes.Get(routeRef); !ok {
+					continue
+				}
+			}
+			upstreams := c.Upstreams[routeRef][listenerKey]
+			for i := range upstreams {
+				active[NewUpstreamID(&upstreams[i])] = struct{}{}
+			}
+		}
+	}
+	return active
+}
+
+func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, boundListener structs.BoundAPIGatewayListener) ([]structs.IngressService, structs.Upstreams, []*structs.CompiledDiscoveryChain, []error, error) {
 	chains := []*structs.CompiledDiscoveryChain{}
 
 	// We leverage the test trust domain knowing
@@ -808,16 +899,17 @@ DOMAIN_LOOP:
 		}
 	}
 
-	synthesizer := discoverychain.NewGatewayChainSynthesizer(datacenter, trustDomain, listener.Name, c.GatewayConfig)
+	synthesizer := discoverychain.NewGatewayChainSynthesizer(datacenter, trustDomain, boundListener.Name, c.GatewayConfig)
 	if c.ComposeUpstreamRouting {
 		synthesizer.EnableUpstreamRoutingComposition()
 	}
-	synthesizer.SetHostname(listener.GetHostname())
+	synthesizer.SetHostname(boundListener.GetHostname())
+	var preSkipped []error
 	for _, routeRef := range boundListener.Routes {
 		switch routeRef.Kind {
 		case structs.HTTPRoute:
 			route, ok := c.HTTPRoutes.Get(routeRef)
-			if !ok || !structs.IsProtocolHTTPLike(string(listener.Protocol)) {
+			if !ok || !structs.IsProtocolHTTPLike(string(boundListener.Protocol)) {
 				continue
 			}
 			synthesizer.AddHTTPRoute(*route)
@@ -829,7 +921,7 @@ DOMAIN_LOOP:
 			}
 		case structs.TCPRoute:
 			route, ok := c.TCPRoutes.Get(routeRef)
-			if !ok || listener.Protocol != structs.ListenerProtocolTCP {
+			if !ok || boundListener.Protocol != structs.ListenerProtocolTCP {
 				continue
 			}
 			synthesizer.AddTCPRoute(*route)
@@ -840,18 +932,30 @@ DOMAIN_LOOP:
 				}
 			}
 		default:
-			return nil, nil, nil, fmt.Errorf("unknown route kind %q", routeRef.Kind)
+			// An unrecognized route kind for a single routeRef must not abort
+			// synthesis for the rest of this listener (or discard chains already
+			// synthesized for other listeners in this same recompile pass). Skip
+			// it and record the error for the caller to log as a warning, same as
+			// the per-route Compile failures handled in Synthesize().
+			preSkipped = append(preSkipped, fmt.Errorf("skipping route %q: unknown route kind %q", routeRef.Name, routeRef.Kind))
+			continue
 		}
 	}
 
 	if len(chains) == 0 {
-		return nil, nil, nil, nil
+		return nil, nil, nil, preSkipped, nil
 	}
 
-	services, compiled, err := synthesizer.Synthesize(chains...)
+	services, compiled, skipped, err := synthesizer.Synthesize(chains...)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, preSkipped, err
 	}
+	skipped = append(skipped, preSkipped...)
+
+	// Make the route path's cluster names match the cluster path's. Reported as
+	// skipped-route warnings rather than a hard error so one unalignable route
+	// does not take down the rest of the listener.
+	skipped = append(skipped, alignSynthesizedCustomizationHashes(compiled, c.DiscoveryChain)...)
 
 	// reconstruct the upstreams
 	upstreams := make([]structs.Upstream, 0, len(services))
@@ -861,19 +965,212 @@ DOMAIN_LOOP:
 			DestinationNamespace: service.NamespaceOrDefault(),
 			DestinationPartition: service.PartitionOrDefault(),
 			IngressHosts:         service.Hosts,
-			LocalBindPort:        listener.Port,
+			LocalBindPort:        boundListener.Port,
 			Config: map[string]interface{}{
-				"protocol": string(listener.Protocol),
+				"protocol": string(boundListener.Protocol),
 			},
 		})
 	}
 
-	return services, upstreams, compiled, err
+	return services, upstreams, compiled, skipped, nil
+}
+
+// alignSynthesizedCustomizationHashes makes the cluster names produced by the
+// ROUTE path agree with the cluster names produced by the CLUSTER path.
+//
+// Background. Envoy cluster names for a discovery chain run through
+// naming.CustomizeClusterName(target.Name, chain), which prefixes "<hash>~" when
+// the chain carries a CustomizationHash. A chain gets that hash only when it was
+// compiled with an OverrideProtocol that DIFFERS from the service's natural
+// protocol (see discoverychain.Compile: `if c.overrideProtocol != c.protocol`).
+//
+// The two xDS paths reach their chains differently:
+//
+//   - clusters (xds/clusters.go clustersFromSnapshotAPIGateway) look up
+//     DiscoveryChain[<backend service>], which proxycfg compiled with
+//     OverrideProtocol set to the LISTENER protocol. When an api-gateway
+//     listener declares http2/grpc but the backend's ServiceDefaults says http,
+//     those differ, so the emitted cluster is "<hash>~backend...".
+//
+//   - routes (xds/routes.go routesForAPIGateway) look up the SYNTHESIZED chain
+//     for the flattened route, built by GatewayChainSynthesizer.Synthesize.
+//     That Compile call passes no OverrideProtocol, so the synthesized chain has
+//     an empty CustomizationHash and the route targets plain "backend...".
+//
+// The route therefore references a cluster that does not exist. Envoy answers
+// every request with a 503 and increments
+// http.ingress_upstream_<port>.no_cluster. Because api-gateway clusters are
+// deduplicated per upstream across listeners, a single mismatched listener takes
+// down every listener sharing that backend, including plain http listeners that
+// declare no protocol of their own.
+//
+// The fix copies the hash from the per-service chains the synthesized chain
+// actually resolves to, which is by construction the name the cluster path will
+// emit. It is applied only when every target agrees on a single non-empty hash:
+// CustomizeClusterName stamps one hash across all of a chain's targets, so a
+// route fanning out to backends with genuinely different customizations cannot
+// be expressed here, and silently stamping one of them would swap a missing
+// cluster for a wrong one. Such a route is left alone and reported by the
+// caller.
+func alignSynthesizedCustomizationHashes(
+	compiled []*structs.CompiledDiscoveryChain,
+	serviceChains map[UpstreamID]*structs.CompiledDiscoveryChain,
+) []error {
+	var conflicts []error
+
+	for _, chain := range compiled {
+		if chain == nil || chain.CustomizationHash != "" {
+			continue
+		}
+
+		hashes := make(map[string]struct{})
+		for _, target := range chain.Targets {
+			if target == nil || target.External {
+				continue
+			}
+			em := acl.NewEnterpriseMetaWithPartition(target.Partition, target.Namespace)
+			id := NewUpstreamIDFromServiceName(structs.NewServiceName(target.Service, &em))
+			serviceChain := serviceChains[id]
+			if serviceChain == nil {
+				continue
+			}
+			// Skip the chain's reference to itself.
+			//
+			// A synthesized api-gateway chain is named for its listener and is
+			// itself published into serviceChains, and its target set includes
+			// that same listener name. Reading the hash back through that
+			// self-reference asks the chain what it was customized to before
+			// this function has decided -- so it contributes the not-yet-set
+			// "" and collides with the genuine backend hash, and the
+			// disagreement check below then declines to align a chain whose
+			// real backends all agree.
+			//
+			// This is a self-reference, not a backend, and it carries no
+			// information about the cluster names the cluster path will emit.
+			if serviceChain.ServiceName == chain.ServiceName &&
+				serviceChain.Partition == chain.Partition &&
+				serviceChain.Namespace == chain.Namespace {
+				continue
+			}
+			hashes[serviceChain.CustomizationHash] = struct{}{}
+		}
+
+		// No targets, or every target uncustomized: the unprefixed name the
+		// route already uses is correct.
+		if len(hashes) == 0 {
+			continue
+		}
+		if len(hashes) > 1 {
+			conflicts = append(conflicts, fmt.Errorf(
+				"route chain %q resolves to backends with differing protocol customizations; "+
+					"cluster names cannot be aligned for all of them", chain.ServiceName))
+			continue
+		}
+
+		for hash := range hashes {
+			if hash != "" {
+				chain.CustomizationHash = hash
+			}
+		}
+	}
+
+	return conflicts
+}
+
+// discoveryChainsMissingEndpoints returns "uid/targetID" for every synthesized
+// discovery-chain target that would be rendered into a CDS cluster but whose EDS
+// endpoints are not assembled yet — the targets that make a first xDS push
+// CDS/EDS-incoherent and cold-start-crash a gateway's Envoy. The xDS layer
+// holds a gateway's FIRST push until this is empty; the list also names the
+// blockers in logs. It is always eventually empty for a well-formed config,
+// because every target's endpoint watch fires at least once (a zero-instance
+// service still yields an empty, valid EDS response).
+//
+// localKey is the gateway's own locality, used to mirror the gatewayKey logic of
+// makeLoadAssignmentEndpointGroup (agent/xds/endpoints.go) for mesh-gateway
+// targets; TestDiscoveryChainsMissingEndpoints_MirrorsEndpointGeneration pins the
+// two together. Three kinds of target are excluded because they can never be in
+// the "CDS present, EDS missing" state: external (DNS clusters, no EDS), peered
+// (served via PeerUpstreamEndpoints), and orphan chains not wired to any listener
+// upstream (no CDS cluster is emitted, so gating on them would wedge forever).
+func (c *configSnapshotAPIGateway) discoveryChainsMissingEndpoints(localKey GatewayKey) []string {
+	var missing []string
+	activeUpstreams := c.activeUpstreamIDs()
+	for uid, chain := range c.DiscoveryChain {
+		if chain == nil {
+			continue
+		}
+		// Only gate on chains that will actually be rendered into a CDS cluster.
+		// activeUpstreamIDs mirrors getReadyListeners, so a chain missing from
+		// the set is one cluster generation skips: an orphan whose backend never
+		// resolved to a served upstream (e.g. "gapi-blue/static-client: backend
+		// not found"), a route on a conflicted or unbound listener, or a
+		// synthesized chain carrying no EDS targets of its own. None of these
+		// produce a cluster, so gating on their endpoints would withhold the
+		// first push for config that is never published.
+		if _, active := activeUpstreams[uid]; !active {
+			continue
+		}
+		targetEndpoints := c.WatchedUpstreamEndpoints[uid]
+		gatewayEndpoints := c.WatchedGatewayEndpoints[uid]
+		for targetID, target := range chain.Targets {
+			if target.External || target.Peer != "" {
+				continue
+			}
+			if _, ok := targetEndpoints[targetID]; !ok {
+				// present in CDS but its EDS assignment is not yet available.
+				missing = append(missing, uid.String()+"/"+targetID)
+				continue
+			}
+			// Targets that route through a mesh gateway (remote datacenter or
+			// remote partition) take their endpoints from the gateway, not the
+			// service: makeLoadAssignmentEndpointGroup looks up
+			// WatchedGatewayEndpoints[uid][gatewayKey] and returns valid=false
+			// if that watch has not fired. CDS has already emitted the cluster
+			// by then, so this is the same CDS/EDS incoherence as a missing
+			// target endpoint and must gate the first push too.
+			//
+			// The key selection below mirrors makeLoadAssignmentEndpointGroup
+			// (agent/xds/endpoints.go) exactly, including both of its early
+			// returns. forMeshGateway is not mirrored because api-gateway
+			// clusters are always generated with forMeshGateway=false.
+			var gwKey GatewayKey
+			switch target.MeshGateway.Mode {
+			case structs.MeshGatewayModeRemote:
+				gwKey.Datacenter = target.Datacenter
+				gwKey.Partition = target.Partition
+			case structs.MeshGatewayModeLocal:
+				gwKey = localKey
+			}
+
+			// An empty key means no mesh gateway is involved (mode none/default,
+			// or an unset locality), and a target in our own locality is reached
+			// directly. In both cases EDS uses the target endpoints we already
+			// confirmed above, so gating on gateway endpoints would block a
+			// cluster that Envoy can serve.
+			if gwKey.IsEmpty() || localKey.Matches(target.Datacenter, target.Partition) {
+				continue
+			}
+
+			if _, ok := gatewayEndpoints[gwKey.String()]; !ok {
+				missing = append(missing, uid.String()+"/"+targetID+"@"+gwKey.String())
+			}
+		}
+	}
+	return missing
 }
 
 // valid tests for two valid api gateway snapshot states:
 //  1. waiting: the watch on api and bound gateway entries is set, but none were received
 //  2. loaded: both the valid config entries AND the leaf certs are set
+//
+// NOTE: the cold-start completeness gate (ITCO-15826) is intentionally NOT
+// enforced here. In this approach it lives in the xDS layer (agent/xds/delta.go),
+// which withholds each stream's FIRST push until the snapshot's discovery-chain
+// endpoints are assembled. Keeping valid() unchanged means proxycfg keeps
+// delivering snapshots normally (no whole-snapshot withholding), so steady-state
+// updates under churn are never starved. The completeness predicate
+// (discoveryChainsMissingEndpoints) is retained and exposed for the xDS layer.
 func (c *configSnapshotAPIGateway) valid() bool {
 	waiting := c.GatewayConfigLoaded && len(c.Upstreams) == 0 && c.BoundGatewayConfigLoaded && c.Leaf == nil
 
@@ -949,6 +1246,10 @@ func APIGatewayListenerKeyFromListener(l structs.APIGatewayListener) APIGatewayL
 	return APIGatewayListenerKey{Protocol: string(l.Protocol), Port: l.Port}
 }
 
+func APIGatewayListenerKeyFromBoundListener(l structs.BoundAPIGatewayListener) APIGatewayListenerKey {
+	return APIGatewayListenerKey{Protocol: string(l.Protocol), Port: l.Port}
+}
+
 type IngressListenerKey struct {
 	Protocol string
 	Port     int
@@ -985,6 +1286,12 @@ type ConfigSnapshot struct {
 	Locality              GatewayKey
 	JWTProviders          map[string]*structs.JWTProviderConfigEntry
 
+	// LocalizedDNSEnabled reports whether the featuregate.LocalizedDNS feature
+	// is enabled. When false, xDS generation must not add the inline virtual
+	// DNS listener or the egress recursor DNS listener to connect-proxy
+	// sidecars, regardless of virtual IP or recursor configuration.
+	LocalizedDNSEnabled bool
+
 	ServerSNIFn ServerSNIFunc
 	Roots       *structs.IndexedCARoots
 
@@ -1014,6 +1321,16 @@ type computedFields struct {
 	xdsCommonConfig *config.XDSCommonConfig
 	proxyConfig     *config.ProxyConfig
 	gatewayConfig   *config.GatewayConfig
+}
+
+// APIGatewayDiscoveryChainsMissingEndpoints exposes discoveryChainsMissingEndpoints
+// to the xDS bootstrap gate; it returns nil for non-api-gateway kinds. See
+// discoveryChainsMissingEndpoints for what "missing" means.
+func (s *ConfigSnapshot) APIGatewayDiscoveryChainsMissingEndpoints() []string {
+	if s.Kind != structs.ServiceKindAPIGateway {
+		return nil
+	}
+	return s.APIGateway.discoveryChainsMissingEndpoints(s.Locality)
 }
 
 // Valid returns whether or not the snapshot has all required fields filled yet.
@@ -1192,6 +1509,44 @@ func (s *ConfigSnapshot) ToConfigSnapshotUpstreams() (*ConfigSnapshotUpstreams, 
 		// This is a coherence check and should never fail
 		return nil, fmt.Errorf("No upstream snapshot for gateway mode %q", s.Kind)
 	}
+}
+
+// PeeredUpstreamPortVIPs returns the per-port virtual IPs assigned locally for a
+// base peered upstream, keyed by named port. Enterprise multiport peering stores
+// these under synthetic upstream IDs whose Name is "<portName>.<baseServiceName>"
+// and which share the base upstream's Peer and partition/namespace. The base
+// upstream itself (Name == baseServiceName) is excluded. Returns nil if none.
+func (u *ConfigSnapshotUpstreams) PeeredUpstreamPortVIPs(base UpstreamID) map[string]string {
+	// An explicit destination_port upstream is already scoped to one named
+	// port and must not be expanded into the service's complete port set.
+	if base.DestinationPort != "" || len(u.PeeredPortUpstreamVIPs) == 0 {
+		return nil
+	}
+
+	suffix := "." + base.Name
+	var out map[string]string
+	for uid, vip := range u.PeeredPortUpstreamVIPs {
+		if vip == "" || uid.Peer != base.Peer || uid.Name == base.Name {
+			continue
+		}
+		if !acl.EqualPartitions(uid.PartitionOrDefault(), base.PartitionOrDefault()) ||
+			uid.NamespaceOrDefault() != base.NamespaceOrDefault() {
+			continue
+		}
+		if !strings.HasSuffix(uid.Name, suffix) {
+			continue
+		}
+
+		portName := strings.TrimSuffix(uid.Name, suffix)
+		if portName == "" || strings.Contains(portName, ".") {
+			continue
+		}
+		if out == nil {
+			out = make(map[string]string)
+		}
+		out[portName] = vip
+	}
+	return out
 }
 
 func (u *ConfigSnapshotUpstreams) UpstreamPeerMeta(uid UpstreamID) (structs.PeeringServiceMeta, bool) {

@@ -55,6 +55,183 @@ func TestConfigEntries_ACLs(t *testing.T) {
 	}
 
 	cases := []testcase{
+		// =================== service-defaults (no code-executing extensions) ===================
+		{
+			name: "service-defaults: no code-executing extension",
+			entry: &ServiceConfigEntry{
+				Kind: ServiceDefaults,
+				Name: "web",
+				EnvoyExtensions: EnvoyExtensions{
+					{Name: api.BuiltinAWSLambdaExtension, Arguments: map[string]interface{}{"ARN": "arn:aws:lambda:us-east-1:111122223333:function:my-function"}},
+				},
+			},
+			expectACLs: []testACL{
+				{
+					name:       "service:write only — allowed (no code-executing extension)",
+					authorizer: newAuthz(t, `service "web" { policy = "write" }`),
+					canRead:    true,
+					canWrite:   true,
+				},
+				{
+					name:       "service:read only — denied",
+					authorizer: newAuthz(t, `service "web" { policy = "read" }`),
+					canRead:    true,
+					canWrite:   false,
+				},
+			},
+		},
+		// =================== service-defaults (code-executing extensions: lua) ===================
+		{
+			name: "service-defaults: lua extension requires mesh:write",
+			entry: &ServiceConfigEntry{
+				Kind: ServiceDefaults,
+				Name: "web",
+				EnvoyExtensions: EnvoyExtensions{
+					{Name: api.BuiltinLuaExtension, Arguments: map[string]interface{}{
+						"Script":   "function envoy_on_request(h) end",
+						"Listener": "inbound",
+					}},
+				},
+			},
+			expectACLs: []testACL{
+				{
+					name:       "service:write only — denied (missing mesh:write)",
+					authorizer: newAuthz(t, `service "web" { policy = "write" }`),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service:write + mesh:write — allowed",
+					authorizer: newAuthz(t, `service "web" { policy = "write" } mesh = "write"`),
+					canRead:    true,
+					canWrite:   true,
+				},
+				{
+					name:       "mesh:write only (no service:write) — denied",
+					authorizer: newAuthz(t, `mesh = "write"`),
+					canRead:    false, // no service:read either
+					canWrite:   false,
+				},
+				{
+					name:       "service:write + mesh:read only — denied",
+					authorizer: newAuthz(t, `service "web" { policy = "write" } mesh = "read"`),
+					canRead:    true,
+					canWrite:   false,
+				},
+			},
+		},
+		// =================== service-defaults (code-executing extensions: wasm) ===================
+		{
+			name: "service-defaults: wasm extension requires mesh:write",
+			entry: &ServiceConfigEntry{
+				Kind: ServiceDefaults,
+				Name: "web",
+				EnvoyExtensions: EnvoyExtensions{
+					{Name: api.BuiltinWasmExtension, Arguments: map[string]interface{}{
+						"Protocol":     "http",
+						"ListenerType": "inbound",
+						"PluginConfig": map[string]interface{}{
+							"VmConfig": map[string]interface{}{
+								"Code": map[string]interface{}{
+									"Local": map[string]interface{}{
+										"Filename": "/etc/envoy/plugin.wasm",
+									},
+								},
+							},
+						},
+					}},
+				},
+			},
+			expectACLs: []testACL{
+				{
+					name:       "service:write only — denied (missing mesh:write)",
+					authorizer: newAuthz(t, `service "web" { policy = "write" }`),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service:write + mesh:write — allowed",
+					authorizer: newAuthz(t, `service "web" { policy = "write" } mesh = "write"`),
+					canRead:    true,
+					canWrite:   true,
+				},
+			},
+		},
+		// =================== service-defaults (upstream escape-hatch overrides) ===================
+		{
+			name: "service-defaults: upstream defaults envoy_listener_json requires mesh:write",
+			entry: &ServiceConfigEntry{
+				Kind: ServiceDefaults,
+				Name: "web",
+				UpstreamConfig: &UpstreamConfiguration{
+					Defaults: &UpstreamConfig{
+						EnvoyListenerJSON: `{"name":"custom-listener"}`,
+					},
+				},
+			},
+			expectACLs: []testACL{
+				{
+					name:       "service:write only — denied (missing mesh:write)",
+					authorizer: newAuthz(t, `service "web" { policy = "write" }`),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service:write + mesh:write — allowed",
+					authorizer: newAuthz(t, `service "web" { policy = "write" } mesh = "write"`),
+					canRead:    true,
+					canWrite:   true,
+				},
+			},
+		},
+		{
+			name: "service-defaults: upstream override envoy_cluster_json requires mesh:write",
+			entry: &ServiceConfigEntry{
+				Kind: ServiceDefaults,
+				Name: "web",
+				UpstreamConfig: &UpstreamConfiguration{
+					Overrides: []*UpstreamConfig{
+						{
+							Name:             "db",
+							EnvoyClusterJSON: `{"name":"custom-cluster"}`,
+						},
+					},
+				},
+			},
+			expectACLs: []testACL{
+				{
+					name:       "service:write only — denied (missing mesh:write)",
+					authorizer: newAuthz(t, `service "web" { policy = "write" }`),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service:write + mesh:write — allowed",
+					authorizer: newAuthz(t, `service "web" { policy = "write" } mesh = "write"`),
+					canRead:    true,
+					canWrite:   true,
+				},
+			},
+		},
+		{
+			name: "service-defaults: upstream config without escape-hatch — service:write sufficient",
+			entry: &ServiceConfigEntry{
+				Kind: ServiceDefaults,
+				Name: "web",
+				UpstreamConfig: &UpstreamConfiguration{
+					Defaults: &UpstreamConfig{
+						Protocol: "http",
+					},
+				},
+			},
+			expectACLs: []testACL{
+				{
+					authorizer: newAuthz(t, `service "web" { policy = "write" }`),
+					canRead:    true,
+					canWrite:   true,
+				},
+			},
+		},
 		// =================== proxy-defaults ===================
 		{
 			name:  "proxy-defaults",
@@ -2298,6 +2475,118 @@ func TestDecodeConfigEntry(t *testing.T) {
 			},
 		},
 		{
+			name: "mesh-with-ecdh-curves",
+			snake: `
+				kind = "mesh"
+				tls {
+					incoming {
+						tls_min_version = "TLSv1_3"
+						ecdh_curves = [
+							"X25519MLKEM768",
+							"X25519"
+						]
+					}
+					outgoing {
+						tls_min_version = "TLSv1_3"
+						ecdh_curves = [
+							"P-384"
+						]
+					}
+				}
+			`,
+			camel: `
+				Kind = "mesh"
+				TLS {
+					Incoming {
+						TLSMinVersion = "TLSv1_3"
+						ECDHCurves = [
+							"X25519MLKEM768",
+							"X25519"
+						]
+					}
+					Outgoing {
+						TLSMinVersion = "TLSv1_3"
+						ECDHCurves = [
+							"P-384"
+						]
+					}
+				}
+			`,
+			expect: &MeshConfigEntry{
+				TLS: &MeshTLSConfig{
+					Incoming: &MeshDirectionalTLSConfig{
+						TLSMinVersion: types.TLSv1_3,
+						ECDHCurves: []string{
+							"X25519MLKEM768",
+							"X25519",
+						},
+					},
+					Outgoing: &MeshDirectionalTLSConfig{
+						TLSMinVersion: types.TLSv1_3,
+						ECDHCurves: []string{
+							"P-384",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "mesh-with-ecdh-curves",
+			snake: `
+				kind = "mesh"
+				tls {
+					incoming {
+						tls_min_version = "TLSv1_3"
+						ecdh_curves = [
+							"X25519MLKEM768",
+							"X25519"
+						]
+					}
+					outgoing {
+						tls_min_version = "TLSv1_3"
+						ecdh_curves = [
+							"P-384"
+						]
+					}
+				}
+			`,
+			camel: `
+				Kind = "mesh"
+				TLS {
+					Incoming {
+						TLSMinVersion = "TLSv1_3"
+						ECDHCurves = [
+							"X25519MLKEM768",
+							"X25519"
+						]
+					}
+					Outgoing {
+						TLSMinVersion = "TLSv1_3"
+						ECDHCurves = [
+							"P-384"
+						]
+					}
+				}
+			`,
+			expect: &MeshConfigEntry{
+				TLS: &MeshTLSConfig{
+					Incoming: &MeshDirectionalTLSConfig{
+						TLSMinVersion: types.TLSv1_3,
+						ECDHCurves: []string{
+							"X25519MLKEM768",
+							"X25519",
+						},
+					},
+					Outgoing: &MeshDirectionalTLSConfig{
+						TLSMinVersion: types.TLSv1_3,
+						ECDHCurves: []string{
+							"P-384",
+						},
+					},
+				},
+			},
+		},
+		{
 			name: "api-gateway",
 			snake: `
 				kind = "api-gateway"
@@ -2402,6 +2691,97 @@ func TestDecodeConfigEntry(t *testing.T) {
 				Meta: map[string]string{
 					"foo": "bar",
 					"gir": "zim",
+				},
+			},
+		},
+		{
+			// The inference-gateway entry is written by operators as HCL, so the
+			// snake_case aliases on every multi-word field must decode. Unknown keys
+			// are an error (validateUnusedKeys), so a missing alias fails this test.
+			name: "inference-gateway",
+			snake: `
+				kind = "inference-gateway"
+				name = "travel-inference-gateway"
+				meta {
+					"foo" = "bar"
+				}
+				processor {
+					failure_mode = "open"
+				}
+				failover {
+					retry_on = ["401", "5xx"]
+					max_tiers = 2
+					per_try_timeout = "30s"
+				}
+				request_timeout = "10m"
+				pii {
+					scope = "both"
+					default_action = "placeholder"
+					stream_holdback_bytes = 128
+					mask {
+						char = "*"
+						keep_last = 4
+					}
+					detectors = [
+						{
+							name = "ssn"
+							action = "block"
+						},
+					]
+				}
+			`,
+			camel: `
+				Kind = "inference-gateway"
+				Name = "travel-inference-gateway"
+				Meta {
+					"foo" = "bar"
+				}
+				Processor {
+					FailureMode = "open"
+				}
+				Failover {
+					RetryOn = ["401", "5xx"]
+					MaxTiers = 2
+					PerTryTimeout = "30s"
+				}
+				RequestTimeout = "10m"
+				PII {
+					Scope = "both"
+					DefaultAction = "placeholder"
+					StreamHoldbackBytes = 128
+					Mask {
+						Char = "*"
+						KeepLast = 4
+					}
+					Detectors = [
+						{
+							Name = "ssn"
+							Action = "block"
+						},
+					]
+				}
+			`,
+			expect: &InferenceGatewayConfigEntry{
+				Kind: "inference-gateway",
+				Name: "travel-inference-gateway",
+				Meta: map[string]string{"foo": "bar"},
+				Processor: InferenceGatewayProcessor{
+					FailureMode: "open",
+				},
+				Failover: &InferenceGatewayFailover{
+					RetryOn:       []string{"401", "5xx"},
+					MaxTiers:      2,
+					PerTryTimeout: "30s",
+				},
+				RequestTimeout: "10m",
+				PII: &InferenceGatewayPII{
+					Scope:               "both",
+					DefaultAction:       "placeholder",
+					StreamHoldbackBytes: 128,
+					Mask:                &InferenceGatewayPIIMask{Char: "*", KeepLast: 4},
+					Detectors: []InferenceGatewayPIIDetector{
+						{Name: "ssn", Action: "block"},
+					},
 				},
 			},
 		},

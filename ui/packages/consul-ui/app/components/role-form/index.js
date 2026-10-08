@@ -8,4 +8,9 @@ export default FormComponent.extend({
   type: 'role',
   name: 'role',
   classNames: ['role-form'],
+  preventParentSubmit: function (event) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+    }
+  },
 });

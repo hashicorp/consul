@@ -27,6 +27,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-metrics"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/netutil"
@@ -149,6 +150,11 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 			return nil, err
 		}
 		clusters = append(clusters, upstreamCluster)
+
+		clusters, err = s.appendEntPeeredMultiportClusters(clusters, cfgSnap, uid, upstreamCluster)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// add clusters for jwt-providers
@@ -392,7 +398,7 @@ func makeExposeClusterName(destinationPort int) string {
 // In transparent proxy mode there are potentially multiple passthrough clusters added.
 // The first is for destinations outside of Consul's catalog. This is for a plain TCP proxy.
 // All of these use Envoy's ORIGINAL_DST listener filter, which forwards to the original
-// destination address (before the iptables redirection).
+// destination address (before the nftables redirection).
 // The rest are for destinations inside the mesh, which require certificates for mTLS.
 func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot, xdsCfg *config.XDSCommonConfig) ([]proto.Message, error) {
 	// This size is an upper bound.
@@ -835,7 +841,10 @@ func (s *ResourceGenerator) makeGatewayOutgoingClusterPeeringServiceClusters(cfg
 		return nil, fmt.Errorf("unsupported gateway kind %q", cfgSnap.Kind)
 	}
 
-	var clusters []proto.Message
+	var (
+		clusters []proto.Message
+		err      error
+	)
 
 	for _, serviceGroups := range cfgSnap.MeshGateway.PeeringServices {
 		for sn, serviceGroup := range serviceGroups {
@@ -866,6 +875,11 @@ func (s *ResourceGenerator) makeGatewayOutgoingClusterPeeringServiceClusters(cfg
 			cluster := s.makeGatewayCluster(cfgSnap, opts)
 
 			clusters = append(clusters, cluster)
+
+			clusters, err = s.appendEntGatewayOutgoingPeeringServiceMultiportClusters(clusters, cfgSnap, serviceGroup, node)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -1599,6 +1613,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 	if chain == nil {
 		return nil, fmt.Errorf("cannot create upstream cluster without discovery chain for %s", uid)
 	}
+	chain = discoveryChainForPortQualifiedUpstream(cfgSnap, uid, upstream, chain)
 
 	if uid.Peer != "" && forMeshGateway {
 		return nil, fmt.Errorf("impossible to get a peer discovery chain in a mesh gateway")
@@ -1643,7 +1658,11 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 		}
 	}
 
-	var out []*envoy_cluster_v3.Cluster
+	out, err := s.appendEntConfiguredChainDirectPortClusters(nil, uid, upstream, chain, cfgSnap)
+	if err != nil {
+		return nil, err
+	}
+
 	for _, node := range chain.Nodes {
 		switch {
 		case node == nil:
@@ -1670,13 +1689,19 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			continue
 		}
 
-		destinationPort := ""
-		if upstream != nil {
-			destinationPort = upstream.DestinationPort
-		}
-		mappedTargets, err := s.mapDiscoChainTargets(cfgSnap, chain, node, upstreamConfig, forMeshGateway, destinationPort)
+		destinationPort := destinationPortForDiscoveryChain(cfgSnap, uid, upstream, chain)
+		mappedTargets, err := s.mapDiscoChainTargets(cfgSnap, uid, chain, node, upstreamConfig, forMeshGateway, destinationPort)
 		if err != nil {
 			return nil, err
+		}
+
+		// The api-gateway aggregate guard degraded a failover chain to a single
+		// plain EDS cluster because a member's endpoints were not assembled yet.
+		// This is the crash-averting event operators want to trend/alert on, so
+		// emit it from the CDS path only -- mapDiscoChainTargets also runs in EDS
+		// and RDS generation, and counting it there would inflate the metric.
+		if mappedTargets.degraded {
+			metrics.IncrCounter([]string{"xds", "server", "apiGatewayFailoverDegraded"}, 1)
 		}
 
 		targetGroups, err := mappedTargets.groupedTargets()
@@ -1685,7 +1710,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 		}
 
 		var failoverClusterNames []string
-		if mappedTargets.failover {
+		if mappedTargets.failover && len(targetGroups) > 0 {
 			for _, targetGroup := range targetGroups {
 				failoverClusterNames = append(failoverClusterNames, targetGroup.ClusterName)
 			}
@@ -1711,6 +1736,15 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			}
 
 			out = append(out, c)
+		} else if mappedTargets.failover {
+			// Every target was dropped while mapping (reachable when each is a
+			// peered target whose peering metadata has not resolved yet).
+			// Emitting the aggregate anyway would hand Envoy a cluster with an
+			// empty member list, which is the same unpopulated-member shape
+			// that faults during worker startup. Omitting the cluster entirely
+			// yields a 503 NC that self-heals on the next snapshot instead.
+			s.Logger.Warn("skipping aggregate cluster because it has no member clusters",
+				"cluster", mappedTargets.baseClusterName)
 		}
 
 		// Construct the target clusters.

@@ -70,29 +70,40 @@ as |route|>
     />
   {{/if}}
       </:actions>
-      <:toolbar>
-    {{#if (gt items.length 0)}}
-        <Consul::Token::SearchBar
-          @search={{this.search}}
-          @onsearch={{action (mut this.search) value="target.value"}}
-
-          @sort={{sort}}
-
-          @filter={{filters}}
-        />
-    {{/if}}
-      </:toolbar>
       <:content>
-    {{#if (token/is-legacy items)}}
-      <Hds::Alert @type='inline' class='mb-3 mt-3' as |A|>
-        <A.Title>Update</A.Title>
-        <A.Description data-test-notification-update>We have upgraded our ACL System to allow the creation of reusable policies that can be applied to tokens. Read more about the changes and how to upgrade legacy tokens.</A.Description>
-        <A.Link::Standalone @text='Learn more'
-                            @href="{{env 'CONSUL_HOME_URL'}}/consul/tutorials/archive/access-control-token-migration"
-                            @icon='docs-link'
-                            @iconPosition='trailing' />
-      </Hds::Alert>
-    {{/if}}
+        {{#if (token/is-legacy items)}}
+          <Hds::Alert @type='inline' class='consul-token-list__legacy-alert' as |A|>
+            <A.Title>Update</A.Title>
+            <A.Description data-test-notification-update>We have upgraded our ACL System to allow the creation of reusable policies that can be applied to tokens. Read more about the changes and how to upgrade legacy tokens.</A.Description>
+            <A.Link::Standalone @text='Learn more'
+                                @href="{{env 'CONSUL_HOME_URL'}}/consul/tutorials/archive/access-control-token-migration"
+                                @icon='docs-link'
+                                @iconPosition='trailing' />
+          </Hds::Alert>
+        {{/if}}
+        {{! Toolbar is rendered outside DataCollection so it persists
+            when filters/search reduce the visible rows to zero. It only
+            appears when there are actual tokens in the catalog. }}
+        {{#if (gt items.length 0)}}
+          <Consul::Token::Toolbar
+            @search={{this.search}}
+            @onsearch={{action (mut this.search) value="target.value"}}
+            @filter={{filters}}
+          >
+            <:quickFilters>
+            {{! TODO: migrate this sort control to the new toolbar/table later }}
+            <Hds::Dropdown class="consul-token-toolbar-row__sort" @listPosition="bottom-right" @preserveContentInDom={{true}} data-test-sort-control as |dd|>
+              <dd.ToggleButton
+                @text={{if (eq sort.value "CreateTime:asc") (t "common.sort.age.asc") (t "common.sort.age.desc")}}
+                @color="secondary"
+                data-test-sort-toggle
+              />
+              <dd.Interactive data-test-sort-option {{on "click" (fn sort.change (hash target=(hash selected="CreateTime:desc")))}}>{{t "common.sort.age.desc"}}</dd.Interactive>
+              <dd.Interactive data-test-sort-option {{on "click" (fn sort.change (hash target=(hash selected="CreateTime:asc")))}}>{{t "common.sort.age.asc"}}</dd.Interactive>
+            </Hds::Dropdown>
+            </:quickFilters>
+          </Consul::Token::Toolbar>
+        {{/if}}
         <DataCollection
           @type="token"
           @sort={{sort.value}}

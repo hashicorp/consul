@@ -19,6 +19,10 @@
           <g class="lines">
       {{#each this.distances as |item|}}
           <rect
+            role="img"
+            aria-label={{concat item.node ' - ' (format-number item.distance maximumFractionDigits=2) 'ms'
+              (if item.segment (concat ' (Segment: ' item.segment ')'))
+            }}
             {{hds-tooltip
               (concat item.node ' - ' (format-number item.distance maximumFractionDigits=2) 'ms'
                 (if item.segment (concat '<br />(Segment: ' item.segment ')'))

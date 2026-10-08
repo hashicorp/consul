@@ -1,0 +1,101 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+<div class="consul-lock-session-table" ...attributes>
+  <Consul::DataTable
+    @items={{@items}}
+    @columns={{this.columns}}
+    @ariaLabel="Lock sessions"
+    @card={{true}}
+  >
+    <:row as |item B|>
+      {{! ---- Name ---- }}
+      <B.Td>
+        {{#if item.Name}}
+          <span class="consul-lock-session-table__name" data-test-session-name>{{item.Name}}</span>
+        {{else}}
+          <span class="consul-lock-session-table__name" data-test-session-name>{{item.ID}}</span>
+        {{/if}}
+      </B.Td>
+
+      {{! ---- Session ID ---- }}
+      <B.Td>
+        <span class="consul-lock-session-table__id" data-test-session-id>
+          {{item.ID}}
+          <ConsulCopyButton @value={{item.ID}} @name="ID" />
+        </span>
+      </B.Td>
+
+      {{! ---- Lock delay ---- }}
+      <B.Td data-test-session-delay>{{duration-from item.LockDelay}}</B.Td>
+
+      {{! ---- Session TTL ---- }}
+      {{#if (eq item.TTL "")}}
+        <B.Td data-test-session-ttl={{item.TTL}}>-</B.Td>
+      {{else}}
+        <B.Td data-test-session-ttl={{item.TTL}}>{{item.TTL}}</B.Td>
+      {{/if}}
+
+      {{! ---- Behaviour ---- }}
+      <B.Td>
+        <span class="consul-lock-session-table__behavior" data-test-session-behavior>{{item.Behavior}}</span>
+      </B.Td>
+
+      {{! ---- Checks ---- }}
+{{#let (union item.NodeChecks item.ServiceChecks) as |checks|}}
+      <B.Td>
+        <span class="consul-lock-session-table__checks" data-test-session-checks>
+{{#if (gt checks.length 0)}}
+          {{~#each checks as |check index|~}}
+            {{~if (gt index 0) ", "~}}{{~check~}}
+          {{~/each~}}
+{{else}}
+          -
+{{/if}}
+        </span>
+      </B.Td>
+{{/let}}
+
+      {{! ---- Actions ---- }}
+      <B.Td @align="right">
+        <Hds::Button
+          @text="Invalidate"
+          @color="critical"
+          @size="small"
+          data-test-delete
+          {{on "click" (fn this.confirmDelete item)}}
+        />
+      </B.Td>
+    </:row>
+  </Consul::DataTable>
+
+  {{! Single, table-level confirmation modal shared by every row's Invalidate
+      button; the pending session is held in `itemToDelete` while it is open. }}
+  {{#if this.itemToDelete}}
+    <Hds::Modal
+      id="invalidate-session-modal"
+      @color="critical"
+      @onClose={{this.cancelDelete}}
+      data-test-invalidate-modal
+      as |M|
+    >
+      <M.Header @icon="alert-diamond">Invalidate Session?</M.Header>
+      <M.Body>
+        <p>Are you sure you want to invalidate this lock session?</p>
+      </M.Body>
+      <M.Footer as |F|>
+        <Hds::ButtonSet>
+          <Hds::Button
+            @text="Confirm Invalidation"
+            @color="critical"
+            data-test-confirm-delete
+            {{on "click" this.invokeDelete}}
+          />
+          <Hds::Button @text="Cancel" @color="secondary" {{on "click" F.close}} />
+        </Hds::ButtonSet>
+      </M.Footer>
+    </Hds::Modal>
+  {{/if}}
+</div>

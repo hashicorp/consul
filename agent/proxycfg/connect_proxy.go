@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/agent/featuregate"
 	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
@@ -338,6 +339,9 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		snap.ConnectProxy.Intentions = resp
 		snap.ConnectProxy.IntentionsSet = true
 
+	case u.CorrelationID == featureGateWatchID:
+		s.handleFeatureGateUpdate(snap)
+
 	case u.CorrelationID == jwtProviderID:
 		resp, ok := u.Result.(*structs.IndexedConfigEntries)
 
@@ -376,6 +380,29 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 			}
 		}
 		snap.ConnectProxy.PeeredUpstreams = seenUpstreams
+
+		// Record the locally-assigned virtual IP for each peered upstream (including
+		// synthetic per-port entries) so that the listener generator can emit a
+		// distinct outbound filter chain per named port for multiport peered services.
+		// ServiceVIPs is intentionally decoded independently from Services: upgraded
+		// producers keep the legacy Services list base-only, while older Part A
+		// producers may still include the synthetic entries in both fields.
+		if len(resp.ServiceVIPs) > 0 {
+			peeredPortUpstreamVIPs := make(map[UpstreamID]string, len(resp.ServiceVIPs))
+			for key, vip := range resp.ServiceVIPs {
+				if vip == "" {
+					continue
+				}
+				psn, ok := structs.PeeredServiceNameFromString(key)
+				if !ok {
+					continue
+				}
+				peeredPortUpstreamVIPs[NewUpstreamIDFromPeeredServiceName(psn)] = vip
+			}
+			snap.ConnectProxy.PeeredPortUpstreamVIPs = peeredPortUpstreamVIPs
+		} else {
+			snap.ConnectProxy.PeeredPortUpstreamVIPs = nil
+		}
 
 		//
 		// Clean up data
@@ -612,6 +639,19 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		return (*handlerUpstreams)(s).handleUpdateUpstreams(ctx, u, snap)
 	}
 	return nil
+}
+
+// handleFeatureGateUpdate refreshes snap.LocalizedDNSEnabled from the current
+// featuregate.LocalizedDNS state. It is split out from handleUpdate so that
+// enterprise builds can override the enabled computation without having to
+// duplicate the surrounding switch statement.
+func (s *handlerConnectProxy) handleFeatureGateUpdate(snap *ConfigSnapshot) {
+	enabled := s.featureGate != nil && s.featureGate.Enabled(featuregate.LocalizedDNS)
+	if snap.LocalizedDNSEnabled == enabled {
+		return
+	}
+	s.logger.Debug("feature-gate changed: updating LocalizedDNS listener state", "localized_dns_enabled", enabled)
+	snap.LocalizedDNSEnabled = enabled
 }
 
 // telemetryCollectorConfig represents the basic opaque config values for pushing telemetry to

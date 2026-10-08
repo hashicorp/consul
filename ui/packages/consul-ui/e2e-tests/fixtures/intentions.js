@@ -151,10 +151,15 @@ exports.expect = base.expect;
 
 /**
  * Find the table row that contains a specific source service name.
- * Uses td.source class (preserved in production builds; data-test-* attrs are stripped).
+ * The HDS DataTable renders cells as `.hds-table__td` (no per-column class), so
+ * we target the source link by its component class
+ * `.consul-intention-list-table__name a` (preserved in production builds;
+ * data-test-* attrs are stripped). Only the source cell contains an <a>.
  */
 exports.intentionRow = (page, source) =>
-  page.locator('tr').filter({ has: page.locator('td.source a').filter({ hasText: source }) });
+  page.locator('tr').filter({
+    has: page.locator('.consul-intention-list-table__name a').filter({ hasText: source }),
+  });
 
 /**
  * Click a combobox identified by its label text, select the nth option,

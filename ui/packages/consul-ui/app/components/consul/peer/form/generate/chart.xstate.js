@@ -31,6 +31,12 @@ export default {
         },
       },
     },
-    error: {},
+    error: {
+      on: {
+        LOAD: {
+          target: 'loading',
+        },
+      },
+    },
   },
 };

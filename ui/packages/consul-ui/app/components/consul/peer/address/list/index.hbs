@@ -3,28 +3,29 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<Providers::Dimension as |p|>
-  {{#if p.data.height}}
-    <div style={{p.data.fillRemainingHeightStyle}} class="overflow-y-scroll">
-      <VerticalCollection
-        @tagName="ul"
-        @estimateHeight={{p.data.height}}
-        @items={{@items}}
-        as |address index|
-      >
-        <li
-          class="px-3 h-12 border-bottom-primary flex items-center justify-between group"
-        >
-          <div
-            class="hds-typography-display-300 text-hds-foreground-strong hds-font-weight-semibold"
-          >{{address}}</div>
-          <ConsulCopyButton
-            @value={{address}}
-            @name="Address"
-            class="opacity-0 group-hover:opacity-100"
+<div class="consul-peer-address-list" ...attributes>
+  <Consul::DataTable
+    @items={{@items}}
+    @columns={{this.columns}}
+    @ariaLabel="Server Addresses"
+    @card={{true}}
+  >
+    <:toolbar>
+      {{yield to="toolbar"}}
+    </:toolbar>
+    <:row as |item B|>
+      <B.Td>
+        <span class="consul-peer-address-list__address">
+          {{item}}
+          <Hds::Copy::Button
+            @textToCopy={{item}}
+            @text="Copy address"
+            @isIconOnly={{true}}
+            @size="small"
+            data-test-copy-address
           />
-        </li>
-      </VerticalCollection>
-    </div>
-  {{/if}}
-</Providers::Dimension>
+        </span>
+      </B.Td>
+    </:row>
+  </Consul::DataTable>
+</div>

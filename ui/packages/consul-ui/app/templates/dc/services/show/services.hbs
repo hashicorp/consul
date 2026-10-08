@@ -50,14 +50,28 @@ as |route|>
     loader.data
 
   as |sort filters items|}}
+  {{! The intro alert and toolbar are rendered outside DataCollection so they
+      persist when filters/search reduce the visible rows to zero. They only
+      appear when there are actual linked services on this gateway. }}
   {{#if (gt items.length 0)}}
-      <input type="checkbox" id="toolbar-toggle" />
-      <Consul::Upstream::SearchBar
+      <Hds::Alert @type="inline" class="mb-3" as |A|>
+        <A.Title>{{t "routes.dc.services.show.services.intro.header"}}</A.Title>
+        <A.Description>
+          {{t "routes.dc.services.show.services.intro.body"}}
+        </A.Description>
+        <A.Link::Standalone
+          @text={{t "routes.dc.services.show.services.intro.footer.text"}}
+          @href="{{concat (env 'CONSUL_DOCS_URL') (t 'routes.dc.services.show.services.intro.footer.link')}}"
+          @icon="docs-link"
+          @iconPosition="trailing"
+          @size="small"
+        />
+      </Hds::Alert>
+      <Consul::Service::Toolbar
+        @linked={{true}}
+        @sort={{sort}}
         @search={{this.search}}
         @onsearch={{action (mut this.search) value="target.value"}}
-
-        @sort={{sort}}
-
         @filter={{filters}}
         />
   {{/if}}
@@ -69,15 +83,13 @@ as |route|>
         @items={{items}}
       as |collection|>
         <collection.Collection>
-          {{t "routes.dc.services.show.services.intro"
-            htmlSafe=true
-          }}
-          <Consul::Service::List
+          <Consul::Service::Table
             @nspace={{or route.params.nspace route.model.user.token.Namespace 'default'}}
             @partition={{or route.params.partition route.model.user.token.Partition 'default'}}
             @items={{collection.items}}
-          >
-          </Consul::Service::List>
+            @showMesh={{false}}
+            @card={{true}}
+          />
         </collection.Collection>
         <collection.Empty>
           <EmptyState>

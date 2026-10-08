@@ -3,23 +3,19 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<TabularCollection
+<Hds::Card::Container
   data-test-metadata
+  @level="mid"
+  @hasBorder={{true}}
+  @overflow="hidden"
   class="consul-metadata-list"
-  @items={{@items}}
 >
-    <:header>
-        <th>Key</th>
-        <th>Value</th>
-    </:header>
-    <:row as |item index|>
-        <td>
-          <span>
-            {{object-at 0 item}}
-          </span>
-        </td>
-        <td>
-          <span>{{object-at 1 item}}</span>
-        </td>
-    </:row>
-</TabularCollection>
+  <dl class="consul-metadata-list__grid">
+    <div class="consul-metadata-list__head">Key</div>
+    <div class="consul-metadata-list__head">Value</div>
+    {{#each @items as |item|}}
+      <dt data-test-metadata-key>{{object-at 0 item}}</dt>
+      <dd data-test-metadata-value>{{object-at 1 item}}</dd>
+    {{/each}}
+  </dl>
+</Hds::Card::Container>

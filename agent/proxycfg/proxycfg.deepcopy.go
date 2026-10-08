@@ -328,6 +328,12 @@ func (o *ConfigSnapshotUpstreams) DeepCopy() *ConfigSnapshotUpstreams {
 			cp.PeerUpstreamEndpointsUseHostnames[k2] = v2
 		}
 	}
+	if o.PeeredPortUpstreamVIPs != nil {
+		cp.PeeredPortUpstreamVIPs = make(map[UpstreamID]string, len(o.PeeredPortUpstreamVIPs))
+		for k2, v2 := range o.PeeredPortUpstreamVIPs {
+			cp.PeeredPortUpstreamVIPs[k2] = v2
+		}
+	}
 	return &cp
 }
 
@@ -345,6 +351,10 @@ func (o *PeerServersValue) DeepCopy() *PeerServersValue {
 func (o *PeeringServiceValue) DeepCopy() *PeeringServiceValue {
 	var cp PeeringServiceValue = *o
 	cp.Nodes = o.Nodes.DeepCopy()
+	if o.Ports != nil {
+		cp.Ports = make([]string, len(o.Ports))
+		copy(cp.Ports, o.Ports)
+	}
 	return &cp
 }
 
@@ -487,16 +497,9 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 	cp.TCPRoutes = o.TCPRoutes.DeepCopy()
 	cp.InlineCertificates = o.InlineCertificates.DeepCopy()
 	cp.FileSystemCertificates = o.FileSystemCertificates.DeepCopy()
-	if o.Listeners != nil {
-		cp.Listeners = make(map[string]structs.APIGatewayListener, len(o.Listeners))
-		for k2, v2 := range o.Listeners {
-			var cp_Listeners_v2 structs.APIGatewayListener
-			{
-				retV := v2.DeepCopy()
-				cp_Listeners_v2 = *retV
-			}
-			cp.Listeners[k2] = cp_Listeners_v2
-		}
+	if o.LeafCertDNSSANs != nil {
+		cp.LeafCertDNSSANs = make([]string, len(o.LeafCertDNSSANs))
+		copy(cp.LeafCertDNSSANs, o.LeafCertDNSSANs)
 	}
 	if o.BoundListeners != nil {
 		cp.BoundListeners = make(map[string]structs.BoundAPIGatewayListener, len(o.BoundListeners))

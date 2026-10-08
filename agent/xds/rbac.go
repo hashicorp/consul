@@ -5,6 +5,7 @@ package xds
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -1008,8 +1009,9 @@ func xfccPrincipal(src rbacService) *envoy_rbac_v3.Principal {
 	// Remove the leading ^ and trailing $.
 	idPattern = idPattern[1 : len(idPattern)-1]
 
-	// Anchor to the first XFCC component
-	pattern := `^[^,]+;URI=` + idPattern + `(?:,.*)?$`
+	// Anchor to the first XFCC component, allowing subsequent semicolon-separated
+	// fields (such as ;DNS=... or ;Subject=...) or comma-separated hops.
+	pattern := `^[^,]+;URI=` + idPattern + `(?:[;,].*)?$`
 
 	// By=spiffe://8c7db6d3-e4ee-aa8c-488c-dbedd3772b78.consul/gateway/mesh/dc/dc2;
 	// Hash=2a2db78ac351a05854a0abd350631bf98cc0eb827d21f4ed5935ccd287779eb6;
@@ -1153,6 +1155,21 @@ func makeSpiffePattern(src rbacService) string {
 		host = src.TrustDomain
 	}
 
+	// Escape regex metacharacters in user-controlled values so they are matched
+	// literally. Service names, namespaces, and partitions may legitimately
+	// contain characters such as '.', '|', or '+' which would otherwise be
+	// interpreted as regex operators and could broaden the RBAC match beyond the
+	// intended identity, bypassing intention enforcement. The anyPath ('[^/]+')
+	// values are intentional regex wildcards and must not be escaped.
+	if ns != anyPath {
+		ns = regexp.QuoteMeta(ns)
+	}
+	if svc != anyPath {
+		svc = regexp.QuoteMeta(svc)
+	}
+	ap = regexp.QuoteMeta(ap)
+	host = regexp.QuoteMeta(host)
+
 	id := connect.SpiffeIDService{
 		Namespace: ns,
 		Service:   svc,
@@ -1170,8 +1187,10 @@ func makeSpiffePattern(src rbacService) string {
 
 func makeSpiffeMeshGatewayPattern(gwTrustDomain, gwPartition string) string {
 	id := connect.SpiffeIDMeshGateway{
-		Host:      gwTrustDomain,
-		Partition: gwPartition,
+		// Escape regex metacharacters so user-controlled values are matched
+		// literally rather than being interpreted as regex operators.
+		Host:      regexp.QuoteMeta(gwTrustDomain),
+		Partition: regexp.QuoteMeta(gwPartition),
 		// Datacenter is not verified by RBAC, so we match on any value.
 		Datacenter: anyPath,
 	}

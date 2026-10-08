@@ -1027,6 +1027,17 @@ type RuntimeConfig struct {
 	// hcl: limits { rpc_max_conns_per_client = 100 }
 	RPCMaxConnsPerClient int
 
+	// RPCMaxHeaderBytes limits the encoded size of a single RPC request header
+	// (ServiceMethod + Seq). A request header exceeding this limit is rejected
+	// and the connection is closed before method lookup, rate limiting, or ACL
+	// evaluation. This bounds pre-authorization memory allocation in the
+	// MessagePack decoder, which would otherwise honour an attacker-controlled
+	// str32 length before any authorization runs. A non-positive value falls
+	// back to a built-in default (512 bytes).
+	//
+	// hcl: limits { rpc_max_header_bytes = 512 }
+	RPCMaxHeaderBytes int
+
 	// RPCProtocol is the Consul protocol version to use.
 	//
 	// hcl: protocol = int

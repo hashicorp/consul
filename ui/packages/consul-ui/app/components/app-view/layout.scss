@@ -31,6 +31,8 @@
   align-self: end;
   display: flex;
   align-items: flex-start;
+  /* space sibling actions apart; pages with a single action are unaffected */
+  gap: 16px;
   margin-left: auto;
   margin-top: 9px;
 }

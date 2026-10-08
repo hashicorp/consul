@@ -428,8 +428,67 @@ type ServiceDefinition struct {
 	Proxy             *ServiceProxy             `mapstructure:"proxy"`
 	Connect           *ServiceConnect           `mapstructure:"connect"`
 	Locality          *Locality                 `mapstructure:"locality"`
+	AI                *ServiceAI                `mapstructure:"ai"`
 
 	EnterpriseMeta `mapstructure:",squash"`
+}
+
+// ServiceAI is the config-layer representation of the `ai` block in a service
+// definition. It mirrors structs.ServiceAI but uses pointer fields and
+// mapstructure tags so it can be decoded from HCL/JSON config files.
+type ServiceAI struct {
+	Role           *string           `mapstructure:"role"`
+	InferenceModel *AIInferenceModel `mapstructure:"inference_model"`
+	MCPServer      *AIMCPServer      `mapstructure:"mcp_server"`
+	Agent          *AIAgent          `mapstructure:"agent"`
+}
+
+type AIInferenceModel struct {
+	Protocol *string          `mapstructure:"protocol"`
+	Path     *string          `mapstructure:"path"`
+	Defaults *AIModelDefaults `mapstructure:"defaults"`
+}
+
+type AIModelDefaults struct {
+	MaxTokens   *int     `mapstructure:"max_tokens"`
+	Temperature *float64 `mapstructure:"temperature"`
+}
+
+type AIMCPServer struct {
+	Transport       *string `mapstructure:"transport"`
+	Path            *string `mapstructure:"path"`
+	ProtocolVersion *string `mapstructure:"protocol_version"`
+}
+
+type AIAgent struct {
+	Inference   *AIAgentInference   `mapstructure:"inference"`
+	MCP         *AIAgentMCP         `mapstructure:"mcp"`
+	RateLimits  *AIAgentRateLimits  `mapstructure:"rate_limits"`
+	Interceptor *AIAgentInterceptor `mapstructure:"interceptor"`
+}
+
+type AIAgentInference struct {
+	Specialization []string `mapstructure:"specialization"`
+	Vendor         *string  `mapstructure:"vendor"`
+}
+
+type AIAgentMCP struct {
+	Port *int            `mapstructure:"port"`
+	HITL *AIAgentMCPHITL `mapstructure:"hitl"`
+}
+
+type AIAgentMCPHITL struct {
+	Port            *int    `mapstructure:"port"`
+	ApprovalTimeout *string `mapstructure:"approval_timeout"`
+}
+
+type AIAgentRateLimits struct {
+	ToolCallsPerMinute *int `mapstructure:"tool_calls_per_minute"`
+	ToolCallsPerHour   *int `mapstructure:"tool_calls_per_hour"`
+}
+
+type AIAgentInterceptor struct {
+	Port *int `mapstructure:"port"`
 }
 
 type CheckDefinition struct {
@@ -788,6 +847,7 @@ type Limits struct {
 	RPCHandshakeTimeout   *string       `mapstructure:"rpc_handshake_timeout"`
 	RPCMaxBurst           *int          `mapstructure:"rpc_max_burst"`
 	RPCMaxConnsPerClient  *int          `mapstructure:"rpc_max_conns_per_client"`
+	RPCMaxHeaderBytes     *int          `mapstructure:"rpc_max_header_bytes"`
 	RPCRate               *float64      `mapstructure:"rpc_rate"`
 	KVMaxValueSize        *uint64       `mapstructure:"kv_max_value_size"`
 	TxnMaxReqLen          *uint64       `mapstructure:"txn_max_req_len"`
@@ -950,6 +1010,7 @@ type TLSProtocolConfig struct {
 	KeyFile              *string `mapstructure:"key_file" json:"key_file,omitempty"`
 	TLSMinVersion        *string `mapstructure:"tls_min_version" json:"tls_min_version,omitempty"`
 	TLSCipherSuites      *string `mapstructure:"tls_cipher_suites" json:"tls_cipher_suites,omitempty"`
+	TLSECDHCurves        *string `mapstructure:"tls_ecdh_curves" json:"tls_ecdh_curves,omitempty"`
 	VerifyIncoming       *bool   `mapstructure:"verify_incoming" json:"verify_incoming,omitempty"`
 	VerifyOutgoing       *bool   `mapstructure:"verify_outgoing" json:"verify_outgoing,omitempty"`
 	VerifyServerHostname *bool   `mapstructure:"verify_server_hostname" json:"verify_server_hostname,omitempty"`

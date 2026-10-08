@@ -1,0 +1,33 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{!
+  Shared health quick-filter control for the list toolbars (services, nodes,
+  service-instances). A segmented group of multi-select toggles for health
+  statuses, mirroring (and kept in sync with) the "Health" multi-select group
+  inside the Filter Bar: each button adds or removes its status, preserving the
+  others.
+
+  @filters - array of { value, label, icon } health statuses to render.
+  @api     - the :quickFilters block API yielded by Consul::ListToolbar
+             ({ isSelected, toggleFilterValue }).
+
+  The active highlight and per-status icon colours are styled centrally in the
+  list-toolbar SCSS via the [data-test-health-filter] attribute selectors.
+}}
+<Hds::SegmentedGroup class="consul-list-toolbar__health" ...attributes as |S|>
+  {{#each @filters as |quick|}}
+    <S.Button
+      class={{if (@api.isSelected "status" quick.value) "is-selected"}}
+      @text={{quick.label}}
+      @icon={{quick.icon}}
+      @color="secondary"
+      @size="medium"
+      aria-pressed="{{if (@api.isSelected 'status' quick.value) 'true' 'false'}}"
+      data-test-health-filter={{quick.value}}
+      {{on "click" (fn @api.toggleFilterValue "status" quick.value)}}
+    />
+  {{/each}}
+</Hds::SegmentedGroup>

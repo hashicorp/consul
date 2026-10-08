@@ -9,14 +9,54 @@ as |route|>
 {{#let
   route.model.proxy
   route.model.meta
-as |item proxy|}}
+
+  (hash
+    value=(or this.sortBy "Path:asc")
+    change=(action (mut this.sortBy) value="target.selected")
+  )
+as |item proxy sort|}}
   <div class="tab-section">
   {{#if (gt proxy.ServiceProxy.Expose.Paths.length 0)}}
-    {{t 'routes.dc.services.instance.exposedpaths.intro' htmlSafe=true}}
-    <Consul::ExposedPath::List
-      @items={{proxy.ServiceProxy.Expose.Paths}}
-      @address={{or item.Service.Address item.Node.Address}}
+    <Hds::Alert @type="inline" @color="neutral" class="mb-3 mt-2" as |A|>
+      <A.Description>
+        {{t "routes.dc.services.instance.exposedpaths.intro.body"}}
+      </A.Description>
+      <A.Link::Standalone
+        @text={{t "routes.dc.services.instance.exposedpaths.intro.footer.text"}}
+        @href='{{concat (env 'CONSUL_DOCS_URL') (t "routes.dc.services.instance.exposedpaths.intro.footer.link")}}'
+        @icon="docs-link"
+        @iconPosition="trailing"
+        @size="small"
+      />
+    </Hds::Alert>
+    {{! The toolbar is rendered outside DataCollection so it persists when
+        search reduces the visible rows to zero. }}
+    <Consul::ExposedPath::Toolbar
+      @sort={{sort}}
+      @search={{this.search}}
+      @onsearch={{action (mut this.search) value="target.value"}}
     />
+    <DataCollection
+      @type="exposed-path"
+      @sort={{sort.value}}
+      @search={{this.search}}
+      @items={{proxy.ServiceProxy.Expose.Paths}}
+    as |collection|>
+      <collection.Collection>
+        <Consul::ExposedPath::Table
+          @items={{collection.items}}
+          @address={{or item.Service.Address item.Node.Address}}
+          @card={{true}}
+        />
+      </collection.Collection>
+      <collection.Empty>
+        <EmptyState>
+          <:body>
+            {{t "routes.dc.services.instance.exposedpaths.empty.body" htmlSafe=true}}
+          </:body>
+        </EmptyState>
+      </collection.Empty>
+    </DataCollection>
   {{else}}
     <EmptyState>
       <:body>

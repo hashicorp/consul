@@ -1,0 +1,35 @@
+/**
+ * Copyright IBM Corp. 2024, 2026
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+/* The listing uses the HDS Filter Bar for its toolbar, so the header underline
+   above it would read as a doubled-up separator. */
+html[data-route='dc.kv.index'] .app-view > header .title,
+html[data-route='dc.kv.folder'] .app-view > header .title {
+  border-bottom: none;
+}
+
+html[data-route='dc.kv.edit'],
+html[data-route='dc.kv.create'],
+html[data-route='dc.kv.root-create'] {
+  /* Forms are narrowed to %content-container-restricted app wide, but a KV's
+     value is a code editor that reads much better across the full width -- the
+     same width its listing uses. */
+  .app-shell__main {
+    max-width: none;
+  }
+
+  /* The key form reads as one block, so it drops the rules app-view otherwise
+     draws under the page title and under a form's fieldset. */
+  .app-view .title {
+    border-bottom: none;
+  }
+
+  .app-view form:not(.filter-bar) fieldset {
+    border-bottom: none;
+    /* with no rule between them, the buttons can sit closer to the value */
+    padding-bottom: 0;
+    margin-bottom: 1em;
+  }
+}

@@ -1,0 +1,14 @@
+/**
+ * Copyright IBM Corp. 2024, 2026
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+import Route from 'consul-ui/routing/route';
+
+export default class PeersShowAddressesRoute extends Route {
+  queryParams = {
+    search: {
+      as: 'filter',
+    },
+  };
+}

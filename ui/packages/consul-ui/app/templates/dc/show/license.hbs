@@ -62,7 +62,7 @@ as |item|}}
             (array 'valid' item.Valid)
           }}
         >
-          <header aria-label="License Expiry">
+          <header>
             <h2>
               {{compute (fn route.t 'expiry.header')}}
             </h2>
@@ -109,12 +109,17 @@ as |item|}}
           </dl>
 
           <aside>
-            <header aria-label="Documentation">
+            {{! nested inside <aside>, this <header> is not a top-level banner
+              landmark (computes to role=generic per the HTML-AAM spec), so it
+              doesn't need a unique label; the static rule can't see the
+              surrounding context. }}
+            {{!-- template-lint-disable no-duplicate-landmark-elements --}}
+            <header>
               <h3>
                 {{compute (fn route.t 'documentation.title')}}
               </h3>
             </header>
-            <div class="flex gap-1.5 flex-col">
+            <div class="license-learn-more__links">
               <Hds::Link::Standalone
                 @text={{compute (fn route.t 'documentation.links.license-expiration.text')}}
                 @href='{{concat (env 'CONSUL_DOCS_URL') (compute (fn route.t 'documentation.links.license-expiration.link'))}}'

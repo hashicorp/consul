@@ -47,7 +47,7 @@ module('Acceptance | components / copy-button', function (hooks) {
       await visit('node', { dc: 'dc-1', node: 'node-0' }, { nspace });
       assert.equal(currentURL(), nspaceURL(nspace, '/dc-1/nodes/node-0/health-checks'));
 
-      await click('.healthcheck-output:nth-child(1) .copy-button button');
+      await click('.consul-health-check-list li:nth-child(1) [data-test-copy-output]');
 
       assert.ok(clipboard().includes('The output'), 'copied "The output" to the clipboard');
     },

@@ -1,0 +1,41 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{!
+  Sort control for the Key/Value tree. It sits beside the Create button rather
+  than inside the toolbar, matching the designs.
+
+  The options keep the order and values of the legacy KV search bar. Sorting is
+  applied per level of the tree by the data layer and by Consul::Kv::List, so
+  folders keep their children rather than being flattened into one list.
+}}
+{{#if @sort}}
+  <Hds::Dropdown
+    class="consul-kv-sort"
+    @listPosition="bottom-right"
+    @preserveContentInDom={{true}}
+    data-test-sort-control
+    ...attributes
+    as |dd|
+  >
+    <dd.ToggleButton
+      @text={{get
+        (from-entries (array
+          (array "Key:asc" (t "common.sort.alpha.asc"))
+          (array "Key:desc" (t "common.sort.alpha.desc"))
+          (array "Kind:asc" (t "components.consul.kv.search-bar.sort.kind.asc"))
+          (array "Kind:desc" (t "components.consul.kv.search-bar.sort.kind.desc"))
+        ))
+        @sort.value
+      }}
+      @color="secondary"
+      data-test-sort-toggle
+    />
+    <dd.Interactive data-test-sort-option {{on "click" (fn @sort.change (hash target=(hash selected="Key:asc")))}}>{{t "common.sort.alpha.asc"}}</dd.Interactive>
+    <dd.Interactive data-test-sort-option {{on "click" (fn @sort.change (hash target=(hash selected="Key:desc")))}}>{{t "common.sort.alpha.desc"}}</dd.Interactive>
+    <dd.Interactive data-test-sort-option {{on "click" (fn @sort.change (hash target=(hash selected="Kind:asc")))}}>{{t "components.consul.kv.search-bar.sort.kind.asc"}}</dd.Interactive>
+    <dd.Interactive data-test-sort-option {{on "click" (fn @sort.change (hash target=(hash selected="Kind:desc")))}}>{{t "components.consul.kv.search-bar.sort.kind.desc"}}</dd.Interactive>
+  </Hds::Dropdown>
+{{/if}}

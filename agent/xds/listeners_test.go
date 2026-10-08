@@ -11,6 +11,7 @@ import (
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
+	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/hashicorp/go-hclog"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/assert"
@@ -18,7 +19,9 @@ import (
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/config"
 	"github.com/hashicorp/consul/agent/xds/configfetcher"
+	"github.com/hashicorp/consul/types"
 )
 
 type customListenerJSONOptions struct {
@@ -176,6 +179,10 @@ var _ configfetcher.ConfigFetcher = (configFetcherFunc)(nil)
 
 func (f configFetcherFunc) AdvertiseAddrLAN() string {
 	return f()
+}
+
+func (f configFetcherFunc) DNSRecursors() []string {
+	return nil
 }
 
 func TestResolveListenerSDSConfig(t *testing.T) {
@@ -881,6 +888,55 @@ func TestFinalizePublicListenerFromConfig_PropagatesInjectionErrors(t *testing.T
 	})
 }
 
+// TestCreateDownstreamTransportSocketForConnectTLS_UsesSDSSecrets asserts that a
+// Connect sidecar's public listener refers to its leaf certificate and CA roots
+// by SDS name rather than embedding the PEM bytes inline.
+//
+// Inlining the certificate material meant that every leaf rotation produced a
+// different listener proto, which changed Envoy's filter chain hash and forced a
+// drain of every established connection. Referencing the secrets by name keeps
+// the listener byte-identical across rotations, so only the Secret resources
+// change and connections survive.
+func TestCreateDownstreamTransportSocketForConnectTLS_UsesSDSSecrets(t *testing.T) {
+	roots, _ := proxycfg.TestCerts(t)
+
+	snap := &proxycfg.ConfigSnapshot{
+		Kind:  structs.ServiceKindConnectProxy,
+		Roots: roots,
+	}
+
+	ts, err := createDownstreamTransportSocketForConnectTLS(snap, &config.ProxyConfig{Protocol: "tcp"}, nil, nil)
+	require.NoError(t, err)
+	require.NotNil(t, ts)
+
+	var downstreamCtx envoy_tls_v3.DownstreamTlsContext
+	require.NoError(t, ts.GetTypedConfig().UnmarshalTo(&downstreamCtx))
+
+	common := downstreamCtx.GetCommonTlsContext()
+	require.NotNil(t, common)
+
+	// The leaf must be referenced by SDS name, with no inline certificate.
+	require.Empty(t, common.GetTlsCertificates(),
+		"leaf certificate must not be embedded inline in the listener")
+	require.Len(t, common.GetTlsCertificateSdsSecretConfigs(), 1)
+	require.Equal(t, connectLeafSecretName, common.GetTlsCertificateSdsSecretConfigs()[0].GetName())
+
+	// The roots must likewise be referenced by SDS name.
+	require.Nil(t, common.GetValidationContext(),
+		"CA roots must not be embedded inline in the listener")
+	require.Equal(t, connectRootSecretName, common.GetValidationContextSdsSecretConfig().GetName())
+
+	// Both secrets must be delivered over the existing ADS stream, otherwise
+	// Envoy would need a separate SDS cluster that Consul does not configure.
+	for _, cfg := range []*envoy_tls_v3.SdsSecretConfig{
+		common.GetTlsCertificateSdsSecretConfigs()[0],
+		common.GetValidationContextSdsSecretConfig(),
+	} {
+		require.NotNil(t, cfg.GetSdsConfig().GetAds(), "secret %q must be fetched over ADS", cfg.GetName())
+		require.Equal(t, envoy_core_v3.ApiVersion_V3, cfg.GetSdsConfig().GetResourceApiVersion())
+	}
+}
+
 // Test_injectRequestNormalizationOnFilterChains is a unit test for
 // Test_injectRequestNormalizationOnFilterChains verifies that injectRequestNormalizationOnFilterChains
 // correctly applies Consul's normalization defaults to every
@@ -988,6 +1044,132 @@ func Test_injectRequestNormalizationOnFilterChains(t *testing.T) {
 				require.NotNil(t, hcm.NormalizePath)
 				assert.Equal(t, *tc.wantNormalize, hcm.NormalizePath.GetValue())
 			}
+		})
+	}
+}
+
+func TestMakeTLSParametersFromProxyTLSConfig_ECDHCurves(t *testing.T) {
+	tests := map[string]struct {
+		input *structs.MeshDirectionalTLSConfig
+		want  *envoy_tls_v3.TlsParameters
+	}{
+		"nil config returns empty parameters": {
+			input: nil,
+			want:  &envoy_tls_v3.TlsParameters{},
+		},
+		"empty config returns empty parameters": {
+			input: &structs.MeshDirectionalTLSConfig{},
+			want:  &envoy_tls_v3.TlsParameters{},
+		},
+		"TLSv1_3 with nil curves injects PQC default curves": {
+			input: &structs.MeshDirectionalTLSConfig{
+				TLSMinVersion: types.TLSv1_3,
+				ECDHCurves:    nil,
+			},
+			want: &envoy_tls_v3.TlsParameters{
+				TlsMinimumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
+				EcdhCurves:                []string{"X25519MLKEM768", "X25519"},
+			},
+		},
+		"TLSv1_3 with empty curves slice injects PQC default curves": {
+			input: &structs.MeshDirectionalTLSConfig{
+				TLSMinVersion: types.TLSv1_3,
+				ECDHCurves:    []string{},
+			},
+			want: &envoy_tls_v3.TlsParameters{
+				TlsMinimumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
+				EcdhCurves:                []string{"X25519MLKEM768", "X25519"},
+			},
+		},
+		"TLSv1_3 with explicit curves overrides default": {
+			input: &structs.MeshDirectionalTLSConfig{
+				TLSMinVersion: types.TLSv1_3,
+				ECDHCurves:    []string{"P-384"},
+			},
+			want: &envoy_tls_v3.TlsParameters{
+				TlsMinimumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
+				EcdhCurves:                []string{"P-384"},
+			},
+		},
+		"TLSv1_3 with explicit PQC and classical curves": {
+			input: &structs.MeshDirectionalTLSConfig{
+				TLSMinVersion: types.TLSv1_3,
+				ECDHCurves:    []string{"X25519MLKEM768", "X25519"},
+			},
+			want: &envoy_tls_v3.TlsParameters{
+				TlsMinimumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
+				EcdhCurves:                []string{"X25519MLKEM768", "X25519"},
+			},
+		},
+		"TLSv1_2 with explicit TLSv1_3 max version": {
+			input: &structs.MeshDirectionalTLSConfig{
+				TLSMinVersion: types.TLSv1_2,
+				TLSMaxVersion: types.TLSv1_3,
+				ECDHCurves:    nil,
+			},
+			want: &envoy_tls_v3.TlsParameters{
+				TlsMinimumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_2,
+				TlsMaximumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
+				EcdhCurves:                nil,
+			},
+		},
+		"TLSv1_2 with nil curves does not inject curves": {
+			input: &structs.MeshDirectionalTLSConfig{
+				TLSMinVersion: types.TLSv1_2,
+				ECDHCurves:    nil,
+			},
+			want: &envoy_tls_v3.TlsParameters{
+				TlsMinimumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_2,
+				EcdhCurves:                nil,
+			},
+		},
+		"TLSv1_1 with nil curves does not inject curves": {
+			input: &structs.MeshDirectionalTLSConfig{
+				TLSMinVersion: types.TLSv1_1,
+				ECDHCurves:    nil,
+			},
+			want: &envoy_tls_v3.TlsParameters{
+				TlsMinimumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_1,
+				EcdhCurves:                nil,
+			},
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := makeTLSParametersFromProxyTLSConfig(tc.input)
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
+func TestMakeTLSParametersFromGatewayTLSConfig(t *testing.T) {
+	tests := map[string]struct {
+		input structs.GatewayTLSConfig
+		want  *envoy_tls_v3.TlsParameters
+	}{
+		"TLSv1_3 gateway listener does not inject curves": {
+			input: structs.GatewayTLSConfig{
+				TLSMinVersion: types.TLSv1_3,
+			},
+			want: &envoy_tls_v3.TlsParameters{
+				TlsMinimumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
+				EcdhCurves:                nil,
+			},
+		},
+		"TLSv1_2 gateway listener does not inject curves": {
+			input: structs.GatewayTLSConfig{
+				TLSMinVersion: types.TLSv1_2,
+			},
+			want: &envoy_tls_v3.TlsParameters{
+				TlsMinimumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_2,
+				EcdhCurves:                nil,
+			},
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := makeTLSParametersFromGatewayTLSConfig(tc.input)
+			assert.Equal(t, tc.want, got)
 		})
 	}
 }

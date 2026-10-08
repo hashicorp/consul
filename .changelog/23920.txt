@@ -1,0 +1,3 @@
+```release-note:bug
+agent/xds: Fixed an issue where cross-cluster and peered requests originating from an API Gateway were rejected with HTTP 403 Forbidden by downstream service RBAC intentions. Trailing semicolon-separated fields in the client certificate component of the `x-forwarded-client-cert` (XFCC) header (such as auto-registered DNS SANs) are now properly accepted by the RBAC principal regular expression.
+```

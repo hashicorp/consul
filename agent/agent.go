@@ -791,6 +791,14 @@ func (a *Agent) Start(ctx context.Context) error {
 	var featureGateStore featuregate.WatchableGate
 	if consulServer != nil {
 		featureGateStore = consulServer.FeatureGateStore()
+	} else {
+		clientStore := &featuregate.Store{}
+		featureGateStore = clientStore
+		index, err := a.refreshClientFeatureGates(clientStore, 0, false)
+		if err != nil {
+			a.logger.Warn("failed to fetch initial client feature gates", "error", err)
+		}
+		go a.runClientFeatureGateCache(clientStore, index)
 	}
 
 	// If DefaultIntentionPolicy is defined, it should override
@@ -1544,6 +1552,9 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	if runtimeCfg.RPCMaxConnsPerClient > 0 {
 		cfg.RPCMaxConnsPerClient = runtimeCfg.RPCMaxConnsPerClient
 	}
+	if runtimeCfg.RPCMaxHeaderBytes > 0 {
+		cfg.RPCMaxHeaderBytes = runtimeCfg.RPCMaxHeaderBytes
+	}
 
 	// RPC-related performance configs. We allow explicit zero value to disable so
 	// copy it whatever the value.
@@ -1637,6 +1648,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 
 	cfg.Reporting.License.Enabled = runtimeCfg.Reporting.License.Enabled
 	cfg.Reporting.SnapshotRetentionTime = runtimeCfg.Reporting.SnapshotRetentionTime
+	cfg.DefaultIntentionPolicy = runtimeCfg.DefaultIntentionPolicy
 
 	cfg.ServerRejoinAgeMax = runtimeCfg.ServerRejoinAgeMax
 	cfg.EnableXDSLoadBalancing = runtimeCfg.EnableXDSLoadBalancing
@@ -3481,6 +3493,21 @@ func (a *Agent) AdvertiseAddrLAN() string {
 	return a.config.AdvertiseAddrLAN.String()
 }
 
+// DNSRecursors returns the configured DNS recursors from the agent config.
+func (a *Agent) DNSRecursors() []string {
+	resolved := make([]string, 0, len(a.config.DNSRecursors))
+	for _, r := range a.config.DNSRecursors {
+		addr, err := recursorAddr(r)
+		if err != nil {
+			a.logger.Warn("Skipping invalid DNS recursor for Envoy egress listener",
+				"recursor", r, "error", err)
+			continue
+		}
+		resolved = append(resolved, addr)
+	}
+	return resolved
+}
+
 func (a *Agent) cancelCheckMonitors(checkID structs.CheckID) {
 	// Stop any monitors
 	delete(a.checkReapAfter, checkID)
@@ -4380,6 +4407,7 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 		RPCRateLimit:          newCfg.RPCRateLimit,
 		RPCMaxBurst:           newCfg.RPCMaxBurst,
 		RPCMaxConnsPerClient:  newCfg.RPCMaxConnsPerClient,
+		RPCMaxHeaderBytes:     newCfg.RPCMaxHeaderBytes,
 		ConfigEntryBootstrap:  newCfg.ConfigEntryBootstrap,
 		RaftSnapshotThreshold: newCfg.RaftSnapshotThreshold,
 		RaftSnapshotInterval:  newCfg.RaftSnapshotInterval,

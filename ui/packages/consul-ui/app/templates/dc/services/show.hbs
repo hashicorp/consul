@@ -100,9 +100,9 @@ as |items item dc|}}
       services=(and (eq item.Service.Kind 'terminating-gateway') (not item.Service.PeerName))
       upstreams=(and (eq item.Service.Kind 'ingress-gateway') (not item.Service.PeerName))
       instances=true
-      intentions=(and (not-eq item.Service.Kind 'terminating-gateway') (can 'read intention for service' item=item.Service) (not item.Service.PeerName))
+      intentions=(and (not-eq item.Service.Kind 'terminating-gateway') (not-eq item.Service.Kind 'mesh-gateway') (can 'read intention for service' item=item.Service) (not item.Service.PeerName))
       routing=(and dc.MeshEnabled item.IsOrigin (not item.Service.PeerName))
-      tags=true
+      tags=(not-eq item.Service.Kind 'mesh-gateway')
   )
   as |tabs|}}
         <AppView>
@@ -113,54 +113,48 @@ as |items item dc|}}
               @error={{error}}
             />
           </:notification>
-          <:breadcrumbs>
-            <Hds::Breadcrumb>
-              <Breadcrumbs::BackLink
-                @model={{route.params.dc}}
-                @params={{hash peer=undefined}}
-                @route="dc.services"
-                @text="All Services"
-                data-test-back
-              />
-            </Hds::Breadcrumb>
-          </:breadcrumbs>
           <:header>
-              <h1>
-                <route.Title @title={{item.Service.Service}} />
-              </h1>
+              <div class="consul-service-title">
+                <h1>
+                  <route.Title @title={{item.Service.Service}} />
+                </h1>
+                <Consul::HealthBadge
+                  @status={{service-health-status items}}
+                  @emptyText="No service checks"
+                  data-test-service-health
+                />
+              </div>
               <Consul::ExternalSource @item={{item.Service}} @withInfo={{true}} />
               <Consul::Kind @item={{item.Service}} @withInfo={{true}} />
               <Consul::Peer::Info @item={{item.Service}} />
           </:header>
           <:nav>
-            {{#if (not-eq item.Service.Kind 'mesh-gateway')}}
               <TabNav @items={{
                 compact
                   (array
                     (if tabs.topology
-                      (hash label="Topology" href=(href-to "dc.services.show.topology") selected=(is-href "dc.services.show.topology"))
+                      (hash label="Topology" route="dc.services.show.topology" selected=(is-href "dc.services.show.topology"))
                     '')
                     (if tabs.services
-                      (hash label="Linked Services" href=(href-to "dc.services.show.services") selected=(is-href "dc.services.show.services"))
+                      (hash label="Linked Services" route="dc.services.show.services" selected=(is-href "dc.services.show.services"))
                     '')
                     (if tabs.upstreams
-                      (hash label="Upstreams" href=(href-to "dc.services.show.upstreams") selected=(is-href "dc.services.show.upstreams"))
+                      (hash label="Upstreams" route="dc.services.show.upstreams" selected=(is-href "dc.services.show.upstreams"))
                     '')
                     (if tabs.instances
-                      (hash label="Instances" href=(href-to "dc.services.show.instances") selected=(is-href "dc.services.show.instances"))
+                      (hash label="Instances" route="dc.services.show.instances" selected=(is-href "dc.services.show.instances"))
                     '')
                     (if tabs.intentions
-                      (hash label="Intentions" href=(href-to "dc.services.show.intentions") selected=(is-href "dc.services.show.intentions"))
+                      (hash label="Intentions" route="dc.services.show.intentions" selected=(is-href "dc.services.show.intentions"))
                     '')
                     (if tabs.routing
-                      (hash label="Routing" href=(href-to "dc.services.show.routing") selected=(is-href "dc.services.show.routing"))
+                      (hash label="Routing" route="dc.services.show.routing" selected=(is-href "dc.services.show.routing"))
                     '')
                     (if tabs.tags
-                      (hash label="Tags" href=(href-to "dc.services.show.tags") selected=(is-href "dc.services.show.tags"))
+                      (hash label="Tags" route="dc.services.show.tags" selected=(is-href "dc.services.show.tags"))
                     '')
                   )
               }}/>
-            {{/if}}
           </:nav>
           <:actions>
             <DataSource

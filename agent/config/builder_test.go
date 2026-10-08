@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -794,6 +795,111 @@ func TestBuilder_tlsCipherSuites(t *testing.T) {
 	require.Contains(t, b.err.Error(), "cipher suites are not configurable")
 }
 
+func TestBuilder_tlsECDHCurves(t *testing.T) {
+	b := builder{}
+
+	validCurves := strings.Join([]string{
+		"X25519MLKEM768",
+		"X25519",
+		"P-256",
+		"P-384",
+		"P-521",
+	}, ",")
+	got := b.tlsECDHCurves("tls.defaults.tls_ecdh_curves", &validCurves, types.TLSv1_2)
+	require.NoError(t, b.err)
+	require.Equal(t, []types.TLSECDHCurve{
+		types.CurveX25519MLKEM768,
+		types.CurveX25519,
+		types.CurveP256,
+		types.CurveP384,
+		types.CurveP521,
+	}, got)
+
+	// Valid with TLS 1.3
+	got13 := b.tlsECDHCurves("tls.defaults.tls_ecdh_curves", &validCurves, types.TLSv1_3)
+	require.NoError(t, b.err)
+	require.Len(t, got13, 5)
+
+	// Invalid curve name
+	invalidCurves := "curveX,X25519"
+	b.tlsECDHCurves("tls.defaults.tls_ecdh_curves", &invalidCurves, types.TLSv1_2)
+
+	// Incompatible with legacy TLS version
+	b.tlsECDHCurves("tls.defaults.tls_ecdh_curves", &validCurves, types.TLSv1_1)
+	b.tlsECDHCurves("tls.defaults.tls_ecdh_curves", &validCurves, types.TLSv1_0)
+
+	require.Error(t, b.err)
+	require.Contains(t, b.err.Error(), "3 errors")
+	require.Contains(t, b.err.Error(), "no matching Consul Agent TLS curve found for curveX")
+	require.Contains(t, b.err.Error(), "ecdh_curves can only be configured when tls_min_version is 'TLSv1_2' or higher")
+}
+
+func TestBuilder_buildTLSConfig_ECDHCurves(t *testing.T) {
+	strPtr := func(s string) *string { return &s }
+
+	t.Run("defaults inherited and overridden", func(t *testing.T) {
+		b := builder{}
+		cfg := TLS{
+			Defaults: TLSProtocolConfig{
+				TLSMinVersion: strPtr("TLSv1_2"),
+				TLSECDHCurves: strPtr("P-256,P-384"),
+			},
+			InternalRPC: TLSProtocolConfig{
+				TLSECDHCurves: strPtr("X25519MLKEM768,X25519"),
+			},
+			HTTPS: TLSProtocolConfig{
+				// inherits defaults
+			},
+		}
+
+		res, err := b.buildTLSConfig(RuntimeConfig{}, cfg)
+		require.NoError(t, err)
+		require.Equal(t, []types.TLSECDHCurve{types.CurveX25519MLKEM768, types.CurveX25519}, res.InternalRPC.ECDHCurves)
+		require.Equal(t, []types.TLSECDHCurve{types.CurveP256, types.CurveP384}, res.HTTPS.ECDHCurves)
+		require.Equal(t, []types.TLSECDHCurve{types.CurveP256, types.CurveP384}, res.GRPC.ECDHCurves)
+	})
+
+	t.Run("auto injection when TLSv1_3 and curves unspecified", func(t *testing.T) {
+		b := builder{}
+		cfg := TLS{
+			Defaults: TLSProtocolConfig{
+				TLSMinVersion: strPtr("TLSv1_3"),
+			},
+			InternalRPC: TLSProtocolConfig{
+				// inherits TLSv1_3 and gets auto-injected curves
+			},
+			HTTPS: TLSProtocolConfig{
+				// explicit override curve
+				TLSECDHCurves: strPtr("P-256"),
+			},
+		}
+
+		res, err := b.buildTLSConfig(RuntimeConfig{}, cfg)
+		require.NoError(t, err)
+		require.Equal(t, types.DefaultConsulAgentPQCECDHCurves, res.InternalRPC.ECDHCurves)
+		require.Equal(t, types.DefaultConsulAgentPQCECDHCurves, res.GRPC.ECDHCurves)
+		require.Equal(t, []types.TLSECDHCurve{types.CurveP256}, res.HTTPS.ECDHCurves)
+	})
+
+	t.Run("safe omit curves on legacy override", func(t *testing.T) {
+		b := builder{}
+		cfg := TLS{
+			Defaults: TLSProtocolConfig{
+				TLSMinVersion: strPtr("TLSv1_2"),
+				TLSECDHCurves: strPtr("X25519"),
+			},
+			HTTPS: TLSProtocolConfig{
+				TLSMinVersion: strPtr("TLSv1_0"),
+			},
+		}
+
+		res, err := b.buildTLSConfig(RuntimeConfig{}, cfg)
+		require.NoError(t, err)
+		require.Equal(t, []types.TLSECDHCurve{types.CurveX25519}, res.InternalRPC.ECDHCurves)
+		require.Empty(t, res.HTTPS.ECDHCurves)
+	})
+}
+
 func TestBuilder_parsePrefixFilter(t *testing.T) {
 	t.Run("Check that 1.12 rpc metrics are parsed correctly.", func(t *testing.T) {
 		type testCase struct {
@@ -1053,4 +1159,35 @@ func TestBuilder_DatacenterDNSCompatibleWarning(t *testing.T) {
 			fn(t, tc)
 		})
 	}
+}
+
+// TestBuilder_serviceKindVal covers the agent-config `services { kind = ... }`
+// mapping. An unrecognized kind silently degrades to "typical" rather than
+// erroring, so a gateway kind missing from this switch would register as a plain
+// service with no proxy behaviour and no warning.
+func TestBuilder_serviceKindVal(t *testing.T) {
+	b := &builder{}
+
+	for _, kind := range []structs.ServiceKind{
+		structs.ServiceKindConnectProxy,
+		structs.ServiceKindMeshGateway,
+		structs.ServiceKindTerminatingGateway,
+		structs.ServiceKindIngressGateway,
+		structs.ServiceKindAPIGateway,
+		structs.ServiceKindInferenceGateway,
+	} {
+		t.Run(string(kind), func(t *testing.T) {
+			s := string(kind)
+			require.Equal(t, kind, b.serviceKindVal(&s))
+		})
+	}
+
+	t.Run("nil is typical", func(t *testing.T) {
+		require.Equal(t, structs.ServiceKindTypical, b.serviceKindVal(nil))
+	})
+
+	t.Run("unknown is typical", func(t *testing.T) {
+		s := "not-a-kind"
+		require.Equal(t, structs.ServiceKindTypical, b.serviceKindVal(&s))
+	})
 }

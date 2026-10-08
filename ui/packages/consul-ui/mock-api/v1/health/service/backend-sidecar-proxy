@@ -37,7 +37,31 @@
         "LocalServicePort": 7000,
         "Mode": "",
         "MeshGateway": {},
-        "Expose": {}
+        "Upstreams": [
+          {
+            "DestinationName": "backend-cache",
+            "DestinationType": "service",
+            "LocalBindAddress": "127.0.0.1",
+            "LocalBindPort": 8181
+          },
+          {
+            "DestinationName": "billing",
+            "DestinationType": "service",
+            "LocalBindAddress": "127.0.0.1",
+            "LocalBindPort": 8282
+          }
+        ],
+        "Expose": {
+          "Checks": true,
+          "Paths": [
+            {
+              "Path": "/healthz",
+              "Protocol": "http",
+              "LocalPathPort": 7000,
+              "ListenerPort": 21500
+            }
+          ]
+        }
       },
       "Connect": {},
       "CreateIndex": 19,
@@ -138,7 +162,31 @@
         "LocalServicePort": 7001,
         "Mode": "",
         "MeshGateway": {},
-        "Expose": {}
+        "Upstreams": [
+          {
+            "DestinationName": "backend-cache",
+            "DestinationType": "service",
+            "LocalBindAddress": "127.0.0.1",
+            "LocalBindPort": 8181
+          },
+          {
+            "DestinationName": "billing",
+            "DestinationType": "service",
+            "LocalBindAddress": "127.0.0.1",
+            "LocalBindPort": 8282
+          }
+        ],
+        "Expose": {
+          "Checks": true,
+          "Paths": [
+            {
+              "Path": "/healthz",
+              "Protocol": "http",
+              "LocalPathPort": 7001,
+              "ListenerPort": 21501
+            }
+          ]
+        }
       },
       "Connect": {},
       "CreateIndex": 21,

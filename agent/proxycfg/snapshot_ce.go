@@ -18,3 +18,7 @@ func (c *configSnapshotMeshGateway) hasEntPartitionExport(_ structs.ServiceName)
 func (c *configSnapshotMeshGateway) entEmptyPeering() bool {
 	return true
 }
+
+func shouldWatchRootServiceForDestinationPort(_ *ConfigSnapshotUpstreams, _ UpstreamID) bool {
+	return false
+}

@@ -1,0 +1,65 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{! aria-label rather than a <legend>: every field inside already has its
+    own <F.Label>, so a visible group heading would be redundant — but the
+    <fieldset> itself still needs an accessible name of its own. }}
+<fieldset
+  aria-label="Role details"
+  disabled={{if (not (can "write role" item=@item)) "disabled"}}
+>
+  {{#unless @create}}
+    <Hds::Form::MaskedInput::Field
+      readonly
+      @isContentMasked={{false}}
+      @hasCopyButton={{true}}
+      @value={{@item.ID}}
+      as |F|
+    >
+      <F.Label>Role ID</F.Label>
+    </Hds::Form::MaskedInput::Field>
+  {{/unless}}
+
+  <Hds::Form::TextInput::Field
+    @value={{@item.Name}}
+    name="role[Name]"
+    @isInvalid={{if @item.error.Name true false}}
+    {{on "input" @onChange}}
+    as |F|
+  >
+    <F.Label>Name</F.Label>
+    <F.HelperText>
+      Maximum 256 characters. May only include letters (uppercase and/or lowercase) and/or numbers. Must be unique.
+    </F.HelperText>
+    {{#if @item.error.Name}}
+      <F.Error>{{@item.error.Name.validation}}</F.Error>
+    {{/if}}
+  </Hds::Form::TextInput::Field>
+
+  <Hds::Form::Textarea::Field
+    @value={{@item.Description}}
+    name="role[Description]"
+    @isOptional={{true}}
+    {{on "input" @onChange}}
+    as |F|
+  >
+    <F.Label>Description</F.Label>
+  </Hds::Form::Textarea::Field>
+</fieldset>
+
+<Hds::Separator />
+
+{{! aria-label rather than relying on PolicySelector's own "Policies"
+    heading, which is only rendered when @showHeader is true. }}
+<fieldset id="policies" aria-label="Policies">
+  <PolicySelector
+    @showHeader={{true}}
+    @disabled={{not (can "write role" item=@item)}}
+    @dc={{@dc}}
+    @partition={{@partition}}
+    @nspace={{@nspace}}
+    @items={{@item.Policies}}
+  />
+</fieldset>

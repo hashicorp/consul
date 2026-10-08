@@ -1,0 +1,7 @@
+```release-note:feature
+api-gateway: Auto-register DNS for services exposed via an API Gateway, resolvable at `<service>.api-gateway.consul`. Populates the `gateway-services` catalog mapping for API Gateways and adds DNS SANs to the API Gateway Connect leaf certificate, bringing API Gateway to parity with Ingress Gateway. The feature is version-gated and backfills pre-existing gateways automatically once all servers are upgraded.
+```
+```release-note:feature
+api-gateway: Support zero-touch downstream TLS termination. When `TLS { Enabled = true }` is set on an `api-gateway` config entry with no inline/file-system/SDS certificate, the gateway terminates downstream TLS using its Connect CA leaf certificate (with `*.api-gateway.consul` DNS SANs). Explicitly configured certificates continue to take precedence and are served as SNI overrides alongside the leaf default chain.
+```
+

@@ -18,7 +18,14 @@
   state=this.state
 )
 as |el|}}
-  {{#if (includes this.type (array 'radiogroup' 'checkbox-group' 'checkboxgroup'))}}
+  {{! 'select' and 'hds-field' are also excluded from the <label>-wrapping
+      below: 'select' hosts a custom combobox widget (a <div role="combobox">,
+      not a native labelable element), and 'hds-field' hosts an HDS form field
+      component (e.g. Hds::Form::TextInput::Field) which renders its own
+      <label for=...>. Neither should be nested inside another <label> — the
+      field itself is responsible for wiring up its own explicit label
+      instead. }}
+  {{#if (includes this.type (array 'radiogroup' 'checkbox-group' 'checkboxgroup' 'select' 'hds-field'))}}
     <div
       data-property={{this.prop}}
       class="type-{{this.type}}{{if (state-matches this.state 'error') ' has-error'}}"

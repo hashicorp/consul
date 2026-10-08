@@ -21,13 +21,13 @@ html[data-route^='dc.services.instance'] .app-view > header dl {
 html[data-route^='dc.services.instance'] .app-view > header dt {
   font-weight: var(--token-typography-font-weight-bold);
 }
-html[data-route^='dc.services.instance'] .tab-nav {
+html[data-route^='dc.services.instance'] .hds-tabs {
   border-top: var(--decor-border-100);
 }
 html[data-route^='dc.services.instance'] .tab-section section:not(:last-child) {
   border-bottom: var(--decor-border-100);
 }
-html[data-route^='dc.services.instance'] .tab-nav,
+html[data-route^='dc.services.instance'] .hds-tabs,
 html[data-route^='dc.services.instance'] .tab-section section:not(:last-child) {
   border-color: var(--token-color-surface-interactive-active);
 }
@@ -37,4 +37,24 @@ html[data-route^='dc.services.instance'] .tab-section section:not(:last-child) {
 html[data-route^='dc.services.instance.metadata'] .tab-section section h2 {
   @extend %display-300-semibold;
   margin: 24px 0 12px 0;
+}
+
+/* Service title and its overall health badge share a line; the surrounding
+   app-view header gives its first child `flex-basis: 100%`, so wrapping the
+   two in one element keeps them together and lets the external source /
+   peer info wrap onto the line below. */
+html[data-route^='dc.services.show'] .consul-service-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Instance address sits inline with the external source badge under the title,
+   rather than in the right-hand actions slot. */
+html[data-route^='dc.services.instance'] .consul-service-instance-address {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--token-color-foreground-primary);
 }

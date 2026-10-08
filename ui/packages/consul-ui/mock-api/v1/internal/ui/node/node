@@ -1,0 +1,72 @@
+{
+  "ID": "237b9eeb-bba1-e6e3-3c99-c527d6d76cc0",
+  "Node": "node",
+  "Address": "172.17.0.2",
+  "TaggedAddresses": {
+    "lan": "172.17.0.2",
+    "wan": "172.17.0.2"
+  },
+  "Meta": {
+    "consul-network-segment": ""
+  },
+  "Services": [
+    {
+      "ID": "backend",
+      "Service": "backend",
+      "Tags": [],
+      "Address": "",
+      "Port": 7000,
+      "EnableTagOverride": false,
+      "CreateIndex": 18,
+      "ModifyIndex": 18
+    },
+    {
+      "ID": "backend-v2",
+      "Service": "backend",
+      "Tags": [],
+      "Address": "",
+      "Port": 7001,
+      "EnableTagOverride": false,
+      "CreateIndex": 20,
+      "ModifyIndex": 20
+    },
+    {
+      "ID": "backend-sidecar-proxy",
+      "Service": "backend-sidecar-proxy",
+      "Kind": "connect-proxy",
+      "Tags": [],
+      "Address": "",
+      "Port": 21000,
+      "EnableTagOverride": false,
+      "CreateIndex": 19,
+      "ModifyIndex": 19
+    },
+    {
+      "ID": "backend-v2-sidecar-proxy",
+      "Service": "backend-sidecar-proxy",
+      "Kind": "connect-proxy",
+      "Tags": [],
+      "Address": "",
+      "Port": 21001,
+      "EnableTagOverride": false,
+      "CreateIndex": 21,
+      "ModifyIndex": 21
+    }
+  ],
+  "Checks": [
+    {
+      "Node": "node",
+      "CheckID": "serfHealth",
+      "Name": "Serf Health Status",
+      "Status": "passing",
+      "Notes": "",
+      "Output": "Agent alive and reachable",
+      "ServiceID": "",
+      "ServiceName": "",
+      "ServiceTags": [],
+      "Definition": {},
+      "CreateIndex": 14,
+      "ModifyIndex": 14
+    }
+  ]
+}

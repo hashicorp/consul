@@ -385,6 +385,15 @@ type Config struct {
 	// allowed from a single source IP.
 	RPCMaxConnsPerClient int
 
+	// RPCMaxHeaderBytes is the maximum number of bytes the server will read from
+	// a single RPC request header (ServiceMethod + Seq). A request header that
+	// exceeds this limit is rejected and the connection is closed. This bounds
+	// pre-authorization memory allocation in the MessagePack decoder which would
+	// otherwise honour attacker-controlled str32 lengths before ACL checks run.
+	// Valid ServiceMethod strings are short ("Service.Method"); 512 bytes is
+	// already extremely generous.
+	RPCMaxHeaderBytes int
+
 	// LeaveDrainTime is used to wait after a server has left the LAN Serf
 	// pool for RPCs to drain and new requests to be sent to other servers.
 	LeaveDrainTime time.Duration
@@ -596,8 +605,9 @@ func DefaultConfig() *Config {
 		RequestLimitsReadRate:  rate.Inf, // ops / sec
 		RequestLimitsWriteRate: rate.Inf, // ops / sec
 
-		RPCRateLimit: rate.Inf,
-		RPCMaxBurst:  1000,
+		RPCRateLimit:      rate.Inf,
+		RPCMaxBurst:       1000,
+		RPCMaxHeaderBytes: 512,
 
 		// TODO (slackpad) - Until #3744 is done, we need to keep these
 		// in sync with agent/config/default.go.
@@ -738,6 +748,7 @@ type ReloadableConfig struct {
 	RPCRateLimit          rate.Limit
 	RPCMaxBurst           int
 	RPCMaxConnsPerClient  int
+	RPCMaxHeaderBytes     int
 	ConfigEntryBootstrap  []structs.ConfigEntry
 	RaftSnapshotThreshold int
 	RaftSnapshotInterval  time.Duration

@@ -42,8 +42,10 @@ export default (collection, clickable, attribute, property, authForm, emptyState
       status: attribute('data-test-status', '[data-test-status]'),
     },
   };
-  page.navigation.authMenu = clickable('[data-test-auth-menu]');
-  page.navigation.login = clickable('[data-test-auth-menu-login]');
+  // authMenu and login live in the top header (outside [data-test-navigation])
+  // so they use resetScope:true to ignore the navigation scope.
+  page.navigation.authMenu = clickable('[data-test-auth-menu]', { resetScope: true });
+  page.navigation.login = clickable('[data-test-auth-menu-login]', { resetScope: true });
   page.navigation.dc = clickable('[data-test-datacenter-menu] button');
   page.navigation.nspace = clickable('[data-test-nspace-menu] button');
   page.navigation.partition = clickable('[data-test-partition-menu] button');
@@ -57,6 +59,8 @@ export default (collection, clickable, attribute, property, authForm, emptyState
   page.navigation.managePartitions = clickable(
     '[data-test-partition-menu] [data-test-nav-selector-footer-link]'
   );
+  // With @preserveContentInDom on the HDS Dropdown, items are always in the DOM
+  // within [data-test-navigation], so no resetScope needed.
   page.navigation.dcs = collection('[data-test-datacenter-menu] [data-test-dc-item]', {
     name: clickable(),
   });

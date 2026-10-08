@@ -11,43 +11,37 @@
 {{yield}}
 {{#if (not @disabled)}}
   {{yield to="create"}}
-  <label class="type-text">
-    <span>{{yield to="label"}}</span>
-    {{!-- {{#if isOpen}} --}}
-      <DataSource
-        @src={{uri '/${partition}/${nspace}/${dc}/${type}'
-          (hash
-            partition=@partition
-            nspace=@nspace
-            dc=@dc
-            type=(pluralize this.type)
-          )
-        }}
-        @onchange={{action "setAllOptions" value="data"}}
-      />
-    {{!-- {{/if}} --}}
-    <DataCollection
-      @type={{this.type}}
-      @sort='Name:asc'
-      @filters={{hash
-        searchproperties=(array 'Name')
-      }}
-      @items={{this.options}}
-    as |collection|>
-      <Hds::Form::SuperSelect::Single::Field
-        @searchEnabled={{true}}
-        @onFilter={{action collection.search}}
-        @options={{sort-by 'Name:asc' this.options}}
-        @placeholder={{@placeholder}}
-        @onChange={{action "change" "items[]" @items}}
-        @label="Select {{this.type}}"
-        @isOptional={{true}}
-        @searchField="Name"
-      as |F|>
-        <F.Options>{{F.options.Name}}</F.Options>
-      </Hds::Form::SuperSelect::Single::Field>
-    </DataCollection>
-  </label>
+  <DataSource
+    @src={{uri '/${partition}/${nspace}/${dc}/${type}'
+      (hash
+        partition=@partition
+        nspace=@nspace
+        dc=@dc
+        type=(pluralize this.type)
+      )
+    }}
+    @onchange={{action "setAllOptions" value="data"}}
+  />
+  <DataCollection
+    @type={{this.type}}
+    @sort='Name:asc'
+    @filters={{hash
+      searchproperties=(array 'Name')
+    }}
+    @items={{this.options}}
+  as |collection|>
+    <Hds::Form::SuperSelect::Single::Field
+      @searchEnabled={{true}}
+      @onFilter={{action collection.search}}
+      @options={{sort-by 'Name:asc' this.options}}
+      @placeholder={{@placeholder}}
+      @onChange={{action "change" "items[]" @items}}
+      @searchField="Name"
+    as |F|>
+      <F.Label>{{yield to="label"}}</F.Label>
+      <F.Options>{{F.options.Name}}</F.Options>
+    </Hds::Form::SuperSelect::Single::Field>
+  </DataCollection>
 {{/if}}
 {{#if (gt @items.length 0)}}
   {{yield (action "remove") to="set"}}

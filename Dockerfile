@@ -49,6 +49,7 @@ RUN addgroup consul && \
 # Set up certificates, base tools, and Consul.
 # libc6-compat is needed to symlink the shared libraries for ARM builds
 RUN set -eux && \
+    apk upgrade --no-cache && \
     apk add --no-cache --upgrade \
             ca-certificates \
             dumb-init \
@@ -60,7 +61,7 @@ RUN set -eux && \
             iputils \
             jq \
             libc6-compat \
-            iptables \
+            nftables \
             tzdata \
             zlib \
             curl && \
@@ -168,10 +169,11 @@ LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
 COPY LICENSE /usr/share/doc/$PRODUCT_NAME/LICENSE.txt
 # Set up certificates and base tools.
 # libc6-compat is needed to symlink the shared libraries for ARM builds
-RUN apk add -v --no-cache --upgrade \
+RUN apk upgrade --no-cache && \
+    apk add -v --no-cache --upgrade \
 		dumb-init \
 		libc6-compat \
-		iptables \
+		nftables \
 		tzdata \
 		ca-certificates \
 		gnupg \
@@ -280,7 +282,7 @@ RUN set -eux && \
         openssl \
         iputils \
         jq \
-        iptables \
+        nftables \
         wget \
         unzip \
         tar && \

@@ -13,6 +13,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	fuzz "github.com/google/gofuzz"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -40,6 +41,90 @@ func TestServiceDefinition_RoundTrip(t *testing.T) {
 		result := ServiceDefinitionPtrToStructs(NewServiceDefinitionPtrFromStructs(&target))
 		assertEqual(t, &target, result)
 	})
+}
+
+// serviceAIRoleCases returns one representative ServiceAI payload per role,
+// exercising every nested sub-block.
+func serviceAIRoleCases() map[string]*structs.ServiceAI {
+	return map[string]*structs.ServiceAI{
+		"inference-model": {
+			Role: structs.ServiceAIRoleInferenceModel,
+			InferenceModel: &structs.AIInferenceModel{
+				Protocol: "openai",
+				Path:     "/v1",
+				Defaults: &structs.AIModelDefaults{MaxTokens: 2048, Temperature: 0.7},
+			},
+		},
+		"mcp-server": {
+			Role: structs.ServiceAIRoleMCPServer,
+			MCPServer: &structs.AIMCPServer{
+				Transport:       "streamable-http",
+				Path:            "/mcp",
+				ProtocolVersion: "2025-03-26",
+			},
+		},
+		"ai-agent": {
+			Role: structs.ServiceAIRoleAgent,
+			Agent: &structs.AIAgent{
+				Inference: &structs.AIAgentInference{Specialization: []string{"code"}, Vendor: "anthropic"},
+				MCP: &structs.AIAgentMCP{
+					Port: 15101,
+					HITL: &structs.AIAgentMCPHITL{
+						Port:            16101,
+						ApprovalTimeout: "60s",
+					},
+				},
+				RateLimits:  &structs.AIAgentRateLimits{ToolCallsPerMinute: 120, ToolCallsPerHour: 3000},
+				Interceptor: &structs.AIAgentInterceptor{Port: 21101},
+			},
+		},
+	}
+}
+
+// TestServiceAI_ServiceDefinition_RoundTrip_Explicit pins each role shape
+// on a ServiceDefinition, proving the AI field survives a
+// structs -> proto -> structs round trip through the generated converters.
+func TestServiceAI_ServiceDefinition_RoundTrip_Explicit(t *testing.T) {
+	for name, ai := range serviceAIRoleCases() {
+		ai := ai
+		t.Run(name, func(t *testing.T) {
+			orig := &structs.ServiceDefinition{Name: "ai-svc", AI: ai}
+			got := ServiceDefinitionPtrToStructs(NewServiceDefinitionPtrFromStructs(orig))
+			assertEqual(t, orig, got)
+		})
+	}
+}
+
+// TestServiceAI_NodeService_RoundTrip_Explicit pins each role shape on a
+// NodeService, proving the node.gen.go AI wiring is lossless.
+func TestServiceAI_NodeService_RoundTrip_Explicit(t *testing.T) {
+	for name, ai := range serviceAIRoleCases() {
+		ai := ai
+		t.Run(name, func(t *testing.T) {
+			orig := &structs.NodeService{Service: "ai-svc", AI: ai}
+
+			var pb NodeService
+			NodeServiceFromStructs(orig, &pb)
+
+			var got structs.NodeService
+			NodeServiceToStructs(&pb, &got)
+
+			assertEqual(t, orig, &got)
+		})
+	}
+}
+
+// TestServiceAI_Nil_RoundTrip proves a service without an ai block round-trips
+// with AI == nil (no empty-struct materialization) and that the pointer
+// wrappers are nil-safe in both directions.
+func TestServiceAI_Nil_RoundTrip(t *testing.T) {
+	require.Nil(t, ServiceAIPtrToStructs(nil))
+	require.Nil(t, NewServiceAIPtrFromStructs(nil))
+
+	orig := &structs.ServiceDefinition{Name: "plain"} // AI nil
+	got := ServiceDefinitionPtrToStructs(NewServiceDefinitionPtrFromStructs(orig))
+	require.Nil(t, got.AI)
+	assertEqual(t, orig, got)
 }
 
 func repeat(t *testing.T, fn func(t *testing.T, fuzzer *fuzz.Fuzzer)) {

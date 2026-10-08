@@ -55,10 +55,10 @@ test.describe('Access Controls - Tokens - Basic', () => {
     await page.getByRole('button', { name: 'Save' }).click();
     await expect(page).toHaveURL(/\/acls\/tokens$/);
 
-    // Click on the token to view details
-    const tokenRow = page.getByText(description).first();
+    // Click on the token's name link to view details
+    const tokenRow = page.locator('tr').filter({ hasText: description });
     await expect(tokenRow).toBeVisible({ timeout: 10000 });
-    await tokenRow.click();
+    await tokenRow.locator('.consul-token-list__name a').click();
 
     // Verify we're on the token details page
     await expect(page).toHaveURL(/\/tokens\//);
@@ -79,10 +79,10 @@ test.describe('Access Controls - Tokens - Basic', () => {
     await page.getByRole('button', { name: 'Save' }).click();
     await expect(page).toHaveURL(/\/acls\/tokens$/);
 
-    // Click on the token
-    const tokenRow = page.getByText(description).first();
+    // Click on the token's name link
+    const tokenRow = page.locator('tr').filter({ hasText: description });
     await expect(tokenRow).toBeVisible({ timeout: 10000 });
-    await tokenRow.click();
+    await tokenRow.locator('.consul-token-list__name a').click();
 
     // Verify we're on the token details page
     await expect(page).toHaveURL(/\/tokens\//);

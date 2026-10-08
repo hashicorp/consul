@@ -252,9 +252,13 @@ test.describe('Peering - Workflows', () => {
 
     // ── Instance B (importer): Imported Services tab ────────────────────────
     // Poll until the imported service propagates (config change takes a moment).
-    // Use a combined selector that works in both dev builds (data-test-service-name
-    // present) and the production binary UI at port 8501 (attribute stripped).
-    const serviceNameSel = '[data-test-service-name], .consul-service-list a[href*="/services/"]';
+    // Instance B (8501) runs the release binary's old UI (.consul-service-list);
+    // this branch's UI uses the migrated .consul-service-table. Match either,
+    // plus data-test-service-name (stripped in prod, so also match by href).
+    const serviceNameSel =
+      '[data-test-service-name], ' +
+      '.consul-service-table a[href*="/services/"], ' +
+      '.consul-service-list a[href*="/services/"]';
 
     await expect(async () => {
       await peerPeeringsPage.goto();

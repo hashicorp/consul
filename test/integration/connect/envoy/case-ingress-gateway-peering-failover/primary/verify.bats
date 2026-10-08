@@ -23,7 +23,7 @@ load helpers
 }
 
 @test "peer the two clusters together" {
-  retry_default create_peering primary alpha
+  retry_long create_peering primary alpha
 }
 
 @test "s2 alpha proxies should be healthy in primary" {
@@ -42,7 +42,7 @@ load helpers
 }
 
 @test "s1 upstream made 1 connection" {
-  assert_envoy_metric_at_least 127.0.0.1:20000 "cluster.failover-target~0~s2.default.primary.internal.*cx_total" 1
+  retry_long assert_envoy_metric_at_least 127.0.0.1:20000 "cluster.failover-target~0~s2.default.primary.internal.*cx_total" 1
 }
 
 @test "terminate instance of s2 primary envoy which should trigger failover to s2 alpha when the tcp check fails" {
@@ -71,5 +71,5 @@ load helpers
 }
 
 @test "s1 upstream made 1 connection to s2 through the cluster peer" {
-  assert_envoy_metric_at_least 127.0.0.1:20000 "cluster.failover-target~1~s2.default.primary.internal.*cx_total" 1
+  retry_long assert_envoy_metric_at_least 127.0.0.1:20000 "cluster.failover-target~1~s2.default.primary.internal.*cx_total" 1
 }

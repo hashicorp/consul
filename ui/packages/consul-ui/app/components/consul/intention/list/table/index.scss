@@ -3,6 +3,17 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
+.consul-intention-list-table {
+  /* Give the table room to breathe below the CRD notice / toolbar above it. */
+  margin-top: 16px;
+
+  /* Keep multi-word column headers (e.g. "Intention type") on a single line so
+     the header row doesn't grow taller than the rest. */
+  .hds-table__th {
+    white-space: nowrap;
+  }
+}
+
 .consul-intention-list-table__meta-info {
   display: flex;
 
@@ -10,4 +21,16 @@
     display: flex;
     align-items: center;
   }
+}
+
+.consul-intention-list-table__name {
+  font-weight: var(--token-typography-font-weight-semibold);
+
+  a {
+    font-weight: var(--token-typography-font-weight-semibold);
+  }
+}
+
+.consul-intention-list-table__actions {
+  display: inline-flex;
 }

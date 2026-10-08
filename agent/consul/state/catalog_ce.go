@@ -117,6 +117,14 @@ func assignServicePortVirtualIPs(_ WriteTxn, _ uint64, _ structs.ServiceName, _ 
 	return nil
 }
 
+func reconcileImportedServicePortVirtualIPs(_ WriteTxn, _ uint64, _ string, _ structs.ServiceName, _ *structs.NodeService) error {
+	return nil
+}
+
+func reconcileDeletedImportedServicePortVirtualIPs(_ WriteTxn, _ uint64, _ structs.ServiceName, _ string) error {
+	return nil
+}
+
 func freeServicePortVirtualIPs(_ WriteTxn, _ Query) error {
 	return nil
 }

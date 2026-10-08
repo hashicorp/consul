@@ -1,0 +1,15 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{! Server-addresses-tab toolbar: search only, per Figma — no filter groups
+    and no sort control (the "Address" column isn't sortable, see
+    Consul::Peer::Address::List). }}
+<Consul::ListToolbar
+  class="consul-peer-address-toolbar"
+  ...attributes
+  @search={{@search}}
+  @onsearch={{@onsearch}}
+  @searchPlaceholder="Search"
+/>

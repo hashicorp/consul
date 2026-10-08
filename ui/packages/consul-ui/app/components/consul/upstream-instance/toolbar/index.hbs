@@ -1,0 +1,54 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{!
+  Service-instance Upstreams-tab toolbar. All the Filter Bar wiring lives in
+  the generic Consul::ListToolbar, which also renders the built-in "Search
+  across" dropdown from @filter.searchproperty. This tab has no categorical
+  filter groups, so @filterGroups is left empty (the Filters dropdown simply
+  doesn't render). Sort is independently available per-column via the table's
+  clickable headers; the dropdown below just sets the initial/default order
+  (matching the Figma "A to Z" toolbar control).
+}}
+<Consul::ListToolbar
+  class="consul-upstream-instance-toolbar"
+  ...attributes
+  @filter={{@filter}}
+  @search={{@search}}
+  @onsearch={{@onsearch}}
+  @searchPlaceholder={{t "common.search.search"}}
+>
+  <:quickFilters>
+{{#if @sort}}
+    <Hds::Dropdown
+      class="consul-upstream-instance-toolbar__sort"
+      @listPosition="bottom-right"
+      @preserveContentInDom={{true}}
+      data-test-sort-control
+      as |dd|
+    >
+      <dd.ToggleButton
+        @text={{get
+          (from-entries (array
+            (array "DestinationName:asc" (t "common.sort.alpha.asc"))
+            (array "DestinationName:desc" (t "common.sort.alpha.desc"))
+          ))
+          @sort.value
+        }}
+        @color="secondary"
+        data-test-sort-toggle
+      />
+      <dd.Interactive
+        data-test-sort-option="DestinationName:asc"
+        {{on "click" (fn @sort.change (hash target=(hash selected="DestinationName:asc")))}}
+      >{{t "common.sort.alpha.asc"}}</dd.Interactive>
+      <dd.Interactive
+        data-test-sort-option="DestinationName:desc"
+        {{on "click" (fn @sort.change (hash target=(hash selected="DestinationName:desc")))}}
+      >{{t "common.sort.alpha.desc"}}</dd.Interactive>
+    </Hds::Dropdown>
+{{/if}}
+  </:quickFilters>
+</Consul::ListToolbar>

@@ -1,0 +1,52 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{!
+  Auth-methods-index toolbar. All the Filter Bar wiring (filter groups, applied
+  tags, search, "Search across" dropdown, stay-expanded behaviour) lives in the
+  generic Consul::ListToolbar; this component only supplies the Type/Source
+  filter config and the Name / Max TTL sort dropdown (mirroring the policies and
+  tokens index sorters). The four sort options are kept in the same order as the
+  legacy search bar so the sorting acceptance test stays valid.
+}}
+<Consul::ListToolbar
+  class="consul-auth-method-toolbar"
+  ...attributes
+  @filter={{@filter}}
+  @search={{@search}}
+  @onsearch={{@onsearch}}
+  @filterGroups={{this.filterGroups}}
+  @searchPlaceholder="Search"
+>
+  <:quickFilters>
+    {{#if @sort}}
+      <Hds::Dropdown
+        class="consul-auth-method-toolbar__sort"
+        @listPosition="bottom-right"
+        @preserveContentInDom={{true}}
+        data-test-sort-control
+        as |dd|
+      >
+        <dd.ToggleButton
+          @text={{get
+            (from-entries (array
+              (array "MethodName:asc" (t "common.sort.alpha.asc"))
+              (array "MethodName:desc" (t "common.sort.alpha.desc"))
+              (array "TokenTTL:desc" (t "common.sort.duration.asc"))
+              (array "TokenTTL:asc" (t "common.sort.duration.desc"))
+            ))
+            @sort.value
+          }}
+          @color="secondary"
+          data-test-sort-toggle
+        />
+        <dd.Interactive data-test-sort-option {{on "click" (fn @sort.change (hash target=(hash selected="MethodName:asc")))}}>{{t "common.sort.alpha.asc"}}</dd.Interactive>
+        <dd.Interactive data-test-sort-option {{on "click" (fn @sort.change (hash target=(hash selected="MethodName:desc")))}}>{{t "common.sort.alpha.desc"}}</dd.Interactive>
+        <dd.Interactive data-test-sort-option {{on "click" (fn @sort.change (hash target=(hash selected="TokenTTL:desc")))}}>{{t "common.sort.duration.asc"}}</dd.Interactive>
+        <dd.Interactive data-test-sort-option {{on "click" (fn @sort.change (hash target=(hash selected="TokenTTL:asc")))}}>{{t "common.sort.duration.desc"}}</dd.Interactive>
+      </Hds::Dropdown>
+    {{/if}}
+  </:quickFilters>
+</Consul::ListToolbar>

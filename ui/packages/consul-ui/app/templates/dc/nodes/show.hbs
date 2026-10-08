@@ -73,22 +73,10 @@ as |item tomography|}}
               @status={{status}}
             />
           </:notification>
-          <:breadcrumbs>
-              <Hds::Breadcrumb>
-              <Breadcrumbs::BackLink
-                @model={{route.params.dc}}
-                @params={{hash peer=undefined}}
-                @route="dc.nodes"
-                @text="All Nodes"
-                data-test-back
-              />
-            </Hds::Breadcrumb>
-          </:breadcrumbs>
           <:header>
               <h1>
                 <route.Title @title={{item.Node}} />
               </h1>
-              <label for="toolbar-toggle"></label>
               <Consul::Peer::Info @item={{item}} />
           </:header>
           <:nav>
@@ -97,31 +85,31 @@ as |item tomography|}}
                 (array
                   (hash
                     label=(t 'routes.dc.nodes.show.healthchecks.title')
-                    href=(href-to "dc.nodes.show.healthchecks")
+                    route="dc.nodes.show.healthchecks"
                     selected=(is-href "dc.nodes.show.healthchecks")
                   )
                   (hash
                     label=(t 'routes.dc.nodes.show.services.title')
-                    href=(href-to "dc.nodes.show.services")
+                    route="dc.nodes.show.services"
                     selected=(is-href "dc.nodes.show.services")
                   )
 (if (gt tomography.distances.length 0)
                   (hash
                     label=(t 'routes.dc.nodes.show.rtt.title')
-                    href=(href-to "dc.nodes.show.rtt")
+                    route="dc.nodes.show.rtt"
                     selected=(is-href "dc.nodes.show.rtt")
                   )
 '')
 (if (can 'read sessions')
                   (hash
                     label=(t 'routes.dc.nodes.show.sessions.title')
-                    href=(href-to "dc.nodes.show.sessions")
+                    route="dc.nodes.show.sessions"
                     selected=(is-href "dc.nodes.show.sessions")
                   )
 '')
                   (hash
                     label=(t 'routes.dc.nodes.show.metadata.title')
-                    href=(href-to "dc.nodes.show.metadata")
+                    route="dc.nodes.show.metadata"
                     selected=(is-href "dc.nodes.show.metadata")
                   )
                 )
