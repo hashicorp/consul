@@ -197,10 +197,9 @@ func TestOperatorFeatureGate_GetSingleFeature(t *testing.T) {
 	require.Equal(t, featureName, got.Name)
 }
 
-// TestOperatorFeatureGate_GetUnknownFeatureReturnsError verifies that an
-// unknown feature name returns an error (the RPC error propagates through
-// the HTTP handler as a plain error, not an HTTPError).
-func TestOperatorFeatureGate_GetUnknownFeatureReturnsError(t *testing.T) {
+// TestOperatorFeatureGate_UnknownFeatureReturnsNotFound verifies that an
+// unknown feature name returns HTTP 404 for both GET and PUT.
+func TestOperatorFeatureGate_UnknownFeatureReturnsNotFound(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -226,7 +225,19 @@ func TestOperatorFeatureGate_GetUnknownFeatureReturnsError(t *testing.T) {
 	resp := httptest.NewRecorder()
 	_, err := a.srv.OperatorFeatureGate(resp, req)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "unknown feature gate")
+	httpErr, ok := err.(HTTPError)
+	require.True(t, ok, "expected HTTPError, got %T: %v", err, err)
+	require.Equal(t, http.StatusNotFound, httpErr.StatusCode)
+	require.Contains(t, httpErr.Reason, "unknown feature gate")
+
+	req = httptest.NewRequest(http.MethodPut, "/v1/operator/feature/no-such-feature", strings.NewReader(`{"Enabled":true}`))
+	resp = httptest.NewRecorder()
+	_, err = a.srv.OperatorFeatureGate(resp, req)
+	require.Error(t, err)
+	httpErr, ok = err.(HTTPError)
+	require.True(t, ok, "expected HTTPError, got %T: %v", err, err)
+	require.Equal(t, http.StatusNotFound, httpErr.StatusCode)
+	require.Contains(t, httpErr.Reason, "unknown feature gate")
 }
 
 // TestOperatorFeatureGate_PutSuccessful verifies the PUT /feature/{name} path

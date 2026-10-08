@@ -4,6 +4,7 @@
 package fsm
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 
@@ -26,6 +27,7 @@ func init() {
 	registerRestorer(structs.CoordinateBatchUpdateType, restoreCoordinates)
 	registerRestorer(structs.PreparedQueryRequestType, restorePreparedQuery)
 	registerRestorer(structs.AutopilotRequestType, restoreAutopilot)
+	// Legacy dev-build snapshot record; current snapshots use a system-metadata entry.
 	registerRestorer(structs.FeatureGateRequestType, restoreFeatureGates)
 	registerRestorer(structs.IntentionRequestType, restoreLegacyIntention)
 	registerRestorer(structs.ConnectCARequestType, restoreConnectCA)
@@ -377,10 +379,22 @@ func (s *snapshot) persistFeatureGates(sink raft.SnapshotSink, encoder *codec.En
 	if featureGates == nil {
 		return nil
 	}
-	if _, err := sink.Write([]byte{byte(structs.FeatureGateRequestType)}); err != nil {
+	value, err := json.Marshal(featureGates)
+	if err != nil {
+		return fmt.Errorf("failed encoding feature-gate state: %w", err)
+	}
+	// A system-metadata record is restorable by servers that predate the framework.
+	entry := &structs.SystemMetadataEntry{
+		Key:   structs.SystemMetadataFeatureGatesStateKey,
+		Value: string(value),
+	}
+	if featureGates.Status != nil {
+		entry.ModifyIndex = featureGates.Status.ModifyIndex
+	}
+	if _, err := sink.Write([]byte{byte(structs.SystemMetadataRequestType)}); err != nil {
 		return err
 	}
-	return encoder.Encode(featureGates)
+	return encoder.Encode(entry)
 }
 
 func (s *snapshot) persistConnectCA(sink raft.SnapshotSink,
@@ -862,6 +876,13 @@ func restoreSystemMetadata(header *SnapshotHeader, restore *state.Restore, decod
 	var req structs.SystemMetadataEntry
 	if err := decoder.Decode(&req); err != nil {
 		return err
+	}
+	if req.Key == structs.SystemMetadataFeatureGatesStateKey {
+		var gates structs.FeatureGateSnapshot
+		if err := json.Unmarshal([]byte(req.Value), &gates); err != nil {
+			return fmt.Errorf("failed decoding feature-gate state: %w", err)
+		}
+		return restore.FeatureGates(&gates)
 	}
 	return restore.SystemMetadataEntry(&req)
 }
