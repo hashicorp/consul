@@ -6,8 +6,8 @@ package featuregate
 import "github.com/hashicorp/go-version"
 
 // APIGatewayUpstreamRouting gates the API Gateway discovery-chain synthesis
-// behavior introduced by hashicorp/consul#23294. Phase 1 supports the
-// server-side proxycfg path used by agentless API Gateways only.
+// behavior introduced by hashicorp/consul#23294. The gate applies to agentless
+// API Gateways only; agentful gateways always compose upstream routing.
 //
 // TODO(release-owner): Replace MinVersion "2.1.0-dev" with the first
 // production release that contains both:
