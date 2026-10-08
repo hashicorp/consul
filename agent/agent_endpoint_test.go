@@ -21,13 +21,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/go-metrics"
 	"github.com/mitchellh/hashstructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-metrics"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/serf"
 
@@ -7050,10 +7050,26 @@ func TestAgentConnectCALeafCert_aclDefaultDeny(t *testing.T) {
 		require.Equal(t, 200, resp.Code, "body: %s", resp.Body.String())
 	}
 
-	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
-	resp := httptest.NewRecorder()
-	a.srv.h.ServeHTTP(resp, req)
-	require.Equal(t, http.StatusForbidden, resp.Code)
+	leafURL := "/v1/agent/connect/ca/leaf/test"
+	seedReq, _ := http.NewRequest("GET", leafURL, nil)
+	seedReq.Header.Add("X-Consul-Token", "root")
+	seedResp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(seedResp, seedReq)
+	require.Equal(t, http.StatusOK, seedResp.Code, "body: %s", seedResp.Body.String())
+	require.Equal(t, "MISS", seedResp.Header().Get("X-Cache"))
+
+	for _, token := range []string{"", "bogus"} {
+		t.Run("unauthorized token="+token, func(t *testing.T) {
+			req, _ := http.NewRequest("GET", leafURL, nil)
+			if token != "" {
+				req.Header.Add("X-Consul-Token", token)
+			}
+			resp := httptest.NewRecorder()
+			a.srv.h.ServeHTTP(resp, req)
+			require.Equal(t, http.StatusForbidden, resp.Code)
+			require.Empty(t, resp.Header().Get("X-Cache"))
+		})
+	}
 }
 
 func TestAgentConnectCALeafCert_aclServiceWrite(t *testing.T) {
