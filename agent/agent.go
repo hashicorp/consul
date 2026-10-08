@@ -791,6 +791,14 @@ func (a *Agent) Start(ctx context.Context) error {
 	var featureGateStore featuregate.WatchableGate
 	if consulServer != nil {
 		featureGateStore = consulServer.FeatureGateStore()
+	} else {
+		clientStore := &featuregate.Store{}
+		featureGateStore = clientStore
+		index, err := a.refreshClientFeatureGates(clientStore, 0, false)
+		if err != nil {
+			a.logger.Warn("failed to fetch initial client feature gates", "error", err)
+		}
+		go a.runClientFeatureGateCache(clientStore, index)
 	}
 
 	// If DefaultIntentionPolicy is defined, it should override
