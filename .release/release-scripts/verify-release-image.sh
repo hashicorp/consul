@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copyright (c) HashiCorp, Inc.
+# Copyright IBM Corp. 2024, 2026
 # SPDX-License-Identifier: MPL-2.0
 #
 # Verifies that the released consul Docker image is available
