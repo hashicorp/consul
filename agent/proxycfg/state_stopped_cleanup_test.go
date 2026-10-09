@@ -157,6 +157,8 @@ func TestState_CloseAfterRunStopped(t *testing.T) {
 	})
 }
 
+const otherTestSource ProxySource = "other"
+
 func newStoppedCleanupTestManager(t *testing.T) *Manager {
 	t.Helper()
 	m, err := NewManager(ManagerConfig{
@@ -207,13 +209,13 @@ func TestManager_StoppedStateCleanup(t *testing.T) {
 
 	t.Run("a stopped state from another source is still replaced and cancelled", func(t *testing.T) {
 		m := newStoppedCleanupTestManager(t)
-		ns, id, oldWatches := injectStoppedState(t, m, ProxySourceCatalog)
+		ns, id, oldWatches := injectStoppedState(t, m, otherTestSource)
 
-		require.NoError(t, m.Register(id, ns, ProxySourceLocal, aclToken, false))
+		require.NoError(t, m.Register(id, ns, testSource, aclToken, false))
 
 		require.Error(t, oldWatches.Err())
 		m.mu.Lock()
-		require.Equal(t, ProxySourceLocal, m.proxies[id].source)
+		require.Equal(t, testSource, m.proxies[id].source)
 		m.mu.Unlock()
 	})
 
