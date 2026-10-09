@@ -1,3 +1,6 @@
 ```release-note:bug
 proxycfg: Fixed a goroutine and memory leak where transparent proxies registered a new health watch for every imported peered service each time the imported services list changed, and never stopped watches for removed upstreams.
 ```
+```release-note:bug
+proxycfg: Fixed a goroutine and memory leak where a proxy's watches kept running after its state stopped unexpectedly, because replacing, deregistering or closing a stopped state did not cancel them.
+```
