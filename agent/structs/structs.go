@@ -1379,20 +1379,21 @@ func (sp ServicePorts) Validate() error {
 	return nil
 }
 
-// Two service ports are the same if they have the same combination of name and port
+// Two service ports are the same if they have the same combination of name,
+// port and default flag, regardless of order.
 func (sp ServicePorts) IsSame(other ServicePorts) bool {
 	if len(sp) != len(other) {
 		return false
 	}
 
-	seen := make(map[string]int, len(sp))
+	seen := make(map[string]ServicePort, len(sp))
 	for _, p := range sp {
-		seen[p.Name] = p.Port
+		seen[p.Name] = p
 	}
 
 	for _, p := range other {
-		port, ok := seen[p.Name]
-		if !ok || port != p.Port {
+		existing, ok := seen[p.Name]
+		if !ok || existing != p {
 			return false
 		}
 	}
