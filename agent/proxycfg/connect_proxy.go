@@ -25,6 +25,13 @@ import (
 
 type handlerConnectProxy struct {
 	handlerState
+
+	// peeredUpstreamHealthWatches tracks the health watches started by
+	// setupWatchesForPeeredUpstream, keyed by upstream. They are tracked
+	// separately from PeerUpstreamEndpoints because a discovery chain target
+	// can own the endpoint entry for the same UpstreamID with its own watch.
+	// Access is serialized by state.run.
+	peeredUpstreamHealthWatches map[UpstreamID]context.CancelFunc
 }
 
 // initialize sets up the watches needed based on current proxy registration
@@ -263,26 +270,43 @@ func (s *handlerConnectProxy) setupWatchesForPeeredUpstream(
 	uid UpstreamID,
 	dc string,
 ) error {
-	s.logger.Trace("initializing watch of peered upstream", "upstream", uid)
+	// The imported-services list is re-delivered whenever any imported service
+	// changes, so only start a health watch for this upstream once. Starting
+	// another one would leak the previous watch until the proxy is removed.
+	if _, ok := s.peeredUpstreamHealthWatches[uid]; !ok {
+		s.logger.Trace("initializing watch of peered upstream", "upstream", uid)
 
-	// NOTE: An upstream that points to a peer by definition will
-	// only ever watch a single catalog query, so a map key of just
-	// "UID" is sufficient to cover the peer data watches here.
-	err := s.dataSources.Health.Notify(ctx, &structs.ServiceSpecificRequest{
-		PeerName:   uid.Peer,
-		Datacenter: dc,
-		QueryOptions: structs.QueryOptions{
-			Token: s.token,
-		},
-		ServiceName:    uid.Name,
-		Connect:        true,
-		Source:         *s.source,
-		EnterpriseMeta: uid.EnterpriseMeta,
-	}, upstreamPeerWatchIDPrefix+uid.String(), s.ch)
-	if err != nil {
-		return fmt.Errorf("failed to watch health for %s: %v", uid, err)
+		// NOTE: An upstream that points to a peer by definition will
+		// only ever watch a single catalog query, so a map key of just
+		// "UID" is sufficient to cover the peer data watches here.
+		healthCtx, cancel := context.WithCancel(ctx)
+		err := s.dataSources.Health.Notify(healthCtx, &structs.ServiceSpecificRequest{
+			PeerName:   uid.Peer,
+			Datacenter: dc,
+			QueryOptions: structs.QueryOptions{
+				Token: s.token,
+			},
+			ServiceName:    uid.Name,
+			Connect:        true,
+			Source:         *s.source,
+			EnterpriseMeta: uid.EnterpriseMeta,
+		}, upstreamPeerWatchIDPrefix+uid.String(), s.ch)
+		if err != nil {
+			cancel()
+			return fmt.Errorf("failed to watch health for %s: %v", uid, err)
+		}
+
+		if s.peeredUpstreamHealthWatches == nil {
+			s.peeredUpstreamHealthWatches = make(map[UpstreamID]context.CancelFunc)
+		}
+		s.peeredUpstreamHealthWatches[uid] = cancel
+
+		// A discovery chain target for the same upstream may already own this
+		// entry. Re-initializing it would cancel that watch and drop endpoints.
+		if !snapConnectProxy.PeerUpstreamEndpoints.IsWatched(uid) {
+			snapConnectProxy.PeerUpstreamEndpoints.InitWatch(uid, cancel)
+		}
 	}
-	snapConnectProxy.PeerUpstreamEndpoints.InitWatch(uid, nil)
 
 	// Check whether a watch for this peer exists to avoid duplicates.
 	if ok := snapConnectProxy.UpstreamPeerTrustBundles.IsWatched(uid.Peer); !ok {
@@ -306,6 +330,22 @@ func (s *handlerConnectProxy) setupWatchesForPeeredUpstream(
 	up := &handlerUpstreams{handlerState: s.handlerState}
 	up.setupWatchForLocalGWEndpoints(ctx, &snapConnectProxy.ConfigSnapshotUpstreams)
 	return nil
+}
+
+// cancelUnusedPeeredUpstreamHealthWatches stops health watches started by
+// setupWatchesForPeeredUpstream for upstreams that are neither imported nor
+// explicitly configured anymore.
+func (s *handlerConnectProxy) cancelUnusedPeeredUpstreamHealthWatches(snapConnectProxy configSnapshotConnectProxy) {
+	for uid, cancel := range s.peeredUpstreamHealthWatches {
+		if _, ok := snapConnectProxy.PeeredUpstreams[uid]; ok {
+			continue
+		}
+		if _, ok := snapConnectProxy.UpstreamConfig[uid]; ok {
+			continue
+		}
+		cancel()
+		delete(s.peeredUpstreamHealthWatches, uid)
+	}
 }
 
 func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, snap *ConfigSnapshot) error {
@@ -408,6 +448,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		// Clean up data
 		//
 		reconcilePeeringWatches(snap.ConnectProxy.DiscoveryChain, snap.ConnectProxy.UpstreamConfig, snap.ConnectProxy.PeeredUpstreams, snap.ConnectProxy.PeerUpstreamEndpoints, snap.ConnectProxy.UpstreamPeerTrustBundles)
+		s.cancelUnusedPeeredUpstreamHealthWatches(snap.ConnectProxy)
 	case u.CorrelationID == intentionUpstreamsID:
 		resp, ok := u.Result.(*structs.IndexedServiceList)
 		if !ok {
@@ -636,7 +677,8 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		snap.ConnectProxy.WatchedServiceChecks[svcID] = resp
 
 	default:
-		return (*handlerUpstreams)(s).handleUpdateUpstreams(ctx, u, snap)
+		up := &handlerUpstreams{handlerState: s.handlerState}
+		return up.handleUpdateUpstreams(ctx, u, snap)
 	}
 	return nil
 }
