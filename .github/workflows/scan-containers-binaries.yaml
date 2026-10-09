@@ -19,14 +19,18 @@
 #   * They run the scanner binary on self-hosted runners (Vault + bob); we run
 #     the scanner as a local action after cloning the private
 #     hashicorp/security-scanner repo with PRODSEC_SCANNER_READ_ONLY, on GitHub-hosted runners.
-#   * Config comes from .release/security-scan.hcl (the CRT release-scan config);
-#     the binary/container blocks below are kept in sync with it.
+#   * Binary/container config is loaded from .release/security-scan.hcl, with
+#     local_daemon enabled in a temporary copy for locally built container images.
+#     Repository scans continue to use scan.hcl at the repository root.
 #   * CRT-only jobs (IBM Twistlock, UST publishing, Datadog metrics) are omitted
 #     as they require internal infrastructure that does not apply here.
 #
 # Trigger it from the Actions tab via "Run workflow" and pick any branch. The
 # build runs against that branch's latest commit and the scan jobs consume its
-# artifacts in the same run.
+# artifacts in the same run. Scan jobs fail on unsuppressed findings, while SARIF
+# results are still uploaded for failed scans. The results check and readable CVE
+# list, including package versions and recommended fixes, are defined here and
+# shared with YAML aliases, without helper scripts.
 name: Scan Binaries and Containers
 
 on:
@@ -91,19 +95,185 @@ jobs:
         uses: ./security-scanner
         with:
           sarif-profile: github
+          fail-on-detection: true
           repository: "$PWD"
           # Repository config is auto-loaded from scan.hcl at the repo root
 
-      - name: Read SARIF output
+      - &check-scan-results
+        name: Check scan results
         if: always()
         shell: bash
-        run: cat results.sarif | jq
+        run: |
+          set -euo pipefail
+          sarif_file="${GITHUB_WORKSPACE}/results.sarif"
+          if [[ ! -s "${sarif_file}" ]]; then
+            echo "::error::SARIF report is missing or empty: ${sarif_file}" >&2
+            exit 1
+          fi
 
-      - name: Upload SARIF file
+          jq . "${sarif_file}"
+
+          # JSON scans can exit successfully even when SARIF contains findings.
+          finding_count=$(jq -ers '
+            if length != 1 then
+              error("Expected exactly one SARIF report")
+            else
+              .[0]
+            end |
+            if type != "object" then
+              error("Expected the SARIF report to be an object")
+            elif .version != "2.1.0" or (.runs | type) != "array" then
+              error("Expected a SARIF 2.1.0 report with a runs array")
+            else
+              [
+                .runs[] |
+                if type != "object" then
+                  error("Expected each SARIF run to be an object")
+                elif has("results") and (.results | type) != "array" then
+                  error("Expected SARIF results to be an array")
+                else
+                  .results[]?
+                end
+              ] | length
+            end
+          ' "${sarif_file}")
+
+          if [[ "${finding_count}" -gt 0 ]]; then
+            echo "::error::Security scan found ${finding_count} unsuppressed finding(s). See the SARIF results for details." >&2
+            exit 1
+          fi
+
+          echo "Security scan found no unsuppressed findings."
+
+      - &list-cves
+        name: List CVEs
         if: always()
-        uses: github/codeql-action/upload-sarif@9e3211c9a3b9311dfe05da2ed48eea3386f042dd # v4.37.6
-        with:
-          sarif_file: results.sarif
+        shell: bash
+        run: |
+          set -euo pipefail
+          sarif_file="${GITHUB_WORKSPACE}/results.sarif"
+          if [[ ! -s "${sarif_file}" ]]; then
+            echo "::error::SARIF report is missing or empty: ${sarif_file}" >&2
+            exit 1
+          fi
+
+          jq -rs '
+            def finding_rule($run; $finding):
+              ($run.tool.driver.rules // []) as $rules |
+              ($finding.ruleId // $finding.rule.id) as $rule_id |
+              if ($rules | type) != "array" then
+                error("Expected SARIF rules to be an array")
+              else
+                first($rules[] | select($rule_id != null and .id == $rule_id)) //
+                (
+                  if $finding.ruleIndex == null then
+                    {}
+                  elif ($finding.ruleIndex | type) != "number" or
+                       $finding.ruleIndex < 0 or
+                       ($finding.ruleIndex | floor) != $finding.ruleIndex then
+                    error("Expected SARIF ruleIndex to be a non-negative integer")
+                  elif $finding.ruleIndex >= ($rules | length) then
+                    error("SARIF ruleIndex is outside the rules array")
+                  else
+                    $rules[$finding.ruleIndex]
+                  end
+                )
+              end;
+
+            def reported_text($properties; $key):
+              $properties[$key] as $value |
+              if $value == null then
+                null
+              elif ($value | type) != "string" then
+                error("Expected SARIF \($key) to be a string")
+              else
+                $value | gsub("\\s+"; " ") | sub("^ "; "") | sub(" $"; "") |
+                if length == 0 then null else . end
+              end;
+
+            def finding_properties($rule; $finding):
+              ($rule.properties | if . == null then {} else . end) as $rule_properties |
+              ($finding.properties | if . == null then {} else . end) as $finding_properties |
+              if ($rule_properties | type) != "object" or
+                 ($finding_properties | type) != "object" then
+                error("Expected SARIF properties to be an object")
+              else
+                # Do not reuse a rule fix for another package or version.
+                if ($finding_properties | has("package")) and
+                   reported_text($finding_properties; "package") != reported_text($rule_properties; "package") then
+                  ($rule_properties | del(.package_version, .recommended_fix_version)) + $finding_properties
+                elif ($finding_properties | has("package_version")) and
+                     reported_text($finding_properties; "package_version") != reported_text($rule_properties; "package_version") then
+                  ($rule_properties | del(.recommended_fix_version)) + $finding_properties
+                else
+                  $rule_properties + $finding_properties
+                end
+              end;
+
+            if length != 1 then
+              error("Expected exactly one SARIF report")
+            else
+              .[0]
+            end |
+            if type != "object" then
+              error("Expected the SARIF report to be an object")
+            elif .version != "2.1.0" or (.runs | type) != "array" then
+              error("Expected a SARIF 2.1.0 report with a runs array")
+            else
+              [
+                .runs[] as $run |
+                (
+                  $run |
+                  if type != "object" then
+                    error("Expected each SARIF run to be an object")
+                  elif has("results") and (.results | type) != "array" then
+                    error("Expected SARIF results to be an array")
+                  else
+                    .results[]?
+                  end
+                ) as $finding |
+                if ($finding | type) != "object" then
+                  error("Expected each SARIF result to be an object")
+                else
+                  finding_rule($run; $finding) as $rule |
+                  [
+                    $finding.ruleId,
+                    $finding.rule.id,
+                    $finding.message.text,
+                    $finding.message.markdown,
+                    $rule.id,
+                    ($rule.properties.tags // [])[],
+                    ($rule.properties.aliases // [])[]
+                  ][] |
+                  strings |
+                  scan("\\bCVE-[0-9]{4}-[0-9]{4,}\\b"; "i") |
+                  ascii_upcase as $cve |
+                  finding_properties($rule; $finding) as $properties |
+                  {
+                    cve: $cve,
+                    package: reported_text($properties; "package"),
+                    version: reported_text($properties; "package_version"),
+                    fix_version: reported_text($properties; "recommended_fix_version")
+                  }
+                end
+              ] | group_by(.cve) |
+              if length == 0 then
+                "No CVEs found in scan results."
+              else
+                "Detected CVEs (\(length) unique):",
+                (
+                  .[] |
+                  "- \(.[0].cve)",
+                  (
+                    group_by([.package, .version])[] |
+                    "  - Package: \(.[0].package // "Not reported")",
+                    "    Detected version: \(.[0].version // "Not reported")",
+                    "    Recommended fix version(s): \([.[].fix_version | select(. != null)] | unique | if length == 0 then "Not reported" else join(", ") end)"
+                  )
+                )
+              end
+            end
+          ' "${sarif_file}"
 
       - name: Upload SARIF artifact
         if: always()
@@ -112,6 +282,13 @@ jobs:
           name: sarif-repository
           path: results.sarif
           if-no-files-found: warn
+
+      - name: Upload SARIF file
+        if: always()
+        uses: github/codeql-action/upload-sarif@9e3211c9a3b9311dfe05da2ed48eea3386f042dd # v4.37.6
+        with:
+          sarif_file: results.sarif
+          category: repository
 
   # 4. Enumerate the build artifacts so the scan jobs below can fan out over
   #    them with a matrix. The reusable build workflow shares this run's id, so
@@ -222,58 +399,14 @@ jobs:
         uses: ./security-scanner
         with:
           sarif-profile: github
+          fail-on-detection: true
           # Use `binary` input to analyze the binary unpacked in scan-target/
           binary: "${{ steps.extract.outputs.binary_path }}"
-          # Keep in sync with the `binary` block in .release/security-scan.hcl,
-          # the config CRT uses to scan release binaries.
-          config: |
-            binary {
-              go_modules = true
-              osv        = true
-              go_stdlib  = true
+          config-path: .release/security-scan.hcl
 
-              secrets {
-                matchers {
-                  // Use most of default list, minus Vault (`hashicorp`), which has experienced false positives.
-                  // See https://github.com/hashicorp/security-scanner/blob/v0.0.2/pkg/scanner/secrets.go#L130C2-L130C2
-                  known = [
-                    // "hashicorp",
-                    "aws",
+      - *check-scan-results
 
-                    "google",
-                    "slack",
-                    "github",
-                    "azure",
-                    "npm",
-                  ]
-                }
-              }
-
-              triage {
-                suppress {
-                  vulnerabilities = []
-
-                  paths = [
-                      "internal/tools/proto-gen-rpc-glue/e2e/consul/*",
-                      "test/integration/connect/envoy/test-sds-server/*",
-                      "test/integration/consul-container/*",
-                      "testing/deployer/*",
-                      "test-integ/*",
-                  ]
-                }
-              }
-            }
-
-      - name: Read SARIF output
-        if: always()
-        shell: bash
-        run: cat results.sarif | jq
-
-      - name: Upload SARIF file
-        if: always()
-        uses: github/codeql-action/upload-sarif@9e3211c9a3b9311dfe05da2ed48eea3386f042dd # v4.37.6
-        with:
-          sarif_file: results.sarif
+      - *list-cves
 
       - name: Upload SARIF artifact
         if: always()
@@ -282,6 +415,13 @@ jobs:
           name: sarif-binary-${{ matrix.artifact }}
           path: results.sarif
           if-no-files-found: warn
+
+      - name: Upload SARIF file
+        if: always()
+        uses: github/codeql-action/upload-sarif@9e3211c9a3b9311dfe05da2ed48eea3386f042dd # v4.37.6
+        with:
+          sarif_file: results.sarif
+          category: binary-${{ matrix.artifact }}
 
   # 6. Scan each container image -- one matrix job per image tarball. Each job
   #    loads exactly one image into the local daemon and scans it.
@@ -342,6 +482,26 @@ jobs:
           echo "Local images:"
           docker image ls
 
+      - name: Prepare container scan configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          awk '
+            /^container[[:space:]]*\{/ {
+              print
+              print "  local_daemon = true"
+              found = 1
+              next
+            }
+            { print }
+            END {
+              if (!found) {
+                print "ERROR: no container block in .release/security-scan.hcl" > "/dev/stderr"
+                exit 1
+              }
+            }
+          ' .release/security-scan.hcl > "${RUNNER_TEMP}/security-scan.hcl"
+
       # hashicorp/security-scanner is private; check it out with a read-only
       # token and run it as a local action.
       - name: Clone Security Scanner repo
@@ -357,66 +517,13 @@ jobs:
         uses: ./security-scanner
         with:
           sarif-profile: github
+          fail-on-detection: true
           container: "${{ steps.load.outputs.image_tag }}"
-          # Keep in sync with the `container` block in .release/security-scan.hcl
-          # (CRT's release container config) plus local_daemon, which points the
-          # scanner at the image we just `docker load`ed.
-          config: |
-            container {
-              dependencies    = true
-              alpine_security = true
-              osv             = true
-              go_modules      = true
-              local_daemon    = true
+          config-path: ${{ runner.temp }}/security-scan.hcl
 
-              secrets {
-                matchers {
-                  // Use most of default list, minus Vault (`hashicorp`), which has experienced false positives.
-                  // See https://github.com/hashicorp/security-scanner/blob/v0.0.2/pkg/scanner/secrets.go#L130C2-L130C2
-                  known = [
-                    // "hashicorp",
-                    "aws",
-                    "google",
-                    "slack",
-                    "github",
-                    "azure",
-                    "npm",
-                  ]
-                }
-              }
+      - *check-scan-results
 
-              triage {
-                suppress {
-                  vulnerabilities = [
-                    "CVE-2025-30258", // Alpine Linux gnupg@2.4.9-r0
-                  ]
-
-                  paths = [
-                    "internal/tools/proto-gen-rpc-glue/e2e/consul/*",
-                    "test/integration/connect/envoy/test-sds-server/*",
-                    "test/integration/consul-container/*",
-                    "testing/deployer/*",
-                    "test-integ/*",
-                    // RHEL reuses the same base package version for the life of
-                    // the distro even after backported security patches, so the
-                    // OSV scanner trips on UBI base packages. Ignore them.
-                    "usr/lib/sysimage/rpm/*",
-                    "var/lib/rpm/*",
-                  ]
-                }
-              }
-            }
-
-      - name: Read SARIF output
-        if: always()
-        shell: bash
-        run: cat results.sarif | jq
-
-      - name: Upload SARIF file
-        if: always()
-        uses: github/codeql-action/upload-sarif@9e3211c9a3b9311dfe05da2ed48eea3386f042dd # v4.37.6
-        with:
-          sarif_file: results.sarif
+      - *list-cves
 
       - name: Upload SARIF artifact
         if: always()
@@ -425,3 +532,10 @@ jobs:
           name: sarif-container-${{ matrix.artifact }}
           path: results.sarif
           if-no-files-found: warn
+
+      - name: Upload SARIF file
+        if: always()
+        uses: github/codeql-action/upload-sarif@9e3211c9a3b9311dfe05da2ed48eea3386f042dd # v4.37.6
+        with:
+          sarif_file: results.sarif
+          category: container-${{ matrix.artifact }}
