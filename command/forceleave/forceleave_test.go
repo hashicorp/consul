@@ -6,6 +6,7 @@ package forceleave
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/serf/serf"
 	"github.com/mitchellh/cli"
@@ -117,7 +118,9 @@ func TestForceLeaveCommand_prune(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
-	retry.Run(t, func(r *retry.R) {
+	// Pruning is asynchronous in serf >= v0.11.0, and a member that is still
+	// leaving is only erased after BroadcastTimeout + LeavePropagateDelay.
+	retry.RunWith(&retry.Timer{Timeout: 30 * time.Second, Wait: 250 * time.Millisecond}, t, func(r *retry.R) {
 		m := len(a1.LANMembersInAgentPartition())
 		if m != 1 {
 			r.Fatalf("should have 1 members, got %#v", m)
