@@ -20,11 +20,11 @@ require (
 	github.com/aliyun/alibaba-cloud-sdk-go v1.63.107
 	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
 	github.com/armon/go-radix v1.0.0
-	github.com/aws/aws-sdk-go-v2 v1.43.0
+	github.com/aws/aws-sdk-go-v2 v1.47.1
 	github.com/aws/aws-sdk-go-v2/config v1.32.31
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.30
 	github.com/aws/aws-sdk-go-v2/service/acmpca v1.47.2
-	github.com/aws/smithy-go v1.27.3
+	github.com/aws/smithy-go v1.28.1
 	github.com/coreos/go-oidc/v3 v3.18.0
 	github.com/deckarep/golang-set/v2 v2.9.0
 	github.com/docker/go-connections v0.7.0
