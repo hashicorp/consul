@@ -37,6 +37,7 @@ import (
 	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/submatview"
@@ -429,6 +430,8 @@ func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.G
 		consul.RPCCounters,
 		grpcWare.StatsCounters,
 		local.StateCounters,
+		proxycfg.StatsCounters,
+		submatview.StatsCounters,
 		xds.StatsCounters,
 		raftCounters,
 		rate.Counters,
