@@ -660,9 +660,15 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 			}
 
 			// check the ttl checks
-			for k := range tt.healthChks {
+			for k, v := range tt.healthChks {
 				t.Run(k+" ttl", func(t *testing.T) {
 					chk := a.checkTTLs[structs.NewCheckID(types.CheckID(k), nil)]
+					if v.Type != "ttl" {
+						if chk != nil {
+							t.Fatal("got TTL check want nil")
+						}
+						return
+					}
 					if chk == nil {
 						t.Fatal("got nil want TTL check")
 					}
@@ -2148,6 +2154,103 @@ acl_token = "hello"
 	chkImpl, ok := a.checkAliases[structs.NewCheckID("aliashealth", nil)]
 	require.True(t, ok, "missing aliashealth check")
 	require.Equal(t, "goodbye", chkImpl.RPCReq.Token)
+}
+
+func TestAgent_AddCheck_ChangeType(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, `
+		enable_script_checks = true
+	`)
+	defer a.Shutdown()
+
+	// OS service checks are only implemented on Windows, so provide a client
+	// rather than having the agent create one.
+	a.osServiceClient = &checks.OSServiceClient{}
+
+	cases := []struct {
+		name     string
+		chkType  *structs.CheckType
+		monitors interface{}
+	}{
+		{"script", &structs.CheckType{ScriptArgs: []string{"exit", "0"}, Interval: time.Hour}, a.checkMonitors},
+		{"http", &structs.CheckType{HTTP: "http://127.0.0.1:1", Interval: time.Hour}, a.checkHTTPs},
+		{"tcp", &structs.CheckType{TCP: "127.0.0.1:1", Interval: time.Hour}, a.checkTCPs},
+		{"udp", &structs.CheckType{UDP: "127.0.0.1:1", Interval: time.Hour}, a.checkUDPs},
+		{"grpc", &structs.CheckType{GRPC: "127.0.0.1:1", Interval: time.Hour}, a.checkGRPCs},
+		{"h2ping", &structs.CheckType{H2PING: "127.0.0.1:1", Interval: time.Hour}, a.checkH2PINGs},
+		{"docker", &structs.CheckType{DockerContainerID: "foo", ScriptArgs: []string{"exit", "0"}, Interval: time.Hour}, a.checkDockers},
+		{"os_service", &structs.CheckType{OSService: "foo", Interval: time.Hour}, a.checkOSServices},
+		{"alias", &structs.CheckType{AliasService: "foo"}, a.checkAliases},
+		{"ttl", &structs.CheckType{TTL: time.Hour}, a.checkTTLs},
+	}
+
+	// Re-register the same check ID as each type in turn, wrapping around so
+	// that every type is also replaced once. Only the monitor for the latest
+	// type may remain.
+	for _, tc := range append(cases, cases[0]) {
+		health := &structs.HealthCheck{
+			Node:    "foo",
+			CheckID: "mem",
+			Name:    "memory util",
+			Status:  api.HealthCritical,
+		}
+		require.NoError(t, a.AddCheck(health, tc.chkType, false, "", ConfigSourceLocal), tc.name)
+
+		for _, other := range cases {
+			if other.name == tc.name {
+				requireCheckExistsMap(t, other.monitors, "mem")
+			} else {
+				requireCheckMissingMap(t, other.monitors, "mem")
+			}
+		}
+	}
+
+	// Removing the check stops its monitor whatever the type, including OS
+	// service checks.
+	require.NoError(t, a.AddCheck(&structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "mem",
+		Name:    "memory util",
+		Status:  api.HealthCritical,
+	}, &structs.CheckType{OSService: "foo", Interval: time.Hour}, false, "", ConfigSourceLocal))
+	require.NoError(t, a.RemoveCheck(structs.NewCheckID("mem", nil), false))
+	requireCheckMissing(t, a, "mem")
+	requireCheckMissingMap(t, a.checkOSServices, "mem")
+}
+
+func TestAgent_AddService_ReorderedChecks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	srv := &structs.NodeService{
+		ID:      "web",
+		Service: "web",
+		Port:    8080,
+	}
+	tcp := &structs.CheckType{TCP: "127.0.0.1:1", Interval: time.Hour}
+	alias := &structs.CheckType{AliasService: "web"}
+
+	// Checks without an explicit ID are named after their position, so
+	// re-registering the service with its checks in a different order changes
+	// the type of each check ID.
+	require.NoError(t, a.addServiceFromSource(srv, []*structs.CheckType{tcp, alias}, false, "", ConfigSourceLocal))
+	requireCheckExistsMap(t, a.checkTCPs, "service:web:1")
+	requireCheckExistsMap(t, a.checkAliases, "service:web:2")
+
+	require.NoError(t, a.addServiceFromSource(srv, []*structs.CheckType{alias, tcp}, false, "", ConfigSourceLocal))
+	requireCheckExistsMap(t, a.checkAliases, "service:web:1")
+	requireCheckMissingMap(t, a.checkTCPs, "service:web:1")
+	requireCheckExistsMap(t, a.checkTCPs, "service:web:2")
+	requireCheckMissingMap(t, a.checkAliases, "service:web:2")
 }
 
 func TestAgent_RemoveCheck(t *testing.T) {
