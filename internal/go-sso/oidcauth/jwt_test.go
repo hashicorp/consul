@@ -117,7 +117,7 @@ func testJWT_OIDC_Functions_Fail(t *testing.T, authType int) {
 			context.Background(),
 			"abc", "def",
 		)
-		requireErrorContains(t, err, `ClaimsFromAuthCode is incompatible with type "jwt"`)
+		requireErrorContains(t, err, `auth code claims are incompatible with type "jwt"`)
 	})
 }
 
