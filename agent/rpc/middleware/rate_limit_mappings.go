@@ -120,6 +120,8 @@ var rpcRateLimitSpecs = map[string]rate.OperationSpec{
 	"Operator.AutopilotGetConfiguration": {Type: rate.OperationTypeExempt, Category: rate.OperationCategoryOperator},
 	"Operator.AutopilotSetConfiguration": {Type: rate.OperationTypeExempt, Category: rate.OperationCategoryOperator},
 	"Operator.AutopilotState":            {Type: rate.OperationTypeExempt, Category: rate.OperationCategoryOperator},
+	"Operator.FeatureGateGet":            {Type: rate.OperationTypeExempt, Category: rate.OperationCategoryOperator},
+	"Operator.FeatureGateSet":            {Type: rate.OperationTypeExempt, Category: rate.OperationCategoryOperator},
 	"Operator.RaftGetConfiguration":      {Type: rate.OperationTypeExempt, Category: rate.OperationCategoryOperator},
 	"Operator.RaftRemovePeerByAddress":   {Type: rate.OperationTypeExempt, Category: rate.OperationCategoryOperator},
 	"Operator.RaftRemovePeerByID":        {Type: rate.OperationTypeExempt, Category: rate.OperationCategoryOperator},

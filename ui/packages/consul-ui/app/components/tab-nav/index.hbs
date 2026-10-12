@@ -3,53 +3,27 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-{{#let (dom-position (set this 'style') offset=true) 'tab' as |select name|}}
-  <nav
-    style={{{if
-      this.style
-      (concat
-        '--selected-width:'
-        this.style.width
-        ';'
-        '--selected-left:'
-        this.style.left
-        ';'
-        '--selected-height:'
-        this.style.height
-        ';'
-        '--selected-top:'
-        this.style.top
-      )
-      undefined
-    }}}
-    aria-label='Secondary'
-    class={{concat 'tab-nav' ' animatable'}}
+{{#each (array this.tabsKey) key="@identity"}}
+  <Hds::Tabs
+    @size="large"
+    @selectedTabIndex={{this.selectedTabIndex}}
+    @onClickTab={{this.onClickTab}}
     ...attributes
+    as |T|
   >
-    <ul>
-      {{#each @items as |item|}}
-        <li
-          {{on 'click' select}}
-          {{did-upsert (if item.selected select (noop)) @items.length}}
-          data-test-tab={{concat name '_' (if item.label (slugify item.label) (slugify item))}}
-          class={{if
-            (or item.selected (eq this.selected (if item.label (slugify item.label) (slugify item))))
-            'selected'
-          }}
-        >
-          <Action
-            {{on 'click' (fn this.onClick (uppercase item.label))}}
-            {{on 'click' (fn this.onTabClicked item)}}
-            @href={{item.href}}
-          >
-            {{#if item.tooltip}}
-              <span {{hds-tooltip item.tooltip options=(detached-tooltip-options)}}>{{item.label}}</span>
-            {{else}}
-              {{item.label}}
-            {{/if}}
-          </Action>
-        </li>
-      {{/each}}
-    </ul>
-  </nav>
-{{/let}}
+    {{#each @items as |item|}}
+      <T.Tab
+        @isSelected={{item.selected}}
+        data-test-tab={{concat 'tab_' (if item.label (slugify item.label) (slugify item))}}
+        {{this.attachTabTooltip item.tooltip}}
+      >
+        {{item.label}}
+      </T.Tab>
+    {{/each}}
+
+    {{! Route and state content remains owned by callers, but HDS requires one panel per tab. }}
+    {{#each @items}}
+      <T.Panel />
+    {{/each}}
+  </Hds::Tabs>
+{{/each}}

@@ -69,6 +69,8 @@ func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 	var resources []proto.Message
 	validateClusters := meshValidateClusters(cfgSnap)
 	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
+		upstream, _ := cfgSnap.ConnectProxy.GetUpstream(uid, &cfgSnap.ProxyID.EnterpriseMeta)
+		chain = discoveryChainForPortQualifiedUpstream(cfgSnap, uid, upstream, chain)
 		if chain.Default {
 			continue
 		}
@@ -256,6 +258,10 @@ func (s *ResourceGenerator) makeRoutes(
 	return resources, nil
 }
 
+// routesForMeshGateway emits RDS resources for HTTP-like compiled discovery
+// chains. The corresponding mesh-gateway listener filter chain references the
+// same UpstreamID-based route name; enterprise helpers add matching
+// port-qualified resources where needed.
 func (s *ResourceGenerator) routesForMeshGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	if cfgSnap == nil {
 		return nil, errors.New("nil config given")
@@ -294,6 +300,11 @@ func (s *ResourceGenerator) routesForMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 			route.ValidateClusters = response.MakeBoolValue(true)
 		}
 		resources = append(resources, route)
+
+		resources, err = s.appendEntMeshGatewayPeeredMultiportRoutes(resources, cfgSnap, svc, chain, route)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return resources, nil
@@ -668,10 +679,7 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 	if !skip && upstream != nil {
 		upstreamConfigMap = upstream.Config
 	}
-	destinationPort := ""
-	if upstream != nil {
-		destinationPort = upstream.DestinationPort
-	}
+	destinationPort := destinationPortForDiscoveryChain(cfgSnap, uid, upstream, chain)
 	rawUpstreamConfig, err := structs.ParseUpstreamConfigNoDefaults(upstreamConfigMap)
 	if err != nil {
 		return nil, err

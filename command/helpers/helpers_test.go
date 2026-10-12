@@ -3349,6 +3349,324 @@ func TestParseConfigEntry(t *testing.T) {
 				},
 			},
 		},
+		{
+			// Covers the snake_case aliases of the terminating-gateway credential
+			// injection fields decoded by `consul config write`.
+			name: "terminating-gateway: credential injection",
+			snake: `
+				kind = "terminating-gateway"
+				name = "camp-egress"
+				credential_injection {
+					uds_path = "/run/camp-auth/processor.sock"
+					message_timeout = "250ms"
+				}
+				services = [
+				  {
+					name = "openai-a"
+					ca_file = "/etc/ssl/certs/ca-certificates.crt"
+					sni = "api.openai.com"
+					credential {
+						mode = "inject"
+						binding_id = "openai-a"
+					}
+				  }
+				]
+			`,
+			camel: `
+				Kind = "terminating-gateway"
+				Name = "camp-egress"
+				CredentialInjection {
+					UDSPath = "/run/camp-auth/processor.sock"
+					MessageTimeout = "250ms"
+				}
+				Services = [
+				  {
+					Name = "openai-a"
+					CAFile = "/etc/ssl/certs/ca-certificates.crt"
+					SNI = "api.openai.com"
+					Credential {
+						Mode = "inject"
+						BindingID = "openai-a"
+					}
+				  }
+				]
+			`,
+			snakeJSON: `
+			{
+				"kind": "terminating-gateway",
+				"name": "camp-egress",
+				"credential_injection": {
+					"uds_path": "/run/camp-auth/processor.sock",
+					"message_timeout": "250ms"
+				},
+				"services": [
+				  {
+					"name": "openai-a",
+					"ca_file": "/etc/ssl/certs/ca-certificates.crt",
+					"sni": "api.openai.com",
+					"credential": {
+						"mode": "inject",
+						"binding_id": "openai-a"
+					}
+				  }
+				]
+			}
+			`,
+			camelJSON: `
+			{
+				"Kind": "terminating-gateway",
+				"Name": "camp-egress",
+				"CredentialInjection": {
+					"UDSPath": "/run/camp-auth/processor.sock",
+					"MessageTimeout": "250ms"
+				},
+				"Services": [
+				  {
+					"Name": "openai-a",
+					"CAFile": "/etc/ssl/certs/ca-certificates.crt",
+					"SNI": "api.openai.com",
+					"Credential": {
+						"Mode": "inject",
+						"BindingID": "openai-a"
+					}
+				  }
+				]
+			}
+			`,
+			expect: &api.TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "camp-egress",
+				CredentialInjection: &api.GatewayCredentialInjection{
+					UDSPath:        "/run/camp-auth/processor.sock",
+					MessageTimeout: "250ms",
+				},
+				Services: []api.LinkedService{
+					{
+						Name:   "openai-a",
+						CAFile: "/etc/ssl/certs/ca-certificates.crt",
+						SNI:    "api.openai.com",
+						Credential: &api.GatewayServiceCredential{
+							Mode:      "inject",
+							BindingID: "openai-a",
+						},
+					},
+				},
+			},
+		},
+		{
+			// `consul config write` decodes operator HCL/JSON into the api types via
+			// the alias tags, so this covers the snake_case spelling of every
+			// multi-word inference-gateway field.
+			name: "inference-gateway",
+			snake: `
+				kind = "inference-gateway"
+				name = "travel-inference-gateway"
+				processor {
+					failure_mode = "closed"
+					body_model_routing = true
+				}
+				failover {
+					retry_on = ["401", "5xx"]
+					max_tiers = 2
+					per_try_timeout = "30s"
+				}
+				request_timeout = "10m"
+				observability {
+					metrics {
+						// 0 disables the scrape endpoint, so it must decode as a set
+						// value rather than be dropped as the zero value.
+						prometheus {
+							port = 0
+						}
+					}
+					tracing {
+						enabled = true
+						sample_ratio = 0.05
+						otlp {
+							endpoint = "collector:4317"
+						}
+					}
+				}
+				pii {
+					scope = "request"
+					default_action = "placeholder"
+					stream_holdback_bytes = 128
+					mask {
+						char = "*"
+						keep_last = 4
+					}
+					detectors = [
+						{
+							name = "ssn"
+							action = "block"
+						},
+					]
+				}
+			`,
+			camel: `
+				Kind = "inference-gateway"
+				Name = "travel-inference-gateway"
+				Processor {
+					FailureMode = "closed"
+					BodyModelRouting = true
+				}
+				Failover {
+					RetryOn = ["401", "5xx"]
+					MaxTiers = 2
+					PerTryTimeout = "30s"
+				}
+				RequestTimeout = "10m"
+				Observability {
+					Metrics {
+						Prometheus {
+							Port = 0
+						}
+					}
+					Tracing {
+						Enabled = true
+						SampleRatio = 0.05
+						OTLP {
+							Endpoint = "collector:4317"
+						}
+					}
+				}
+				PII {
+					Scope = "request"
+					DefaultAction = "placeholder"
+					StreamHoldbackBytes = 128
+					Mask {
+						Char = "*"
+						KeepLast = 4
+					}
+					Detectors = [
+						{
+							Name = "ssn"
+							Action = "block"
+						},
+					]
+				}
+			`,
+			snakeJSON: `
+			{
+				"kind": "inference-gateway",
+				"name": "travel-inference-gateway",
+				"processor": {
+					"failure_mode": "closed",
+					"body_model_routing": true
+				},
+				"failover": {
+					"retry_on": ["401", "5xx"],
+					"max_tiers": 2,
+					"per_try_timeout": "30s"
+				},
+				"request_timeout": "10m",
+				"observability": {
+					"metrics": { "prometheus": { "port": 0 } },
+					"tracing": { "enabled": true, "sample_ratio": 0.05, "otlp": { "endpoint": "collector:4317" } }
+				},
+				"pii": {
+					"scope": "request",
+					"default_action": "placeholder",
+					"stream_holdback_bytes": 128,
+					"mask": {"char": "*", "keep_last": 4},
+					"detectors": [{"name": "ssn", "action": "block"}]
+				}
+			}
+			`,
+			camelJSON: `
+			{
+				"Kind": "inference-gateway",
+				"Name": "travel-inference-gateway",
+				"Processor": {
+					"FailureMode": "closed",
+					"BodyModelRouting": true
+				},
+				"Failover": {
+					"RetryOn": ["401", "5xx"],
+					"MaxTiers": 2,
+					"PerTryTimeout": "30s"
+				},
+				"RequestTimeout": "10m",
+				"Observability": {
+					"Metrics": { "Prometheus": { "Port": 0 } },
+					"Tracing": { "Enabled": true, "SampleRatio": 0.05, "OTLP": { "Endpoint": "collector:4317" } }
+				},
+				"PII": {
+					"Scope": "request",
+					"DefaultAction": "placeholder",
+					"StreamHoldbackBytes": 128,
+					"Mask": {"Char": "*", "KeepLast": 4},
+					"Detectors": [{"Name": "ssn", "Action": "block"}]
+				}
+			}
+			`,
+			expect: &api.InferenceGatewayConfigEntry{
+				Kind: "inference-gateway",
+				Name: "travel-inference-gateway",
+				Processor: api.InferenceGatewayProcessor{
+					FailureMode:      "closed",
+					BodyModelRouting: true,
+				},
+				Failover: &api.InferenceGatewayFailover{
+					RetryOn:       []string{"401", "5xx"},
+					MaxTiers:      2,
+					PerTryTimeout: "30s",
+				},
+				RequestTimeout: "10m",
+				Observability: &api.InferenceGatewayObservability{
+					Metrics: &api.InferenceGatewayMetrics{
+						Prometheus: &api.InferenceGatewayMetricsPrometheus{Port: intPointer(0)},
+					},
+					Tracing: &api.InferenceGatewayTracing{
+						Enabled:     true,
+						SampleRatio: 0.05,
+						OTLP:        &api.InferenceGatewayOTLPExport{Endpoint: "collector:4317"},
+					},
+				},
+				PII: &api.InferenceGatewayPII{
+					Scope:               "request",
+					DefaultAction:       "placeholder",
+					StreamHoldbackBytes: 128,
+					Mask:                &api.InferenceGatewayPIIMask{Char: "*", KeepLast: 4},
+					Detectors: []api.InferenceGatewayPIIDetector{
+						{Name: "ssn", Action: "block"},
+					},
+				},
+			},
+			expectJSON: &api.InferenceGatewayConfigEntry{
+				Kind: "inference-gateway",
+				Name: "travel-inference-gateway",
+				Processor: api.InferenceGatewayProcessor{
+					FailureMode:      "closed",
+					BodyModelRouting: true,
+				},
+				Failover: &api.InferenceGatewayFailover{
+					RetryOn:       []string{"401", "5xx"},
+					MaxTiers:      2,
+					PerTryTimeout: "30s",
+				},
+				RequestTimeout: "10m",
+				Observability: &api.InferenceGatewayObservability{
+					Metrics: &api.InferenceGatewayMetrics{
+						Prometheus: &api.InferenceGatewayMetricsPrometheus{Port: intPointer(0)},
+					},
+					Tracing: &api.InferenceGatewayTracing{
+						Enabled:     true,
+						SampleRatio: 0.05,
+						OTLP:        &api.InferenceGatewayOTLPExport{Endpoint: "collector:4317"},
+					},
+				},
+				PII: &api.InferenceGatewayPII{
+					Scope:               "request",
+					DefaultAction:       "placeholder",
+					StreamHoldbackBytes: 128,
+					Mask:                &api.InferenceGatewayPIIMask{Char: "*", KeepLast: 4},
+					Detectors: []api.InferenceGatewayPIIDetector{
+						{Name: "ssn", Action: "block"},
+					},
+				},
+			},
+		},
 	} {
 		tc := tc
 

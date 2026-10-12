@@ -1644,6 +1644,10 @@ func TestAPIGatewayController(t *testing.T) {
 		initialEntries []structs.ConfigEntry
 		finalEntries   []structs.ConfigEntry
 		enqueued       []controller.Request
+		// skipBoundConfigSync opts a case out of syncExpectedBoundListenerConfig.
+		// Set it when the reconciler is expected to leave the bound entry
+		// untouched, so its listener config legitimately stays as seeded.
+		skipBoundConfigSync bool
 	}{
 		"gateway-no-routes": {
 			requests: []controller.Request{{
@@ -1729,6 +1733,9 @@ func TestAPIGatewayController(t *testing.T) {
 			},
 		},
 		"tcp-route-not-accepted-bind": {
+			// The gateway is never accepted, so the route does not bind and the
+			// bound entry is never written; it keeps its seeded listener config.
+			skipBoundConfigSync: true,
 			requests: []controller.Request{{
 				Kind: structs.TCPRoute,
 				Name: "tcp-route",
@@ -4205,6 +4212,10 @@ func TestAPIGatewayController(t *testing.T) {
 				require.NoError(t, reconciler.Reconcile(ctx, req))
 			}
 
+			if !tc.skipBoundConfigSync {
+				syncExpectedBoundListenerConfig(tc.finalEntries, tc.initialEntries)
+			}
+
 			_, entries, err := fsm.State().ConfigEntries(nil, acl.WildcardEnterpriseMeta())
 			require.NoError(t, err)
 			for _, entry := range entries {
@@ -4315,4 +4326,251 @@ func (n *noopController) RemoveTrigger(request controller.Request) {
 
 func (n *noopController) Enqueue(requests ...controller.Request) {
 	n.enqueued = append(n.enqueued, requests...)
+}
+
+// syncExpectedBoundListenerConfig copies listener configuration from the
+// APIGateway fixtures onto the expected BoundAPIGateway fixtures. The
+// reconciler's contract is that a bound listener mirrors its parent gateway
+// listener's configuration, so deriving the expectation from the gateway
+// fixture keeps these table entries focused on route and certificate binding
+// while still asserting the mirrored config via IsSame.
+//
+// Listeners are collected per gateway/listener name across every source, with
+// the first source winning. Sources are passed initial-entries-first because
+// the reconciler never rewrites an APIGateway's listeners, so the seeded entry
+// is the source of truth; many finalEntries fixtures declare the gateway only
+// to assert status and elide or partially restate its listeners.
+func syncExpectedBoundListenerConfig(expected []structs.ConfigEntry, gatewaySources ...[]structs.ConfigEntry) {
+	type listenerKey struct {
+		gateway structs.ServiceID
+		name    string
+	}
+
+	listeners := map[listenerKey]structs.APIGatewayListener{}
+	for _, source := range append(gatewaySources, expected) {
+		for _, entry := range source {
+			gateway, ok := entry.(*structs.APIGatewayConfigEntry)
+			if !ok {
+				continue
+			}
+			id := structs.NewServiceID(gateway.Name, &gateway.EnterpriseMeta)
+			for _, listener := range gateway.Listeners {
+				key := listenerKey{gateway: id, name: listener.Name}
+				if _, ok := listeners[key]; !ok {
+					listeners[key] = listener
+				}
+			}
+		}
+	}
+
+	for _, entry := range expected {
+		bound, ok := entry.(*structs.BoundAPIGatewayConfigEntry)
+		if !ok {
+			continue
+		}
+		id := structs.NewServiceID(bound.Name, &bound.EnterpriseMeta)
+		for i := range bound.Listeners {
+			listener, ok := listeners[listenerKey{gateway: id, name: bound.Listeners[i].Name}]
+			if !ok {
+				continue
+			}
+			bound.Listeners[i].SetConfigFromListener(listener)
+		}
+	}
+}
+
+// TestAPIGatewayControllerBoundListenerConfigStaleness is a regression test for
+// the bound listener configuration fields being effectively write-once.
+//
+// BoundAPIGatewayListener carries a copy of its parent APIGatewayListener's
+// configuration. That copy was previously only ever set when the bound entry
+// was first created: BoundAPIGatewayListener.IsSame ignored the copied fields,
+// so the gateway reconcile path decided nothing had changed and skipped the
+// write, while the route reconcile path wrote back the stored entry verbatim.
+//
+// The practical effect was that a gateway whose bound entry was created before
+// these fields existed (i.e. any gateway that survived an upgrade) was left
+// with Port 0 and an empty Protocol forever, and the only remedy was deleting
+// and recreating the gateway.
+func TestAPIGatewayControllerBoundListenerConfigStaleness(t *testing.T) {
+	t.Parallel()
+
+	defaultMeta := acl.DefaultEnterpriseMeta()
+
+	gateway := func(port int, protocol structs.APIGatewayListenerProtocol) *structs.APIGatewayConfigEntry {
+		return &structs.APIGatewayConfigEntry{
+			Kind:           structs.APIGateway,
+			Name:           "gateway",
+			EnterpriseMeta: *defaultMeta,
+			Listeners: []structs.APIGatewayListener{{
+				Name:     "listener",
+				Port:     port,
+				Protocol: protocol,
+			}},
+			Status: structs.Status{
+				Conditions: []structs.Condition{
+					gatewayAccepted(),
+					gatewayListenerNoConflicts(structs.ResourceReference{
+						Kind:           structs.APIGateway,
+						Name:           "gateway",
+						SectionName:    "listener",
+						EnterpriseMeta: *defaultMeta,
+					}),
+				},
+			},
+		}
+	}
+
+	// staleBound models a bound entry written before the configuration fields
+	// were introduced: it has the binding state but no listener config.
+	staleBound := func() *structs.BoundAPIGatewayConfigEntry {
+		return &structs.BoundAPIGatewayConfigEntry{
+			Kind:           structs.BoundAPIGateway,
+			Name:           "gateway",
+			EnterpriseMeta: *defaultMeta,
+			Listeners: []structs.BoundAPIGatewayListener{{
+				Name: "listener",
+			}},
+		}
+	}
+
+	route := &structs.TCPRouteConfigEntry{
+		Kind:           structs.TCPRoute,
+		Name:           "tcp-route",
+		EnterpriseMeta: *defaultMeta,
+		Services:       []structs.TCPService{{Name: "tcp-upstream"}},
+		Parents: []structs.ResourceReference{{
+			Kind:           structs.APIGateway,
+			Name:           "gateway",
+			EnterpriseMeta: *defaultMeta,
+		}},
+		// A route only binds once it has been accepted.
+		Status: structs.Status{
+			Conditions: []structs.Condition{routeAccepted()},
+		},
+	}
+
+	for name, tc := range map[string]struct {
+		initialEntries []structs.ConfigEntry
+		request        controller.Request
+		// assertSubsequentChange is only set for the gateway reconcile path.
+		// The route path deliberately writes the bound entry only when route
+		// binding actually changes, so a config-only edit does not trigger a
+		// write there; its contract is just to never resurrect stale config.
+		assertSubsequentChange bool
+	}{
+		"gateway reconcile repairs a bound entry with no listener config": {
+			assertSubsequentChange: true,
+			initialEntries: []structs.ConfigEntry{
+				gateway(8443, structs.ListenerProtocolTCP),
+				staleBound(),
+			},
+			request: controller.Request{
+				Kind: structs.APIGateway,
+				Name: "gateway",
+				Meta: defaultMeta,
+			},
+		},
+		"route reconcile does not write back stale listener config": {
+			initialEntries: []structs.ConfigEntry{
+				gateway(8443, structs.ListenerProtocolTCP),
+				staleBound(),
+				route,
+			},
+			request: controller.Request{
+				Kind: structs.TCPRoute,
+				Name: "tcp-route",
+				Meta: defaultMeta,
+			},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+
+			publisher := stream.NewEventPublisher(1 * time.Millisecond)
+			go publisher.Run(ctx)
+
+			fsm := fsm.NewFromDeps(fsm.Deps{
+				Logger: hclog.New(nil),
+				NewStateStore: func() *state.Store {
+					return state.NewStateStoreWithEventPublisher(nil, publisher)
+				},
+				Publisher:      publisher,
+				StorageBackend: fsm.NullStorageBackend,
+			})
+
+			var index uint64
+			updater := &Updater{
+				UpdateWithStatus: func(entry structs.ControlledConfigEntry) error {
+					index++
+					_, err := fsm.State().EnsureConfigEntryWithStatusCAS(index, entry.GetRaftIndex().ModifyIndex, entry)
+					return err
+				},
+				Update: func(entry structs.ConfigEntry) error {
+					index++
+					_, err := fsm.State().EnsureConfigEntryCAS(index, entry.GetRaftIndex().ModifyIndex, entry)
+					return err
+				},
+				Delete: func(entry structs.ConfigEntry) error {
+					index++
+					_, err := fsm.State().DeleteConfigEntryCAS(index, entry.GetRaftIndex().ModifyIndex, entry)
+					return err
+				},
+			}
+
+			for _, entry := range tc.initialEntries {
+				if controlled, ok := entry.(structs.ControlledConfigEntry); ok {
+					require.NoError(t, updater.UpdateWithStatus(controlled))
+					continue
+				}
+				require.NoError(t, updater.Update(entry))
+			}
+
+			reconciler := apiGatewayReconciler{
+				fsm:        fsm,
+				logger:     hclog.Default(),
+				updater:    updater,
+				controller: &noopController{triggers: make(map[controller.Request]struct{})},
+			}
+
+			readBoundListener := func() structs.BoundAPIGatewayListener {
+				_, entry, err := fsm.State().ConfigEntry(nil, structs.BoundAPIGateway, "gateway", defaultMeta)
+				require.NoError(t, err)
+				require.NotNil(t, entry)
+				bound := entry.(*structs.BoundAPIGatewayConfigEntry)
+				require.Len(t, bound.Listeners, 1)
+				return bound.Listeners[0]
+			}
+
+			// Sanity check that the seeded entry really is stale, otherwise the
+			// assertions below would pass without exercising anything.
+			seeded := readBoundListener()
+			require.Zero(t, seeded.Port)
+			require.Empty(t, seeded.Protocol)
+
+			require.NoError(t, reconciler.Reconcile(ctx, tc.request))
+
+			repaired := readBoundListener()
+			require.Equal(t, 8443, repaired.Port)
+			require.Equal(t, structs.ListenerProtocolTCP, repaired.Protocol)
+
+			if !tc.assertSubsequentChange {
+				return
+			}
+
+			// A subsequent configuration change must also propagate, rather
+			// than the first successful write becoming the new permanent state.
+			_, current, err := fsm.State().ConfigEntry(nil, structs.APIGateway, "gateway", defaultMeta)
+			require.NoError(t, err)
+			changed := gateway(9443, structs.ListenerProtocolTCP)
+			// Carry the current index forward so the CAS write is not a no-op.
+			changed.RaftIndex = *current.GetRaftIndex()
+			require.NoError(t, updater.UpdateWithStatus(changed))
+			require.NoError(t, reconciler.Reconcile(ctx, tc.request))
+
+			updated := readBoundListener()
+			require.Equal(t, 9443, updated.Port)
+		})
+	}
 }

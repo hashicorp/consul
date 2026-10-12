@@ -4,5 +4,47 @@
  */
 
 .consul-lock-session-form {
-  overflow: hidden;
+  /* NB: not `overflow: hidden` -- the card below draws its edge as an outset
+     1px box-shadow ring, which a clipping ancestor reduces to corner ticks. */
+  min-width: 0;
+}
+
+.consul-lock-session-form__card {
+  padding: 20px;
+}
+
+.consul-lock-session-form__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+
+  /* the help link is just the info icon here, so centre it on the heading
+     rather than leaving it on the text's baseline offsets */
+  a[rel*='help'] {
+    display: inline-flex;
+    align-items: center;
+
+    &::after {
+      margin: 0;
+    }
+  }
+}
+
+.consul-lock-session-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.consul-lock-session-form__card .definition-table > dl {
+  /* the card supplies the trailing space, so drop the placeholder's own */
+  margin-bottom: 0;
+  align-items: baseline;
+}
+
+/* The Node value is a tertiary button whose padding would otherwise indent it
+   past the other values in the column. */
+.consul-lock-session-form__card .definition-table dd > .hds-button {
+  margin-left: calc(var(--token-button-padding-horizontal-small, 8px) * -1);
 }

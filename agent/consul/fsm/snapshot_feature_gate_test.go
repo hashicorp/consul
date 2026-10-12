@@ -9,6 +9,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
+
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -54,4 +56,55 @@ func TestFSM_FeatureGateSnapshotRestore(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, expectedPolicy, actualPolicy)
 	require.Equal(t, expectedStatus, actualStatus)
+
+	_, entries, err := restored.state.SystemMetadataList(nil)
+	require.NoError(t, err)
+	for _, entry := range entries {
+		require.NotEqual(t, structs.SystemMetadataFeatureGatesStateKey, entry.Key)
+	}
+}
+
+// A server that predates the framework has no restorer for the gate message
+// type, so the snapshot must not contain one.
+func TestFSM_FeatureGateSnapshotRestorableByOlderServer(t *testing.T) {
+	original := NewFromDeps(Deps{
+		Logger: testutil.Logger(t),
+		NewStateStore: func() *state.Store {
+			return state.NewStateStore(nil)
+		},
+		StorageBackend: newStorageBackend(t, nil),
+	})
+	applied, err := original.state.FeatureGateUpdate(15, &structs.FeatureGateUpdateRequest{
+		Policy: &structs.FeatureGatePolicy{Settings: map[string]structs.FeatureGateSetting{
+			"test-feature": {Enabled: true, Source: structs.FeatureGateSourceOperator},
+		}},
+		Status: &structs.FeatureGateStatus{RegistryDigest: "digest"},
+	})
+	require.NoError(t, err)
+	require.True(t, applied)
+
+	snapshot, err := original.Snapshot()
+	require.NoError(t, err)
+	defer snapshot.Release()
+	sink := &MockSink{Buffer: bytes.NewBuffer(nil)}
+	require.NoError(t, snapshot.Persist(sink))
+
+	var gateEntries int
+	err = ReadSnapshot(sink, func(_ *SnapshotHeader, msg structs.MessageType, dec *codec.Decoder) error {
+		require.NotEqual(t, structs.FeatureGateRequestType, msg)
+		if msg == structs.SystemMetadataRequestType {
+			var entry structs.SystemMetadataEntry
+			if err := dec.Decode(&entry); err != nil {
+				return err
+			}
+			if entry.Key == structs.SystemMetadataFeatureGatesStateKey {
+				gateEntries++
+			}
+			return nil
+		}
+		var ignored interface{}
+		return dec.Decode(&ignored)
+	})
+	require.NoError(t, err)
+	require.Equal(t, 1, gateEntries)
 }

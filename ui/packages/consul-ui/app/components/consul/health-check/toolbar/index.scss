@@ -1,0 +1,22 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+/* Unlike the node/service-instance toolbars, nothing renders as a data-table
+   card directly beneath this one (the check list is a plain card list), so
+   this toolbar keeps a full, self-contained card outline on all four sides
+   rather than squaring off against an adjacent table. */
+.consul-health-check-toolbar {
+  padding: 8px;
+  background-color: var(--token-color-surface-faint);
+  border: 1px solid var(--token-color-border-faint);
+  border-radius: 6px;
+}
+
+/* Separator between the controls row (Filters / Search / Sort) and the
+   applied-filters area ("No filters applied" / active filter tags) below. */
+.consul-health-check-toolbar .hds-filter-bar__actions {
+  border-bottom: 1px solid var(--token-color-border-faint);
+  padding-bottom: 8px;
+}

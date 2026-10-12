@@ -562,7 +562,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		Publisher:      flat.EventPublisher,
 		StorageBackend: s.raftStorageBackend,
 	})
-	go s.runFeatureGateCache(&lib.StopChannelContext{StopCh: shutdownCh})
 
 	var recorder *middleware.RequestRecorder
 	if flat.NewRequestRecorderFunc != nil {
@@ -683,6 +682,9 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start Raft: %v", err)
 	}
+
+	// Started after setupRaft so the goroutine observes the assigned s.raft.
+	go s.runFeatureGateCache(&lib.StopChannelContext{StopCh: shutdownCh})
 
 	s.caManager = NewCAManager(&caDelegateWithState{Server: s}, s.leaderRoutineManager, s.logger.ResetNamed("connect.ca"), s.config)
 	if s.config.ConnectEnabled && (s.config.AutoEncryptAllowTLS || s.config.AutoConfigAuthzEnabled) {

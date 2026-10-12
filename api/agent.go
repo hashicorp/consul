@@ -46,6 +46,14 @@ const (
 	// This service will ingress connections based of configuration defined in
 	// the api-gateway config entry.
 	ServiceKindAPIGateway ServiceKind = "api-gateway"
+
+	// ServiceKindInferenceGateway is an Inference Gateway for the Agent Gateway
+	// (Inference plane). It accepts agent (A2LLM) traffic over mesh mTLS,
+	// enforces SPIFFE identity + intentions on inbound like a terminating
+	// gateway, runs an ext_proc filter over a loopback/UDS socket to a
+	// co-located policy processor, and dispatches to LLM providers via a
+	// terminating gateway. Routing is defined in the inference-gateway config entry.
+	ServiceKindInferenceGateway ServiceKind = "inference-gateway"
 )
 
 // UpstreamDestType is the type of upstream discovery mechanism.

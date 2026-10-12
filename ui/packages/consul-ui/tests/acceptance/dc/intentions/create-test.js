@@ -47,7 +47,7 @@ module('Acceptance | dc / intentions / create: Intention Create', function (hook
       await visit('intention', { dc: 'datacenter' }, { nspace });
 
       assert.equal(currentURL(), withNspace(nspace, '/datacenter/intentions/create'));
-      assert.equal(document.title, 'New Intention - Consul');
+      assert.equal(document.title, 'Create Intention - Consul');
 
       // Set source
       await click('[data-test-source-element] .ember-power-select-trigger');
@@ -117,7 +117,7 @@ module('Acceptance | dc / intentions / create: Intention Create', function (hook
       await visit('intention', { dc: 'datacenter' }, { nspace });
 
       assert.equal(currentURL(), withNspace(nspace, '/datacenter/intentions/create'));
-      assert.equal(document.title, 'New Intention - Consul');
+      assert.equal(document.title, 'Create Intention - Consul');
 
       // Set source
       await click('[data-test-source-element] .ember-power-select-trigger');

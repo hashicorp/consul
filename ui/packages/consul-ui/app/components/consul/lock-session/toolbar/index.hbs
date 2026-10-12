@@ -1,0 +1,21 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{!
+  Node-detail Lock-sessions-tab toolbar. All the Filter Bar wiring (filter
+  groups, applied tags, search, "Search across", stay-expanded behaviour) lives
+  in the generic Consul::ListToolbar; this component only supplies the Behaviour
+  filter config. There is no sort dropdown — Consul::LockSession::Table's column
+  headers own sorting.
+}}
+<Consul::ListToolbar
+  class="consul-lock-session-toolbar"
+  ...attributes
+  @filter={{@filter}}
+  @search={{@search}}
+  @onsearch={{@onsearch}}
+  @filterGroups={{this.filterGroups}}
+  @searchPlaceholder={{t "common.search.search"}}
+/>

@@ -104,6 +104,12 @@ type ConfigSnapshotUpstreams struct {
 	PeerUpstreamEndpoints watch.Map[UpstreamID, structs.CheckServiceNodes]
 
 	PeerUpstreamEndpointsUseHostnames map[UpstreamID]struct{}
+
+	// PeeredPortUpstreamVIPs maps a peered UpstreamID (including synthetic per-port
+	// entries with name "<portName>.<serviceName>") to the virtual IP assigned
+	// to it locally. Enterprise multiport peering uses this to emit a distinct
+	// outbound filter chain per named port on the dialing proxy.
+	PeeredPortUpstreamVIPs map[UpstreamID]string
 }
 
 // indexedTarget is used to associate the Raft modify index of a resource
@@ -385,6 +391,7 @@ type PeerServersValue struct {
 
 type PeeringServiceValue struct {
 	Nodes  structs.CheckServiceNodes
+	Ports  []string
 	UseCDS bool
 }
 
@@ -509,7 +516,9 @@ type configSnapshotMeshGateway struct {
 	// bundles has completed at least once.
 	PeeringTrustBundlesSet bool
 
-	// ServicePorts tracks which ports each service exposes.
+	// ServicePorts tracks which ports each local/exported service exposes.
+	// Imported peered services must not be stored here: sender mesh gateways
+	// preserve named-port ALPN through the existing SNI passthrough path.
 	// Maps ServiceName -> []portName
 	// This is populated from service metadata with key "ports" in format "name:number,name:number"
 	// Only port names are stored; port numbers are not needed for mesh gateway routing.
@@ -785,7 +794,7 @@ type configSnapshotAPIGateway struct {
 	BoundListeners map[string]structs.BoundAPIGatewayListener
 
 	// ComposeUpstreamRouting is the final committed feature decision captured
-	// for this snapshot. It is true only for the server-catalog path.
+	// for this snapshot. It is always true for agentful gateways.
 	ComposeUpstreamRouting bool
 }
 
@@ -943,6 +952,11 @@ DOMAIN_LOOP:
 	}
 	skipped = append(skipped, preSkipped...)
 
+	// Make the route path's cluster names match the cluster path's. Reported as
+	// skipped-route warnings rather than a hard error so one unalignable route
+	// does not take down the rest of the listener.
+	skipped = append(skipped, alignSynthesizedCustomizationHashes(compiled, c.DiscoveryChain)...)
+
 	// reconstruct the upstreams
 	upstreams := make([]structs.Upstream, 0, len(services))
 	for _, service := range services {
@@ -959,6 +973,108 @@ DOMAIN_LOOP:
 	}
 
 	return services, upstreams, compiled, skipped, nil
+}
+
+// alignSynthesizedCustomizationHashes makes the cluster names produced by the
+// ROUTE path agree with the cluster names produced by the CLUSTER path.
+//
+// Background. Envoy cluster names for a discovery chain run through
+// naming.CustomizeClusterName(target.Name, chain), which prefixes "<hash>~" when
+// the chain carries a CustomizationHash. A chain gets that hash only when it was
+// compiled with an OverrideProtocol that DIFFERS from the service's natural
+// protocol (see discoverychain.Compile: `if c.overrideProtocol != c.protocol`).
+//
+// The two xDS paths reach their chains differently:
+//
+//   - clusters (xds/clusters.go clustersFromSnapshotAPIGateway) look up
+//     DiscoveryChain[<backend service>], which proxycfg compiled with
+//     OverrideProtocol set to the LISTENER protocol. When an api-gateway
+//     listener declares http2/grpc but the backend's ServiceDefaults says http,
+//     those differ, so the emitted cluster is "<hash>~backend...".
+//
+//   - routes (xds/routes.go routesForAPIGateway) look up the SYNTHESIZED chain
+//     for the flattened route, built by GatewayChainSynthesizer.Synthesize.
+//     That Compile call passes no OverrideProtocol, so the synthesized chain has
+//     an empty CustomizationHash and the route targets plain "backend...".
+//
+// The route therefore references a cluster that does not exist. Envoy answers
+// every request with a 503 and increments
+// http.ingress_upstream_<port>.no_cluster. Because api-gateway clusters are
+// deduplicated per upstream across listeners, a single mismatched listener takes
+// down every listener sharing that backend, including plain http listeners that
+// declare no protocol of their own.
+//
+// The fix copies the hash from the per-service chains the synthesized chain
+// actually resolves to, which is by construction the name the cluster path will
+// emit. It is applied only when every target agrees on a single non-empty hash:
+// CustomizeClusterName stamps one hash across all of a chain's targets, so a
+// route fanning out to backends with genuinely different customizations cannot
+// be expressed here, and silently stamping one of them would swap a missing
+// cluster for a wrong one. Such a route is left alone and reported by the
+// caller.
+func alignSynthesizedCustomizationHashes(
+	compiled []*structs.CompiledDiscoveryChain,
+	serviceChains map[UpstreamID]*structs.CompiledDiscoveryChain,
+) []error {
+	var conflicts []error
+
+	for _, chain := range compiled {
+		if chain == nil || chain.CustomizationHash != "" {
+			continue
+		}
+
+		hashes := make(map[string]struct{})
+		for _, target := range chain.Targets {
+			if target == nil || target.External {
+				continue
+			}
+			em := acl.NewEnterpriseMetaWithPartition(target.Partition, target.Namespace)
+			id := NewUpstreamIDFromServiceName(structs.NewServiceName(target.Service, &em))
+			serviceChain := serviceChains[id]
+			if serviceChain == nil {
+				continue
+			}
+			// Skip the chain's reference to itself.
+			//
+			// A synthesized api-gateway chain is named for its listener and is
+			// itself published into serviceChains, and its target set includes
+			// that same listener name. Reading the hash back through that
+			// self-reference asks the chain what it was customized to before
+			// this function has decided -- so it contributes the not-yet-set
+			// "" and collides with the genuine backend hash, and the
+			// disagreement check below then declines to align a chain whose
+			// real backends all agree.
+			//
+			// This is a self-reference, not a backend, and it carries no
+			// information about the cluster names the cluster path will emit.
+			if serviceChain.ServiceName == chain.ServiceName &&
+				serviceChain.Partition == chain.Partition &&
+				serviceChain.Namespace == chain.Namespace {
+				continue
+			}
+			hashes[serviceChain.CustomizationHash] = struct{}{}
+		}
+
+		// No targets, or every target uncustomized: the unprefixed name the
+		// route already uses is correct.
+		if len(hashes) == 0 {
+			continue
+		}
+		if len(hashes) > 1 {
+			conflicts = append(conflicts, fmt.Errorf(
+				"route chain %q resolves to backends with differing protocol customizations; "+
+					"cluster names cannot be aligned for all of them", chain.ServiceName))
+			continue
+		}
+
+		for hash := range hashes {
+			if hash != "" {
+				chain.CustomizationHash = hash
+			}
+		}
+	}
+
+	return conflicts
 }
 
 // discoveryChainsMissingEndpoints returns "uid/targetID" for every synthesized
@@ -1169,6 +1285,12 @@ type ConfigSnapshot struct {
 	IntentionDefaultAllow bool
 	Locality              GatewayKey
 	JWTProviders          map[string]*structs.JWTProviderConfigEntry
+
+	// LocalizedDNSEnabled reports whether the featuregate.LocalizedDNS feature
+	// is enabled. When false, xDS generation must not add the inline virtual
+	// DNS listener or the egress recursor DNS listener to connect-proxy
+	// sidecars, regardless of virtual IP or recursor configuration.
+	LocalizedDNSEnabled bool
 
 	ServerSNIFn ServerSNIFunc
 	Roots       *structs.IndexedCARoots
@@ -1387,6 +1509,44 @@ func (s *ConfigSnapshot) ToConfigSnapshotUpstreams() (*ConfigSnapshotUpstreams, 
 		// This is a coherence check and should never fail
 		return nil, fmt.Errorf("No upstream snapshot for gateway mode %q", s.Kind)
 	}
+}
+
+// PeeredUpstreamPortVIPs returns the per-port virtual IPs assigned locally for a
+// base peered upstream, keyed by named port. Enterprise multiport peering stores
+// these under synthetic upstream IDs whose Name is "<portName>.<baseServiceName>"
+// and which share the base upstream's Peer and partition/namespace. The base
+// upstream itself (Name == baseServiceName) is excluded. Returns nil if none.
+func (u *ConfigSnapshotUpstreams) PeeredUpstreamPortVIPs(base UpstreamID) map[string]string {
+	// An explicit destination_port upstream is already scoped to one named
+	// port and must not be expanded into the service's complete port set.
+	if base.DestinationPort != "" || len(u.PeeredPortUpstreamVIPs) == 0 {
+		return nil
+	}
+
+	suffix := "." + base.Name
+	var out map[string]string
+	for uid, vip := range u.PeeredPortUpstreamVIPs {
+		if vip == "" || uid.Peer != base.Peer || uid.Name == base.Name {
+			continue
+		}
+		if !acl.EqualPartitions(uid.PartitionOrDefault(), base.PartitionOrDefault()) ||
+			uid.NamespaceOrDefault() != base.NamespaceOrDefault() {
+			continue
+		}
+		if !strings.HasSuffix(uid.Name, suffix) {
+			continue
+		}
+
+		portName := strings.TrimSuffix(uid.Name, suffix)
+		if portName == "" || strings.Contains(portName, ".") {
+			continue
+		}
+		if out == nil {
+			out = make(map[string]string)
+		}
+		out[portName] = vip
+	}
+	return out
 }
 
 func (u *ConfigSnapshotUpstreams) UpstreamPeerMeta(uid UpstreamID) (structs.PeeringServiceMeta, bool) {

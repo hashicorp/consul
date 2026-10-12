@@ -1268,7 +1268,8 @@ func (k ServiceKind) IsProxy() bool {
 		ServiceKindMeshGateway,
 		ServiceKindTerminatingGateway,
 		ServiceKindIngressGateway,
-		ServiceKindAPIGateway:
+		ServiceKindAPIGateway,
+		ServiceKindInferenceGateway:
 		return true
 	}
 	return false
@@ -1304,6 +1305,14 @@ const (
 	// This service allows external traffic to enter the mesh based on
 	// centralized configuration.
 	ServiceKindAPIGateway ServiceKind = "api-gateway"
+
+	// ServiceKindInferenceGateway is an Inference Gateway for the Agent Gateway
+	// (Inference plane). It accepts agent (A2LLM) traffic over mesh mTLS,
+	// enforces SPIFFE identity + intentions on inbound like a terminating
+	// gateway, runs an ext_proc filter over a loopback/UDS socket to a
+	// co-located policy processor, and dispatches to LLM providers via a
+	// terminating gateway. Routing is defined in the inference-gateway config entry.
+	ServiceKindInferenceGateway ServiceKind = "inference-gateway"
 
 	// ServiceKindDestination is a Destination  for the Consul Service Mesh feature.
 	// This service allows external traffic to exit the mesh through a terminating gateway
@@ -1612,7 +1621,8 @@ func (s *NodeService) IsGateway() bool {
 	return s.Kind == ServiceKindMeshGateway ||
 		s.Kind == ServiceKindTerminatingGateway ||
 		s.Kind == ServiceKindIngressGateway ||
-		s.Kind == ServiceKindAPIGateway
+		s.Kind == ServiceKindAPIGateway ||
+		s.Kind == ServiceKindInferenceGateway
 }
 
 // Validate validates the node service configuration.
@@ -1639,6 +1649,10 @@ func (s *NodeService) Validate() error {
 
 	if s.AI != nil {
 		result = multierror.Append(fmt.Errorf("ai is ent only feature"))
+	}
+
+	if s.Kind == ServiceKindInferenceGateway {
+		result = multierror.Append(result, fmt.Errorf("inference-gateway is a consul enterprise feature"))
 	}
 
 	commonValidation := s.ValidateForAgent()
@@ -2527,6 +2541,20 @@ func (psn PeeredServiceName) String() string {
 	return fmt.Sprintf("%v:%v", psn.ServiceName.String(), psn.Peer)
 }
 
+// PeeredServiceNameFromString reverses PeeredServiceName.String. The final
+// colon separates the service identity from the peer name.
+func PeeredServiceNameFromString(input string) (PeeredServiceName, bool) {
+	idx := strings.LastIndex(input, ":")
+	if idx <= 0 || idx == len(input)-1 {
+		return PeeredServiceName{}, false
+	}
+
+	return PeeredServiceName{
+		ServiceName: ServiceNameFromString(input[:idx]),
+		Peer:        input[idx+1:],
+	}, true
+}
+
 type ServiceNameWithSamenessGroup struct {
 	SamenessGroup string
 	ServiceName
@@ -2583,7 +2611,16 @@ type IndexedServiceList struct {
 }
 
 type IndexedPeeredServiceList struct {
+	// Services is the legacy peered-upstream list. It intentionally contains
+	// only base services so older consumers never interpret synthetic per-port
+	// projections as independently exported services.
 	Services []PeeredServiceName
+	// ServiceVIPs maps a peered service (keyed by PeeredServiceName.String()) to
+	// the virtual IP assigned to it locally by the importing partition. This
+	// includes synthetic per-port entries (service name "<portName>.<serviceName>")
+	// used by enterprise multiport peering so that the dialing proxy can emit a
+	// distinct outbound filter chain per named port. May be empty.
+	ServiceVIPs map[string]string `json:",omitempty"`
 	QueryMeta
 }
 

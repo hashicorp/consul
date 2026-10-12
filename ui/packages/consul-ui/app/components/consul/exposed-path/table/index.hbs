@@ -1,0 +1,49 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+<div class="consul-exposed-path-table" ...attributes>
+  <Consul::DataTable
+    @items={{@items}}
+    @columns={{this.columns}}
+    @ariaLabel="Exposed paths"
+    @card={{@card}}
+    data-test-proxy-exposed-paths
+  >
+    <:row as |item B|>
+      {{! ---- Address ---- }}
+      <B.Td data-test-exposed-path-address>
+        {{#let (this.combinedAddressFor item) as |combinedAddress|}}
+          <span class="consul-exposed-path-table__address" data-test-combined-address>
+            {{combinedAddress}}
+            <ConsulCopyButton
+              @value={{combinedAddress}}
+              @name="Address"
+            />
+          </span>
+        {{/let}}
+      </B.Td>
+
+      {{! ---- Protocol ---- }}
+      <B.Td data-test-exposed-path-protocol>
+        {{or item.Protocol "-"}}
+      </B.Td>
+
+      {{! ---- Listener port ---- }}
+      <B.Td data-test-exposed-path-listener-port>
+        {{#if item.ListenerPort}}listening on :{{item.ListenerPort}}{{else}}-{{/if}}
+      </B.Td>
+
+      {{! ---- Local path ---- }}
+      <B.Td data-test-exposed-path-local-path>
+        {{#if item.LocalPathPort}}local port :{{item.LocalPathPort}}{{else}}-{{/if}}
+      </B.Td>
+
+      {{! ---- Path ---- }}
+      <B.Td data-test-exposed-path-path>
+        {{or item.Path "-"}}
+      </B.Td>
+    </:row>
+  </Consul::DataTable>
+</div>

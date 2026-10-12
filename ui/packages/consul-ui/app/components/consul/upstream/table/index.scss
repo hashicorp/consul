@@ -1,0 +1,77 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+/* When the toolbar lives above the table card (as a sibling, not inside it),
+   square off the card's top corners so the two elements form one visual unit. */
+.consul-service-toolbar + .consul-upstream-table .consul-data-table__card {
+  border-radius: 0 0 6px 6px;
+}
+
+.consul-upstream-table {
+  .consul-upstream-table__name {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
+    a {
+      font-weight: var(--token-typography-font-weight-semibold);
+    }
+  }
+
+  .consul-bucket-list {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+  }
+
+  .consul-upstream-table__tags {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .consul-upstream-table__tags-toggle {
+    &::before {
+      background-color: transparent;
+    }
+
+    .hds-icon {
+      color: var(--token-color-foreground-faint);
+    }
+
+    &:hover .hds-icon,
+    &:focus .hds-icon,
+    &:active .hds-icon {
+      color: var(--token-color-foreground-action);
+    }
+  }
+
+  .consul-upstream-table__tags-tooltip {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .consul-upstream-table__tags-tooltip-title {
+    color: var(--token-color-foreground-strong);
+  }
+
+  .consul-upstream-table__tags-tooltip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .consul-upstream-table__addresses {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .consul-upstream-table__address {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}

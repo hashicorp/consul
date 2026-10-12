@@ -17,7 +17,7 @@ module('Integration | Component | tag list', function (hooks) {
 
     await render(hbs`<TagList @item={{hash Tags=(array 'tag')}} />`);
 
-    assert.dom('dd').hasText('tag');
+    assert.dom('[data-test-tags]').hasText('tag');
 
     // Template block usage:
     await render(hbs`
@@ -26,6 +26,6 @@ module('Integration | Component | tag list', function (hooks) {
       </TagList>
     `);
 
-    assert.dom('dd').hasText('tag');
+    assert.dom('[data-test-tags]').hasText('tag');
   });
 });

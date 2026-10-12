@@ -25,9 +25,17 @@ export class HrefTo {
       !this.isExternal(this.target) &&
       !this.hasActionHelper(this.target) &&
       !this.hasDownload(this.target) &&
-      !this.isLinkComponent(this.target)
+      !this.isLinkComponent(this.target) &&
+      !this.isHashOnly(this.url)
     );
     // && this.recognizeUrl(this.url);
+  }
+
+  // In-page anchors (e.g. `#hds-main`, used by "skip to main content" links)
+  // aren't application routes, so let the browser handle them natively
+  // instead of forwarding them to the router as a transition.
+  isHashOnly(url) {
+    return typeof url === 'string' && url.charAt(0) === '#';
   }
 
   isUnmodifiedLeftClick(e) {

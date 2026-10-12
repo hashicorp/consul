@@ -1,0 +1,19 @@
+```release-note:breaking-change
+sdk: Replaced the `iptables` package with a new `nftables` package for transparent proxy traffic redirection. Traffic redirection now requires the `nft` binary and a Linux kernel with stateful NAT support in `nftables` `inet` family chains, available upstream starting with Linux kernel version 5.2 (some distributions backport this support onto an earlier nominal kernel version, for example RHEL 8+, kernel 4.18+, and its derivatives). There is no automatic fallback to `iptables`/`ip6tables`, so hosts without this kernel support will fail to set up transparent proxy redirection.
+```
+
+```release-note:breaking-change
+docker: The official Consul container images now include `nftables` instead of `iptables`. Scripts that run `iptables` inside the Consul image must be updated.
+```
+
+```release-note:breaking-change
+cli: Migrated the `consul connect redirect-traffic` command from `iptables`/`ip6tables` to `nftables` (`nft`). The command now uses the `sdk/nftables` package, which applies all IPv4 and IPv6 rules atomically in a single pass via the `nftables` `inet` address family, instead of separate `iptables` and `ip6tables` invocations.
+```
+
+```release-note:breaking-change
+cli: `consul connect redirect-traffic` does not remove `iptables`/`ip6tables` rules created by earlier Consul versions. This only matters when upgrading an existing host or VM in place. Before running the new command on an existing host or VM, remove any Consul-managed `iptables` rules first (see the transparent proxy upgrade guide for a reference cleanup script). Leaving both rule sets in place can cause double NAT or inconsistent traffic redirection.
+```
+
+```release-note:breaking-change
+cli: Transparent proxy exclusions are now validated before rules are applied: user IDs must be numeric and outbound exclusions must be IP addresses or CIDRs. `iptables` previously also accepted user names, UID ranges, and host names.
+```

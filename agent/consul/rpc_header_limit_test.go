@@ -6,6 +6,7 @@ package consul
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"net"
 	"strings"
 	"testing"
@@ -108,7 +109,7 @@ func newPipeCodec(t *testing.T, maxHeaderBytes int) (*boundedHeaderCodec, net.Co
 		server.Close()
 		client.Close()
 	})
-	c := newBoundedHeaderCodec(server, structs.MsgpackHandle, maxHeaderBytes)
+	c := newBoundedHeaderCodec(server, structs.MsgpackHandle, maxHeaderBytes, time.Second)
 	return c, client
 }
 
@@ -188,4 +189,127 @@ func TestBoundedHeaderCodec_ReadRequestHeader(t *testing.T) {
 		require.NoError(t, c.ReadRequestHeader(&req))
 		require.Equal(t, method, req.ServiceMethod)
 	})
+}
+
+type deadlineRecordingConn struct {
+	net.Conn
+	deadlines []time.Time
+	setErr    error
+	clearErr  error
+}
+
+func (c *deadlineRecordingConn) SetReadDeadline(deadline time.Time) error {
+	c.deadlines = append(c.deadlines, deadline)
+	if deadline.IsZero() && c.clearErr != nil {
+		return c.clearErr
+	}
+	if !deadline.IsZero() && c.setErr != nil {
+		return c.setErr
+	}
+	return c.Conn.SetReadDeadline(deadline)
+}
+
+func writeCodecRequest(t *testing.T, conn net.Conn, data []byte) <-chan error {
+	t.Helper()
+	result := make(chan error, 1)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		_, err := conn.Write(data)
+		result <- err
+	}()
+	t.Cleanup(func() {
+		conn.Close()
+		<-done
+	})
+	return result
+}
+
+func TestBoundedHeaderCodec_RequestDeadlines(t *testing.T) {
+	for _, timeout := range []time.Duration{time.Second, 0, -time.Second} {
+		for _, discardBody := range []bool{false, true} {
+			name := timeout.String()
+			if discardBody {
+				name += "/discard-body"
+			} else {
+				name += "/decode-body"
+			}
+			t.Run(name, func(t *testing.T) {
+				server, client := net.Pipe()
+				t.Cleanup(func() {
+					server.Close()
+					client.Close()
+				})
+				conn := &deadlineRecordingConn{Conn: server}
+				c := newBoundedHeaderCodec(conn, structs.MsgpackHandle, 512, timeout)
+				body := strings.Repeat("z", 8192)
+
+				for seq := uint64(1); seq <= 2; seq++ {
+					var wire bytes.Buffer
+					wire.Write(encodeHeader(t, "Example.Method", seq))
+					require.NoError(t, codec.NewEncoder(&wire, structs.MsgpackHandle).Encode(body))
+					result := writeCodecRequest(t, client, wire.Bytes())
+
+					var req netRPC.Request
+					require.NoError(t, c.ReadRequestHeader(&req))
+					require.Equal(t, seq, req.Seq)
+					if timeout > 0 {
+						require.Len(t, conn.deadlines, int(seq)*2-1)
+						require.False(t, conn.deadlines[len(conn.deadlines)-1].IsZero(),
+							"the body must remain covered by the header's deadline")
+					}
+
+					if discardBody {
+						require.NoError(t, c.ReadRequestBody(nil))
+					} else {
+						var got string
+						require.NoError(t, c.ReadRequestBody(&got))
+						require.Equal(t, body, got)
+					}
+					require.NoError(t, <-result)
+					if timeout > 0 {
+						require.Len(t, conn.deadlines, int(seq)*2)
+						require.True(t, conn.deadlines[len(conn.deadlines)-1].IsZero(),
+							"handler execution and idle time must not retain the read deadline")
+					} else {
+						require.Empty(t, conn.deadlines)
+					}
+				}
+			})
+		}
+	}
+}
+
+func TestBoundedHeaderCodec_DeadlineErrors(t *testing.T) {
+	for _, clearDeadline := range []bool{false, true} {
+		name := "set"
+		if clearDeadline {
+			name = "clear"
+		}
+		t.Run(name, func(t *testing.T) {
+			server, client := net.Pipe()
+			t.Cleanup(func() {
+				server.Close()
+				client.Close()
+			})
+			errDeadline := errors.New("cannot update read deadline")
+			conn := &deadlineRecordingConn{Conn: server}
+			if clearDeadline {
+				conn.clearErr = errDeadline
+			} else {
+				conn.setErr = errDeadline
+			}
+			c := newBoundedHeaderCodec(conn, structs.MsgpackHandle, 512, time.Second)
+			result := writeCodecRequest(t, client, append(encodeHeader(t, "Example.Method", 1), 0xc0))
+
+			var req netRPC.Request
+			if clearDeadline {
+				require.NoError(t, c.ReadRequestHeader(&req))
+				require.ErrorIs(t, c.ReadRequestBody(nil), errDeadline)
+			} else {
+				require.ErrorIs(t, c.ReadRequestHeader(&req), errDeadline)
+			}
+			require.NoError(t, <-result)
+		})
+	}
 }

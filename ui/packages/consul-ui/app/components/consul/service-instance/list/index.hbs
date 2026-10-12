@@ -70,7 +70,7 @@ as |proxy|}}
   {{/if}}
 {{#if proxy}}
     <dl class="mesh">
-      <dt {{hds-tooltip "This service uses a proxy for the Consul service mesh" options=(detached-tooltip-options)}}></dt>
+      <dt role="group" tabindex="-1" aria-label="This service uses a proxy for the Consul service mesh" {{hds-tooltip "This service uses a proxy for the Consul service mesh" options=(detached-tooltip-options)}}></dt>
       <dd data-test-mesh>
         in service mesh with proxy
       </dd>
@@ -78,7 +78,7 @@ as |proxy|}}
 {{/if}}
 {{#if (and (not @node) (not item.Node.Meta.synthetic-node))}}
     <dl class="node">
-      <dt {{hds-tooltip "Node" options=(detached-tooltip-options)}}></dt>
+      <dt role="group" tabindex="-1" aria-label="Node" {{hds-tooltip "Node" options=(detached-tooltip-options)}}></dt>
       <dd>
         <a data-test-node-name href={{href-to 'dc.nodes.show' item.Node.Node}}>{{item.Node.Node}}</a>
       </dd>
@@ -86,7 +86,7 @@ as |proxy|}}
 {{/if}}
 {{#if item.Service.Port}}
     <dl class="address" data-test-address>
-      <dt {{hds-tooltip "IP Address and Port" options=(detached-tooltip-options)}}></dt>
+      <dt role="group" tabindex="-1" aria-label="IP Address and Port" {{hds-tooltip "IP Address and Port" options=(detached-tooltip-options)}}></dt>
       <dd>
         {{#if (not-eq item.Service.Address '')}}
           {{format-ipaddr item.Service.Address}}:{{item.Service.Port}}
@@ -97,7 +97,7 @@ as |proxy|}}
     </dl>
 {{else if item.Service.SocketPath}}
     <dl class="socket" data-test-socket>
-      <dt {{hds-tooltip options=(detached-tooltip-options)}}>
+      <dt role="group" tabindex="-1" aria-label="Socket Path" {{hds-tooltip options=(detached-tooltip-options)}}>
         Socket Path
       </dt>
       <dd>

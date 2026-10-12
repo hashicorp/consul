@@ -929,6 +929,23 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 		}
 	}
 
+	// For imported peered services with multiport, allocate per-port VIPs on the
+	// consumer side. The base VIP is allocated when the synthetic connect proxy is
+	// registered (above block), but per-port VIPs must be allocated from the typical
+	// service instances which carry the Ports field.
+	if svc.PeerName != "" && svc.Kind == structs.ServiceKindTypical {
+		supported, err := virtualIPsSupported(tx, nil)
+		if err != nil {
+			return err
+		}
+		if supported {
+			sn := structs.ServiceName{Name: svc.Service, EnterpriseMeta: svc.EnterpriseMeta}
+			if err := reconcileImportedServicePortVirtualIPs(tx, idx, node, sn, svc); err != nil {
+				return err
+			}
+		}
+	}
+
 	if svc.PeerName == "" {
 		// If there's a terminating gateway config entry for this service, populate the tagged addresses
 		// with virtual IP mappings.
@@ -2103,6 +2120,18 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 		return fmt.Errorf("failed to clean up mesh-topology associations for %q: %v", psn.String(), err)
 	}
 
+	if svc.PeerName != "" && svc.ServiceKind == structs.ServiceKindTypical {
+		supported, err := virtualIPsSupported(tx, nil)
+		if err != nil {
+			return err
+		}
+		if supported {
+			if err := reconcileDeletedImportedServicePortVirtualIPs(tx, idx, psn.ServiceName, svc.PeerName); err != nil {
+				return err
+			}
+		}
+	}
+
 	q := Query{
 		Value:          svc.ServiceName,
 		EnterpriseMeta: *entMeta,
@@ -2959,7 +2988,77 @@ func (s *Store) CheckAPIGatewayServiceNodes(ws memdb.WatchSet, serviceName strin
 		maxIdx = lib.MaxUint64(maxIdx, idx)
 		results = append(results, n...)
 	}
+
+	// The nodes above are the gateway's own catalog registrations, whose
+	// ServicePort describes the gateway service rather than the listener that
+	// actually fronts serviceName. Registrations made by consul-k8s carry no
+	// port at all, which is what makes SRV lookups answer with port 0. Rewrite
+	// the port from the gateway-services mapping, which records the bound
+	// listener port per routed service.
+	ports, err := apiGatewayListenerPorts(tx, serviceName, entMeta)
+	if err != nil {
+		return 0, nil, err
+	}
+	results = withAPIGatewayListenerPorts(results, ports)
+
 	return maxIdx, results, nil
+}
+
+// apiGatewayListenerPorts returns, per API gateway fronting the given service,
+// the bound listener ports that route to it. A gateway can front the same
+// service on several listeners, so each gateway maps to a set of ports.
+func apiGatewayListenerPorts(tx ReadTxn, service string, entMeta *acl.EnterpriseMeta) (map[structs.ServiceName][]int, error) {
+	gws, err := tx.Get(tableGatewayServices, indexService, structs.NewServiceName(service, entMeta))
+	if err != nil {
+		return nil, fmt.Errorf("failed gateway lookup: %s", err)
+	}
+
+	ports := map[structs.ServiceName][]int{}
+	for gateway := gws.Next(); gateway != nil; gateway = gws.Next() {
+		mapping := gateway.(*structs.GatewayService)
+		if mapping.GatewayKind != structs.ServiceKindAPIGateway || mapping.Port == 0 {
+			continue
+		}
+		name := structs.NewServiceName(mapping.Gateway.Name, &mapping.Gateway.EnterpriseMeta)
+		if slices.Contains(ports[name], mapping.Port) {
+			continue
+		}
+		ports[name] = append(ports[name], mapping.Port)
+	}
+
+	for name := range ports {
+		sort.Ints(ports[name])
+	}
+	return ports, nil
+}
+
+// withAPIGatewayListenerPorts rewrites each node's service port to the bound
+// listener port that fronts the requested service. A gateway listening for the
+// service on more than one port yields one node per port, so that an SRV lookup
+// advertises every listener the client could use.
+//
+// Nodes are copied before mutation: the originals are shared, immutable memdb
+// objects.
+func withAPIGatewayListenerPorts(nodes structs.CheckServiceNodes, ports map[structs.ServiceName][]int) structs.CheckServiceNodes {
+	if len(ports) == 0 {
+		return nodes
+	}
+
+	results := make(structs.CheckServiceNodes, 0, len(nodes))
+	for _, node := range nodes {
+		listenerPorts := ports[node.Service.CompoundServiceName()]
+		if len(listenerPorts) == 0 {
+			results = append(results, node)
+			continue
+		}
+		for _, port := range listenerPorts {
+			withPort := node
+			withPort.Service = node.Service.DeepCopy()
+			withPort.Service.Port = port
+			results = append(results, withPort)
+		}
+	}
+	return results
 }
 
 func (s *Store) checkServiceNodes(ws memdb.WatchSet, serviceName string, connect bool, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.CheckServiceNodes, error) {
@@ -4059,7 +4158,8 @@ func terminatingConfigGatewayServices(
 		return false, nil, fmt.Errorf("failed to get config entry: %v", err)
 	}
 	if cfg, ok := c.(*structs.TerminatingGatewayConfigEntry); ok && cfg != nil {
-		if reflect.DeepEqual(cfg.Services, entry.Services) {
+		if reflect.DeepEqual(cfg.Services, entry.Services) &&
+			reflect.DeepEqual(cfg.CredentialInjection, entry.CredentialInjection) {
 			// Services are the same, nothing to update
 			return true, nil, nil
 		}
@@ -4072,20 +4172,38 @@ func terminatingConfigGatewayServices(
 			return false, nil, fmt.Errorf("failed to get gateway service kind for service %s: %v", svc.Name, err)
 		}
 		mapping := &structs.GatewayService{
-			Gateway:         gateway,
-			Service:         structs.NewServiceName(svc.Name, &svc.EnterpriseMeta),
-			GatewayKind:     structs.ServiceKindTerminatingGateway,
-			KeyFile:         svc.KeyFile,
-			CertFile:        svc.CertFile,
-			CAFile:          svc.CAFile,
-			SNI:             svc.SNI,
-			ServiceKind:     kind,
-			AutoHostRewrite: !svc.DisableAutoHostRewrite,
+			Gateway:             gateway,
+			Service:             structs.NewServiceName(svc.Name, &svc.EnterpriseMeta),
+			GatewayKind:         structs.ServiceKindTerminatingGateway,
+			KeyFile:             svc.KeyFile,
+			CertFile:            svc.CertFile,
+			CAFile:              svc.CAFile,
+			SNI:                 svc.SNI,
+			ServiceKind:         kind,
+			AutoHostRewrite:     !svc.DisableAutoHostRewrite,
+			CredentialInjection: cloneGatewayCredentialInjection(entry.CredentialInjection),
+			Credential:          cloneGatewayServiceCredential(svc.Credential),
 		}
 
 		gatewayServices = append(gatewayServices, mapping)
 	}
 	return false, gatewayServices, nil
+}
+
+func cloneGatewayCredentialInjection(in *structs.GatewayCredentialInjection) *structs.GatewayCredentialInjection {
+	if in == nil {
+		return nil
+	}
+	out := *in
+	return &out
+}
+
+func cloneGatewayServiceCredential(in *structs.GatewayServiceCredential) *structs.GatewayServiceCredential {
+	if in == nil {
+		return nil
+	}
+	out := *in
+	return &out
 }
 
 func GatewayServiceKind(tx ReadTxn, name string, entMeta *acl.EnterpriseMeta) (structs.GatewayServiceKind, error) {

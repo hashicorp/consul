@@ -593,6 +593,12 @@ func MakeShadowConfigEntry(kind, name string) (structs.ConfigEntry, error) {
 	switch kind {
 	case structs.RateLimitIPConfig:
 		return nil, ErrDroppingTenantedReq
+	// inference-gateway is enterprise-only. CE defines the type so API consumers
+	// compile against it, but a CE server never stores the entry, so one replayed
+	// from an enterprise raft log is dropped rather than decoded. Without this the
+	// default arm below returns an error and applyConfigEntryOperation panics.
+	case structs.InferenceGateway:
+		return nil, ErrDroppingTenantedReq
 	case structs.RateLimit:
 		return &ShadowGlobalRateLimitConfigEntry{GlobalRateLimitConfigEntry: &structs.GlobalRateLimitConfigEntry{Name: name}}, nil
 	case structs.ServiceDefaults:
@@ -840,7 +846,22 @@ func (s ShadowTerminatingGatewayConfigEntry) GetRealConfigEntry() structs.Config
 			s.TerminatingGatewayConfigEntry.Services = append(s.TerminatingGatewayConfigEntry.Services, *svc.LinkedService)
 		}
 	}
+	stripEnterpriseOnlyConfigEntryFields(s.TerminatingGatewayConfigEntry)
 	return s.TerminatingGatewayConfigEntry
+}
+
+// stripEnterpriseOnlyConfigEntryFields clears enterprise-only fields that CE carries
+// for API consumers but never stores, so a downgraded CE server keeps the entry
+// without them. Terminating-gateway credential injection is the only such field.
+func stripEnterpriseOnlyConfigEntryFields(entry structs.ConfigEntry) {
+	tgw, ok := entry.(*structs.TerminatingGatewayConfigEntry)
+	if !ok || tgw == nil {
+		return
+	}
+	tgw.CredentialInjection = nil
+	for i := range tgw.Services {
+		tgw.Services[i].Credential = nil
+	}
 }
 
 type ShadowSourceIntention struct {

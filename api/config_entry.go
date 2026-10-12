@@ -38,6 +38,7 @@ const (
 	InlineCertificate     string = "inline-certificate"
 	HTTPRoute             string = "http-route"
 	JWTProvider           string = "jwt-provider"
+	InferenceGateway      string = "inference-gateway"
 )
 
 const (
@@ -482,6 +483,8 @@ func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &GlobalRateLimitConfigEntry{Kind: kind, Name: name}, nil
 	case JWTProvider:
 		return &JWTProviderConfigEntry{Kind: kind, Name: name}, nil
+	case InferenceGateway:
+		return &InferenceGatewayConfigEntry{Kind: kind, Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}

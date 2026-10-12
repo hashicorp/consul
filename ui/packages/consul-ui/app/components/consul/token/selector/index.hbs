@@ -59,7 +59,7 @@
 
       <Hds::Dropdown
         class="hds-side-nav__dropdown"
-        @listPosition="bottom-left"
+        @listPosition="bottom-right"
         as |dd|
       >
 
@@ -119,7 +119,7 @@
 
       <Hds::Dropdown
         class="hds-side-nav__dropdown"
-        @listPosition="bottom-left"
+        @listPosition="bottom-right"
         as |dd|
       >
         <dd.ToggleIcon @icon="user" @text="Auth menu" data-test-auth-menu />
@@ -156,7 +156,7 @@
   </AuthDialog>
   {{yield (hash open=this.modal.open close=this.model.close)}}
 {{else}}
-  <Hds::Dropdown class="hds-side-nav__dropdown" @listPosition="bottom-left" as |dd|>
+  <Hds::Dropdown class="hds-side-nav__dropdown" @listPosition="bottom-right" as |dd|>
     <dd.ToggleIcon @icon="user" @text="Auth menu" data-test-auth-menu />
     <dd.Interactive
       @href={{href-to

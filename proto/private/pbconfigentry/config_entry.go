@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto/private/pbcommon"
 	"github.com/hashicorp/consul/types"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // Function variables to support proto generation
@@ -42,6 +43,14 @@ func ConfigEntryToStructs(s *ConfigEntry) structs.ConfigEntry {
 		target.Name = s.Name
 
 		IngressGatewayToStructs(s.GetIngressGateway(), &target)
+		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
+		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
+		return &target
+	case Kind_KindTerminatingGateway:
+		var target structs.TerminatingGatewayConfigEntry
+		target.Name = s.Name
+
+		TerminatingGatewayToStructs(s.GetTerminatingGateway(), &target)
 		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
 		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
 		return &target
@@ -133,6 +142,14 @@ func ConfigEntryToStructs(s *ConfigEntry) structs.ConfigEntry {
 		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
 		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
 		return &target
+	case Kind_KindInferenceGateway:
+		var target structs.InferenceGatewayConfigEntry
+		target.Name = s.Name
+
+		InferenceGatewayToStructs(s.GetInferenceGateway(), &target)
+		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
+		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
+		return &target
 	default:
 		panic(fmt.Sprintf("unable to convert ConfigEntry of kind %s to structs", s.Kind))
 	}
@@ -172,6 +189,14 @@ func ConfigEntryFromStructs(s structs.ConfigEntry) *ConfigEntry {
 		configEntry.Kind = Kind_KindIngressGateway
 		configEntry.Entry = &ConfigEntry_IngressGateway{
 			IngressGateway: &ingressGateway,
+		}
+	case *structs.TerminatingGatewayConfigEntry:
+		var terminatingGateway TerminatingGateway
+		TerminatingGatewayFromStructs(v, &terminatingGateway)
+
+		configEntry.Kind = Kind_KindTerminatingGateway
+		configEntry.Entry = &ConfigEntry_TerminatingGateway{
+			TerminatingGateway: &terminatingGateway,
 		}
 	case *structs.ServiceIntentionsConfigEntry:
 		var serviceIntentions ServiceIntentions
@@ -259,6 +284,14 @@ func ConfigEntryFromStructs(s structs.ConfigEntry) *ConfigEntry {
 		configEntry.Kind = Kind_KindExportedServices
 		configEntry.Entry = &ConfigEntry_ExportedServices{
 			ExportedServices: &es,
+		}
+	case *structs.InferenceGatewayConfigEntry:
+		var aigw InferenceGateway
+		InferenceGatewayFromStructs(v, &aigw)
+
+		configEntry.Kind = Kind_KindInferenceGateway
+		configEntry.Entry = &ConfigEntry_InferenceGateway{
+			InferenceGateway: &aigw,
 		}
 	default:
 		panic(fmt.Sprintf("unable to convert %T to proto", s))
@@ -398,7 +431,19 @@ func intentionSourceTypeToStructs(_ IntentionSourceType) structs.IntentionSource
 	return structs.IntentionSourceConsul
 }
 
+// pointerToIntFromInt32 decodes a proto3 int32 limit back into the *int form
+// used by structs.UpstreamLimits, where nil means "unset".
+//
+// proto3 scalars have no field presence, so an unset limit is encoded on the
+// wire as 0 by int32FromPointerToInt. Decoding that 0 into a non-nil *int would
+// turn "unset" into "explicitly 0", which makes a per-service limit block
+// suppress the API gateway Defaults it should inherit field-wise. 0 is therefore
+// decoded as unset, consistent with the xDS layer which already treats
+// non-positive limits as unset.
 func pointerToIntFromInt32(i32 int32) *int {
+	if i32 == 0 {
+		return nil
+	}
 	i := int(i32)
 	return &i
 }
@@ -408,6 +453,45 @@ func int32FromPointerToInt(i *int) int32 {
 		return int32(*i)
 	}
 	return 0
+}
+
+// pointerToBoolFromBoolValue and boolValueFromPointerToBool preserve the
+// three-state nature of an optional bool across the wire. Unlike the numeric
+// helpers below, nil must NOT collapse to the zero value: InferenceGatewayMetrics
+// .Enabled defaults to ON when unset, so turning nil into false would silently
+// disable metrics rather than leave them defaulted.
+func pointerToBoolFromBoolValue(v *wrapperspb.BoolValue) *bool {
+	if v == nil {
+		return nil
+	}
+	b := v.GetValue()
+	return &b
+}
+
+func boolValueFromPointerToBool(b *bool) *wrapperspb.BoolValue {
+	if b == nil {
+		return nil
+	}
+	return wrapperspb.Bool(*b)
+}
+
+// pointerToIntFromInt32Value and int32ValueFromPointerToInt are the int
+// counterparts of the bool helpers above, for the same reason:
+// InferenceGatewayMetricsPrometheus.Port uses 0 to disable the scrape endpoint and
+// nil to keep the default, so nil must not collapse to 0.
+func pointerToIntFromInt32Value(v *wrapperspb.Int32Value) *int {
+	if v == nil {
+		return nil
+	}
+	i := int(v.GetValue())
+	return &i
+}
+
+func int32ValueFromPointerToInt(i *int) *wrapperspb.Int32Value {
+	if i == nil {
+		return nil
+	}
+	return wrapperspb.Int32(int32(*i))
 }
 
 func pointerToUint32FromUint32(ui32 uint32) *uint32 {
@@ -458,6 +542,65 @@ func mutualTLSModeFromStructs(a structs.MutualTLSMode) MutualTLSMode {
 		return MutualTLSMode_MutualTLSModePermissive
 	default:
 		return MutualTLSMode_MutualTLSModeDefault
+	}
+}
+
+// The PII enums cross the wire as proto enums but are strings in the struct. Only
+// values Validate accepts reach these, so anything unrecognised maps to unset
+// rather than being carried across as a value no consumer understands.
+func inferenceGatewayPIIScopeFromStructs(a structs.InferenceGatewayPIIScope) InferenceGatewayPIIScope {
+	switch a {
+	case structs.InferenceGatewayPIIScopeRequest:
+		return InferenceGatewayPIIScope_InferenceGatewayPIIScopeRequest
+	case structs.InferenceGatewayPIIScopeResponse:
+		return InferenceGatewayPIIScope_InferenceGatewayPIIScopeResponse
+	case structs.InferenceGatewayPIIScopeBoth:
+		return InferenceGatewayPIIScope_InferenceGatewayPIIScopeBoth
+	default:
+		return InferenceGatewayPIIScope_InferenceGatewayPIIScopeUnset
+	}
+}
+
+func inferenceGatewayPIIScopeToStructs(a InferenceGatewayPIIScope) structs.InferenceGatewayPIIScope {
+	switch a {
+	case InferenceGatewayPIIScope_InferenceGatewayPIIScopeRequest:
+		return structs.InferenceGatewayPIIScopeRequest
+	case InferenceGatewayPIIScope_InferenceGatewayPIIScopeResponse:
+		return structs.InferenceGatewayPIIScopeResponse
+	case InferenceGatewayPIIScope_InferenceGatewayPIIScopeBoth:
+		return structs.InferenceGatewayPIIScopeBoth
+	default:
+		return ""
+	}
+}
+
+func inferenceGatewayPIIActionFromStructs(a structs.InferenceGatewayPIIAction) InferenceGatewayPIIAction {
+	switch a {
+	case structs.InferenceGatewayPIIActionPlaceholder:
+		return InferenceGatewayPIIAction_InferenceGatewayPIIActionPlaceholder
+	case structs.InferenceGatewayPIIActionMask:
+		return InferenceGatewayPIIAction_InferenceGatewayPIIActionMask
+	case structs.InferenceGatewayPIIActionBlock:
+		return InferenceGatewayPIIAction_InferenceGatewayPIIActionBlock
+	case structs.InferenceGatewayPIIActionOff:
+		return InferenceGatewayPIIAction_InferenceGatewayPIIActionOff
+	default:
+		return InferenceGatewayPIIAction_InferenceGatewayPIIActionUnset
+	}
+}
+
+func inferenceGatewayPIIActionToStructs(a InferenceGatewayPIIAction) structs.InferenceGatewayPIIAction {
+	switch a {
+	case InferenceGatewayPIIAction_InferenceGatewayPIIActionPlaceholder:
+		return structs.InferenceGatewayPIIActionPlaceholder
+	case InferenceGatewayPIIAction_InferenceGatewayPIIActionMask:
+		return structs.InferenceGatewayPIIActionMask
+	case InferenceGatewayPIIAction_InferenceGatewayPIIActionBlock:
+		return structs.InferenceGatewayPIIActionBlock
+	case InferenceGatewayPIIAction_InferenceGatewayPIIActionOff:
+		return structs.InferenceGatewayPIIActionOff
+	default:
+		return ""
 	}
 }
 
