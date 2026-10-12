@@ -190,6 +190,9 @@ func (c *cmd) writeLogoutSinkFromToken(tok *api.ACLToken) {
 		return
 	}
 	if err := file.WriteAtomicWithPerms(logoutSinkFile, []byte(tok.IDPLogoutURL), 0o755, 0o600); err != nil {
+		// Remove any previous sidecar so a later `consul logout` cannot pair
+		// this new token with an older login's IdP logout URL.
+		_ = os.Remove(logoutSinkFile)
 		c.UI.Warn(fmt.Sprintf("Error writing IdP logout URL to file sink: %s", err))
 	}
 }

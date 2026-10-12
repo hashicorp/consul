@@ -403,6 +403,18 @@ func TestConfigValidate(t *testing.T) {
 			},
 			expectErr: "is not a valid URL",
 		},
+		"post-logout redirect URI: rejects missing host": {
+			config: Config{
+				Type:                       TypeOIDC,
+				OIDCDiscoveryURL:           srv.Addr(),
+				OIDCDiscoveryCACert:        srv.CACert(),
+				OIDCClientID:               "abc",
+				OIDCClientSecret:           "def",
+				AllowedRedirectURIs:        []string{"http://foo.test"},
+				OIDCPostLogoutRedirectURIs: []string{"https:///signed-out"},
+			},
+			expectErr: "'OIDCPostLogoutRedirectURIs[0]' must include a host",
+		},
 		"logout URL: valid https": {
 			config: Config{
 				Type:                TypeOIDC,

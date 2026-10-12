@@ -77,3 +77,23 @@ func TestWriteLogoutSinkFromToken_WriteError(t *testing.T) {
 	})
 	require.Contains(t, ui.ErrorWriter.String(), "Error writing")
 }
+
+// TestWriteLogoutSinkFromToken_WriteErrorRemovesStaleSidecar verifies that a
+// failed sidecar update does not leave the previous login's sidecar in place,
+// so `consul logout` cannot pair the new token with an old IdP logout URL.
+func TestWriteLogoutSinkFromToken_WriteErrorRemovesStaleSidecar(t *testing.T) {
+	sink := filepath.Join(t.TempDir(), "token")
+	sidecar := sink + loginutil.IDPLogoutSuffix
+	// A directory at the sidecar path makes the atomic rename fail while the
+	// stale entry is still removable.
+	require.NoError(t, os.Mkdir(sidecar, 0o700))
+
+	ui := cli.NewMockUi()
+	c := New(ui)
+	c.tokenSinkFile = sink
+	c.writeLogoutSinkFromToken(&api.ACLToken{IDPLogoutURL: "https://idp.example.com/logout?id_token_hint=new"})
+
+	require.Contains(t, ui.ErrorWriter.String(), "Error writing")
+	_, err := os.Stat(sidecar)
+	require.True(t, os.IsNotExist(err), "stale sidecar must be removed when the new one cannot be written")
+}

@@ -9,25 +9,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestOpenCommand(t *testing.T) {
+func TestOpenCommands(t *testing.T) {
 	const target = "https://idp.example.com/api/oidc/logout?id_token_hint=a.b.c&state=x"
+	rundll32 := openCmd{"rundll32.exe", []string{"url.dll,FileProtocolHandler", target}}
+	xdgOpen := openCmd{"xdg-open", []string{target}}
 
 	cases := map[string]struct {
-		goos     string
-		wsl      bool
-		wantName string
-		wantArgs []string
+		goos string
+		wsl  bool
+		want []openCmd
 	}{
-		"darwin":  {goos: "darwin", wantName: "open", wantArgs: []string{target}},
-		"linux":   {goos: "linux", wantName: "xdg-open", wantArgs: []string{target}},
-		"windows": {goos: "windows", wantName: "rundll32.exe", wantArgs: []string{"url.dll,FileProtocolHandler", target}},
-		"wsl":     {goos: "linux", wsl: true, wantName: "rundll32.exe", wantArgs: []string{"url.dll,FileProtocolHandler", target}},
+		"darwin":  {goos: "darwin", want: []openCmd{{"open", []string{target}}}},
+		"linux":   {goos: "linux", want: []openCmd{xdgOpen}},
+		"windows": {goos: "windows", want: []openCmd{rundll32}},
+		"wsl falls back to linux openers": {goos: "linux", wsl: true,
+			want: []openCmd{rundll32, {"wslview", []string{target}}, xdgOpen}},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			gotName, gotArgs := openCommand(tc.goos, tc.wsl, target)
-			require.Equal(t, tc.wantName, gotName)
-			require.Equal(t, tc.wantArgs, gotArgs)
+			require.Equal(t, tc.want, openCommands(tc.goos, tc.wsl, target))
 		})
 	}
 }

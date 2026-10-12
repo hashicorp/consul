@@ -505,6 +505,9 @@ type OIDCAuthMethodConfig struct {
 	OIDCACRValues       []string             `json:",omitempty"`
 	AllowedRedirectURIs []string             `json:",omitempty"`
 	VerboseOIDCLogging  bool                 `json:",omitempty"`
+	// OIDC RP-Initiated (IdP) logout, type=oidc only. Both must use https.
+	OIDCPostLogoutRedirectURIs []string `json:",omitempty"`
+	OIDCLogoutURL              string   `json:",omitempty"`
 	// just for type=jwt
 	JWKSURL              string        `json:",omitempty"`
 	JWKSCACert           string        `json:",omitempty"`
@@ -535,6 +538,9 @@ func (c *OIDCAuthMethodConfig) RenderToConfig() map[string]interface{} {
 		"OIDCACRValues":       c.OIDCACRValues,
 		"AllowedRedirectURIs": c.AllowedRedirectURIs,
 		"VerboseOIDCLogging":  c.VerboseOIDCLogging,
+		// OIDC RP-Initiated (IdP) logout, type=oidc only
+		"OIDCPostLogoutRedirectURIs": c.OIDCPostLogoutRedirectURIs,
+		"OIDCLogoutURL":              c.OIDCLogoutURL,
 		// just for type=jwt
 		"JWKSURL":              c.JWKSURL,
 		"JWKSCACert":           c.JWKSCACert,

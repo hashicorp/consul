@@ -275,6 +275,9 @@ func (c *Config) Validate() error {
 			if u.Scheme != "https" {
 				return fmt.Errorf("'OIDCPostLogoutRedirectURIs[%d]' must use https, got %q", i, u.Scheme)
 			}
+			if u.Host == "" {
+				return fmt.Errorf("'OIDCPostLogoutRedirectURIs[%d]' must include a host", i)
+			}
 		}
 
 		if c.OIDCLogoutURL != "" {

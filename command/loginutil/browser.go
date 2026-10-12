@@ -21,6 +21,7 @@ import (
 // and WSL the URL is opened via the url.dll protocol handler rather than
 // `cmd.exe /c start`, so it is never interpreted by the cmd shell (where
 // characters such as &, |, < and > would otherwise be treated as operators).
+// On WSL, wslview and xdg-open are tried if the Windows handler cannot start.
 func OpenURL(rawURL string) error {
 	u, err := url.Parse(rawURL)
 	if err != nil {
@@ -29,19 +30,36 @@ func OpenURL(rawURL string) error {
 	if (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
 		return fmt.Errorf("refusing to open non-http(s) URL")
 	}
-	name, args := openCommand(runtime.GOOS, isWSL(), u.String())
-	return exec.Command(name, args...).Start()
+	var lastErr error
+	for _, c := range openCommands(runtime.GOOS, isWSL(), u.String()) {
+		if lastErr = exec.Command(c.name, c.args...).Start(); lastErr == nil {
+			return nil
+		}
+	}
+	return lastErr
 }
 
-// openCommand returns the platform command used to open target.
-func openCommand(goos string, wsl bool, target string) (string, []string) {
+type openCmd struct {
+	name string
+	args []string
+}
+
+// openCommands returns the platform commands used to open target, in the
+// order they should be tried. On WSL, the Windows handler is tried first and
+// the Linux openers are used as fallbacks for when Windows interop is
+// disabled.
+func openCommands(goos string, wsl bool, target string) []openCmd {
+	rundll32 := openCmd{"rundll32.exe", []string{"url.dll,FileProtocolHandler", target}}
+	xdgOpen := openCmd{"xdg-open", []string{target}}
 	switch {
-	case goos == "windows" || wsl:
-		return "rundll32.exe", []string{"url.dll,FileProtocolHandler", target}
+	case goos == "windows":
+		return []openCmd{rundll32}
+	case wsl:
+		return []openCmd{rundll32, {"wslview", []string{target}}, xdgOpen}
 	case goos == "darwin":
-		return "open", []string{target}
+		return []openCmd{{"open", []string{target}}}
 	default: // "linux", "freebsd", "openbsd", "netbsd"
-		return "xdg-open", []string{target}
+		return []openCmd{xdgOpen}
 	}
 }
 
