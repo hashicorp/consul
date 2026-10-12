@@ -367,6 +367,102 @@ func TestConfigValidate(t *testing.T) {
 			},
 			expectErr: "ListClaimMappings contains multiple mappings for key",
 		},
+		"post-logout redirect URI: valid https": {
+			config: Config{
+				Type:                       TypeOIDC,
+				OIDCDiscoveryURL:           srv.Addr(),
+				OIDCDiscoveryCACert:        srv.CACert(),
+				OIDCClientID:               "abc",
+				OIDCClientSecret:           "def",
+				AllowedRedirectURIs:        []string{"http://foo.test"},
+				OIDCPostLogoutRedirectURIs: []string{"https://app.example.com/signed-out"},
+			},
+			expectAuthType: authOIDCFlow,
+		},
+		"post-logout redirect URI: rejects http (non-https)": {
+			config: Config{
+				Type:                       TypeOIDC,
+				OIDCDiscoveryURL:           srv.Addr(),
+				OIDCDiscoveryCACert:        srv.CACert(),
+				OIDCClientID:               "abc",
+				OIDCClientSecret:           "def",
+				AllowedRedirectURIs:        []string{"http://foo.test"},
+				OIDCPostLogoutRedirectURIs: []string{"http://app.example.com/signed-out"},
+			},
+			expectErr: "must use https",
+		},
+		"post-logout redirect URI: rejects invalid URL": {
+			config: Config{
+				Type:                       TypeOIDC,
+				OIDCDiscoveryURL:           srv.Addr(),
+				OIDCDiscoveryCACert:        srv.CACert(),
+				OIDCClientID:               "abc",
+				OIDCClientSecret:           "def",
+				AllowedRedirectURIs:        []string{"http://foo.test"},
+				OIDCPostLogoutRedirectURIs: []string{"%%%%"},
+			},
+			expectErr: "is not a valid URL",
+		},
+		"post-logout redirect URI: rejects missing host": {
+			config: Config{
+				Type:                       TypeOIDC,
+				OIDCDiscoveryURL:           srv.Addr(),
+				OIDCDiscoveryCACert:        srv.CACert(),
+				OIDCClientID:               "abc",
+				OIDCClientSecret:           "def",
+				AllowedRedirectURIs:        []string{"http://foo.test"},
+				OIDCPostLogoutRedirectURIs: []string{"https:///signed-out"},
+			},
+			expectErr: "'OIDCPostLogoutRedirectURIs[0]' must include a host",
+		},
+		"logout URL: valid https": {
+			config: Config{
+				Type:                TypeOIDC,
+				OIDCDiscoveryURL:    srv.Addr(),
+				OIDCDiscoveryCACert: srv.CACert(),
+				OIDCClientID:        "abc",
+				OIDCClientSecret:    "def",
+				AllowedRedirectURIs: []string{"http://foo.test"},
+				OIDCLogoutURL:       "https://idp.example.com/api/oidc/logout",
+			},
+			expectAuthType: authOIDCFlow,
+		},
+		"logout URL: rejects http (non-https)": {
+			config: Config{
+				Type:                TypeOIDC,
+				OIDCDiscoveryURL:    srv.Addr(),
+				OIDCDiscoveryCACert: srv.CACert(),
+				OIDCClientID:        "abc",
+				OIDCClientSecret:    "def",
+				AllowedRedirectURIs: []string{"http://foo.test"},
+				OIDCLogoutURL:       "http://idp.example.com/api/oidc/logout",
+			},
+			expectErr: "'OIDCLogoutURL' must use https",
+		},
+		"logout URL: rejects missing host": {
+			config: Config{
+				Type:                TypeOIDC,
+				OIDCDiscoveryURL:    srv.Addr(),
+				OIDCDiscoveryCACert: srv.CACert(),
+				OIDCClientID:        "abc",
+				OIDCClientSecret:    "def",
+				AllowedRedirectURIs: []string{"http://foo.test"},
+				OIDCLogoutURL:       "https:///api/oidc/logout",
+			},
+			expectErr: "'OIDCLogoutURL' must include a host",
+		},
+		"logout URL: rejects invalid URL": {
+			config: Config{
+				Type:                TypeOIDC,
+				OIDCDiscoveryURL:    srv.Addr(),
+				OIDCDiscoveryCACert: srv.CACert(),
+				OIDCClientID:        "abc",
+				OIDCClientSecret:    "def",
+				AllowedRedirectURIs: []string{"http://foo.test"},
+				OIDCLogoutURL:       "%%%%",
+			},
+			expectErr: "'OIDCLogoutURL' is not a valid URL",
+		},
 	}
 
 	jwtCases := map[string]testcase{
@@ -450,6 +546,22 @@ func TestConfigValidate(t *testing.T) {
 				VerboseOIDCLogging:   true,
 			},
 			expectErr: "must not be set for type",
+		},
+		"incompatible with OIDCPostLogoutRedirectURIs": {
+			config: Config{
+				Type:                       TypeJWT,
+				JWTValidationPubKeys:       []string{testJWTPubKey},
+				OIDCPostLogoutRedirectURIs: []string{"https://example.com/out"},
+			},
+			expectErr: "must not be set for type",
+		},
+		"incompatible with OIDCLogoutURL": {
+			config: Config{
+				Type:                 TypeJWT,
+				JWTValidationPubKeys: []string{testJWTPubKey},
+				OIDCLogoutURL:        "https://idp.example.com/api/oidc/logout",
+			},
+			expectErr: "'OIDCLogoutURL' must not be set for type",
 		},
 		"too many methods (discovery + jwks)": {
 			config: Config{
