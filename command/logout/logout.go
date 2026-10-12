@@ -26,14 +26,24 @@ type cmd struct {
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
 	help  string
+
+	openBrowser bool
+	// openURL launches the browser; overridable in tests.
+	openURL func(string) error
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.BoolVar(&c.openBrowser, "open-browser", false,
+		"Also open the identity provider's logout URL in the default browser to "+
+			"end the identity provider session. Only applies to tokens created by "+
+			"an OIDC login whose provider supports RP-Initiated logout. The URL is "+
+			"always printed. Do not use in non-interactive environments.")
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
 
+	c.openURL = loginutil.OpenURL
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -59,9 +69,10 @@ func (c *cmd) Run(args []string) int {
 
 	// Best-effort IdP (RP-Initiated) logout. If the matching `consul login`
 	// wrote an IdP logout sidecar file next to the token file, print the
-	// provider's RP-Initiated logout URL so the user can open it to terminate
-	// the IdP session, then remove the sidecar. Absence of the sidecar preserves
-	// the existing behavior of only destroying the Consul token.
+	// provider's RP-Initiated logout URL (and open it in a browser when
+	// -open-browser is set) to terminate the IdP session, then remove the
+	// sidecar. Absence of the sidecar preserves the existing behavior of only
+	// destroying the Consul token.
 	c.maybeIDPLogout()
 
 	return 0
@@ -94,13 +105,22 @@ func (c *cmd) maybeIDPLogout() {
 		return
 	}
 
-	// Intentionally do NOT launch a browser here. `consul logout` frequently
-	// runs in non-interactive contexts (CI pipelines, cron jobs, remote SSH
-	// sessions) where no browser is available. Instead print the ready-to-use
-	// RP-Initiated logout URL and let the user open it to also terminate their
-	// identity provider session.
+	// Print the URL unconditionally so the user can always complete IdP logout
+	// manually. A browser is launched only when explicitly requested with
+	// -open-browser: by default `consul logout` must remain safe for
+	// non-interactive contexts (CI pipelines, cron jobs, remote SSH sessions)
+	// where no browser is available.
 	c.UI.Info("To also end your identity provider session, open the following URL in a browser:")
 	c.UI.Info("    " + logoutURL)
+
+	if !c.openBrowser {
+		return
+	}
+	if err := c.openURL(logoutURL); err != nil {
+		c.UI.Warn(fmt.Sprintf("Error attempting to automatically open browser: %s. Please open the URL above manually.", err))
+		return
+	}
+	c.UI.Info("Opened the identity provider logout URL in your default browser.")
 }
 
 func (c *cmd) Synopsis() string {
@@ -118,4 +138,9 @@ Usage: consul logout [options]
 
   The logout command will destroy the provided token if it was created from
   'consul login'.
+
+  If the token was created by an OIDC login and the identity provider supports
+  RP-Initiated logout, the provider's logout URL is printed so the identity
+  provider session can also be ended. Use -open-browser to open it in the
+  default browser automatically.
 `

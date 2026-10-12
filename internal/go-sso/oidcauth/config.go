@@ -124,6 +124,15 @@ type Config struct {
 	// Valid only if Type=oidc
 	OIDCPostLogoutRedirectURIs []string
 
+	// OIDCLogoutURL is the provider's RP-Initiated logout endpoint. When set it
+	// is used instead of the end_session_endpoint advertised in the provider's
+	// discovery document. This supports providers that expose a logout endpoint
+	// but do not advertise it via discovery. When empty, the discovered
+	// end_session_endpoint (if any) is used.
+	//
+	// Valid only if Type=oidc
+	OIDCLogoutURL string
+
 	// -------
 	// just for type=jwt
 	// -------
@@ -268,6 +277,19 @@ func (c *Config) Validate() error {
 			}
 		}
 
+		if c.OIDCLogoutURL != "" {
+			u, err := url.Parse(c.OIDCLogoutURL)
+			if err != nil {
+				return fmt.Errorf("'OIDCLogoutURL' is not a valid URL: %v", err)
+			}
+			if u.Scheme != "https" {
+				return fmt.Errorf("'OIDCLogoutURL' must use https, got %q", u.Scheme)
+			}
+			if u.Host == "" {
+				return fmt.Errorf("'OIDCLogoutURL' must include a host")
+			}
+		}
+
 		if c.OIDCClientAssertion != nil {
 			// Validate KeyAlgorithm if set
 			if c.OIDCClientAssertion.KeyAlgorithm != "" &&
@@ -295,6 +317,8 @@ func (c *Config) Validate() error {
 			return fmt.Errorf("'VerboseOIDCLogging' must not be set for type %q", c.Type)
 		case len(c.OIDCPostLogoutRedirectURIs) != 0:
 			return fmt.Errorf("'OIDCPostLogoutRedirectURIs' must not be set for type %q", c.Type)
+		case c.OIDCLogoutURL != "":
+			return fmt.Errorf("'OIDCLogoutURL' must not be set for type %q", c.Type)
 		}
 
 		methodCount := 0

@@ -4,6 +4,7 @@
 package logout
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -95,4 +96,73 @@ func TestMaybeIDPLogout_RejectsNonHTTP(t *testing.T) {
 		_, err := os.Stat(sidecar)
 		require.True(t, os.IsNotExist(err), "sidecar should be removed even for rejected URL %q", bad)
 	}
+}
+
+// TestMaybeIDPLogout_OpenBrowser verifies the -open-browser behavior: the URL
+// is always printed, the browser is launched only when the flag is set, and a
+// browser launch failure is reported as a warning without failing logout.
+func TestMaybeIDPLogout_OpenBrowser(t *testing.T) {
+	const logoutURL = "https://idp.example.com/api/oidc/logout?id_token_hint=xyz"
+
+	setup := func(t *testing.T, args ...string) (*cmd, *cli.MockUi, *[]string, string) {
+		tokenFile := filepath.Join(t.TempDir(), "token")
+		sidecar := tokenFile + loginutil.IDPLogoutSuffix
+		require.NoError(t, os.WriteFile(sidecar, []byte(logoutURL), 0o600))
+
+		ui := cli.NewMockUi()
+		c := New(ui)
+		require.NoError(t, c.flags.Parse(args))
+		require.NoError(t, c.http.SetTokenFile(tokenFile))
+
+		var opened []string
+		c.openURL = func(u string) error {
+			opened = append(opened, u)
+			return nil
+		}
+		return c, ui, &opened, sidecar
+	}
+
+	t.Run("does not open browser by default", func(t *testing.T) {
+		c, ui, opened, sidecar := setup(t)
+		c.maybeIDPLogout()
+
+		require.Empty(t, *opened, "browser must not be opened without -open-browser")
+		require.Contains(t, ui.OutputWriter.String(), logoutURL)
+		_, err := os.Stat(sidecar)
+		require.True(t, os.IsNotExist(err))
+	})
+
+	t.Run("opens browser and prints URL with -open-browser", func(t *testing.T) {
+		c, ui, opened, sidecar := setup(t, "-open-browser")
+		c.maybeIDPLogout()
+
+		require.Equal(t, []string{logoutURL}, *opened)
+		require.Contains(t, ui.OutputWriter.String(), logoutURL)
+		_, err := os.Stat(sidecar)
+		require.True(t, os.IsNotExist(err))
+	})
+
+	t.Run("warns when browser cannot be opened", func(t *testing.T) {
+		c, ui, _, sidecar := setup(t, "-open-browser")
+		c.openURL = func(string) error { return errors.New("no browser available") }
+		c.maybeIDPLogout()
+
+		require.Contains(t, ui.OutputWriter.String(), logoutURL)
+		require.Contains(t, ui.ErrorWriter.String(), "no browser available")
+		_, err := os.Stat(sidecar)
+		require.True(t, os.IsNotExist(err))
+	})
+
+	t.Run("does not open browser without a sidecar", func(t *testing.T) {
+		ui := cli.NewMockUi()
+		c := New(ui)
+		require.NoError(t, c.flags.Parse([]string{"-open-browser"}))
+		require.NoError(t, c.http.SetTokenFile(filepath.Join(t.TempDir(), "token")))
+		c.openURL = func(string) error {
+			t.Fatal("browser must not be opened without an IdP logout URL")
+			return nil
+		}
+		c.maybeIDPLogout()
+		require.Empty(t, ui.OutputWriter.String())
+	})
 }

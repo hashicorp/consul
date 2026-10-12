@@ -193,17 +193,21 @@ func (a *Authenticator) claimsFromAuthCode(ctx context.Context, stateParam, code
 	return c, state.payload, rawIDToken, nil
 }
 
-// GetEndSessionEndpoint returns the provider's RP-Initiated logout endpoint
-// (end_session_endpoint) as advertised in its OIDC discovery document, or an
-// empty string if the provider does not advertise one. The discovery document
-// is already fetched and cached by the underlying provider during
-// initialization, so this call does not perform an additional network
+// GetEndSessionEndpoint returns the provider's RP-Initiated logout endpoint.
+// If OIDCLogoutURL is configured it is returned as-is; otherwise the
+// end_session_endpoint advertised in the provider's OIDC discovery document is
+// returned, or an empty string if the provider does not advertise one. The
+// discovery document is already fetched and cached by the underlying provider
+// during initialization, so this call does not perform an additional network
 // round-trip.
 //
 // Requires the authenticator's config type be set to 'oidc'.
 func (a *Authenticator) GetEndSessionEndpoint() (string, error) {
 	if a.config.authType() != authOIDCFlow {
 		return "", fmt.Errorf("GetEndSessionEndpoint is incompatible with type %q", TypeJWT)
+	}
+	if a.config.OIDCLogoutURL != "" {
+		return a.config.OIDCLogoutURL, nil
 	}
 	if a.capProvider == nil {
 		return "", fmt.Errorf("OIDC provider is not initialized")

@@ -105,3 +105,49 @@ func TestOIDC_GetEndSessionEndpoint_NotAdvertised(t *testing.T) {
 	require.NoError(t, err)
 	require.Empty(t, endpoint, "end_session_endpoint must be empty when the provider does not advertise one")
 }
+
+// TestOIDC_GetEndSessionEndpoint_ConfiguredOverride verifies that a configured
+// OIDCLogoutURL is used for providers that do not advertise an
+// end_session_endpoint in discovery, and that it takes precedence over a
+// discovered endpoint.
+func TestOIDC_GetEndSessionEndpoint_ConfiguredOverride(t *testing.T) {
+	const configured = "https://idp.example.com/api/oidc/logout"
+
+	newAuthenticator := func(t *testing.T, disableEndSession bool) *Authenticator {
+		srv := oidcauthtest.Start(t)
+		srv.SetClientCreds("abc", "def")
+		if disableEndSession {
+			srv.DisableEndSession()
+		}
+
+		config := &Config{
+			Type:                TypeOIDC,
+			OIDCDiscoveryURL:    srv.Addr(),
+			OIDCDiscoveryCACert: srv.CACert(),
+			OIDCClientID:        "abc",
+			OIDCClientSecret:    "def",
+			JWTSupportedAlgs:    []string{"ES256"},
+			BoundAudiences:      []string{"abc"},
+			AllowedRedirectURIs: []string{"https://example.com"},
+			OIDCLogoutURL:       configured,
+		}
+		require.NoError(t, config.Validate())
+
+		oa, err := New(config, hclog.NewNullLogger())
+		require.NoError(t, err)
+		t.Cleanup(oa.Stop)
+		return oa
+	}
+
+	t.Run("used when provider does not advertise end_session_endpoint", func(t *testing.T) {
+		endpoint, err := newAuthenticator(t, true).GetEndSessionEndpoint()
+		require.NoError(t, err)
+		require.Equal(t, configured, endpoint)
+	})
+
+	t.Run("takes precedence over discovered end_session_endpoint", func(t *testing.T) {
+		endpoint, err := newAuthenticator(t, false).GetEndSessionEndpoint()
+		require.NoError(t, err)
+		require.Equal(t, configured, endpoint)
+	})
+}
