@@ -1,0 +1,3 @@
+```release-note:bug
+api-gateway: Fix a race condition that could crash Consul servers while reconciling routes with multiple backend services.
+```
