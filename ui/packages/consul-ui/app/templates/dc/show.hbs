@@ -14,7 +14,7 @@ as |route|>
     </:header>
     <:toolbar>
     </:toolbar>
-    <:nav>
+    <:content>
 
 {{#let
     (from-entries (array
@@ -54,19 +54,25 @@ as |tabs|}}
             )
           )
 '')
-      }}/>
-{{/if}}
-
-  {{/let}}
-{{/let}}
-    </:nav>
-    <:content>
+      }}>
+        <Outlet
+          @name={{this.routeName}}
+          @model={{route.model}}
+        as |o|>
+          {{outlet}}
+        </Outlet>
+      </TabNav>
+{{else}}
       <Outlet
         @name={{this.routeName}}
         @model={{route.model}}
       as |o|>
         {{outlet}}
       </Outlet>
+{{/if}}
+
+  {{/let}}
+{{/let}}
     </:content>
 
   </AppView>
