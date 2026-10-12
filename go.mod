@@ -1,6 +1,6 @@
 module github.com/hashicorp/consul
 
-go 1.26.7
+go 1.26.9
 
 replace (
 	github.com/hashicorp/consul/api => ./api
