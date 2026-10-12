@@ -1,3 +1,25 @@
+## 2.1.0-rc2 (October 12, 2026)
+SECURITY:
+
+* Upgrade go version to 1.26.9 to address security vulnerabilities. [[GH-24010](https://github.com/hashicorp/consul/issues/24010)]
+* deps: Upgrade github.com/hashicorp/raft-wal to v0.5.0 (with raft v1.8.0, serf v0.11.0, memberlist v0.7.0 and go-metrics v0.7.0), removing the dependency on github.com/coreos/etcd. [[GH-23985](https://github.com/hashicorp/consul/issues/23985)]
+* deps: Upgrade golang.org/x/net to v0.60.0 to address GO-2026-6610, GO-2026-6611, GO-2026-6603, GO-2026-6617 and GO-2026-6612. [[GH-23994](https://github.com/hashicorp/consul/issues/23994)]
+* docker: Run `apk upgrade` when building the Alpine-based container images so base-image packages (such as sqlite and jq) are up to date. [[GH-23964](https://github.com/hashicorp/consul/issues/23964)]
+* security: Upgrade github.com/klauspost/compress to v1.18.7, go.mongodb.org/mongo-driver to v1.17.10, github.com/moby/go-archive to v0.3.0 and github.com/go-openapi/swag to v0.27.1 to address CVE-2026-63209, CVE-2026-88031, CVE-2026-2303, CVE-2026-17106 and CVE-2026-85280. [[GH-23964](https://github.com/hashicorp/consul/issues/23964)]
+* ui: Add Content-Security-Policy header to Consul UI HTTP responses to mitigate XSS and data injection attacks. [[GH-23971](https://github.com/hashicorp/consul/issues/23971)]
+* ui: Pin a newer resolution of morgan to 1.12.1 to address GHSA-9f6g-j8ch-79g4 [[GH-23952](https://github.com/hashicorp/consul/issues/23952)]
+
+IMPROVEMENTS:
+
+* connect: deliver the sidecar proxy's leaf certificate and CA roots to Envoy over SDS instead of embedding them inline in the public listener. Leaf certificate rotation is now a hitless hot-swap that no longer changes the listener filter chain hash, so established connections (notably long-lived TCP sessions) are no longer drained and terminated on every rotation. [[GH-23938](https://github.com/hashicorp/consul/issues/23938)]
+* terminating-gateway: deliver each linked service's Connect leaf certificate and the shared CA roots to Envoy over SDS instead of embedding them inline in the gateway's downstream filter chains. Leaf rotation no longer changes the filter chain hash, so established connections through the gateway are no longer drained. [[GH-23938](https://github.com/hashicorp/consul/issues/23938)]
+
+BUG FIXES:
+
+* proxycfg: Fixed a goroutine and memory leak where a proxy's watches kept running after its state stopped unexpectedly, because replacing, deregistering or closing a stopped state did not cancel them. [[GH-23990](https://github.com/hashicorp/consul/issues/23990)]
+* proxycfg: Fixed a goroutine and memory leak where transparent proxies registered a new health watch for every imported peered service each time the imported services list changed, and never stopped watches for removed upstreams. [[GH-23990](https://github.com/hashicorp/consul/issues/23990)]
+* telemetry: Restore Raft, Serf, and Memberlist metrics in release artifacts by building with the `hashicorpmetrics` tag. [[GH-23813](https://github.com/hashicorp/consul/issues/23813)]
+
 ## 2.0.4 (September 10, 2026)
 BREAKING CHANGES:
 
