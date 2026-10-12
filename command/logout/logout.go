@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/loginutil"
@@ -73,6 +74,13 @@ func (c *cmd) Run(args []string) int {
 
 	if _, err := client.ACL().Logout(nil); err != nil {
 		c.UI.Error(fmt.Sprintf("Error destroying token: %v", err))
+		// The Consul token is already gone (for example it expired and was
+		// reaped), but the identity provider session can still be active, so
+		// still offer the IdP logout. For other errors the token may still be
+		// valid, so keep the sidecar for a retry.
+		if acl.IsErrNotFound(err) {
+			c.maybeIDPLogout()
+		}
 		return 1
 	}
 

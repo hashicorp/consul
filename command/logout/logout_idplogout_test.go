@@ -264,3 +264,23 @@ func TestMaybeIDPLogout_TokenFileSource(t *testing.T) {
 		require.NoError(t, err, "env sidecar must be left untouched")
 	})
 }
+
+// TestRun_UnreachableAgentKeepsSidecar verifies that when the Consul token
+// could not be destroyed for a reason other than it no longer existing, no IdP
+// logout is offered and the sidecar is kept so a retry can still use it.
+func TestRun_UnreachableAgentKeepsSidecar(t *testing.T) {
+	tokenFile := filepath.Join(t.TempDir(), "token")
+	require.NoError(t, os.WriteFile(tokenFile, []byte("00000000-0000-0000-0000-000000000001"), 0o600))
+	sidecar := tokenFile + loginutil.IDPLogoutSuffix
+	require.NoError(t, os.WriteFile(sidecar, []byte("https://idp.example.com/logout?id_token_hint=xyz"), 0o600))
+
+	ui := cli.NewMockUi()
+	c := New(ui)
+	code := c.Run([]string{"-http-addr=127.0.0.1:1", "-token-file=" + tokenFile})
+
+	require.Equal(t, 1, code)
+	require.Contains(t, ui.ErrorWriter.String(), "Error destroying token")
+	require.Empty(t, ui.OutputWriter.String())
+	_, err := os.Stat(sidecar)
+	require.NoError(t, err, "sidecar must be kept when the token may still be valid")
+}
