@@ -1,0 +1,7 @@
+```release-note:bug
+ui: Render tab content inside its tab panel so assistive technology can associate it with its tab, and keep focus on a tab after activating it
+```
+
+```release-note:bug
+ui: Show errors loading a tab's content inside the page instead of as a second nested page
+```
