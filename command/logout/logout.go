@@ -8,12 +8,19 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/loginutil"
 	"github.com/mitchellh/cli"
 )
+
+// envOpenBrowser sets the default for -open-browser so operators can enable
+// browser-driven IdP logout on interactive workstations without changing how
+// `consul logout` is invoked. An explicit -open-browser flag takes precedence.
+const envOpenBrowser = "CONSUL_LOGOUT_OPEN_BROWSER"
 
 func New(ui cli.Ui) *cmd {
 	c := &cmd{UI: ui}
@@ -38,7 +45,8 @@ func (c *cmd) init() {
 		"Also open the identity provider's logout URL in the default browser to "+
 			"end the identity provider session. Only applies to tokens created by "+
 			"an OIDC login whose provider supports RP-Initiated logout. The URL is "+
-			"always printed. Do not use in non-interactive environments.")
+			"always printed. Do not use in non-interactive environments. This can "+
+			"also be specified via the "+envOpenBrowser+" environment variable.")
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
@@ -48,6 +56,7 @@ func (c *cmd) init() {
 }
 
 func (c *cmd) Run(args []string) int {
+	c.applyOpenBrowserEnv()
 	if err := c.flags.Parse(args); err != nil {
 		return 1
 	}
@@ -78,8 +87,36 @@ func (c *cmd) Run(args []string) int {
 	return 0
 }
 
+func (c *cmd) applyOpenBrowserEnv() {
+	v := strings.TrimSpace(os.Getenv(envOpenBrowser))
+	if v == "" {
+		return
+	}
+	b, err := strconv.ParseBool(v)
+	if err != nil {
+		c.UI.Warn(fmt.Sprintf("Ignoring invalid value %q for %s: expected true or false", v, envOpenBrowser))
+		return
+	}
+	c.openBrowser = b
+}
+
+// tokenFileInUse returns the token file whose token the API client used, so
+// the IdP logout sidecar matches the token that was destroyed. It mirrors the
+// API client's precedence: -token-file, then -token, then
+// CONSUL_HTTP_TOKEN_FILE, then CONSUL_HTTP_TOKEN. It returns "" when the token
+// was not read from a file.
+func (c *cmd) tokenFileInUse() string {
+	if f := c.http.TokenFile(); f != "" {
+		return f
+	}
+	if c.http.Token() != "" {
+		return ""
+	}
+	return os.Getenv(api.HTTPTokenFileEnvName)
+}
+
 func (c *cmd) maybeIDPLogout() {
-	tokenFile := c.http.TokenFile()
+	tokenFile := c.tokenFileInUse()
 	if tokenFile == "" {
 		return
 	}
@@ -141,6 +178,7 @@ Usage: consul logout [options]
 
   If the token was created by an OIDC login and the identity provider supports
   RP-Initiated logout, the provider's logout URL is printed so the identity
-  provider session can also be ended. Use -open-browser to open it in the
-  default browser automatically.
+  provider session can also be ended. Use -open-browser (or set
+  CONSUL_LOGOUT_OPEN_BROWSER=true) to open it in the default browser
+  automatically.
 `

@@ -12,6 +12,7 @@ import (
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/loginutil"
 )
 
@@ -48,6 +49,7 @@ func TestMaybeIDPLogout(t *testing.T) {
 	})
 
 	t.Run("no-op when no token file is configured", func(t *testing.T) {
+		t.Setenv(api.HTTPTokenFileEnvName, "")
 		ui := cli.NewMockUi()
 		c := New(ui)
 		c.maybeIDPLogout()
@@ -164,5 +166,101 @@ func TestMaybeIDPLogout_OpenBrowser(t *testing.T) {
 		}
 		c.maybeIDPLogout()
 		require.Empty(t, ui.OutputWriter.String())
+	})
+}
+
+// TestApplyOpenBrowserEnv verifies that CONSUL_LOGOUT_OPEN_BROWSER sets the
+// default for -open-browser, that an explicit flag overrides it, and that an
+// invalid value is ignored with a warning.
+func TestApplyOpenBrowserEnv(t *testing.T) {
+	cases := map[string]struct {
+		env      string
+		args     []string
+		expected bool
+		warn     bool
+	}{
+		"unset defaults to false":           {env: "", expected: false},
+		"true enables":                      {env: "true", expected: true},
+		"1 enables":                         {env: "1", expected: true},
+		"false disables":                    {env: "false", expected: false},
+		"flag false overrides env true":     {env: "true", args: []string{"-open-browser=false"}, expected: false},
+		"flag true overrides env false":     {env: "false", args: []string{"-open-browser"}, expected: true},
+		"invalid value is ignored, warns":   {env: "yes-please", expected: false, warn: true},
+		"surrounding whitespace is trimmed": {env: "  true \n", expected: true},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			t.Setenv(envOpenBrowser, tc.env)
+
+			ui := cli.NewMockUi()
+			c := New(ui)
+			c.applyOpenBrowserEnv()
+			require.NoError(t, c.flags.Parse(tc.args))
+
+			require.Equal(t, tc.expected, c.openBrowser)
+			if tc.warn {
+				require.Contains(t, ui.ErrorWriter.String(), envOpenBrowser)
+			} else {
+				require.Empty(t, ui.ErrorWriter.String())
+			}
+		})
+	}
+}
+
+// TestMaybeIDPLogout_TokenFileSource verifies the sidecar is resolved from the
+// same token source the API client uses, including CONSUL_HTTP_TOKEN_FILE,
+// with the same precedence (-token-file > -token > CONSUL_HTTP_TOKEN_FILE).
+func TestMaybeIDPLogout_TokenFileSource(t *testing.T) {
+	const logoutURL = "https://idp.example.com/api/oidc/logout?id_token_hint=xyz"
+
+	writeSidecar := func(t *testing.T) (string, string) {
+		tokenFile := filepath.Join(t.TempDir(), "token")
+		sidecar := tokenFile + loginutil.IDPLogoutSuffix
+		require.NoError(t, os.WriteFile(sidecar, []byte(logoutURL), 0o600))
+		return tokenFile, sidecar
+	}
+
+	t.Run("uses CONSUL_HTTP_TOKEN_FILE when no flags are set", func(t *testing.T) {
+		tokenFile, sidecar := writeSidecar(t)
+		t.Setenv(api.HTTPTokenFileEnvName, tokenFile)
+
+		ui := cli.NewMockUi()
+		c := New(ui)
+		require.NoError(t, c.flags.Parse(nil))
+		c.maybeIDPLogout()
+
+		require.Contains(t, ui.OutputWriter.String(), logoutURL)
+		_, err := os.Stat(sidecar)
+		require.True(t, os.IsNotExist(err))
+	})
+
+	t.Run("-token-file flag takes precedence over CONSUL_HTTP_TOKEN_FILE", func(t *testing.T) {
+		flagFile, flagSidecar := writeSidecar(t)
+		envFile, envSidecar := writeSidecar(t)
+		t.Setenv(api.HTTPTokenFileEnvName, envFile)
+
+		ui := cli.NewMockUi()
+		c := New(ui)
+		require.NoError(t, c.flags.Parse([]string{"-token-file", flagFile}))
+		c.maybeIDPLogout()
+
+		_, err := os.Stat(flagSidecar)
+		require.True(t, os.IsNotExist(err), "flag sidecar should be consumed")
+		_, err = os.Stat(envSidecar)
+		require.NoError(t, err, "env sidecar must be left untouched")
+	})
+
+	t.Run("-token flag means the token was not read from CONSUL_HTTP_TOKEN_FILE", func(t *testing.T) {
+		envFile, envSidecar := writeSidecar(t)
+		t.Setenv(api.HTTPTokenFileEnvName, envFile)
+
+		ui := cli.NewMockUi()
+		c := New(ui)
+		require.NoError(t, c.flags.Parse([]string{"-token", "some-token"}))
+		c.maybeIDPLogout()
+
+		require.Empty(t, ui.OutputWriter.String())
+		_, err := os.Stat(envSidecar)
+		require.NoError(t, err, "env sidecar must be left untouched")
 	})
 }
