@@ -292,16 +292,15 @@ func (s *state) Watch() (<-chan ConfigSnapshot, error) {
 	return s.snapCh, nil
 }
 
-// Close discards the state and stops any long-running watches.
+// Close discards the state and stops any long-running watches. It also stops
+// the watches of a state whose run loop has already exited, and is safe to
+// call more than once.
 func (s *state) Close(failed bool) error {
-	if s.stoppedRunning() {
-		return nil
+	if failed && !s.stoppedRunning() {
+		atomic.StoreInt32(&s.failedFlag, 1)
 	}
 	if s.cancel != nil {
 		s.cancel()
-	}
-	if failed {
-		atomic.StoreInt32(&s.failedFlag, 1)
 	}
 	return nil
 }
@@ -342,6 +341,11 @@ func (s *state) run(ctx context.Context, snap *ConfigSnapshot) {
 				"service", s.serviceInstance.proxyID.ServiceID,
 				"message", r,
 				"stacktrace", string(debug.Stack()))
+		}
+		// Nothing consumes this state's updates once run exits, so stop its
+		// watches regardless of why it exited (including a recovered panic).
+		if s.cancel != nil {
+			s.cancel()
 		}
 	}()
 	s.unsafeRun(ctx, snap)

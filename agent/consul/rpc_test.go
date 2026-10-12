@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/binary"
 	"errors"
@@ -18,6 +19,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -29,6 +31,7 @@ import (
 
 	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
@@ -374,8 +377,8 @@ func TestRPC_TLSHandshakeTimeout(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.RPCHandshakeTimeout = 10 * time.Millisecond
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.RPCHandshakeTimeout = 200 * time.Millisecond
 		c.TLSConfig.InternalRPC.CAFile = "../../test/hostname/CertAuth.crt"
 		c.TLSConfig.InternalRPC.CertFile = "../../test/hostname/Alice.crt"
 		c.TLSConfig.InternalRPC.KeyFile = "../../test/hostname/Alice.key"
@@ -383,40 +386,35 @@ func TestRPC_TLSHandshakeTimeout(t *testing.T) {
 		c.TLSConfig.InternalRPC.VerifyOutgoing = true
 		c.TLSConfig.InternalRPC.VerifyIncoming = true
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
-	// Connect to the server with TLS magic byte delivered on time
-	addr := s1.config.RPCAdvertise
-	conn, err := net.DialTimeout("tcp", addr.String(), time.Second)
-	require.NoError(t, err)
-	defer conn.Close()
+	for _, protocol := range []struct {
+		name string
+		typ  pool.RPCType
+	}{
+		{name: "TLS", typ: pool.RPCTLS},
+		{name: "insecure TLS", typ: pool.RPCTLSInsecure},
+	} {
+		t.Run(protocol.name, func(t *testing.T) {
+			for _, tc := range []struct {
+				name string
+				data []byte
+			}{
+				{name: "no ClientHello"},
+				{name: "partial TLS record", data: []byte{0x16, 0x03, 0x03, 0x00, 0x10, 0x01}},
+			} {
+				t.Run(tc.name, func(t *testing.T) {
+					conn, err := net.DialTimeout("tcp", s1.config.RPCAdvertise.String(), time.Second)
+					require.NoError(t, err)
+					defer conn.Close()
+					require.NoError(t, conn.SetDeadline(time.Now().Add(5*time.Second)))
 
-	// Write TLS byte to avoid being closed by either the (outer) first byte
-	// timeout or the fact that server requires TLS
-	_, err = conn.Write([]byte{byte(pool.RPCTLS)})
-	require.NoError(t, err)
-
-	// Wait for more than the timeout before we start a TLS handshake. This is
-	// timing dependent so could fail if the CPU is super overloaded so the
-	// handler goroutine so I'm using a retry loop below to be sure but this feels
-	// like a pretty generous margin for error (10x the timeout and 100ms of
-	// scheduling time).
-	time.Sleep(100 * time.Millisecond)
-
-	// Set a read deadline on the Conn in case the timeout is not working we don't
-	// want the read below to block forever. Needs to be much longer than what we
-	// expect and the error should be different too.
-	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
-
-	retry.Run(t, func(r *retry.R) {
-		// Sanity check the conn was closed by attempting to read from it (a write
-		// might not detect the close).
-		buf := make([]byte, 10)
-		_, err = conn.Read(buf)
-		require.Error(r, err)
-		require.Contains(r, err.Error(), "EOF")
-	})
+					_, err = conn.Write(append([]byte{byte(protocol.typ)}, tc.data...))
+					require.NoError(t, err)
+					requireRPCConnectionClosed(t, conn)
+				})
+			}
+		})
+	}
 }
 
 // TestRPC_OversizedServiceMethod is a regression test for a pre-authorization
@@ -1776,4 +1774,301 @@ func rpcBlockingQueryTestHarness(
 	}
 
 	require.Equal(t, 1, count, "if this fails, then the timer likely needs to be increased above")
+}
+
+func TestRPC_PooledConnectionIdleTimeout(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	const shortTimeout = 200 * time.Millisecond
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.RPCHandshakeTimeout = shortTimeout
+	})
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
+	for _, transport := range []string{"raw", "yamux pool"} {
+		t.Run(transport, func(t *testing.T) {
+			var call func(string, interface{}, interface{}) error
+			if transport == "raw" {
+				conn, err := net.DialTimeout("tcp", s1.config.RPCAdvertise.String(), time.Second)
+				require.NoError(t, err)
+				defer conn.Close()
+				require.NoError(t, conn.SetDeadline(time.Now().Add(5*time.Second)))
+				_, err = conn.Write([]byte{byte(pool.RPCConsul)})
+				require.NoError(t, err)
+				clientCodec := msgpackrpc.NewCodecFromHandle(true, true, conn, structs.MsgpackHandle)
+				defer clientCodec.Close()
+				call = func(method string, args, reply interface{}) error {
+					require.NoError(t, conn.SetDeadline(time.Now().Add(5*time.Second)))
+					return msgpackrpc.CallWithCodec(clientCodec, method, args, reply)
+				}
+				// No application bytes have arrived yet, so this idle time is also unbounded.
+				time.Sleep(2 * shortTimeout)
+			} else {
+				connPool := &pool.ConnPool{
+					Datacenter:      "dc1",
+					MaxStreams:      1,
+					TLSConfigurator: s1.tlsConfigurator,
+					Logger:          s1.logger.StandardLogger(nil),
+				}
+				defer connPool.Shutdown()
+				connPool.SetRPCClientTimeout(5 * time.Second)
+				call = func(method string, args, reply interface{}) error {
+					return connPool.RPC("dc1", s1.config.NodeName, s1.config.RPCAdvertise, method, args, reply)
+				}
+			}
+
+			for i := 0; i < 3; i++ {
+				if i > 0 {
+					time.Sleep(2 * shortTimeout)
+				}
+				arg := structs.RegisterRequest{
+					Datacenter: "dc1",
+					Node:       fmt.Sprintf("node-%d", i),
+					Address:    "127.0.0.1",
+				}
+				var out struct{}
+				require.NoError(t, call("Catalog.Register", &arg, &out),
+					"registration %d must succeed without retrying an idle connection", i)
+
+				query := structs.NodeSpecificRequest{Datacenter: "dc1", Node: arg.Node}
+				var nodes structs.IndexedNodeServices
+				require.NoError(t, call("Catalog.NodeServices", &query, &nodes))
+				require.NotNil(t, nodes.NodeServices)
+				require.NotNil(t, nodes.NodeServices.Node)
+				require.Equal(t, arg.Node, nodes.NodeServices.Node.Node)
+			}
+		})
+	}
+}
+
+func TestRPC_CodecBufferPreservation(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	_, s1 := testServerWithConfig(t)
+	require.NoError(t, s1.insecureRPCServer.Register(&Status{server: s1}))
+
+	for _, tc := range []struct {
+		name   string
+		handle func(net.Conn)
+	}{
+		{name: "Consul", handle: s1.handleConsulConn},
+		{name: "insecure Consul", handle: s1.handleInsecureConn},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			server, client := net.Pipe()
+			done := make(chan struct{})
+			go func() {
+				defer close(done)
+				tc.handle(server)
+			}()
+			defer func() {
+				client.Close()
+				server.Close()
+				<-done
+			}()
+			require.NoError(t, client.SetDeadline(time.Now().Add(5*time.Second)))
+
+			var wire bytes.Buffer
+			enc := codec.NewEncoder(&wire, structs.MsgpackHandle)
+			for seq := uint64(1); seq <= 2; seq++ {
+				require.NoError(t, enc.Encode(&rpc.Request{ServiceMethod: "Status.Ping", Seq: seq}))
+				require.NoError(t, enc.Encode(&EmptyReadRequest{}))
+			}
+			// One net.Pipe write forces both complete requests into the server's read buffer.
+			_, err := client.Write(wire.Bytes())
+			require.NoError(t, err)
+
+			clientCodec := msgpackrpc.NewCodecFromHandle(true, true, client, structs.MsgpackHandle)
+			defer clientCodec.Close()
+			for seq := uint64(1); seq <= 2; seq++ {
+				var header rpc.Response
+				require.NoError(t, clientCodec.ReadResponseHeader(&header))
+				require.Equal(t, seq, header.Seq)
+				require.Empty(t, header.Error)
+				var body struct{}
+				require.NoError(t, clientCodec.ReadResponseBody(&body))
+			}
+		})
+	}
+}
+
+func TestRPC_StallingClientHeaderTimeout(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.RPCHandshakeTimeout = 200 * time.Millisecond
+	})
+	header := encodeHeader(t, "Status.Ping", 1)
+
+	for _, length := range []int{1, len(header) - 1} {
+		t.Run(fmt.Sprintf("%d header bytes", length), func(t *testing.T) {
+			conn, err := net.DialTimeout("tcp", s1.config.RPCAdvertise.String(), time.Second)
+			require.NoError(t, err)
+			defer conn.Close()
+			require.NoError(t, conn.SetDeadline(time.Now().Add(5*time.Second)))
+
+			_, err = conn.Write(append([]byte{byte(pool.RPCConsul)}, header[:length]...))
+			require.NoError(t, err)
+			requireRPCConnectionClosed(t, conn)
+		})
+	}
+}
+
+func TestRPC_StallingClientBodyTimeout(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.RPCHandshakeTimeout = 200 * time.Millisecond
+	})
+	var body bytes.Buffer
+	require.NoError(t, codec.NewEncoder(&body, structs.MsgpackHandle).Encode(map[string]string{"Ignored": "unfinished"}))
+
+	for _, method := range []string{"Status.Ping", "Nonexistent.Method"} {
+		t.Run(method, func(t *testing.T) {
+			for _, tc := range []struct {
+				name string
+				body []byte
+			}{
+				{name: "missing body"},
+				{name: "partial body", body: body.Bytes()[:body.Len()-1]},
+			} {
+				t.Run(tc.name, func(t *testing.T) {
+					conn, err := net.DialTimeout("tcp", s1.config.RPCAdvertise.String(), time.Second)
+					require.NoError(t, err)
+					defer conn.Close()
+					require.NoError(t, conn.SetDeadline(time.Now().Add(5*time.Second)))
+
+					wire := append([]byte{byte(pool.RPCConsul)}, encodeHeader(t, method, 1)...)
+					_, err = conn.Write(append(wire, tc.body...))
+					require.NoError(t, err)
+
+					clientCodec := msgpackrpc.NewCodecFromHandle(true, true, conn, structs.MsgpackHandle)
+					defer clientCodec.Close()
+					var response rpc.Response
+					require.NoError(t, clientCodec.ReadResponseHeader(&response),
+						"the server must answer before the client's safety deadline")
+					require.Equal(t, uint64(1), response.Seq)
+					if method == "Status.Ping" {
+						require.Contains(t, response.Error, "timeout")
+					} else {
+						require.Contains(t, response.Error, "can't find service")
+					}
+					require.NoError(t, clientCodec.ReadResponseBody(nil))
+					requireRPCConnectionClosed(t, conn)
+				})
+			}
+		})
+	}
+}
+
+func TestRPC_TLSInsecureIdleTimeout(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	const shortTimeout = 200 * time.Millisecond
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.RPCHandshakeTimeout = shortTimeout
+		c.TLSConfig.InternalRPC.CAFile = "../../test/hostname/CertAuth.crt"
+		c.TLSConfig.InternalRPC.CertFile = "../../test/hostname/Alice.crt"
+		c.TLSConfig.InternalRPC.KeyFile = "../../test/hostname/Alice.key"
+		c.TLSConfig.InternalRPC.VerifyServerHostname = true
+		c.TLSConfig.InternalRPC.VerifyOutgoing = true
+		c.TLSConfig.InternalRPC.VerifyIncoming = true
+		c.TLSConfig.Domain = "consul"
+	})
+	require.NoError(t, s1.insecureRPCServer.Register(&Status{server: s1}))
+
+	conn, err := net.DialTimeout("tcp", s1.config.RPCAdvertise.String(), time.Second)
+	require.NoError(t, err)
+	defer conn.Close()
+	require.NoError(t, conn.SetDeadline(time.Now().Add(5*time.Second)))
+	_, err = conn.Write([]byte{byte(pool.RPCTLSInsecure)})
+	require.NoError(t, err)
+	tlsConn, err := s1.tlsConfigurator.OutgoingRPCWrapper()("dc1", conn)
+	require.NoError(t, err)
+	require.NoError(t, tlsConn.(*tls.Conn).Handshake())
+
+	clientCodec := msgpackrpc.NewCodecFromHandle(true, true, tlsConn, structs.MsgpackHandle)
+	defer clientCodec.Close()
+	for i := 0; i < 2; i++ {
+		time.Sleep(2 * shortTimeout)
+		var out struct{}
+		require.NoError(t, msgpackrpc.CallWithCodec(clientCodec, "Status.Ping", &EmptyReadRequest{}, &out),
+			"initial and subsequent idle periods after the insecure TLS handshake must be allowed")
+	}
+}
+
+func TestRPC_BlockingRequestReadTimeout(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	const shortTimeout = 200 * time.Millisecond
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.RPCHandshakeTimeout = shortTimeout
+	})
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
+	conn, err := net.DialTimeout("tcp", s1.config.RPCAdvertise.String(), time.Second)
+	require.NoError(t, err)
+	defer conn.Close()
+	require.NoError(t, conn.SetDeadline(time.Now().Add(5*time.Second)))
+	_, err = conn.Write([]byte{byte(pool.RPCConsul)})
+	require.NoError(t, err)
+	clientCodec := msgpackrpc.NewCodecFromHandle(true, true, conn, structs.MsgpackHandle)
+	defer clientCodec.Close()
+
+	write := structs.KVSRequest{
+		Datacenter: "dc1",
+		Op:         api.KVSet,
+		DirEnt:     structs.DirEntry{Key: "blocking-read", Value: []byte("value")},
+	}
+	var applied bool
+	require.NoError(t, msgpackrpc.CallWithCodec(clientCodec, "KVS.Apply", &write, &applied))
+
+	query := structs.KeyRequest{Datacenter: "dc1", Key: write.DirEnt.Key}
+	var result structs.IndexedDirEntries
+	require.NoError(t, msgpackrpc.CallWithCodec(clientCodec, "KVS.Get", &query, &result))
+	require.NotZero(t, result.Index)
+	query.MinQueryIndex = result.Index
+	query.MaxQueryTime = 3 * shortTimeout
+
+	start := time.Now()
+	require.NoError(t, msgpackrpc.CallWithCodec(clientCodec, "KVS.Get", &query, &result))
+	require.GreaterOrEqual(t, time.Since(start), query.MaxQueryTime,
+		"the handler must actually block beyond the request read timeout")
+	require.Equal(t, query.MinQueryIndex, result.Index)
+	require.Len(t, result.Entries, 1)
+	require.Equal(t, write.DirEnt.Value, result.Entries[0].Value)
+
+	var out struct{}
+	require.NoError(t, msgpackrpc.CallWithCodec(clientCodec, "Status.Ping", &EmptyReadRequest{}, &out),
+		"the same connection must remain usable after the blocking handler returns")
+}
+
+func requireRPCConnectionClosed(t *testing.T, conn net.Conn) {
+	t.Helper()
+	var buf [1]byte
+	_, err := conn.Read(buf[:])
+	require.Error(t, err, "the server must close the connection")
+	var netErr net.Error
+	require.False(t, errors.As(err, &netErr) && netErr.Timeout(),
+		"the client's safety deadline is not evidence of a server close: %v", err)
+	require.True(t, errors.Is(err, io.EOF) || errors.Is(err, syscall.ECONNRESET),
+		"expected server EOF or connection reset, got: %v", err)
 }
