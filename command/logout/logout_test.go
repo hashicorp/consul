@@ -4,6 +4,8 @@
 package logout
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -16,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/acl"
+	"github.com/hashicorp/consul/command/loginutil"
 	"github.com/hashicorp/consul/testrpc"
 )
 
@@ -76,6 +79,27 @@ func TestLogoutCommand(t *testing.T) {
 		code := cmd.Run(args)
 		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
 		require.Contains(t, ui.ErrorWriter.String(), "403 (ACL not found)")
+	})
+
+	t.Run("logout of deleted token still offers IdP logout", func(t *testing.T) {
+		fakeID, err := uuid.GenerateUUID()
+		require.NoError(t, err)
+
+		tokenFile := filepath.Join(t.TempDir(), "token")
+		require.NoError(t, os.WriteFile(tokenFile, []byte(fakeID), 0o600))
+		sidecar := tokenFile + loginutil.IDPLogoutSuffix
+		const logoutURL = "https://idp.example.com/logout?id_token_hint=xyz"
+		require.NoError(t, os.WriteFile(sidecar, []byte(logoutURL), 0o600))
+
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+		code := cmd.Run([]string{"-http-addr=" + a.HTTPAddr(), "-token-file=" + tokenFile})
+
+		require.Equal(t, 1, code)
+		require.Contains(t, ui.ErrorWriter.String(), "403 (ACL not found)")
+		require.Contains(t, ui.OutputWriter.String(), logoutURL)
+		_, err = os.Stat(sidecar)
+		require.True(t, os.IsNotExist(err), "sidecar should be removed")
 	})
 
 	plainToken, _, err := client.ACL().TokenCreate(

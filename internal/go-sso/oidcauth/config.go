@@ -116,6 +116,23 @@ type Config struct {
 	// Valid only if Type=oidc
 	VerboseOIDCLogging bool
 
+	// OIDCPostLogoutRedirectURIs is the list of allowed post_logout_redirect_uri
+	// values that the provider may redirect the user back to after an
+	// RP-Initiated logout. When empty no post_logout_redirect_uri is sent and
+	// the provider displays its own post-logout page.
+	//
+	// Valid only if Type=oidc
+	OIDCPostLogoutRedirectURIs []string
+
+	// OIDCLogoutURL is the provider's RP-Initiated logout endpoint. When set it
+	// is used instead of the end_session_endpoint advertised in the provider's
+	// discovery document. This supports providers that expose a logout endpoint
+	// but do not advertise it via discovery. When empty, the discovered
+	// end_session_endpoint (if any) is used.
+	//
+	// Valid only if Type=oidc
+	OIDCLogoutURL string
+
 	// -------
 	// just for type=jwt
 	// -------
@@ -248,6 +265,34 @@ func (c *Config) Validate() error {
 			return fmt.Errorf("Invalid AllowedRedirectURIs provided: %v", bad)
 		}
 
+		// OIDCPostLogoutRedirectURIs must use https per the OIDC RP-Initiated
+		// Logout spec (https://openid.net/specs/openid-connect-rpinitiated-1_0.html).
+		for i, uri := range c.OIDCPostLogoutRedirectURIs {
+			u, err := url.Parse(uri)
+			if err != nil {
+				return fmt.Errorf("'OIDCPostLogoutRedirectURIs[%d]' is not a valid URL: %v", i, err)
+			}
+			if u.Scheme != "https" {
+				return fmt.Errorf("'OIDCPostLogoutRedirectURIs[%d]' must use https, got %q", i, u.Scheme)
+			}
+			if u.Host == "" {
+				return fmt.Errorf("'OIDCPostLogoutRedirectURIs[%d]' must include a host", i)
+			}
+		}
+
+		if c.OIDCLogoutURL != "" {
+			u, err := url.Parse(c.OIDCLogoutURL)
+			if err != nil {
+				return fmt.Errorf("'OIDCLogoutURL' is not a valid URL: %v", err)
+			}
+			if u.Scheme != "https" {
+				return fmt.Errorf("'OIDCLogoutURL' must use https, got %q", u.Scheme)
+			}
+			if u.Host == "" {
+				return fmt.Errorf("'OIDCLogoutURL' must include a host")
+			}
+		}
+
 		if c.OIDCClientAssertion != nil {
 			// Validate KeyAlgorithm if set
 			if c.OIDCClientAssertion.KeyAlgorithm != "" &&
@@ -273,6 +318,10 @@ func (c *Config) Validate() error {
 			return fmt.Errorf("'AllowedRedirectURIs' must not be set for type %q", c.Type)
 		case c.VerboseOIDCLogging:
 			return fmt.Errorf("'VerboseOIDCLogging' must not be set for type %q", c.Type)
+		case len(c.OIDCPostLogoutRedirectURIs) != 0:
+			return fmt.Errorf("'OIDCPostLogoutRedirectURIs' must not be set for type %q", c.Type)
+		case c.OIDCLogoutURL != "":
+			return fmt.Errorf("'OIDCLogoutURL' must not be set for type %q", c.Type)
 		}
 
 		methodCount := 0
