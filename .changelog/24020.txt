@@ -1,0 +1,3 @@
+```release-note:security
+deps: Stop requiring old published versions of github.com/hashicorp/consul in test modules (test-sds-server, test-integ, consul-container); they now use the in-repo module.
+```
