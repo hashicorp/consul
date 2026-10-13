@@ -4589,7 +4589,14 @@ func (c *asyncTriggerController) AddTrigger(_ controller.Request, trigger func(c
 	c.wg.Add(1)
 	go func() {
 		defer c.wg.Done()
-		_ = trigger(c.ctx)
+		// Repeatedly invoke the trigger with an already-cancelled context so it
+		// returns immediately after iterating the watch set, maximising overlap
+		// with any concurrent writes made by the reconciler.
+		cancelled, cancel := context.WithCancel(context.Background())
+		cancel()
+		for c.ctx.Err() == nil {
+			_ = trigger(cancelled)
+		}
 	}()
 }
 
@@ -4621,7 +4628,21 @@ func TestAPIGatewayControllerRouteTriggerDoesNotRaceWithWatchSet(t *testing.T) {
 	defaultMeta := acl.DefaultEnterpriseMeta()
 	services := make([]structs.TCPService, 50)
 	for i := range services {
-		services[i] = structs.TCPService{Name: fmt.Sprintf("upstream-%d", i)}
+		name := fmt.Sprintf("upstream-%d", i)
+		services[i] = structs.TCPService{Name: name}
+		// Real entries give each service its own watch channel, so every
+		// discovery chain read adds new members to the watch set.
+		require.NoError(t, fsm.State().EnsureConfigEntry(uint64(i+2), &structs.ServiceResolverConfigEntry{
+			Kind:           structs.ServiceResolver,
+			Name:           name,
+			EnterpriseMeta: *defaultMeta,
+		}))
+		require.NoError(t, fsm.State().EnsureConfigEntry(uint64(i+100), &structs.ServiceConfigEntry{
+			Kind:           structs.ServiceDefaults,
+			Name:           name,
+			EnterpriseMeta: *defaultMeta,
+			Protocol:       "tcp",
+		}))
 	}
 	route := &structs.TCPRouteConfigEntry{
 		Kind:           structs.TCPRoute,
