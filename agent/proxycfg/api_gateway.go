@@ -581,9 +581,17 @@ func (h *handlerAPIGateway) recompileDiscoveryChains(snap *ConfigSnapshot) error
 		}
 
 		// Create a synthesized discovery chain for each service.
-		services, upstreams, compiled, err := snap.APIGateway.synthesizeChains(h.source.Datacenter, listener, boundListener)
+		services, upstreams, compiled, skipped, err := snap.APIGateway.synthesizeChains(h.source.Datacenter, listener, boundListener)
 		if err != nil {
 			return err
+		}
+		// Log any routes that could not be synthesized (e.g. a backend
+		// service-router that redirects to a tcp-only service causes a genuine
+		// "inconsistent protocols" compile error). These are per-route failures;
+		// the remaining correctly-configured routes on this listener continue
+		// working. Operators should fix the underlying misconfiguration.
+		for _, routeErr := range skipped {
+			h.logger.Warn("skipping misconfigured HTTPRoute during discovery chain synthesis", "listener", name, "error", routeErr)
 		}
 
 		if len(upstreams) == 0 {

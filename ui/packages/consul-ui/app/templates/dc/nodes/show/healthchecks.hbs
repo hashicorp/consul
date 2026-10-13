@@ -40,10 +40,11 @@ as |route|>
 
   as |sort filters items|}}
       <div class="tab-section">
+          {{! Toolbar is rendered outside DataCollection so it persists when
+              filters/search reduce the visible rows to zero. It only appears
+              when there are actual health checks on this node. }}
           {{#if (gt items.length 0) }}
-            <input type="checkbox" id="toolbar-toggle" />
-            <Consul::HealthCheck::SearchBar
-
+            <Consul::HealthCheck::Toolbar
               @search={{this.search}}
               @onsearch={{action (mut this.search) value="target.value"}}
 

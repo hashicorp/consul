@@ -5,16 +5,19 @@
 
 import { helper } from '@ember/component/helper';
 
+// External sources render as monochrome glyphs so the badges read as a
+// consistent set rather than a row of competing brand colours; they inherit
+// the badge's foreground colour via `currentColor`.
 const ICON_MAPPING = {
-  kubernetes: 'kubernetes-color',
-  terraform: 'terraform-color',
-  nomad: 'nomad-color',
-  consul: 'consul-color',
-  'consul-api-gateway': 'consul-color',
+  kubernetes: 'kubernetes',
+  terraform: 'terraform',
+  nomad: 'nomad',
+  consul: 'consul',
+  'consul-api-gateway': 'consul',
   vault: 'vault',
-  aws: 'aws-color',
-  'aws-iam': 'aws-color',
-  lambda: 'aws-lambda-color',
+  aws: 'aws',
+  'aws-iam': 'aws',
+  lambda: 'aws-lambda',
 };
 
 /**

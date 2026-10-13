@@ -11,30 +11,50 @@ as |route|>
 as |items|}}
   <div class="tab-section">
     {{#if (gt items.length 0)}}
-      <TabularCollection
-        data-test-addresses
+      <div
         class="consul-tagged-addresses"
-        @items={{items}}
+        data-test-addresses
       >
-          <:header>
-            <th>Tag</th>
-            <th>Address</th>
-          </:header>
-          <:row as |taggedAddress index|>
-      {{#let (object-at 1 taggedAddress) as |address|}}
-            <td>
-              {{object-at 0 taggedAddress}}{{#if (and (eq address.Address route.model.item.Address) (eq address.Port route.model.item.Port))}}&nbsp;<em data-test-address-default>(default)</em>{{/if}}
-            </td>
-            <td data-test-address>
-              {{address.Address}}:{{address.Port}}
-            </td>
-      {{/let}}
-          </:row>
-      </TabularCollection>
+        {{#each items as |taggedAddress|}}
+          {{#let (object-at 0 taggedAddress) (object-at 1 taggedAddress) as |tag address|}}
+            <Hds::Card::Container
+              @level="mid"
+              @hasBorder={{true}}
+              class="consul-tagged-addresses__card"
+              data-test-address-card
+            >
+              <div class="consul-tagged-addresses__content">
+                <Hds::Badge
+                  @text={{tag}}
+                  @color="neutral"
+                  @type="outlined"
+                  @size="small"
+                  data-test-address-tag
+                />
+                <span
+                  class="consul-tagged-addresses__value"
+                  data-test-address-value
+                >
+                  {{address.Address}}:{{address.Port}}{{#if (and (eq address.Address route.model.item.Address) (eq address.Port route.model.item.Port))}}&nbsp;<em data-test-address-default>(default)</em>{{/if}}
+                </span>
+                <ConsulCopyButton
+                  @value="{{address.Address}}:{{address.Port}}"
+                  @name="Address"
+                  class="consul-tagged-addresses__copy"
+                />
+              </div>
+            </Hds::Card::Container>
+          {{/let}}
+        {{/each}}
+      </div>
     {{else}}
-      <p>
-        There are no additional addresses.
-      </p>
+      <EmptyState>
+        <:body>
+          <p>
+            There are no additional addresses.
+          </p>
+        </:body>
+      </EmptyState>
     {{/if}}
   </div>
 {{/let}}

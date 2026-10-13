@@ -252,15 +252,23 @@ class PeeringsPage {
   }
 
   /**
-   * Returns the full list-row <li> element for a named peer.
-   * Works in both dev builds (data-test-list-row + data-test-peer) and production
-   * builds where those attributes are stripped (matched via href instead).
+   * Returns the list-row element for a named peer, matching both this branch's
+   * Hds table (<tr>) and the legacy list UI (<li>) still bundled in the peer
+   * agent's release binary on 8501. data-test-* is stripped in production
+   * builds, so also match by the peer-name link href.
    * @param {string} peerName
    */
   peerListRow(peerName) {
     return this.page
       .locator(
-        `[data-test-list-row]:has([data-test-peer="${peerName}"]), li:has(a[href*="/peers/${peerName}"])`
+        [
+          // New Hds table UI
+          `tr:has([data-test-peer="${peerName}"])`,
+          `tr:has(a[href*="/peers/${peerName}"])`,
+          // Legacy list UI (release binary on the peer instance)
+          `[data-test-list-row]:has([data-test-peer="${peerName}"])`,
+          `li:has(a[href*="/peers/${peerName}"])`,
+        ].join(', ')
       )
       .first();
   }

@@ -1536,6 +1536,9 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	if runtimeCfg.RPCMaxConnsPerClient > 0 {
 		cfg.RPCMaxConnsPerClient = runtimeCfg.RPCMaxConnsPerClient
 	}
+	if runtimeCfg.RPCMaxHeaderBytes > 0 {
+		cfg.RPCMaxHeaderBytes = runtimeCfg.RPCMaxHeaderBytes
+	}
 
 	// RPC-related performance configs. We allow explicit zero value to disable so
 	// copy it whatever the value.
@@ -4372,6 +4375,7 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 		RPCRateLimit:          newCfg.RPCRateLimit,
 		RPCMaxBurst:           newCfg.RPCMaxBurst,
 		RPCMaxConnsPerClient:  newCfg.RPCMaxConnsPerClient,
+		RPCMaxHeaderBytes:     newCfg.RPCMaxHeaderBytes,
 		ConfigEntryBootstrap:  newCfg.ConfigEntryBootstrap,
 		RaftSnapshotThreshold: newCfg.RaftSnapshotThreshold,
 		RaftSnapshotInterval:  newCfg.RaftSnapshotInterval,

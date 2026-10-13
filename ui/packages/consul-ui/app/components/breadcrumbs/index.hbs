@@ -1,0 +1,27 @@
+{{!
+  Copyright IBM Corp. 2024, 2026
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{#if @items.length}}
+  <Hds::Breadcrumb data-test-breadcrumb-list>
+    {{#each @items as |item|}}
+      {{#if item.isCurrent}}
+        <Hds::Breadcrumb::Item
+          @text={{item.label}}
+          @current={{true}}
+          data-test-breadcrumb-item
+          data-test-breadcrumb-current
+        />
+      {{else}}
+        <Hds::Breadcrumb::Item
+          @text={{item.label}}
+          @route={{item.route}}
+          @models={{item.models}}
+          @href={{item.href}}
+          data-test-breadcrumb-item
+        />
+      {{/if}}
+    {{/each}}
+  </Hds::Breadcrumb>
+{{/if}}

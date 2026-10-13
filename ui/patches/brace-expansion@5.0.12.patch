@@ -1,0 +1,13 @@
+diff --git a/dist/commonjs/index.js b/dist/commonjs/index.js
+index 48cf0d3dabc885249c65909c4912712c834786f5..56a2ffe9a7c474891c835b5edd4722f9ef861c24 100644
+--- a/dist/commonjs/index.js
++++ b/dist/commonjs/index.js
+@@ -48,6 +48,8 @@ exports.EXPANSION_MAX_DEPTH = 1_000;
+ // seconds to produce two results. `EXPANSION_MAX_REWRITES` bounds how many
+ // times the scan may restart. Real `{a},b}` input needs a handful.
+ exports.EXPANSION_MAX_REWRITES = 1_000;
++// minimatch <9 calls the required module directly; v5 only exports named `expand`.
++module.exports = Object.assign(expand, exports);
+ function numeric(str) {
+     return !isNaN(str) ? parseInt(str, 10) : str.charCodeAt(0);
+ }

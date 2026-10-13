@@ -14,15 +14,21 @@ section[data-route='dc.show.license'] {
 }
 
 %license-route h2 {
-  @extend %display-400-semibold;
+  @extend %display-400-bold;
+  margin-bottom: 0.75rem; /* 12px */
 }
 
 %license-validity p {
-  color: var(--token-color-foreground-faint);
+  color: var(--token-color-foreground-primary);
+  margin-bottom: 1rem; /* 16px */
 }
 %license-validity dl {
   @extend %horizontal-kv-list;
   @extend %body-300-regular;
+  padding: 0.25rem 0.75rem; /* 4px 12px */
+  border: var(--decor-border-100);
+  border-color: var(--token-color-palette-neutral-300);
+  border-radius: var(--decor-radius-200);
 }
 %license-validity dl .expired + dd {
   @extend %visually-hidden;
@@ -31,25 +37,37 @@ section[data-route='dc.show.license'] {
   content: '';
   margin-right: 0.25rem; /* 4px */
 }
+%license-validity dl .expired,
+%license-validity dl .expired + dd {
+  color: var(--token-color-foreground-critical);
+}
 %license-validity dl .expired::before {
   --icon-name: icon-x-circle;
   --icon-color: var(--token-color-foreground-critical);
+}
+%license-validity dl .warning,
+%license-validity dl .warning + dd {
+  color: var(--token-color-foreground-warning);
 }
 %license-validity dl .warning::before {
   --icon-name: icon-alert-circle;
   --icon-color: var(--token-color-foreground-warning);
 }
+%license-validity dl .valid:not(.warning),
+%license-validity dl .valid:not(.warning) + dd {
+  color: var(--token-color-foreground-success);
+}
 %license-validity dl .valid:not(.warning)::before {
-  --icon-name: icon-check-circle;
+  --icon-name: icon-check;
   --icon-color: var(--token-color-foreground-success);
 }
 
 %license-route-learn-more {
   @extend %panel;
   box-shadow: none;
-  padding: var(--padding-y) var(--padding-x);
-  width: 40%;
-  min-width: 413px;
+  padding: 1.5rem; /* 24px */
+  width: fit-content;
+  max-width: 100%;
   margin-top: 1rem; /* 16px */
 }
 %license-route-learn-more header > :first-child {
@@ -57,4 +75,12 @@ section[data-route='dc.show.license'] {
 }
 %license-route-learn-more header {
   margin-bottom: 1rem; /* 16px */
+}
+%license-route-learn-more .license-learn-more__links {
+  display: flex;
+  flex-flow: row wrap;
+  gap: 1rem; /* 16px */
+}
+%license-route-learn-more .license-learn-more__links > * {
+  white-space: nowrap;
 }

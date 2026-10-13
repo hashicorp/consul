@@ -124,7 +124,7 @@ func (c exampleContainer) Terminate() error {
 
 func (c exampleContainer) GetStatus() (string, error) {
 	state, err := c.container.State(c.ctx)
-	return state.Status, err
+	return string(state.Status), err
 }
 
 // NewCustomService creates a new test service from a custom testcontainers.ContainerRequest.
@@ -153,8 +153,8 @@ func NewCustomService(ctx context.Context, name string, httpPort int, grpcPort i
 		ctx:         ctx,
 		container:   info.Container,
 		ip:          info.IP,
-		httpPort:    info.MappedPorts[httpPortStr].Int(),
-		grpcPort:    info.MappedPorts[grpcPortStr].Int(),
+		httpPort:    int(info.MappedPorts[httpPortStr].Num()),
+		grpcPort:    int(info.MappedPorts[grpcPortStr].Num()),
 		serviceName: name,
 	}
 
@@ -204,8 +204,8 @@ func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort 
 		ctx:         ctx,
 		container:   info.Container,
 		ip:          info.IP,
-		httpPort:    info.MappedPorts[httpPortStr].Int(),
-		grpcPort:    info.MappedPorts[grpcPortStr].Int(),
+		httpPort:    int(info.MappedPorts[httpPortStr].Num()),
+		grpcPort:    int(info.MappedPorts[grpcPortStr].Num()),
 		serviceName: name,
 	}
 

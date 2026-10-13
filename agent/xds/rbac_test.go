@@ -1310,3 +1310,82 @@ func TestJWTClaimsToPrincipals(t *testing.T) {
 		})
 	}
 }
+
+// TestMakeSpiffePattern_EscapesRegexMetacharacters verifies that regex
+// metacharacters in the source service name and trust domain are escaped when
+// building the Envoy RBAC SPIFFE match pattern, so they are matched literally.
+//
+// Without escaping, a "." in a service name acts as the regex "any character"
+// wildcard, letting an unintended identity satisfy an intention's RBAC rule
+// (an authorization bypass). This is a behavioral test: it compiles the
+// generated pattern and asserts that crafted identities do NOT match. Unlike
+// the golden fixtures, this cannot be silently regenerated to a passing state
+// if the escaping is ever removed.
+func TestMakeSpiffePattern_EscapesRegexMetacharacters(t *testing.T) {
+	const trustDomain = "test.consul"
+
+	compile := func(service string) *regexp.Regexp {
+		p := makeSpiffePattern(rbacService{
+			ServiceName: structs.NewServiceName(service, nil),
+			TrustDomain: trustDomain,
+		})
+		return regexp.MustCompile(p)
+	}
+
+	spiffeID := func(service string) string {
+		return fmt.Sprintf("spiffe://%s/ns/default/dc/dc1/svc/%s", trustDomain, service)
+	}
+
+	cases := []struct {
+		name         string
+		re           *regexp.Regexp
+		mustMatch    []string
+		mustNotMatch []string
+	}{
+		{
+			// A "." in the service name must be matched literally, not as the
+			// regex "any character" wildcard.
+			name:      "dot in service name is not a wildcard",
+			re:        compile("web.api"),
+			mustMatch: []string{spiffeID("web.api")},
+			mustNotMatch: []string{
+				spiffeID("web-api"),
+				spiffeID("webXapi"),
+				spiffeID("web_api"),
+			},
+		},
+		{
+			// A "|" must not turn the pattern into an alternation that also
+			// matches a completely different service name.
+			name:      "pipe in service name does not create alternation",
+			re:        compile("harmless|admin"),
+			mustMatch: []string{spiffeID("harmless|admin")},
+			mustNotMatch: []string{
+				spiffeID("admin"),
+				spiffeID("harmless"),
+			},
+		},
+		{
+			// The "." in the trust domain must also be matched literally.
+			name:      "dot in trust domain is not a wildcard",
+			re:        compile("web"),
+			mustMatch: []string{spiffeID("web")},
+			mustNotMatch: []string{
+				"spiffe://testXconsul/ns/default/dc/dc1/svc/web",
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, id := range tc.mustMatch {
+				assert.True(t, tc.re.MatchString(id),
+					"pattern %q should match legitimate identity %q", tc.re.String(), id)
+			}
+			for _, id := range tc.mustNotMatch {
+				assert.False(t, tc.re.MatchString(id),
+					"BYPASS: pattern %q must not match crafted identity %q", tc.re.String(), id)
+			}
+		})
+	}
+}

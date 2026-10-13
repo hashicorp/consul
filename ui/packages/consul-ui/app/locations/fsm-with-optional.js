@@ -33,6 +33,13 @@ const _uuid = function () {
  * including using forward and back buttons.
  */
 const route = function (e) {
+  if (!e.state) {
+    // Native in-page navigation (e.g. clicking a same-page hash anchor such
+    // as a "skip to main content" link) fires a popstate event with a null
+    // state, since it never went through our own dispatch(). There's no
+    // application route change to react to, so bail out early.
+    return;
+  }
   const path = e.state.path;
   const url = this.getURLForTransition(path);
   // Ignore initial page load popstate event in Chrome

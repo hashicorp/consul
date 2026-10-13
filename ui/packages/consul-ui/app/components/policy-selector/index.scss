@@ -1,0 +1,13 @@
+/**
+ * Copyright IBM Corp. 2024, 2026
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+/* Prefixes each accordion row's code-block region name with the policy's
+   own name, so multiple regions all visibly titled "Rules (HCL Format)"
+   still get distinct accessible names when several rows are expanded at
+   once — not meant to be seen, since the row's own accordion header already
+   shows the policy name. */
+.policy-accordion__region-label {
+  @extend %visually-hidden;
+}

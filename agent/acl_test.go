@@ -295,6 +295,167 @@ func TestACL_vetServiceRegister(t *testing.T) {
 	require.True(t, acl.IsErrPermissionDenied(err))
 }
 
+// TestACL_vetServiceRegister_bootstrapEscapeHatch verifies that registering a
+// connect-proxy sidecar with any bootstrap escape-hatch key in Proxy.Config
+// requires mesh:write in addition to service:write (SECVULN — Vector 2).
+func TestACL_vetServiceRegister_bootstrapEscapeHatch(t *testing.T) {
+	t.Parallel()
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy, catalogIdent)
+
+	newAuthz := func(t *testing.T, rules string) acl.Authorizer {
+		t.Helper()
+		policy, err := acl.NewPolicyFromSource(rules, nil, nil)
+		require.NoError(t, err)
+		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+		require.NoError(t, err)
+		return authz
+	}
+
+	sidecar := &structs.NodeService{
+		ID:      "web-sidecar-proxy",
+		Service: "web-sidecar-proxy",
+		Kind:    structs.ServiceKindConnectProxy,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "web",
+			Config: map[string]interface{}{
+				"envoy_extra_static_listeners_json": `{"name":"attacker-listener"}`,
+			},
+		},
+	}
+
+	// service:write on both names but no mesh:write — must be denied.
+	authzServiceOnly := newAuthz(t, `service_prefix "" { policy = "write" }`)
+	err := a.vetServiceRegisterWithAuthorizer(authzServiceOnly, sidecar)
+	require.Error(t, err)
+	require.True(t, acl.IsErrPermissionDenied(err), "expected permission denied, got: %v", err)
+
+	// service:write + mesh:write — must be allowed.
+	authzWithMesh := newAuthz(t, `service_prefix "" { policy = "write" } mesh = "write"`)
+	err = a.vetServiceRegisterWithAuthorizer(authzWithMesh, sidecar)
+	require.NoError(t, err)
+
+	// Proxy.Config with no escape-hatch keys — service:write alone is sufficient.
+	normalSidecar := &structs.NodeService{
+		ID:      "web-sidecar-proxy",
+		Service: "web-sidecar-proxy",
+		Kind:    structs.ServiceKindConnectProxy,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "web",
+			Config: map[string]interface{}{
+				"protocol": "http",
+			},
+		},
+	}
+	err = a.vetServiceRegisterWithAuthorizer(authzServiceOnly, normalSidecar)
+	require.NoError(t, err)
+
+	// Verify every escape-hatch key triggers the mesh:write requirement.
+	for _, key := range structs.EnvoyEscapeHatchKeyNames() {
+		t.Run(key, func(t *testing.T) {
+			svc := &structs.NodeService{
+				ID:      "web-sidecar-proxy",
+				Service: "web-sidecar-proxy",
+				Kind:    structs.ServiceKindConnectProxy,
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "web",
+					Config:                 map[string]interface{}{key: `{}`},
+				},
+			}
+			err := a.vetServiceRegisterWithAuthorizer(authzServiceOnly, svc)
+			require.Error(t, err, "key %q: expected denial without mesh:write", key)
+			require.True(t, acl.IsErrPermissionDenied(err), "key %q: expected permission denied, got: %v", key, err)
+
+			err = a.vetServiceRegisterWithAuthorizer(authzWithMesh, svc)
+			require.NoError(t, err, "key %q: expected success with mesh:write", key)
+		})
+	}
+}
+
+// TestACL_vetServiceRegister_bootstrapEscapeHatch_Upstream verifies that
+// escape-hatch keys (envoy_listener_json, envoy_cluster_json) set on a
+// per-upstream Config map — not just the top-level Proxy.Config — also
+// require mesh:write. These keys are only ever consumed from
+// Proxy.Upstreams[*].Config (see agent/xds/listeners.go), so a check that
+// only inspects Proxy.Config would miss them entirely (SECVULN — Vector 2).
+func TestACL_vetServiceRegister_bootstrapEscapeHatch_Upstream(t *testing.T) {
+	t.Parallel()
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy, catalogIdent)
+
+	newAuthz := func(t *testing.T, rules string) acl.Authorizer {
+		t.Helper()
+		policy, err := acl.NewPolicyFromSource(rules, nil, nil)
+		require.NoError(t, err)
+		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+		require.NoError(t, err)
+		return authz
+	}
+
+	authzServiceOnly := newAuthz(t, `service_prefix "" { policy = "write" }`)
+	authzWithMesh := newAuthz(t, `service_prefix "" { policy = "write" } mesh = "write"`)
+
+	for _, key := range []string{"envoy_listener_json", "envoy_cluster_json"} {
+		key := key
+		t.Run(key, func(t *testing.T) {
+			svc := &structs.NodeService{
+				ID:      "web-sidecar-proxy",
+				Service: "web-sidecar-proxy",
+				Kind:    structs.ServiceKindConnectProxy,
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "web",
+					Upstreams: structs.Upstreams{
+						{
+							DestinationName: "db",
+							Config:          map[string]interface{}{key: `{"name":"attacker-listener"}`},
+						},
+					},
+				},
+			}
+			err := a.vetServiceRegisterWithAuthorizer(authzServiceOnly, svc)
+			require.Error(t, err, "upstream key %q: expected denial without mesh:write", key)
+			require.True(t, acl.IsErrPermissionDenied(err), "upstream key %q: expected permission denied, got: %v", key, err)
+
+			err = a.vetServiceRegisterWithAuthorizer(authzWithMesh, svc)
+			require.NoError(t, err, "upstream key %q: expected success with mesh:write", key)
+		})
+	}
+}
+
+// TestACL_vetServiceRegister_bootstrapEscapeHatch_CaseInsensitive verifies
+// that escape-hatch key matching is case-insensitive, matching the
+// case-insensitive mapstructure decoding used downstream by the bootstrap
+// and xDS config decoders. A mixed-case key must not bypass the mesh:write
+// requirement.
+func TestACL_vetServiceRegister_bootstrapEscapeHatch_CaseInsensitive(t *testing.T) {
+	t.Parallel()
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy, catalogIdent)
+
+	newAuthz := func(t *testing.T, rules string) acl.Authorizer {
+		t.Helper()
+		policy, err := acl.NewPolicyFromSource(rules, nil, nil)
+		require.NoError(t, err)
+		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+		require.NoError(t, err)
+		return authz
+	}
+
+	authzServiceOnly := newAuthz(t, `service_prefix "" { policy = "write" }`)
+
+	svc := &structs.NodeService{
+		ID:      "web-sidecar-proxy",
+		Service: "web-sidecar-proxy",
+		Kind:    structs.ServiceKindConnectProxy,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "web",
+			Config: map[string]interface{}{
+				"Envoy_Extra_Static_Listeners_JSON": `{"name":"attacker-listener"}`,
+			},
+		},
+	}
+	err := a.vetServiceRegisterWithAuthorizer(authzServiceOnly, svc)
+	require.Error(t, err, "expected denial for mixed-case escape-hatch key without mesh:write")
+	require.True(t, acl.IsErrPermissionDenied(err), "expected permission denied, got: %v", err)
+}
+
 func TestACL_vetServiceUpdateWithAuthorizer(t *testing.T) {
 	t.Parallel()
 	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy, catalogIdent)

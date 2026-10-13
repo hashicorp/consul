@@ -6,12 +6,16 @@
 import Controller from '@ember/controller';
 import { inject as service } from '@ember/service';
 import { action } from '@ember/object';
+import { tracked } from '@glimmer/tracking';
 
 export default class EditController extends Controller {
   @service('dom') dom;
   @service('form') builder;
 
   isScoped = false;
+
+  // Tracks the pending item while the "Use" confirmation modal is open.
+  @tracked itemToUse = null;
 
   constructor() {
     super(...arguments);
@@ -45,6 +49,30 @@ export default class EditController extends Controller {
           throw err;
       }
     }
+  }
+
+  @action
+  openUseModal(item) {
+    this.itemToUse = item;
+  }
+
+  @action
+  closeUseModal() {
+    this.itemToUse = null;
+  }
+
+  @action
+  confirmUse() {
+    const item = this.itemToUse;
+    this.itemToUse = null;
+    if (item) {
+      this.target.send('use', item);
+    }
+  }
+
+  @action
+  onClone(item) {
+    this.target.send('clone', item);
   }
 
   @action

@@ -64,7 +64,7 @@ module('Acceptance | dc / list-blocking', function (hooks) {
       api.server.setCookie('CONSUL_LATENCY', 100);
 
       await visit('service', { dc: 'dc-1', service: 'service' }, { nspace });
-      await click('[data-test-tab="instances"] a');
+      await click('[data-test-tab="tab_instances"] button');
       assert.equal(currentURL(), nspaceURL(nspace, '/dc-1/services/service/instances'));
 
       await waitForCount('instances', 3);

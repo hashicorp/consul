@@ -1,0 +1,56 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+.consul-kv-list {
+  /* chevron, type icon and name on one line; the per-depth indentation is
+     applied inline by the component */
+  .consul-kv-list__cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  /* the folder chevron, and the spacer keeping key rows aligned with it */
+  .consul-kv-list__toggle,
+  .consul-kv-list__toggle-spacer {
+    display: inline-flex;
+    flex: 0 0 auto;
+    width: 20px;
+    height: 20px;
+  }
+
+  .consul-kv-list__toggle {
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--token-color-foreground-faint);
+    cursor: pointer;
+  }
+
+  .consul-kv-list__toggle:hover {
+    color: var(--token-color-foreground-strong);
+  }
+
+  .consul-kv-list__icon {
+    flex: 0 0 auto;
+    color: var(--token-color-foreground-faint);
+  }
+
+  .consul-kv-list__name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .consul-kv-list__actions {
+    display: inline-flex;
+  }
+
+  .consul-kv-list__pagination {
+    margin-top: 16px;
+  }
+}

@@ -164,18 +164,21 @@ func (m *Manager) Register(id ProxyID, ns *structs.NodeService, source ProxySour
 
 func (m *Manager) register(id ProxyID, ns *structs.NodeService, source ProxySource, token string, overwrite bool) error {
 	state, ok := m.proxies[id]
-	if ok && !state.stoppedRunning() {
-		if state.source != source && !overwrite {
-			// Registered by a different source, leave as-is.
-			return nil
+	if ok {
+		if !state.stoppedRunning() {
+			if state.source != source && !overwrite {
+				// Registered by a different source, leave as-is.
+				return nil
+			}
+
+			if !state.Changed(ns, token) {
+				// No change
+				return nil
+			}
 		}
 
-		if !state.Changed(ns, token) {
-			// No change
-			return nil
-		}
-
-		// We are updating the proxy, close its old state
+		// We are replacing the proxy's state, close the old one. A state that
+		// has stopped running may still hold live watches.
 		state.Close(false)
 	}
 

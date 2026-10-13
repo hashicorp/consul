@@ -11,29 +11,29 @@ as |route|>
 as |tomography|}}
  {{#if (gt tomography.distances.length 0)}}
   <div class="tab-section">
-    <div class="definition-table">
-      <dl>
-          <dt>
-              Minimum
-          </dt>
-          <dd>
-              {{format-number tomography.min maximumFractionDigits=2}}ms
-          </dd>
-          <dt>
-              Median
-          </dt>
-          <dd>
-              {{format-number tomography.median maximumFractionDigits=2}}ms
-          </dd>
-          <dt>
-              Maximum
-          </dt>
-          <dd>
-              {{format-number tomography.max maximumFractionDigits=2}}ms
-          </dd>
+    <Hds::Card::Container
+      @level="mid"
+      @hasBorder={{true}}
+      @overflow="hidden"
+      class="consul-node-rtt"
+    >
+      <dl class="consul-node-rtt__stats">
+        <div class="consul-node-rtt__stat">
+          <dt>Minimum time</dt>
+          <dd>{{format-number tomography.min maximumFractionDigits=2}}ms</dd>
+        </div>
+        <div class="consul-node-rtt__stat">
+          <dt>Median time</dt>
+          <dd>{{format-number tomography.median maximumFractionDigits=2}}ms</dd>
+        </div>
+        <div class="consul-node-rtt__stat">
+          <dt>Maximum time</dt>
+          <dd>{{format-number tomography.max maximumFractionDigits=2}}ms</dd>
+        </div>
       </dl>
-    </div>
-    <Consul::Tomography::Graph @distances={{tomography.distances}} />
+      <div class="consul-node-rtt__divider" aria-hidden="true"></div>
+      <Consul::Tomography::Graph @distances={{tomography.distances}} />
+    </Hds::Card::Container>
   </div>
 {{/if}}
 {{/let}}

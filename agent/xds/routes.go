@@ -700,7 +700,7 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 
 			switch nextNode.Type {
 			case structs.DiscoveryGraphNodeTypeSplitter:
-				ra, agg, err := s.makeRouteActionForSplitterWithFailover(cfgSnap, upstreamsSnapshot, nextNode.Splits, chain, rawUpstreamConfig, forMeshGateway, destinationPort)
+				ra, agg, err := s.makeRouteActionForSplitterWithFailover(cfgSnap, uid, upstreamsSnapshot, nextNode.Splits, chain, rawUpstreamConfig, forMeshGateway, destinationPort)
 				if err != nil {
 					return nil, err
 				}
@@ -1136,6 +1136,7 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 // checks if any of the splits have an aggregate cluster (failover) and returns that flag.
 func (s *ResourceGenerator) makeRouteActionForSplitterWithFailover(
 	cfgSnap *proxycfg.ConfigSnapshot,
+	uid proxycfg.UpstreamID,
 	upstreamsSnapshot *proxycfg.ConfigSnapshotUpstreams,
 	splits []*structs.DiscoverySplit,
 	chain *structs.CompiledDiscoveryChain,
@@ -1155,7 +1156,7 @@ func (s *ResourceGenerator) makeRouteActionForSplitterWithFailover(
 
 		// Check if this split's resolver has failover (aggregate cluster)
 		upstreamConfig := finalizeUpstreamConfig(rawUpstreamConfig, chain, nextNode.Resolver.ConnectTimeout)
-		mappedTargets, err := s.mapDiscoChainTargets(cfgSnap, chain, nextNode, upstreamConfig, forMeshGateway, destinationPort)
+		mappedTargets, err := s.mapDiscoChainTargets(cfgSnap, uid, chain, nextNode, upstreamConfig, forMeshGateway, destinationPort)
 		if err != nil {
 			s.Logger.Debug("failed to map disco chain targets for split", "error", err)
 		} else if mappedTargets.isAggregateCluster() {

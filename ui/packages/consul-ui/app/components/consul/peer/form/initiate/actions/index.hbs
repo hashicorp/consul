@@ -3,9 +3,15 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<Hds::Button
-  @text='Add peer'
-  form={{@id}}
-  type='submit'
-  ...attributes
-/>
+<Hds::ButtonSet ...attributes>
+  <Consul::Peer::Form::Cancel
+    @dirty={{or @item.Name @item.PeeringToken}}
+    @onconfirm={{@onCancel}}
+  />
+  <Hds::Button
+    @text='Add peer'
+    form={{@id}}
+    type='submit'
+    disabled={{not (and @item.Name @item.PeeringToken)}}
+  />
+</Hds::ButtonSet>

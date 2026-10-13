@@ -1,0 +1,3 @@
+```release-note:security
+xds: escape regex metacharacters in service name, namespace, partition, and trust domain values when building Envoy RBAC SPIFFE match patterns, preventing an intention/authorization bypass via regex injection.
+```

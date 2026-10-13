@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"time"
 
-	dockercontainer "github.com/docker/docker/api/types/container"
-	"github.com/docker/go-connections/nat"
 	"github.com/hashicorp/go-multierror"
+	dockercontainer "github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/network"
 	"github.com/testcontainers/testcontainers-go"
 
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
@@ -20,7 +20,7 @@ import (
 type LaunchInfo struct {
 	Container   testcontainers.Container
 	IP          string
-	MappedPorts map[string]nat.Port
+	MappedPorts map[string]network.Port
 }
 
 // LaunchContainerOnNode will run a new container attached to the same network
@@ -87,9 +87,9 @@ func LaunchContainerOnNode(
 		})
 	}
 
-	ports := make(map[string]nat.Port)
+	ports := make(map[string]network.Port)
 	for _, portStr := range mapPorts {
-		mapped, err := pod.MappedPort(ctx, nat.Port(portStr))
+		mapped, err := pod.MappedPort(ctx, portStr)
 		if err != nil {
 			return nil, fmt.Errorf("mapping port %s: %w", portStr, err)
 		}

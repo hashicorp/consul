@@ -1,0 +1,18 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+/* When the toolbar lives above the table card (as a sibling, not inside it),
+   square off the card's top corners so the two elements form one visual unit. */
+.consul-upstream-instance-toolbar + .consul-upstream-instance-table .consul-data-table__card {
+  border-radius: 0 0 6px 6px;
+}
+
+.consul-upstream-instance-table {
+  .consul-upstream-instance-table__address {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}

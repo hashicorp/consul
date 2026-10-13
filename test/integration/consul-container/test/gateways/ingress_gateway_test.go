@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/go-connections/nat"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
@@ -98,12 +97,12 @@ func TestIngressGateway(t *testing.T) {
 	libassert.AssertContainerState(t, ingressService, "running")
 	libassert.AssertContainerState(t, serverService, "running")
 
-	mappedPort, err := clientNode.GetPod().MappedPort(context.Background(), nat.Port(fmt.Sprintf("%d/tcp", gatewayListenerPort)))
+	mappedPort, err := clientNode.GetPod().MappedPort(context.Background(), fmt.Sprintf("%d/tcp", gatewayListenerPort))
 	require.NoError(t, err)
 
 	// by default, ingress routes are set per <service>.ingress.*
 	headers := map[string]string{"Host": fmt.Sprintf("%s.ingress.com", libservice.StaticServerServiceName)}
-	libassert.HTTPServiceEchoesWithHeaders(t, "localhost", mappedPort.Int(), "", headers)
+	libassert.HTTPServiceEchoesWithHeaders(t, "localhost", int(mappedPort.Num()), "", headers)
 }
 
 func checkIngressConfigEntry(t *testing.T, client *api.Client, gatewayName string, opts *api.QueryOptions) {
