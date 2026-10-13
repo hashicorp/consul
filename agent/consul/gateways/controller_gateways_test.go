@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -4185,4 +4186,104 @@ func (n *noopController) RemoveTrigger(request controller.Request) {
 
 func (n *noopController) Enqueue(requests ...controller.Request) {
 	n.enqueued = append(n.enqueued, requests...)
+}
+
+// asyncTriggerController runs triggers in their own goroutine, as the real
+// controller does, so races between a trigger and the reconciler are observable.
+type asyncTriggerController struct {
+	noopController
+	wg     sync.WaitGroup
+	cancel context.CancelFunc
+	ctx    context.Context
+}
+
+func (c *asyncTriggerController) AddTrigger(_ controller.Request, trigger func(ctx context.Context) error) {
+	c.wg.Add(1)
+	go func() {
+		defer c.wg.Done()
+		// Repeatedly invoke the trigger with an already-cancelled context so it
+		// returns immediately after iterating the watch set, maximising overlap
+		// with any concurrent writes made by the reconciler.
+		cancelled, cancel := context.WithCancel(context.Background())
+		cancel()
+		for c.ctx.Err() == nil {
+			_ = trigger(cancelled)
+		}
+	}()
+}
+
+// TestAPIGatewayControllerRouteTriggerDoesNotRaceWithWatchSet verifies that the
+// watch set handed to AddTrigger is no longer modified by the reconciler. It is
+// meaningful under -race: the trigger iterates the watch set concurrently.
+func TestAPIGatewayControllerRouteTriggerDoesNotRaceWithWatchSet(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	publisher := stream.NewEventPublisher(1 * time.Millisecond)
+	go publisher.Run(ctx)
+
+	fsm := fsm.NewFromDeps(fsm.Deps{
+		Logger: hclog.New(nil),
+		NewStateStore: func() *state.Store {
+			return state.NewStateStoreWithEventPublisher(nil, publisher)
+		},
+		Publisher:      publisher,
+		StorageBackend: fsm.NullStorageBackend,
+	})
+
+	updater := &Updater{
+		UpdateWithStatus: func(entry structs.ControlledConfigEntry) error { return nil },
+		Update:           func(entry structs.ConfigEntry) error { return nil },
+		Delete:           func(entry structs.ConfigEntry) error { return nil },
+	}
+
+	defaultMeta := acl.DefaultEnterpriseMeta()
+	services := make([]structs.TCPService, 50)
+	for i := range services {
+		name := fmt.Sprintf("upstream-%d", i)
+		services[i] = structs.TCPService{Name: name}
+		// Real entries give each service its own watch channel, so every
+		// discovery chain read adds new members to the watch set.
+		require.NoError(t, fsm.State().EnsureConfigEntry(uint64(i+2), &structs.ServiceResolverConfigEntry{
+			Kind:           structs.ServiceResolver,
+			Name:           name,
+			EnterpriseMeta: *defaultMeta,
+		}))
+		require.NoError(t, fsm.State().EnsureConfigEntry(uint64(i+100), &structs.ServiceConfigEntry{
+			Kind:           structs.ServiceDefaults,
+			Name:           name,
+			EnterpriseMeta: *defaultMeta,
+			Protocol:       "tcp",
+		}))
+	}
+	route := &structs.TCPRouteConfigEntry{
+		Kind:           structs.TCPRoute,
+		Name:           "tcp-route",
+		EnterpriseMeta: *defaultMeta,
+		Services:       services,
+	}
+	err := fsm.State().EnsureConfigEntry(1, route)
+	require.NoError(t, err)
+
+	triggerCtx, triggerCancel := context.WithCancel(ctx)
+	ctrl := &asyncTriggerController{ctx: triggerCtx, cancel: triggerCancel}
+	ctrl.triggers = make(map[controller.Request]struct{})
+
+	reconciler := apiGatewayReconciler{
+		fsm:        fsm,
+		logger:     hclog.NewNullLogger(),
+		updater:    updater,
+		controller: ctrl,
+	}
+
+	for i := 0; i < 20; i++ {
+		require.NoError(t, reconciler.Reconcile(ctx, controller.Request{
+			Kind: structs.TCPRoute,
+			Name: "tcp-route",
+			Meta: defaultMeta,
+		}))
+	}
+
+	triggerCancel()
+	ctrl.wg.Wait()
 }

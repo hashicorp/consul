@@ -1,0 +1,3 @@
+```release-note:bug
+gateway: Fix a data race in the API gateway controller where the route reconciler kept adding to a `WatchSet` after handing it to a controller trigger that was already iterating it. The trigger is now registered only after all discovery chain reads are complete.
+```
