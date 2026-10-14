@@ -1,3 +1,36 @@
+## 2.1.0-rc2 (October 12, 2026)
+BREAKING CHANGES:
+
+* agent: **(Enterprise only)** Agent HTTP API request bodies are now limited to 512 KiB by default, including chunked requests and requests with an unsupported method, and oversized requests return HTTP 413 before the body is read in full. Very large `/v1/config` writes that previously succeeded can now fail. Raise the limit with the new `limits.http_max_request_body_size` setting if needed.
+* agent: **(Enterprise only)** Resource API (`/api/...`) request bodies are now subject to the same `limits.http_max_request_body_size` limit (512 KiB by default), and oversized requests return HTTP 413.
+* agent: **(Enterprise only)** `GET /v1/agent/connect/ca/leaf/:service` now requires `service:write` on the requested service for every request, including requests served from the agent's cached leaf certificate. Requests with no token or a token without that permission now receive HTTP 403 instead of the cached certificate. Callers must present a token with `service:write` for the service.
+* catalog: **(Enterprise only)** `Catalog.Register` now requires write permission on the node or service of an existing health check when updating it. Tokens that previously updated checks without that permission now receive a permission denied error.
+
+SECURITY:
+
+* Upgrade go version to 1.26.9 to address security vulnerabilities. [[GH-24010](https://github.com/hashicorp/consul/issues/24010)]
+* deps: Upgrade github.com/hashicorp/raft-wal to v0.5.0 (with raft v1.8.0, serf v0.11.0, memberlist v0.7.0 and go-metrics v0.7.0), removing the dependency on github.com/coreos/etcd. [[GH-23985](https://github.com/hashicorp/consul/issues/23985)]
+* deps: Upgrade golang.org/x/net to v0.60.0 to address GO-2026-6610, GO-2026-6611, GO-2026-6603, GO-2026-6617 and GO-2026-6612. [[GH-23994](https://github.com/hashicorp/consul/issues/23994)]
+* docker: Run `apk upgrade` when building the Alpine-based container images so base-image packages (such as sqlite and jq) are up to date. [[GH-23964](https://github.com/hashicorp/consul/issues/23964)]
+* oauth: **(Enterprise only)** Avoid an unchecked size addition when merging JWKS key sets during OAuth key rotation.
+* security: Upgrade github.com/klauspost/compress to v1.18.7, go.mongodb.org/mongo-driver to v1.17.10, github.com/moby/go-archive to v0.3.0 and github.com/go-openapi/swag to v0.27.1 to address CVE-2026-63209, CVE-2026-88031, CVE-2026-2303, CVE-2026-17106 and CVE-2026-85280. [[GH-23964](https://github.com/hashicorp/consul/issues/23964)]
+* ui: Add Content-Security-Policy header to Consul UI HTTP responses to mitigate XSS and data injection attacks. [[GH-23971](https://github.com/hashicorp/consul/issues/23971)]
+* ui: Pin a newer resolution of morgan to 1.12.1 to address GHSA-9f6g-j8ch-79g4 [[GH-23952](https://github.com/hashicorp/consul/issues/23952)]
+
+IMPROVEMENTS:
+
+* connect: deliver the sidecar proxy's leaf certificate and CA roots to Envoy over SDS instead of embedding them inline in the public listener. Leaf certificate rotation is now a hitless hot-swap that no longer changes the listener filter chain hash, so established connections (notably long-lived TCP sessions) are no longer drained and terminated on every rotation. [[GH-23938](https://github.com/hashicorp/consul/issues/23938)]
+* terminating-gateway: deliver each linked service's Connect leaf certificate and the shared CA roots to Envoy over SDS instead of embedding them inline in the gateway's downstream filter chains. Leaf rotation no longer changes the filter chain hash, so established connections through the gateway are no longer drained. [[GH-23938](https://github.com/hashicorp/consul/issues/23938)]
+
+BUG FIXES:
+
+* acl: **(Enterprise only)** Fixed Envoy escape-hatch key matching in `Proxy.Config` and per-upstream config so it follows the same case-folding rules as the config decoders. Keys that differ only by Unicode case folding (for example `envoy_local_cluſter_json`), and Go field-name forms such as `EnvoyListenerJSON`, now require `mesh:write` like their canonical spellings.
+* agent: (Enterprise only) Fixed audit logging so request-body capture respects the body-size limit, uses the decoded request path when excluding KV bodies (for example `/v1/k%76/...`), and skips `/v1/txn` bodies. `POST /v1/operator/audit-hash` now returns HTTP 413 for oversized bodies.
+* agent: **(Enterprise only)** Fixed `PUT /v1/kv/` so chunked request bodies are bounded by `kv_max_value_size`, matching the existing `Content-Length` check.
+* proxycfg: Fixed a goroutine and memory leak where a proxy's watches kept running after its state stopped unexpectedly, because replacing, deregistering or closing a stopped state did not cancel them. [[GH-23990](https://github.com/hashicorp/consul/issues/23990)]
+* proxycfg: Fixed a goroutine and memory leak where transparent proxies registered a new health watch for every imported peered service each time the imported services list changed, and never stopped watches for removed upstreams. [[GH-23990](https://github.com/hashicorp/consul/issues/23990)]
+* telemetry: Restore Raft, Serf, and Memberlist metrics in release artifacts by building with the `hashicorpmetrics` tag. [[GH-23813](https://github.com/hashicorp/consul/issues/23813)]
+
 ## 2.1.0-rc1 (September 28, 2026)
 BREAKING CHANGES:
 
