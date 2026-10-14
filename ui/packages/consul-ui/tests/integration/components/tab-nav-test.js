@@ -57,6 +57,11 @@ module('Integration | Component | tab nav', function (hooks) {
     assert
       .dom('[data-test-tab="tab_second-tab"]')
       .hasClass('hds-tabs__tab--is-selected', 'HDS updates the selected tab');
+    assert.strictEqual(
+      this.owner.lookup('service:navigation-focus').tabRoute,
+      'second.route',
+      'the route change is recorded as tab navigation so focus stays on the tab'
+    );
   });
 
   test('it preserves state-backed tab callbacks', async function (assert) {
@@ -142,5 +147,96 @@ module('Integration | Component | tab nav', function (hooks) {
     assert
       .dom('[data-test-tab="tab_exported-services"] button')
       .exists('tabs without a tooltip still render normally');
+  });
+
+  test('it renders yielded content only inside the selected tabpanel', async function (assert) {
+    this.set('items', [
+      { label: 'First tab', selected: true },
+      { label: 'Second tab', selected: false },
+    ]);
+
+    await render(hbs`
+      <TabNav @items={{this.items}} as |tab|>
+        <p data-test-content>{{tab.item.label}} {{tab.index}} {{tab.isVisible}}</p>
+      </TabNav>
+    `);
+
+    const firstButton = this.element.querySelector('[data-test-tab="tab_first-tab"] button');
+    assert
+      .dom('[data-test-tab-panel="tab_first-tab"]')
+      .hasAttribute('role', 'tabpanel')
+      .hasAttribute('aria-labelledby', firstButton.id, 'the panel is labelled by its tab')
+      .doesNotHaveAttribute('hidden');
+    assert
+      .dom('[data-test-tab-panel="tab_first-tab"] [data-test-content]')
+      .hasText('First tab 0 true', 'the content is rendered inside the selected tabpanel');
+    assert.dom('[data-test-content]').exists({ count: 1 }, 'the content is rendered only once');
+    assert.dom('[data-test-tab-panel="tab_second-tab"]').hasAttribute('hidden');
+    assert.dom('[data-test-tab-panel="tab_second-tab"]').hasNoText('the unselected panel is empty');
+
+    this.set('items', [
+      { label: 'First tab', selected: false },
+      { label: 'Second tab', selected: true },
+    ]);
+
+    const secondButton = this.element.querySelector('[data-test-tab="tab_second-tab"] button');
+    assert
+      .dom('[data-test-tab-panel="tab_second-tab"]')
+      .hasAttribute('aria-labelledby', secondButton.id)
+      .doesNotHaveAttribute('hidden');
+    assert
+      .dom('[data-test-tab-panel="tab_second-tab"] [data-test-content]')
+      .hasText('Second tab 1 true', 'the content moves into the newly selected tabpanel');
+    assert.dom('[data-test-content]').exists({ count: 1 }, 'the content is still rendered once');
+    assert.dom('[data-test-tab-panel="tab_first-tab"]').hasAttribute('hidden').hasNoText();
+  });
+
+  test('it keeps route content in the panel of the route the router is on', async function (assert) {
+    const router = this.owner.lookup('service:router');
+    // `is-href` marks the next tab selected as soon as a transition starts,
+    // while the outlet still renders the current route until it completes.
+    Object.defineProperty(router, 'currentRouteName', {
+      configurable: true,
+      get: () => 'dc.first.index',
+    });
+    this.set('items', [
+      { label: 'First tab', route: 'dc.first', selected: false },
+      { label: 'Second tab', route: 'dc.second', selected: true },
+    ]);
+
+    await render(hbs`
+      <TabNav @items={{this.items}} as |tab|>
+        <p data-test-content>{{tab.item.label}}</p>
+      </TabNav>
+    `);
+
+    assert
+      .dom('[data-test-tab="tab_second-tab"] button')
+      .hasAttribute('aria-selected', 'true', 'the next tab is already selected');
+    assert
+      .dom('[data-test-tab-panel="tab_first-tab"] [data-test-content]')
+      .hasText('First tab', 'the content stays in the current route panel until it changes');
+    assert.dom('[data-test-content]').exists({ count: 1 });
+  });
+
+  test('it renders yielded content into every tabpanel with @renderAllPanels', async function (assert) {
+    this.set('items', [
+      { label: 'Token', selected: true },
+      { label: 'SSO', selected: false },
+    ]);
+
+    await render(hbs`
+      <TabNav @items={{this.items}} @renderAllPanels={{true}} as |tab|>
+        <p data-test-content>{{tab.item.label}} {{tab.isVisible}}</p>
+      </TabNav>
+    `);
+
+    assert
+      .dom('[data-test-tab-panel="tab_token"] [data-test-content]')
+      .hasText('Token true', 'the selected panel is told it is visible');
+    assert
+      .dom('[data-test-tab-panel="tab_sso"] [data-test-content]')
+      .hasText('SSO false', 'the hidden panel is rendered and told it is not visible');
+    assert.dom('[data-test-tab-panel="tab_sso"]').hasAttribute('hidden');
   });
 });

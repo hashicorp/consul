@@ -6,8 +6,9 @@
 %app-view-title {
   border-bottom: var(--decor-border-100);
 }
-/* HDS Tabs carry their own full-width divider, so the title's would double up. */
-%app-view-title:has(+ .hds-tabs) {
+/* HDS Tabs carry their own full-width divider, so the title's would double up
+   when the tabs are the first thing after it (at the start of the content). */
+.app-view:has(> header + div > .hds-tabs:first-child) > header .title:last-child {
   border-bottom: none;
 }
 %app-view-content form:not(.filter-bar) fieldset {
