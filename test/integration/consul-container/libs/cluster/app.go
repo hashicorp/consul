@@ -77,12 +77,13 @@ func LaunchContainerOnNode(
 	}
 
 	if utils.FollowLog {
-		if err := container.StartLogProducer(ctx); err != nil {
-			return nil, fmt.Errorf("starting log producer: %w", err)
-		}
+		// Consumers must be registered before the producer starts; it snapshots them.
 		container.FollowOutput(&LogConsumer{
 			Prefix: req.Name,
 		})
+		if err := container.StartLogProducer(ctx); err != nil {
+			return nil, fmt.Errorf("starting log producer: %w", err)
+		}
 		deferClean.Add(func() {
 			_ = container.StopLogProducer()
 		})

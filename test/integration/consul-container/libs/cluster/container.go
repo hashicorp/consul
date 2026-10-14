@@ -306,13 +306,7 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 	})
 
 	if utils.FollowLog {
-		if err := consulContainer.StartLogProducer(ctx); err != nil {
-			return nil, err
-		}
-		deferClean.Add(func() {
-			_ = consulContainer.StopLogProducer()
-		})
-
+		// Consumers must be registered before the producer starts; it snapshots them.
 		if config.LogConsumer != nil {
 			consulContainer.FollowOutput(config.LogConsumer)
 		} else {
@@ -320,6 +314,13 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 				Prefix: opts.name,
 			})
 		}
+
+		if err := consulContainer.StartLogProducer(ctx); err != nil {
+			return nil, err
+		}
+		deferClean.Add(func() {
+			_ = consulContainer.StopLogProducer()
+		})
 	}
 
 	node := &consulContainerNode{
@@ -544,12 +545,12 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error 
 	}
 
 	if utils.FollowLog {
-		if err := container.StartLogProducer(ctx); err != nil {
-			return err
-		}
 		container.FollowOutput(&LogConsumer{
 			Prefix: opts.name,
 		})
+		if err := container.StartLogProducer(ctx); err != nil {
+			return err
+		}
 	}
 
 	return nil
