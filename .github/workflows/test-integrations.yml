@@ -100,7 +100,7 @@ jobs:
         run: echo "GOTOOLCHAIN=auto" >> "$GITHUB_ENV"
 
       - name: Fetch Consul binary
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
           path: ./bin
@@ -135,7 +135,7 @@ jobs:
       - name: Fetch Secrets
         if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: secrets
-        uses: hashicorp/vault-action@v3
+        uses: hashicorp/vault-action@v4
         with:
           url: ${{ steps.vault-auth.outputs.addr }}
           caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
@@ -223,7 +223,7 @@ jobs:
       - name: Fetch Secrets
         if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: secrets
-        uses: hashicorp/vault-action@v3
+        uses: hashicorp/vault-action@v4
         with:
           url: ${{ steps.vault-auth.outputs.addr }}
           caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
@@ -326,7 +326,7 @@ jobs:
         run: echo "GOTOOLCHAIN=auto" >> "$GITHUB_ENV"
 
       - name: fetch binary
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
           path: ./bin
@@ -374,7 +374,7 @@ jobs:
 
       - name: Upload failure logs
         if: ${{ failure() && steps.envoy-integration-tests.conclusion == 'failure' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: envoy-${{ matrix.envoy-version }}-logs-${{ env.artifact_id }}
           path: test/integration/connect/envoy/workdir/logs/
@@ -389,7 +389,7 @@ jobs:
       - name: Fetch Secrets
         if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: secrets
-        uses: hashicorp/vault-action@v3
+        uses: hashicorp/vault-action@v4
         with:
           url: ${{ steps.vault-auth.outputs.addr }}
           caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
@@ -440,7 +440,7 @@ jobs:
   #         docker version
   #         docker info
   #     - name: fetch binary
-  #       uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+  #       uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
   #       with:
   #         name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
   #         path: .
@@ -507,7 +507,7 @@ jobs:
   #     - name: Fetch Secrets
   #       if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
   #       id: secrets
-  #       uses: hashicorp/vault-action@v3
+  #       uses: hashicorp/vault-action@v4
   #       with:
   #         url: ${{ steps.vault-auth.outputs.addr }}
   #         caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
@@ -596,7 +596,7 @@ jobs:
       - name: Fetch Secrets
         if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: secrets
-        uses: hashicorp/vault-action@v3
+        uses: hashicorp/vault-action@v4
         with:
           url: ${{ steps.vault-auth.outputs.addr }}
           caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}

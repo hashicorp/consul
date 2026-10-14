@@ -1,0 +1,9 @@
+```release-note:improvement
+chore: Update of actions/download-artifact from 4.1.7 to 8.0.2
+```
+```release-note:improvement
+chore: Update of actions/upload-artifact from 4.3.3 to 7.0.2
+```
+```release-note:improvement
+chore: Update of hashicorp/vault-action from 3 to 4
+```
