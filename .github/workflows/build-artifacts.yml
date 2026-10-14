@@ -52,7 +52,7 @@ jobs:
     - name: Fetch Secrets
       if: ${{ endsWith(github.repository, '-enterprise') }}
       id: secrets
-      uses: hashicorp/vault-action@v3
+      uses: hashicorp/vault-action@v4
       with:
         url: ${{ steps.vault-auth.outputs.addr }}
         caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
