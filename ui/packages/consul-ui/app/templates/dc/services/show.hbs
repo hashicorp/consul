@@ -128,34 +128,6 @@ as |items item dc|}}
               <Consul::Kind @item={{item.Service}} @withInfo={{true}} />
               <Consul::Peer::Info @item={{item.Service}} />
           </:header>
-          <:nav>
-              <TabNav @items={{
-                compact
-                  (array
-                    (if tabs.topology
-                      (hash label="Topology" route="dc.services.show.topology" selected=(is-href "dc.services.show.topology"))
-                    '')
-                    (if tabs.services
-                      (hash label="Linked Services" route="dc.services.show.services" selected=(is-href "dc.services.show.services"))
-                    '')
-                    (if tabs.upstreams
-                      (hash label="Upstreams" route="dc.services.show.upstreams" selected=(is-href "dc.services.show.upstreams"))
-                    '')
-                    (if tabs.instances
-                      (hash label="Instances" route="dc.services.show.instances" selected=(is-href "dc.services.show.instances"))
-                    '')
-                    (if tabs.intentions
-                      (hash label="Intentions" route="dc.services.show.intentions" selected=(is-href "dc.services.show.intentions"))
-                    '')
-                    (if tabs.routing
-                      (hash label="Routing" route="dc.services.show.routing" selected=(is-href "dc.services.show.routing"))
-                    '')
-                    (if tabs.tags
-                      (hash label="Tags" route="dc.services.show.tags" selected=(is-href "dc.services.show.tags"))
-                    '')
-                  )
-              }}/>
-          </:nav>
           <:actions>
             <DataSource
                 @src={{uri '/${partition}/${nspace}/${dc}/ui-config'
@@ -188,21 +160,48 @@ as |items item dc|}}
             </DataSource>
           </:actions>
           <:content>
-          {{! if its not an origin service we don't care as to whether connect }}
-          {{! is enabled or not (we figure that out using the chain var) }}
-          {{#if (or (not item.IsOrigin) this.chain)}}
-            <Outlet
-              @name={{this.routeName}}
-              @model={{assign (hash
-                items=items
-                proxies=this.proxies
-                item=item
-                tabs=tabs
-              ) route.model}}
-            as |o|>
-              {{outlet}}
-            </Outlet>
-          {{/if}}
+            <TabNav @items={{
+              compact
+                (array
+                  (if tabs.topology
+                    (hash label="Topology" route="dc.services.show.topology" selected=(is-href "dc.services.show.topology"))
+                  '')
+                  (if tabs.services
+                    (hash label="Linked Services" route="dc.services.show.services" selected=(is-href "dc.services.show.services"))
+                  '')
+                  (if tabs.upstreams
+                    (hash label="Upstreams" route="dc.services.show.upstreams" selected=(is-href "dc.services.show.upstreams"))
+                  '')
+                  (if tabs.instances
+                    (hash label="Instances" route="dc.services.show.instances" selected=(is-href "dc.services.show.instances"))
+                  '')
+                  (if tabs.intentions
+                    (hash label="Intentions" route="dc.services.show.intentions" selected=(is-href "dc.services.show.intentions"))
+                  '')
+                  (if tabs.routing
+                    (hash label="Routing" route="dc.services.show.routing" selected=(is-href "dc.services.show.routing"))
+                  '')
+                  (if tabs.tags
+                    (hash label="Tags" route="dc.services.show.tags" selected=(is-href "dc.services.show.tags"))
+                  '')
+                )
+            }}>
+              {{! if its not an origin service we don't care as to whether connect }}
+              {{! is enabled or not (we figure that out using the chain var) }}
+              {{#if (or (not item.IsOrigin) this.chain)}}
+                <Outlet
+                  @name={{this.routeName}}
+                  @model={{assign (hash
+                    items=items
+                    proxies=this.proxies
+                    item=item
+                    tabs=tabs
+                  ) route.model}}
+                as |o|>
+                  {{outlet}}
+                </Outlet>
+              {{/if}}
+            </TabNav>
           </:content>
         </AppView>
   {{/let}}
