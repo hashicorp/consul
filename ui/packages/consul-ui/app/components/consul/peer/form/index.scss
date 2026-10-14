@@ -8,7 +8,10 @@
     /* Fills the page's full content column, instead of the old 416px modal
        width this form used before it moved out of a dialog. */
     width: 100%;
-    /* Tabs -> form content gap, per Figma. */
+  }
+  /* Tabs -> form content gap, per Figma. The form content lives inside the
+     selected tabpanel; hidden panels are display: none so add no gap. */
+  .hds-tabs {
     display: flex;
     flex-direction: column;
     gap: 24px;

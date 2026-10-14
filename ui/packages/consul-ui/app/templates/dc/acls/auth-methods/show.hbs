@@ -32,7 +32,7 @@
             </h1>
             <Consul::AuthMethod::Type @item={{item}} />
           </:header>
-          <:nav>
+          <:content>
             <TabNav
               @items={{compact
                 (array
@@ -57,12 +57,11 @@
                   )
                 )
               }}
-            />
-          </:nav>
-          <:content>
-            <Outlet @name={{this.routeName}} @model={{hash item=item}} as |o|>
-              {{outlet}}
-            </Outlet>
+            >
+              <Outlet @name={{this.routeName}} @model={{hash item=item}} as |o|>
+                {{outlet}}
+              </Outlet>
+            </TabNav>
           </:content>
         </AppView>
       {{/let}}
