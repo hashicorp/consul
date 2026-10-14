@@ -11,7 +11,9 @@
     ...attributes
     as |T|
   >
-    {{#each @items as |item|}}
+    {{! Callers rebuild @items whenever selection changes, so key by label to keep each tab and
+        its panel (and any content rendered inside it) mounted instead of re-creating them. }}
+    {{#each @items key="label" as |item|}}
       <T.Tab
         @isSelected={{item.selected}}
         data-test-tab={{concat 'tab_' (if item.label (slugify item.label) (slugify item))}}
@@ -21,9 +23,17 @@
       </T.Tab>
     {{/each}}
 
-    {{! Route and state content remains owned by callers, but HDS requires one panel per tab. }}
-    {{#each @items}}
-      <T.Panel />
+    {{! Content is yielded into the tabpanels so each tab is programmatically associated with
+        its content. By default only the selected panel renders it (route-backed tabs must render
+        `outlet` once); @renderAllPanels renders it into every panel and leaves gating to the caller. }}
+    {{#each @items key="label" as |item index|}}
+      <T.Panel
+        data-test-tab-panel={{concat 'tab_' (if item.label (slugify item.label) (slugify item))}}
+      >
+        {{#if (or @renderAllPanels (eq index this.contentIndex))}}
+          {{yield (hash item=item index=index isVisible=(eq index this.contentIndex))}}
+        {{/if}}
+      </T.Panel>
     {{/each}}
   </Hds::Tabs>
 {{/each}}

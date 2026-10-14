@@ -17,10 +17,13 @@ as |route|>
   }}>
 
     <:error as |loader|>
-      <AppError
-        @error={{loader.error}}
-        @login={{route.model.app.login.open}}
-      />
+      <div class="tab-section">
+        <AppError
+          @nested={{true}}
+          @error={{loader.error}}
+          @login={{route.model.app.login.open}}
+        />
+      </div>
     </:error>
 
     <:loaded as |loader|>

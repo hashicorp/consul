@@ -142,7 +142,7 @@ export default class Outlet extends Component {
 
   @action
   disconnect() {
-    this.routlet.removeOutlet(this.args.name);
+    this.routlet.removeOutlet(this.args.name, this);
     this.router.off('routeWillChange', this.startLoad);
     this.router.off('routeDidChange', this.endLoad);
   }

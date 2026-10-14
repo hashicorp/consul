@@ -16,7 +16,9 @@
     }}
   >
     <:error as |api|>
-      <AppError @error={{api.error}} @login={{route.model.app.login.open}} />
+      <div class="tab-section">
+        <AppError @nested={{true}} @error={{api.error}} @login={{route.model.app.login.open}} />
+      </div>
     </:error>
 
     <:loaded as |api|>
