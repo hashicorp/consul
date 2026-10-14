@@ -1,0 +1,3 @@
+```release-note:improvement
+ci: Re-enable the Compatibility Integration Tests in the integration test workflow after upgrading the GitHub runner infrastructure that was affected by the ubuntu:20.04 deprecation.
+```
