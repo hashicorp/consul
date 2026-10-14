@@ -28,8 +28,9 @@ var (
 	// https://semver.org/#spec-item-10
 	VersionMetadata = ""
 
-	// The date/time of the build (actually the HEAD commit in git, to preserve stability)
-	// This isn't just informational, but is also used by the licensing system. Default is chosen to be flagantly wrong.
+	// The date/time of the build (actually the HEAD commit in git, to preserve stability).
+	// This isn't just informational, but is also used by the licensing system.
+	// Default is set to Unix epoch so that misconfigured builds are obviously wrong.
 	BuildDate string = "1970-01-01T00:00:01Z"
 )
 
@@ -72,6 +73,11 @@ func GetBuildInfo() *BuildInfo {
 		HumanVersion: GetHumanVersion(),
 		FIPS:         GetFIPSInfo(),
 	}
+}
+
+// GetVersion returns the base semantic version string (without pre-release or metadata).
+func GetVersion() string {
+	return Version
 }
 
 // IsEnterprise reports whether this build of Consul includes Enterprise features.
