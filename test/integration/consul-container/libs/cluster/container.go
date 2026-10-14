@@ -295,6 +295,7 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 	if err != nil {
 		return nil, err
 	}
+	consulReq.Cmd = withAdvertiseAddr(consulReq.Cmd, ip)
 
 	consulContainer, err := startContainer(ctx, consulReq)
 	if err != nil {
@@ -519,6 +520,7 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error 
 	}
 	_, consulReq2 := newContainerRequest(config, opts)
 	consulReq2.Env = c.consulReq.Env // copy license
+	consulReq2.Cmd = withAdvertiseAddr(consulReq2.Cmd, c.ip)
 
 	// sanity check two fields
 	if consulReq2.Name != c.consulReq.Name {
@@ -808,9 +810,17 @@ func readSomeConfigFileFields(JSON string) (parsedConfig, error) {
 	return pc, nil
 }
 
-// podPrimaryNetwork is the first network a pod is attached to, so it backs
-// eth0, which agents use as their advertise address.
+// podPrimaryNetwork is the network whose IP agents advertise and are addressed by.
+// Pods attach to several networks and the interface order (eth0, eth1, ...) is
+// not stable across Docker versions, so the IP is set explicitly via -advertise.
 const podPrimaryNetwork = "bridge"
+
+// withAdvertiseAddr returns a copy of cmd that makes the agent advertise ip.
+func withAdvertiseAddr(cmd []string, ip string) []string {
+	out := make([]string, 0, len(cmd)+2)
+	out = append(out, cmd...)
+	return append(out, "-advertise", ip)
+}
 
 // containerNetworkIP returns the container's IP on the named network.
 // testcontainers' ContainerIP returns "" when a container is attached to more
