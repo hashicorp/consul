@@ -72,6 +72,15 @@ type ACLToken struct {
 	// AuthMethodNamespace is the namespace the token's AuthMethod is associated with.
 	// Namespacing is a Consul Enterprise feature.
 	AuthMethodNamespace string `json:",omitempty"`
+
+	// IDPLogoutURL is a response-only field returned by the OIDC login callback
+	// when the IdP advertises an end_session_endpoint in its discovery
+	// document. It contains the provider's RP-Initiated logout URL (its
+	// end_session_endpoint with an id_token_hint) that the client uses during
+	// `consul logout` to terminate the IdP session: the CLI prints it for the
+	// user to open, and the UI opens it in a new tab. It is never persisted
+	// server-side.
+	IDPLogoutURL string `json:",omitempty"`
 }
 
 type ACLTokenExpanded struct {
@@ -496,6 +505,9 @@ type OIDCAuthMethodConfig struct {
 	OIDCACRValues       []string             `json:",omitempty"`
 	AllowedRedirectURIs []string             `json:",omitempty"`
 	VerboseOIDCLogging  bool                 `json:",omitempty"`
+	// OIDC RP-Initiated (IdP) logout, type=oidc only. Both must use https.
+	OIDCPostLogoutRedirectURIs []string `json:",omitempty"`
+	OIDCLogoutURL              string   `json:",omitempty"`
 	// just for type=jwt
 	JWKSURL              string        `json:",omitempty"`
 	JWKSCACert           string        `json:",omitempty"`
@@ -526,6 +538,9 @@ func (c *OIDCAuthMethodConfig) RenderToConfig() map[string]interface{} {
 		"OIDCACRValues":       c.OIDCACRValues,
 		"AllowedRedirectURIs": c.AllowedRedirectURIs,
 		"VerboseOIDCLogging":  c.VerboseOIDCLogging,
+		// OIDC RP-Initiated (IdP) logout, type=oidc only
+		"OIDCPostLogoutRedirectURIs": c.OIDCPostLogoutRedirectURIs,
+		"OIDCLogoutURL":              c.OIDCLogoutURL,
 		// just for type=jwt
 		"JWKSURL":              c.JWKSURL,
 		"JWKSCACert":           c.JWKSCACert,

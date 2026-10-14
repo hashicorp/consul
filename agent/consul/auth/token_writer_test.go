@@ -487,6 +487,37 @@ func TestTokenWriter_Create_Success(t *testing.T) {
 	require.NotNil(t, updated)
 }
 
+func TestTokenWriter_DoesNotPersistIDPLogoutURL(t *testing.T) {
+	store := testStateStore(t)
+
+	aclCache := &MockACLCache{}
+	aclCache.On("RemoveIdentityWithSecretToken", mock.Anything)
+	writer := buildTokenWriter(store, aclCache)
+
+	const injected = "https://idp.example.com/logout?id_token_hint=secret"
+
+	created, err := writer.Create(&structs.ACLToken{
+		AccessorID:     generateID(t),
+		SecretID:       generateID(t),
+		NodeIdentities: []*structs.ACLNodeIdentity{{NodeName: "n1", Datacenter: "dc1"}},
+		IDPLogoutURL:   injected,
+	}, false)
+	require.NoError(t, err)
+	require.Empty(t, created.IDPLogoutURL, "IDPLogoutURL must not be persisted on create")
+
+	updated, err := writer.Update(&structs.ACLToken{
+		AccessorID:     created.AccessorID,
+		NodeIdentities: created.NodeIdentities,
+		IDPLogoutURL:   injected,
+	})
+	require.NoError(t, err)
+	require.Empty(t, updated.IDPLogoutURL, "IDPLogoutURL must not be persisted on update")
+
+	_, stored, err := store.ACLTokenGetByAccessor(nil, created.AccessorID, nil)
+	require.NoError(t, err)
+	require.Empty(t, stored.IDPLogoutURL)
+}
+
 func TestTokenWriter_Update_Validation(t *testing.T) {
 	aclCache := &MockACLCache{}
 	aclCache.On("RemoveIdentityWithSecretToken", mock.Anything)
