@@ -291,7 +291,7 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 		grpcConn = conn
 	}
 
-	ip, err := podContainer.ContainerIP(ctx)
+	ip, err := containerNetworkIP(ctx, podContainer, network)
 	if err != nil {
 		return nil, err
 	}
@@ -806,4 +806,20 @@ func readSomeConfigFileFields(JSON string) (parsedConfig, error) {
 		pc.Datacenter = "dc1"
 	}
 	return pc, nil
+}
+
+// containerNetworkIP returns the container's IP on the named network.
+// testcontainers' ContainerIP returns "" when a container is attached to more
+// than one network, which is always the case for our pods (bridge + cluster).
+func containerNetworkIP(ctx context.Context, c testcontainers.Container, network string) (string, error) {
+	inspect, err := c.Inspect(ctx)
+	if err != nil {
+		return "", err
+	}
+	if inspect.NetworkSettings != nil {
+		if ep, ok := inspect.NetworkSettings.Networks[network]; ok && ep != nil && ep.IPAddress.IsValid() {
+			return ep.IPAddress.String(), nil
+		}
+	}
+	return "", fmt.Errorf("container %s has no IP on network %q", inspect.Name, network)
 }
