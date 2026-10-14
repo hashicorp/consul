@@ -179,7 +179,7 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 		configFile:        configFile,
 		dataDir:           tmpDirData,
 		license:           license,
-		addtionalNetworks: []string{"bridge", network},
+		addtionalNetworks: []string{podPrimaryNetwork, network},
 		hostname:          fmt.Sprintf("agent-%d", index),
 	}
 	podReq, consulReq := newContainerRequest(config, opts, ports...)
@@ -291,7 +291,7 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 		grpcConn = conn
 	}
 
-	ip, err := containerNetworkIP(ctx, podContainer, network)
+	ip, err := containerNetworkIP(ctx, podContainer, podPrimaryNetwork)
 	if err != nil {
 		return nil, err
 	}
@@ -514,7 +514,7 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error 
 		configFile:        newConfigFile,
 		dataDir:           c.dataDir,
 		license:           "",
-		addtionalNetworks: []string{"bridge", c.network},
+		addtionalNetworks: []string{podPrimaryNetwork, c.network},
 		hostname:          c.consulReq.Hostname,
 	}
 	_, consulReq2 := newContainerRequest(config, opts)
@@ -807,6 +807,10 @@ func readSomeConfigFileFields(JSON string) (parsedConfig, error) {
 	}
 	return pc, nil
 }
+
+// podPrimaryNetwork is the first network a pod is attached to, so it backs
+// eth0, which agents use as their advertise address.
+const podPrimaryNetwork = "bridge"
 
 // containerNetworkIP returns the container's IP on the named network.
 // testcontainers' ContainerIP returns "" when a container is attached to more

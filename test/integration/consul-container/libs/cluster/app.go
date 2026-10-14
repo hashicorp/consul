@@ -71,7 +71,7 @@ func LaunchContainerOnNode(
 		_ = container.Terminate(ctx)
 	})
 
-	ip, err := containerNetworkIP(ctx, pod, node.GetNetwork())
+	ip, err := containerNetworkIP(ctx, pod, podPrimaryNetwork)
 	if err != nil {
 		return nil, fmt.Errorf("fetching container IP: %w", err)
 	}
