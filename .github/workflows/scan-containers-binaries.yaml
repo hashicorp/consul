@@ -28,9 +28,9 @@
 # Trigger it from the Actions tab via "Run workflow" and pick any branch. The
 # build runs against that branch's latest commit and the scan jobs consume its
 # artifacts in the same run. Scan jobs fail on unsuppressed findings, while SARIF
-# results are still uploaded for failed scans. The results check and readable CVE
-# list, including package versions and recommended fixes, are defined here and
-# shared with YAML aliases, without helper scripts.
+# results are still uploaded for failed scans. The results check and complete
+# finding messages from SARIF are defined here and shared with YAML aliases,
+# without helper scripts.
 name: Scan Binaries and Containers
 
 on:
@@ -158,58 +158,6 @@ jobs:
           fi
 
           jq -rs '
-            def finding_rule($run; $finding):
-              ($run.tool.driver.rules // []) as $rules |
-              ($finding.ruleId // $finding.rule.id) as $rule_id |
-              if ($rules | type) != "array" then
-                error("Expected SARIF rules to be an array")
-              else
-                first($rules[] | select($rule_id != null and .id == $rule_id)) //
-                (
-                  if $finding.ruleIndex == null then
-                    {}
-                  elif ($finding.ruleIndex | type) != "number" or
-                       $finding.ruleIndex < 0 or
-                       ($finding.ruleIndex | floor) != $finding.ruleIndex then
-                    error("Expected SARIF ruleIndex to be a non-negative integer")
-                  elif $finding.ruleIndex >= ($rules | length) then
-                    error("SARIF ruleIndex is outside the rules array")
-                  else
-                    $rules[$finding.ruleIndex]
-                  end
-                )
-              end;
-
-            def reported_text($properties; $key):
-              $properties[$key] as $value |
-              if $value == null then
-                null
-              elif ($value | type) != "string" then
-                error("Expected SARIF \($key) to be a string")
-              else
-                $value | gsub("\\s+"; " ") | sub("^ "; "") | sub(" $"; "") |
-                if length == 0 then null else . end
-              end;
-
-            def finding_properties($rule; $finding):
-              ($rule.properties | if . == null then {} else . end) as $rule_properties |
-              ($finding.properties | if . == null then {} else . end) as $finding_properties |
-              if ($rule_properties | type) != "object" or
-                 ($finding_properties | type) != "object" then
-                error("Expected SARIF properties to be an object")
-              else
-                # Do not reuse a rule fix for another package or version.
-                if ($finding_properties | has("package")) and
-                   reported_text($finding_properties; "package") != reported_text($rule_properties; "package") then
-                  ($rule_properties | del(.package_version, .recommended_fix_version)) + $finding_properties
-                elif ($finding_properties | has("package_version")) and
-                     reported_text($finding_properties; "package_version") != reported_text($rule_properties; "package_version") then
-                  ($rule_properties | del(.recommended_fix_version)) + $finding_properties
-                else
-                  $rule_properties + $finding_properties
-                end
-              end;
-
             if length != 1 then
               error("Expected exactly one SARIF report")
             else
@@ -220,57 +168,20 @@ jobs:
             elif .version != "2.1.0" or (.runs | type) != "array" then
               error("Expected a SARIF 2.1.0 report with a runs array")
             else
-              [
-                .runs[] as $run |
-                (
-                  $run |
-                  if type != "object" then
-                    error("Expected each SARIF run to be an object")
-                  elif has("results") and (.results | type) != "array" then
-                    error("Expected SARIF results to be an array")
-                  else
-                    .results[]?
-                  end
-                ) as $finding |
-                if ($finding | type) != "object" then
-                  error("Expected each SARIF result to be an object")
-                else
-                  finding_rule($run; $finding) as $rule |
-                  [
-                    $finding.ruleId,
-                    $finding.rule.id,
-                    $finding.message.text,
-                    $finding.message.markdown,
-                    $rule.id,
-                    ($rule.properties.tags // [])[],
-                    ($rule.properties.aliases // [])[]
-                  ][] |
-                  strings |
-                  scan("\\bCVE-[0-9]{4}-[0-9]{4,}\\b"; "i") |
-                  ascii_upcase as $cve |
-                  finding_properties($rule; $finding) as $properties |
-                  {
-                    cve: $cve,
-                    package: reported_text($properties; "package"),
-                    version: reported_text($properties; "package_version"),
-                    fix_version: reported_text($properties; "recommended_fix_version")
-                  }
-                end
-              ] | group_by(.cve) |
-              if length == 0 then
-                "No CVEs found in scan results."
+              .runs[] |
+              if type != "object" then
+                error("Expected each SARIF run to be an object")
+              elif has("results") and (.results | type) != "array" then
+                error("Expected SARIF results to be an array")
               else
-                "Detected CVEs (\(length) unique):",
-                (
-                  .[] |
-                  "- \(.[0].cve)",
-                  (
-                    group_by([.package, .version])[] |
-                    "  - Package: \(.[0].package // "Not reported")",
-                    "    Detected version: \(.[0].version // "Not reported")",
-                    "    Recommended fix version(s): \([.[].fix_version | select(. != null)] | unique | if length == 0 then "Not reported" else join(", ") end)"
-                  )
-                )
+                .results[]?
+              end |
+              if type != "object" then
+                error("Expected each SARIF result to be an object")
+              elif (.message.text | type) != "string" then
+                error("Expected each SARIF result to contain message.text")
+              else
+                .message.text
               end
             end
           ' "${sarif_file}"
