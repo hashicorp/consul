@@ -9,7 +9,7 @@ require (
 	github.com/evanphx/json-patch v4.12.0+incompatible
 	github.com/go-jose/go-jose/v3 v3.0.5
 	github.com/go-viper/mapstructure/v2 v2.5.0
-	github.com/hashicorp/consul v1.16.1
+	github.com/hashicorp/consul v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/consul/api v1.34.3
 	github.com/hashicorp/consul/envoyextensions v0.10.3
 	github.com/hashicorp/consul/sdk v0.18.1
