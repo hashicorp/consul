@@ -1,0 +1,3 @@
+```release-note:security
+security: Update `github.com/hashicorp/consul` in the envoy integration test SDS server to address [CVE-2026-15972](https://nvd.nist.gov/vuln/detail/CVE-2026-15972).
+```
