@@ -1,0 +1,3 @@
+```release-note:security
+security: Remove the `github.com/hashicorp/consul` root module dependency from the envoy integration test SDS server, the `consul-container` and `test-integ` test modules, and the `proto-gen-rpc-glue` e2e fixture to address [CVE-2026-15972](https://nvd.nist.gov/vuln/detail/CVE-2026-15972).
+```

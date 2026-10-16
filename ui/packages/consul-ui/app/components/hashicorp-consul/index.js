@@ -9,6 +9,7 @@ import { inject as service } from '@ember/service';
 export default class HashiCorpConsul extends Component {
   @service('flashMessages') flashMessages;
   @service('env') env;
+  @service('navigation-focus') navigationFocus;
 
   get consulVersion() {
     const suffix = !['', 'oss'].includes(this.env.var('CONSUL_BINARY_TYPE')) ? '+ent' : '';

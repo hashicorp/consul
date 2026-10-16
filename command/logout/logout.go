@@ -6,10 +6,22 @@ package logout
 import (
 	"flag"
 	"fmt"
+	"net/url"
+	"os"
+	"strconv"
+	"strings"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
+	"github.com/hashicorp/consul/command/loginutil"
 	"github.com/mitchellh/cli"
 )
+
+// envOpenBrowser sets the default for -open-browser so operators can enable
+// browser-driven IdP logout on interactive workstations without changing how
+// `consul logout` is invoked. An explicit -open-browser flag takes precedence.
+const envOpenBrowser = "CONSUL_LOGOUT_OPEN_BROWSER"
 
 func New(ui cli.Ui) *cmd {
 	c := &cmd{UI: ui}
@@ -22,18 +34,30 @@ type cmd struct {
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
 	help  string
+
+	openBrowser bool
+	// openURL launches the browser; overridable in tests.
+	openURL func(string) error
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.BoolVar(&c.openBrowser, "open-browser", false,
+		"Also open the identity provider's logout URL in the default browser to "+
+			"end the identity provider session. Only applies to tokens created by "+
+			"an OIDC login whose provider supports RP-Initiated logout. The URL is "+
+			"always printed. Do not use in non-interactive environments. This can "+
+			"also be specified via the "+envOpenBrowser+" environment variable.")
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
 
+	c.openURL = loginutil.OpenURL
 	c.help = flags.Usage(help, c.flags)
 }
 
 func (c *cmd) Run(args []string) int {
+	c.applyOpenBrowserEnv()
 	if err := c.flags.Parse(args); err != nil {
 		return 1
 	}
@@ -50,10 +74,98 @@ func (c *cmd) Run(args []string) int {
 
 	if _, err := client.ACL().Logout(nil); err != nil {
 		c.UI.Error(fmt.Sprintf("Error destroying token: %v", err))
+		// The Consul token is already gone (for example it expired and was
+		// reaped), but the identity provider session can still be active, so
+		// still offer the IdP logout. For other errors the token may still be
+		// valid, so keep the sidecar for a retry.
+		if acl.IsErrNotFound(err) {
+			c.maybeIDPLogout()
+		}
 		return 1
 	}
 
+	// Best-effort IdP (RP-Initiated) logout. If the matching `consul login`
+	// wrote an IdP logout sidecar file next to the token file, print the
+	// provider's RP-Initiated logout URL (and open it in a browser when
+	// -open-browser is set) to terminate the IdP session, then remove the
+	// sidecar. Absence of the sidecar preserves the existing behavior of only
+	// destroying the Consul token.
+	c.maybeIDPLogout()
+
 	return 0
+}
+
+func (c *cmd) applyOpenBrowserEnv() {
+	v := strings.TrimSpace(os.Getenv(envOpenBrowser))
+	if v == "" {
+		return
+	}
+	b, err := strconv.ParseBool(v)
+	if err != nil {
+		c.UI.Warn(fmt.Sprintf("Ignoring invalid value %q for %s: expected true or false", v, envOpenBrowser))
+		return
+	}
+	c.openBrowser = b
+}
+
+// tokenFileInUse returns the token file whose token the API client used, so
+// the IdP logout sidecar matches the token that was destroyed. It mirrors the
+// API client's precedence: -token-file, then -token, then
+// CONSUL_HTTP_TOKEN_FILE, then CONSUL_HTTP_TOKEN. It returns "" when the token
+// was not read from a file.
+func (c *cmd) tokenFileInUse() string {
+	if f := c.http.TokenFile(); f != "" {
+		return f
+	}
+	if c.http.Token() != "" {
+		return ""
+	}
+	return os.Getenv(api.HTTPTokenFileEnvName)
+}
+
+func (c *cmd) maybeIDPLogout() {
+	tokenFile := c.tokenFileInUse()
+	if tokenFile == "" {
+		return
+	}
+
+	sinkPath := tokenFile + loginutil.IDPLogoutSuffix
+	data, err := os.ReadFile(sinkPath)
+	if err != nil {
+		return // no sidecar -> plain logout, as before
+	}
+	// Remove the sidecar regardless of the outcome below; the Consul token has
+	// already been destroyed.
+	defer os.Remove(sinkPath)
+
+	logoutURL := strings.TrimSpace(string(data))
+	if logoutURL == "" {
+		return
+	}
+
+	// Only surface well-formed http(s) URLs so a tampered sidecar file cannot
+	// emit arbitrary content (e.g. terminal escape sequences) to the console.
+	u, err := url.Parse(logoutURL)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
+		return
+	}
+
+	// Print the URL unconditionally so the user can always complete IdP logout
+	// manually. A browser is launched only when explicitly requested with
+	// -open-browser: by default `consul logout` must remain safe for
+	// non-interactive contexts (CI pipelines, cron jobs, remote SSH sessions)
+	// where no browser is available.
+	c.UI.Info("To also end your identity provider session, open the following URL in a browser:")
+	c.UI.Info("    " + logoutURL)
+
+	if !c.openBrowser {
+		return
+	}
+	if err := c.openURL(logoutURL); err != nil {
+		c.UI.Warn(fmt.Sprintf("Error attempting to automatically open browser: %s. Please open the URL above manually.", err))
+		return
+	}
+	c.UI.Info("Opened the identity provider logout URL in your default browser.")
 }
 
 func (c *cmd) Synopsis() string {
@@ -71,4 +183,10 @@ Usage: consul logout [options]
 
   The logout command will destroy the provided token if it was created from
   'consul login'.
+
+  If the token was created by an OIDC login and the identity provider supports
+  RP-Initiated logout, the provider's logout URL is printed so the identity
+  provider session can also be ended. Use -open-browser (or set
+  CONSUL_LOGOUT_OPEN_BROWSER=true) to open it in the default browser
+  automatically.
 `

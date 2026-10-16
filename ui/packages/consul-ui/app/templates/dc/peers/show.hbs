@@ -37,19 +37,19 @@
           <:content>
             <Consul::Peer::BentoBox @peering={{item}} />
             <Peerings::Provider @peer={{item}} as |peering|>
-              <TabNav @items={{peering.data.tabs}} />
-
+              <TabNav @items={{peering.data.tabs}}>
+                <Outlet
+                  @name={{this.routeName}}
+                  @model={{assign
+                    (hash items=item.PeerServerAddresses peer=item)
+                    route.model
+                  }}
+                  as |o|
+                >
+                  {{outlet}}
+                </Outlet>
+              </TabNav>
             </Peerings::Provider>
-            <Outlet
-              @name={{this.routeName}}
-              @model={{assign
-                (hash items=item.PeerServerAddresses peer=item)
-                route.model
-              }}
-              as |o|
-            >
-              {{outlet}}
-            </Outlet>
           </:content>
         </AppView>
       {{/let}}
