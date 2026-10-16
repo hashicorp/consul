@@ -9,7 +9,6 @@ require (
 	github.com/evanphx/json-patch v4.12.0+incompatible
 	github.com/go-jose/go-jose/v3 v3.0.5
 	github.com/go-viper/mapstructure/v2 v2.5.0
-	github.com/hashicorp/consul v1.16.1
 	github.com/hashicorp/consul/api v1.34.3
 	github.com/hashicorp/consul/envoyextensions v0.10.3
 	github.com/hashicorp/consul/sdk v0.18.1
@@ -22,6 +21,7 @@ require (
 	github.com/hashicorp/serf v0.11.0
 	github.com/itchyny/gojq v0.12.12
 	github.com/mitchellh/copystructure v1.2.0
+	github.com/mitchellh/reflectwalk v1.0.2
 	github.com/moby/moby/api v1.54.1
 	github.com/otiai10/copy v1.10.0
 	github.com/pkg/errors v0.9.1
@@ -85,7 +85,6 @@ require (
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/miekg/dns v1.1.73 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
-	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/go-archive v0.3.0 // indirect
 	github.com/moby/moby/client v0.4.0 // indirect
@@ -126,7 +125,6 @@ require (
 )
 
 replace (
-	github.com/hashicorp/consul => ../../..
 	github.com/hashicorp/consul/api => ../../../api
 	github.com/hashicorp/consul/envoyextensions => ../../../envoyextensions
 	github.com/hashicorp/consul/proto-public => ../../../proto-public
