@@ -142,14 +142,7 @@ type ProxyConfig struct {
 	// mistyped value cannot fail the decode of the whole proxy config, which would drop the
 	// service back to the tcp protocol. Anything strconv.ParseBool does not accept counts as
 	// false.
-	DisableXFCCSourceMetadata string `mapstructure:"
-	
-	
-	
-	
-	
-	
-	"`
+	DisableXFCCSourceMetadata string `mapstructure:"envoy_disable_xfcc_source_metadata"`
 
 	// SuppressEnvoyHeaders controls whether Envoy rewrites the "server" response
 	// header to "envoy" on all HTTP responses. When set to true, the
