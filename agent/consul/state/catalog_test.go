@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/adapter"
 	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -784,6 +785,54 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 	t.Run("random peer", func(t *testing.T) {
 		run(t, "my-peer")
 	})
+}
+
+func TestStateStore_EnsureRegistration_ServicePortsDefaultChange(t *testing.T) {
+	t.Parallel()
+
+	s := testStateStore(t)
+
+	makeReq := func(ports structs.ServicePorts) *structs.RegisterRequest {
+		return &structs.RegisterRequest{
+			Node:    "node1",
+			Address: "1.2.3.4",
+			Service: &structs.NodeService{
+				ID:             "redis",
+				Service:        "redis",
+				Address:        "1.2.3.4",
+				Ports:          ports,
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+			},
+		}
+	}
+
+	require.NoError(t, s.EnsureRegistration(1, makeReq(structs.ServicePorts{
+		{Name: "metrics", Port: 9121, Default: true},
+		{Name: "server", Port: 6379},
+	})))
+
+	// Re-register with only the default port changed.
+	updated := structs.ServicePorts{
+		{Name: "metrics", Port: 9121},
+		{Name: "server", Port: 6379, Default: true},
+	}
+	require.NoError(t, s.EnsureRegistration(2, makeReq(updated)))
+
+	idx, svc, err := s.NodeService(nil, "node1", "redis", nil, "")
+	require.NoError(t, err)
+	require.Equal(t, uint64(2), idx)
+	require.NotNil(t, svc)
+	require.Equal(t, updated, svc.Ports)
+	require.Equal(t, 6379, svc.DefaultPort())
+	require.Equal(t, uint64(1), svc.CreateIndex)
+	require.Equal(t, uint64(2), svc.ModifyIndex)
+
+	// The legacy scalar port derived at the RPC boundary follows the new default.
+	_, nodes, err := s.ServiceNodes(nil, "redis", nil, "")
+	require.NoError(t, err)
+	require.Len(t, nodes, 1)
+	adapter.PopulateLegacyServiceNodePorts(nodes)
+	require.Equal(t, 6379, nodes[0].ServicePort)
 }
 
 func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
