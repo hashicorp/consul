@@ -264,6 +264,26 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			// No header_to_metadata filter; XFCC is still built and forwarded.
+			name: "http-public-listener-disable-xfcc-source-metadata",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["protocol"] = "http"
+					ns.Proxy.Config["envoy_disable_xfcc_source_metadata"] = true
+				}, nil)
+			},
+		},
+		{
+			// With peering the RBAC XFCC match must stay exactly as it is without the option.
+			name: "http-public-listener-disable-xfcc-source-metadata-with-peer-trust-bundles",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["protocol"] = "http"
+					ns.Proxy.Config["envoy_disable_xfcc_source_metadata"] = true
+				}, []proxycfg.UpdateEvent{{CorrelationID: "peering-trust-bundles", Result: proxycfg.TestPeerTrustBundles(t)}})
+			},
+		},
+		{
 			name: "http-listener-with-timeouts",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
