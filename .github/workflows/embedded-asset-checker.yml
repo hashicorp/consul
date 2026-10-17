@@ -25,8 +25,10 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0 # by default the checkout action doesn't checkout all branches
       - name: Check for agent/uiserver/dist dir change in diff
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: |
-          dist_files=$(git --no-pager diff --name-only HEAD "$(git merge-base HEAD "origin/${{ github.event.pull_request.base.ref }}")" -- agent/uiserver/dist)
+          dist_files=$(git --no-pager diff --name-only HEAD "$(git merge-base HEAD "origin/${BASE_REF}")" -- agent/uiserver/dist)
           if [[ -z "${dist_files}" ]]; then
             exit 0
           fi
