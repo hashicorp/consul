@@ -36,3 +36,11 @@ func NodeRow(node *api.Node, isDetailed bool) string {
 			node.Node, id, node.Address, node.Datacenter)
 	}
 }
+
+func QueriesHeader() string {
+	return "Query\x1fID"
+}
+
+func QueryRow(query *api.PreparedQueryDefinition) string {
+	return fmt.Sprintf("%s\x1f%s", query.Name, query.ID)
+}
