@@ -175,28 +175,37 @@ jobs:
           TOTAL: ${{ steps.coverage.outputs.total }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Generate SVG badge
-          PCT="${TOTAL%%%}"
-          if (( $(echo "$PCT >= 80" | bc -l) )); then COLOR="brightgreen"
-          elif (( $(echo "$PCT >= 60" | bc -l) )); then COLOR="yellow"
-          else COLOR="red"
+          PCT=$(echo "$TOTAL" | tr -d '%')
+          if awk "BEGIN {exit !($PCT >= 75)}"; then COLOR="#4c1"
+          elif awk "BEGIN {exit !($PCT >= 60)}"; then COLOR="#97CA00"
+          elif awk "BEGIN {exit !($PCT >= 40)}"; then COLOR="#dfb317"
+          else COLOR="#e05d44"
           fi
 
-          cat > coverage.svg <<SVGEOF
-          <svg xmlns="http://www.w3.org/2000/svg" width="120" height="20">
+          # Compute dynamic text widths: label "coverage" = 62px, value width ~7px/char
+          LABEL="coverage"
+          LABEL_W=62
+          VAL_LEN=${#TOTAL}
+          VAL_W=$(( VAL_LEN * 7 + 10 ))
+          TOTAL_W=$(( LABEL_W + VAL_W ))
+          LABEL_MID=$(( LABEL_W / 2 + 1 ))
+          VAL_MID=$(( LABEL_W + VAL_W / 2 ))
+
+          cat > /tmp/coverage.svg <<SVGEOF
+          <svg xmlns="http://www.w3.org/2000/svg" width="${TOTAL_W}" height="20">
             <linearGradient id="s" x2="0" y2="100%">
               <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
               <stop offset="1" stop-opacity=".1"/>
             </linearGradient>
-            <rect rx="3" width="120" height="20" fill="#555"/>
-            <rect rx="3" x="62" width="58" height="20" fill="${COLOR}"/>
-            <rect x="62" width="4" height="20" fill="${COLOR}"/>
-            <rect rx="3" width="120" height="20" fill="url(#s)"/>
+            <rect rx="3" width="${TOTAL_W}" height="20" fill="#555"/>
+            <rect rx="3" x="${LABEL_W}" width="${VAL_W}" height="20" fill="${COLOR}"/>
+            <rect x="${LABEL_W}" width="4" height="20" fill="${COLOR}"/>
+            <rect rx="3" width="${TOTAL_W}" height="20" fill="url(#s)"/>
             <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
-              <text x="32" y="15" fill="#010101" fill-opacity=".3">coverage</text>
-              <text x="32" y="14">coverage</text>
-              <text x="90" y="15" fill="#010101" fill-opacity=".3">${TOTAL}</text>
-              <text x="90" y="14">${TOTAL}</text>
+              <text x="${LABEL_MID}" y="15" fill="#010101" fill-opacity=".3">${LABEL}</text>
+              <text x="${LABEL_MID}" y="14">${LABEL}</text>
+              <text x="${VAL_MID}" y="15" fill="#010101" fill-opacity=".3">${TOTAL}</text>
+              <text x="${VAL_MID}" y="14">${TOTAL}</text>
             </g>
           </svg>
           SVGEOF
@@ -206,18 +215,20 @@ jobs:
           git remote set-url origin \
             "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
 
-          git fetch origin badges 2>/dev/null || true
-          if git rev-parse --verify origin/badges >/dev/null 2>&1; then
-            git checkout -B badges origin/badges
+          if git ls-remote --exit-code origin badges >/dev/null 2>&1; then
+            git fetch origin badges:badges --depth=1
+            git worktree add /tmp/badges-wt badges
           else
-            git checkout --orphan badges
-            git rm -rf . --quiet || true
+            git worktree add --detach /tmp/badges-wt HEAD
+            git -C /tmp/badges-wt checkout --orphan badges
+            git -C /tmp/badges-wt rm -rf . --quiet 2>/dev/null || true
           fi
 
-          mv coverage.svg coverage.svg.tmp
-          git rm -rf . --quiet || true
-          mv coverage.svg.tmp coverage.svg
-
-          git add coverage.svg
-          git commit -m "ci: update coverage badge to ${TOTAL}" || echo "No changes to badge"
-          git push origin badges
+          cp /tmp/coverage.svg /tmp/badges-wt/coverage.svg
+          git -C /tmp/badges-wt add coverage.svg
+          if git -C /tmp/badges-wt diff --staged --quiet; then
+            echo "Badge unchanged, skipping commit"
+          else
+            git -C /tmp/badges-wt commit -m "chore: update coverage badge [skip ci]"
+            git -C /tmp/badges-wt push origin HEAD:badges
+          fi
