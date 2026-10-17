@@ -1807,6 +1807,9 @@ func (a *Agent) ShutdownAgent() error {
 	for _, chk := range a.checkH2PINGs {
 		chk.Stop()
 	}
+	for _, chk := range a.checkOSServices {
+		chk.Stop()
+	}
 
 	// Stop gRPC
 	if a.externalGRPCServer != nil {
@@ -3011,7 +3014,15 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 		check.EnterpriseMeta = service.EnterpriseMeta
 	}
 
-	// Check if already registered
+	cid := check.CompoundCheckID()
+
+	// Stop any monitor already running for this check, whatever its type. A
+	// re-registration can change the type of a check ID, for example when a
+	// service's checks are reordered and their positional IDs shift. A monitor
+	// of the previous type left running would keep updating the check
+	// alongside the new one indefinitely.
+	a.cancelCheckMonitors(cid)
+
 	if chkType != nil {
 		maxOutputSize := a.config.CheckOutputMaxSize
 		if maxOutputSize == 0 {
@@ -3043,16 +3054,9 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 		statusHandler := checks.NewStatusHandler(a.State, a.logger, chkType.SuccessBeforePassing, chkType.FailuresBeforeWarning, chkType.FailuresBeforeCritical)
 		sid := check.CompoundServiceID()
 
-		cid := check.CompoundCheckID()
-
 		switch {
 
 		case chkType.IsTTL():
-			if existing, ok := a.checkTTLs[cid]; ok {
-				existing.Stop()
-				delete(a.checkTTLs, cid)
-			}
-
 			ttl := &checks.CheckTTL{
 				Notify:        a.State,
 				CheckID:       cid,
@@ -3074,10 +3078,6 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			a.checkTTLs[cid] = ttl
 
 		case chkType.IsHTTP():
-			if existing, ok := a.checkHTTPs[cid]; ok {
-				existing.Stop()
-				delete(a.checkHTTPs, cid)
-			}
 			if chkType.Interval < checks.MinInterval {
 				a.logger.Warn("check has interval below minimum",
 					"check", cid.String(),
@@ -3121,10 +3121,6 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			a.checkHTTPs[cid] = http
 
 		case chkType.IsTCP():
-			if existing, ok := a.checkTCPs[cid]; ok {
-				existing.Stop()
-				delete(a.checkTCPs, cid)
-			}
 			if chkType.Interval < checks.MinInterval {
 				a.logger.Warn("check has interval below minimum",
 					"check", cid.String(),
@@ -3152,10 +3148,6 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			a.checkTCPs[cid] = tcp
 
 		case chkType.IsUDP():
-			if existing, ok := a.checkUDPs[cid]; ok {
-				existing.Stop()
-				delete(a.checkUDPs, cid)
-			}
 			if chkType.Interval < checks.MinInterval {
 				a.logger.Warn("check has interval below minimum",
 					"check", cid.String(),
@@ -3177,10 +3169,6 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			a.checkUDPs[cid] = udp
 
 		case chkType.IsGRPC():
-			if existing, ok := a.checkGRPCs[cid]; ok {
-				existing.Stop()
-				delete(a.checkGRPCs, cid)
-			}
 			if chkType.Interval < checks.MinInterval {
 				a.logger.Warn("check has interval below minimum",
 					"check", cid.String(),
@@ -3222,10 +3210,6 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			a.checkGRPCs[cid] = grpc
 
 		case chkType.IsDocker():
-			if existing, ok := a.checkDockers[cid]; ok {
-				existing.Stop()
-				delete(a.checkDockers, cid)
-			}
 			if chkType.Interval < checks.MinInterval {
 				a.logger.Warn("check has interval below minimum",
 					"check", cid.String(),
@@ -3259,10 +3243,6 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			a.checkDockers[cid] = dockerCheck
 
 		case chkType.IsOSService():
-			if existing, ok := a.checkOSServices[cid]; ok {
-				existing.Stop()
-				delete(a.checkOSServices, cid)
-			}
 			if chkType.Interval < checks.MinInterval {
 				a.logger.Warn("check has interval below minimum",
 					"check", cid.String(),
@@ -3295,10 +3275,6 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			a.checkOSServices[cid] = osServiceCheck
 
 		case chkType.IsMonitor():
-			if existing, ok := a.checkMonitors[cid]; ok {
-				existing.Stop()
-				delete(a.checkMonitors, cid)
-			}
 			if chkType.Interval < checks.MinInterval {
 				a.logger.Warn("check has interval below minimum",
 					"check", cid.String(),
@@ -3321,10 +3297,6 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			a.checkMonitors[cid] = monitor
 
 		case chkType.IsH2PING():
-			if existing, ok := a.checkH2PINGs[cid]; ok {
-				existing.Stop()
-				delete(a.checkH2PINGs, cid)
-			}
 			if chkType.Interval < checks.MinInterval {
 				a.logger.Warn("check has interval below minimum",
 					"check", cid.String(),
@@ -3353,11 +3325,6 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			a.checkH2PINGs[cid] = h2ping
 
 		case chkType.IsAlias():
-			if existing, ok := a.checkAliases[cid]; ok {
-				existing.Stop()
-				delete(a.checkAliases, cid)
-			}
-
 			var rpcReq structs.NodeSpecificRequest
 			rpcReq.Datacenter = a.config.Datacenter
 			rpcReq.EnterpriseMeta = *a.AgentEnterpriseMeta()
@@ -3546,6 +3513,10 @@ func (a *Agent) cancelCheckMonitors(checkID structs.CheckID) {
 	if check, ok := a.checkAliases[checkID]; ok {
 		check.Stop()
 		delete(a.checkAliases, checkID)
+	}
+	if check, ok := a.checkOSServices[checkID]; ok {
+		check.Stop()
+		delete(a.checkOSServices, checkID)
 	}
 }
 
