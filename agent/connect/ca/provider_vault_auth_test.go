@@ -366,6 +366,18 @@ func TestVaultCAProvider_AWSLoginDataGenerator(t *testing.T) {
 			if c.authMethod.Params["role"] != nil {
 				require.Equal(t, c.authMethod.Params["role"], loginData["role"])
 			}
+
+			rawHeaders, err := base64.StdEncoding.DecodeString(loginData["iam_request_headers"].(string))
+			require.NoError(t, err)
+			var headers http.Header
+			require.NoError(t, json.Unmarshal(rawHeaders, &headers))
+			if c.expectHeaders {
+				// Vault rejects the login unless the server ID header is present and signed.
+				require.Equal(t, c.authMethod.Params["header_value"], headers.Get(vaultAWSServerIDHeader))
+				require.Contains(t, headers.Get("Authorization"), "x-vault-aws-iam-server-id")
+			} else {
+				require.Empty(t, headers.Get(vaultAWSServerIDHeader))
+			}
 		})
 	}
 }
