@@ -33,6 +33,11 @@ func TestHandleStream_DuplicateConnectionDoesNotCorruptStatus(t *testing.T) {
 
 	// Create Stream A
 	streamA := newTestReplicationStream(ctxA)
+	// Drain sends so the synchronous streamSend path never blocks on the buffered(1) mock channel.
+	go func() {
+		for range streamA.sendCh {
+		}
+	}()
 
 	// Track when Stream A has connected
 	streamAConnected := make(chan struct{})
@@ -71,6 +76,11 @@ func TestHandleStream_DuplicateConnectionDoesNotCorruptStatus(t *testing.T) {
 
 	// Create Stream B with the same peer ID
 	streamB := newTestReplicationStream(ctxB)
+	// Drain sends so the synchronous streamSend path never blocks on the buffered(1) mock channel.
+	go func() {
+		for range streamB.sendCh {
+		}
+	}()
 
 	// Stream B tries to connect - this should fail because Stream A is active
 	var wg sync.WaitGroup
@@ -130,6 +140,11 @@ func TestHandleStream_NormalDisconnectUpdatesStatus(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	stream := newTestReplicationStream(ctx)
+	// Drain sends so the synchronous streamSend path never blocks on the buffered(1) mock channel.
+	go func() {
+		for range stream.sendCh {
+		}
+	}()
 
 	streamDone := make(chan error, 1)
 
@@ -203,6 +218,11 @@ func TestHandleStream_StaleDisconnectDoesNotCorruptNewStream(t *testing.T) {
 	// Simulate: Stream A connects (gen=1), then disconnects
 	ctxA, cancelA := context.WithCancel(context.Background())
 	streamA := newTestReplicationStream(ctxA)
+	// Drain sends so the synchronous streamSend path never blocks on the buffered(1) mock channel.
+	go func() {
+		for range streamA.sendCh {
+		}
+	}()
 
 	streamADone := make(chan error, 1)
 	go func() {
@@ -238,6 +258,11 @@ func TestHandleStream_StaleDisconnectDoesNotCorruptNewStream(t *testing.T) {
 	ctxB, cancelB := context.WithCancel(context.Background())
 	defer cancelB()
 	streamB := newTestReplicationStream(ctxB)
+	// Drain sends so the synchronous streamSend path never blocks on the buffered(1) mock channel.
+	go func() {
+		for range streamB.sendCh {
+		}
+	}()
 
 	streamBDone := make(chan error, 1)
 	go func() {

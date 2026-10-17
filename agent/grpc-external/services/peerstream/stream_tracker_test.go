@@ -283,7 +283,7 @@ func TestMutableStatus_TrackConnected(t *testing.T) {
 
 	require.True(t, s.IsConnected())
 	require.True(t, s.Connected)
-	require.Equal(t, &time.Time{}, s.DisconnectTime)
+	require.Nil(t, s.DisconnectTime)
 	require.Empty(t, s.DisconnectErrorMessage)
 }
 
