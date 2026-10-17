@@ -105,6 +105,23 @@ func (s *Store) Run(ctx context.Context) {
 	}
 }
 
+func (s *Store) Stop() {
+	s.stopAll()
+}
+
+func (s *Store) stopAll() {
+	s.lock.Lock()
+	entries := s.byKey
+	s.byKey = make(map[string]entry)
+	s.expiryHeap = ttlcache.NewExpiryHeap()
+	s.lock.Unlock()
+
+	for key, e := range entries {
+		s.logger.Trace("stopping item from store shutdown", "key", key)
+		e.stop()
+	}
+}
+
 // Request is used to request data from the Store.
 // Note that cache.Request is required, but some of the fields cache.RequestInfo
 // fields are ignored (ex: MaxAge, and MustRevalidate).
@@ -281,7 +298,10 @@ func (s *Store) evictNow(key string) {
 func (s *Store) releaseEntry(key string) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	e := s.byKey[key]
+	e, ok := s.byKey[key]
+	if !ok {
+		return
+	}
 	e.requests--
 	s.byKey[key] = e
 
