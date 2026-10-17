@@ -589,6 +589,15 @@ func (p *PreparedQuery) execute(query *structs.PreparedQuery,
 		nodes = tagFilter(query.Service.Tags, nodes)
 	}
 
+	for i := range nodes {
+		// Populate `port` with default port for backward compatibility
+		if nodes[i].Service != nil && nodes[i].Service.Port == 0 && len(nodes[i].Service.Ports) > 0 {
+			clone := *nodes[i].Service
+			clone.Port = clone.DefaultPort()
+			nodes[i].Service = &clone
+		}
+	}
+
 	// Capture the nodes and pass the DNS information through to the reply.
 	reply.Service = query.Service.Service
 	reply.EnterpriseMeta = query.Service.EnterpriseMeta

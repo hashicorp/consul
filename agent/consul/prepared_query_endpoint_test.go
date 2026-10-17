@@ -2671,6 +2671,69 @@ func TestPreparedQuery_Execute_ConnectExact(t *testing.T) {
 		codec, "PreparedQuery.Apply", &query, &query.Query.ID))
 }
 
+func TestPreparedQuery_Execute_DefaultPort(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Register node with a multi-port service (Port: 0, Ports with Default: true)
+	regReq := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "api-node",
+		Address:    "127.0.0.100",
+		Service: &structs.NodeService{
+			ID:      "api-1",
+			Service: "api-svc",
+			Port:    0,
+			Ports: structs.ServicePorts{
+				{
+					Name:    "http",
+					Port:    8080,
+					Default: true,
+				},
+			},
+		},
+	}
+	var regReply struct{}
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &regReq, &regReply))
+
+	// Create a prepared query for this service
+	query := structs.PreparedQueryRequest{
+		Datacenter: "dc1",
+		Op:         structs.PreparedQueryCreate,
+		Query: &structs.PreparedQuery{
+			Name: "test-default-port",
+			Service: structs.ServiceQuery{
+				Service: "api-svc",
+			},
+			DNS: structs.QueryDNSOptions{
+				TTL: "10s",
+			},
+		},
+	}
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &query.Query.ID))
+
+	// Execute the prepared query
+	execReq := structs.PreparedQueryExecuteRequest{
+		Datacenter:    "dc1",
+		QueryIDOrName: query.Query.ID,
+	}
+	var execReply structs.PreparedQueryExecuteResponse
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "PreparedQuery.Execute", &execReq, &execReply))
+
+	require.Len(t, execReply.Nodes, 1)
+	require.Equal(t, 8080, execReply.Nodes[0].Service.Port)
+}
+
 func TestPreparedQuery_tagFilter(t *testing.T) {
 	t.Parallel()
 	testNodes := func() structs.CheckServiceNodes {

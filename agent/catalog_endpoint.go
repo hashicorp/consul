@@ -478,6 +478,10 @@ RETRY_ONCE:
 			if s.Tags == nil {
 				s.Tags = make([]string, 0)
 			}
+			if s.Port == 0 && len(s.Ports) > 0 {
+				// Populate `port` with default port for backward compatibility
+				s.Port = s.DefaultPort()
+			}
 		}
 	}
 	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_node_services"}, 1,
@@ -530,6 +534,10 @@ RETRY_ONCE:
 	for _, s := range out.NodeServices.Services {
 		if s.Tags == nil {
 			s.Tags = make([]string, 0)
+		}
+		if s.Port == 0 && len(s.Ports) > 0 {
+			// Populate `port` with default port for backward compatibility
+			s.Port = s.DefaultPort()
 		}
 	}
 	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_node_service_list"}, 1,

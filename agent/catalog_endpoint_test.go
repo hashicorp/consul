@@ -1663,6 +1663,66 @@ func TestCatalogNodeServiceList(t *testing.T) {
 	require.Equal(t, args.Service.Proxy, proxySvc.Proxy)
 }
 
+func TestCatalogNodeServices_DefaultPort(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	// Register node with a multi-port service (Port: 0, Ports with Default: true)
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			ID:      "api-1",
+			Service: "api",
+			Ports: structs.ServicePorts{
+				{
+					Name:    "http",
+					Port:    8080,
+					Default: true,
+				},
+			},
+		},
+	}
+
+	var out struct{}
+	require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
+
+	// CatalogNodeServices
+	{
+		req, _ := http.NewRequest("GET", "/v1/catalog/node/foo?dc=dc1", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.CatalogNodeServices(resp, req)
+		require.NoError(t, err)
+		assertIndex(t, resp)
+
+		nodeServices := obj.(*structs.NodeServices)
+		require.NotNil(t, nodeServices)
+		require.Contains(t, nodeServices.Services, "api-1")
+		require.Equal(t, 8080, nodeServices.Services["api-1"].Port)
+	}
+
+	// CatalogNodeServiceList
+	{
+		req, _ := http.NewRequest("GET", "/v1/catalog/node-services/foo?dc=dc1", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.CatalogNodeServiceList(resp, req)
+		require.NoError(t, err)
+		assertIndex(t, resp)
+
+		nodeServiceList := obj.(*structs.NodeServiceList)
+		require.NotNil(t, nodeServiceList)
+		require.Len(t, nodeServiceList.Services, 1)
+		require.Equal(t, 8080, nodeServiceList.Services[0].Port)
+	}
+}
+
 func TestCatalogNodeServiceList_MergeCentralConfig(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
