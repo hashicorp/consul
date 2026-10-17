@@ -636,7 +636,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) (uint64, bool, 
 
 				// We are replying ACK or NACK depending on whether we successfully processed the response.
 				if err := streamSend(reply); err != nil {
-					return fmt.Errorf("failed to send to stream: %v", err)
+					return gen, true, fmt.Errorf("failed to send to stream: %v", err)
 				}
 
 				continue
@@ -716,7 +716,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) (uint64, bool, 
 			replResp := makeReplicationResponse(resp)
 			if err := streamSend(replResp); err != nil {
 				// note: govet warns of context leak but it is cleaned up in a defer
-				return fmt.Errorf("failed to push data for %q: %w", update.CorrelationID, err)
+				return gen, true, fmt.Errorf("failed to push data for %q: %w", update.CorrelationID, err)
 			}
 		}
 	}

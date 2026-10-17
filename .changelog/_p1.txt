@@ -1,0 +1,3 @@
+```release-note:bug-fix
+peerstream: fix stream status corruption from failed or stale stream handle goroutines; consul_peering_healthy metric now correctly reflects active stream health
+```

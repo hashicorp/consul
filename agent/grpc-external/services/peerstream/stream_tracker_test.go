@@ -190,7 +190,7 @@ func TestTracker_EnsureConnectedDisconnected(t *testing.T) {
 		expect := Status{
 			Connected:      true,
 			LastAck:        lastSuccess,
-			DisconnectTime: &time.Time{},
+			DisconnectTime: nil,
 			// DisconnectTime gets cleared on re-connect.
 		}
 

@@ -346,7 +346,8 @@ func (s *MutableStatus) TrackConnected() uint64 {
 	s.mu.Lock()
 	s.streamGeneration++
 	s.Connected = true
-	s.DisconnectTime = &time.Time{}
+	s.NeverConnected = false
+	s.DisconnectTime = nil
 	s.DisconnectErrorMessage = ""
 	gen := s.streamGeneration
 	s.mu.Unlock()
