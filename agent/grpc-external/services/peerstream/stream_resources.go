@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
@@ -20,6 +19,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
@@ -303,18 +303,28 @@ func (s *Server) DrainStream(req HandleStreamRequest) {
 }
 
 func (s *Server) HandleStream(streamReq HandleStreamRequest) error {
-	if err := s.realHandleStream(streamReq); err != nil {
-		s.Tracker.DisconnectedDueToError(streamReq.LocalID, err.Error())
+	gen, connected, err := s.realHandleStream(streamReq)
+	if err != nil {
+		// Only mark as disconnected if this stream was actually connected.
+		// If Connected() failed (e.g., because there's already an active stream
+		// for this peer), we should not corrupt the existing stream's status.
+		if connected {
+			s.Tracker.DisconnectedDueToError(streamReq.LocalID, gen, err.Error())
+		}
 		return err
 	}
 	// TODO(peering) Also need to clear subscriptions associated with the peer
-	s.Tracker.DisconnectedGracefully(streamReq.LocalID)
+	s.Tracker.DisconnectedGracefully(streamReq.LocalID, gen)
 	return nil
 }
 
 // The localID provided is the locally-generated identifier for the peering.
 // The remoteID is an identifier that the remote peer recognizes for the peering.
-func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
+// Returns (generation, connected, error) where generation is the stream generation counter
+// and connected indicates if this stream successfully registered as the active stream
+// for the peer. These are used by HandleStream to determine whether to mark the stream
+// as disconnected on error, and to prevent stale disconnects from corrupting newer streams.
+func (s *Server) realHandleStream(streamReq HandleStreamRequest) (uint64, bool, error) {
 	// TODO: pass logger down from caller?
 	logger := s.Logger.Named("stream").
 		With("peer_name", streamReq.PeerName).
@@ -326,10 +336,13 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 	handleStreamCtx, cancel := context.WithCancel(streamReq.Stream.Context())
 	defer cancel()
 
-	status, err := s.Tracker.Connected(streamReq.LocalID)
+	status, gen, err := s.Tracker.Connected(streamReq.LocalID)
 	if err != nil {
-		return fmt.Errorf("failed to register stream: %v", err)
+		// Return connected=false so HandleStream knows not to mark as disconnected.
+		// This prevents corrupting an existing active stream's status.
+		return 0, false, fmt.Errorf("failed to register stream: %v", err)
 	}
+	// From this point on, this stream is the connected stream for this peer.
 
 	var trustDomain string
 	if s.ConnectEnabled {
@@ -337,7 +350,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 		// so reading it once at the beginning of the stream is sufficient.
 		trustDomain, err = getTrustDomain(s.GetStore(), logger)
 		if err != nil {
-			return err
+			return gen, true, err
 		}
 	}
 
@@ -353,34 +366,107 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 	)
 	subCh := mgr.subscribe(streamReq.Stream.Context(), streamReq.LocalID, streamReq.PeerName, streamReq.Partition)
 
-	// We need a mutex to protect against simultaneous sends to the client.
-	var sendMutex sync.Mutex
+	// sendReq wraps a message queued for the sender goroutine. sent is optional;
+	// when non-nil the sender delivers the result of Stream.Send on it, allowing
+	// callers to wait until the message has actually been written to the stream.
+	type sendReq struct {
+		msg  *pbpeerstream.ReplicationMessage
+		sent chan error
+	}
 
-	// streamSend is a helper function that sends msg over the stream
-	// respecting the send mutex. It also logs the send and calls status.TrackSendError
-	// on error.
-	streamSend := func(msg *pbpeerstream.ReplicationMessage) error {
-		logTraceSend(logger, msg)
+	// sendCh is used to queue messages to be sent to the stream.
+	// We buffer this to prevent the main loop from blocking on sends, which could lead to deadlocks
+	// if the peer is also blocked sending to us.
+	sendCh := make(chan sendReq, 64)
+	// sendErrCh is used to report errors from the sender goroutine.
+	sendErrCh := make(chan error, 1)
 
-		sendMutex.Lock()
-		err := streamReq.Stream.Send(msg)
-		sendMutex.Unlock()
+	// Start a goroutine to send messages to the stream.
+	// This ensures that sending is decoupled from the main loop and that we don't block
+	// the main loop (and thus the reading of recvCh) when the network is slow.
+	go func() {
+		for {
+			select {
+			case req := <-sendCh:
+				logTraceSend(logger, req.msg)
+				err := streamReq.Stream.Send(req.msg)
 
-		// We only track send successes and errors for response types because this is meant to track
-		// resources, not request/ack messages.
-		if msg.GetResponse() != nil {
-			if err != nil {
-				if id := msg.GetResponse().GetResourceID(); id != "" {
-					logger.Error("failed to send resource", "resourceID", id, "error", err)
-					status.TrackSendError(err.Error())
-					return nil
+				// We only track send successes and errors for response types because this is meant to track
+				// resources, not request/ack messages.
+				if req.msg.GetResponse() != nil {
+					if err != nil {
+						if id := req.msg.GetResponse().GetResourceID(); id != "" {
+							logger.Error("failed to send resource", "resourceID", id, "error", err)
+							status.TrackSendError(err.Error())
+						} else {
+							status.TrackSendError(err.Error())
+						}
+					} else {
+						status.TrackSendSuccess()
+					}
 				}
-				status.TrackSendError(err.Error())
-			} else {
-				status.TrackSendSuccess()
+
+				if req.sent != nil {
+					req.sent <- err
+				}
+
+				if err != nil {
+					select {
+					case sendErrCh <- err:
+					case <-handleStreamCtx.Done():
+					}
+					return
+				}
+			case <-handleStreamCtx.Done():
+				return
 			}
 		}
-		return err
+	}()
+
+	// streamSend is a helper function that queues msg to be sent over the stream.
+	// It accepts a context to allow the caller to control cancellation/timeout (e.g. heartbeat timeout).
+	// Send errors are only consumed by the main loop, which must own stream teardown.
+	streamSend := func(ctx context.Context, msg *pbpeerstream.ReplicationMessage) error {
+		if err := handleStreamCtx.Err(); err != nil {
+			return err
+		}
+
+		select {
+		case sendCh <- sendReq{msg: msg}:
+			return nil
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-handleStreamCtx.Done():
+			return handleStreamCtx.Err()
+		}
+	}
+
+	// streamSendSync queues msg like streamSend but waits until the sender
+	// goroutine has written it to the stream. Use this for messages that must
+	// reach the peer before the handler returns and tears the stream down,
+	// e.g. the Terminated message on peering deletion.
+	streamSendSync := func(ctx context.Context, msg *pbpeerstream.ReplicationMessage) error {
+		if err := handleStreamCtx.Err(); err != nil {
+			return err
+		}
+
+		sent := make(chan error, 1)
+		select {
+		case sendCh <- sendReq{msg: msg, sent: sent}:
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-handleStreamCtx.Done():
+			return handleStreamCtx.Err()
+		}
+
+		select {
+		case err := <-sent:
+			return err
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-handleStreamCtx.Done():
+			return handleStreamCtx.Err()
+		}
 	}
 
 	resources := []string{
@@ -399,16 +485,17 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 			ResourceURL: resourceURL,
 			PeerID:      streamReq.RemoteID,
 		})
-		if err := streamSend(sub); err != nil {
+		if err := streamSend(handleStreamCtx, sub); err != nil {
 			// TODO(peering) Test error handling in calls to Send/Recv
-			return fmt.Errorf("failed to send subscription for %q to stream: %w", resourceURL, err)
+			return gen, true, fmt.Errorf("failed to send subscription for %q to stream: %w", resourceURL, err)
 		}
 	}
 
 	// recvCh sends messages from the gRPC stream.
-	recvCh := make(chan *pbpeerstream.ReplicationMessage)
+	// We buffer this to allow the receiver to make progress even if the main loop is busy.
+	recvCh := make(chan *pbpeerstream.ReplicationMessage, 64)
 	// recvErrCh sends errors received from the gRPC stream.
-	recvErrCh := make(chan error)
+	recvErrCh := make(chan error, 1)
 
 	// Start a goroutine to read from the stream and pass to recvCh and recvErrCh.
 	// Using a separate goroutine allows us to process sends and receives all in the main for{} loop.
@@ -444,7 +531,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 						Heartbeat: &pbpeerstream.ReplicationMessage_Heartbeat{},
 					},
 				}
-				if err := streamSend(heartbeat); err != nil {
+				if err := streamSend(handleStreamCtx, heartbeat); err != nil {
 					logger.Warn("error sending heartbeat", "err", err)
 				}
 			}
@@ -464,8 +551,23 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 	// The nonce is used to correlate response/(ack|nack) pairs.
 	var nonce uint64
 
+	// pendingUpdateMsg holds a replication message that is waiting to be sent to sendCh.
+	// This is used to implement backpressure on subCh.
+	var pendingUpdateMsg *pbpeerstream.ReplicationMessage
+
 	// The main loop that processes sends and receives.
 	for {
+		// Determine if we should be reading from subCh or writing to sendCh
+		var subChSelect <-chan cache.UpdateEvent
+		if pendingUpdateMsg == nil {
+			subChSelect = subCh
+		}
+
+		var sendChSelect chan<- sendReq
+		if pendingUpdateMsg != nil {
+			sendChSelect = sendCh
+		}
+
 		select {
 		// When the doneCh is closed that means that the peering was deleted locally.
 		case <-status.Done():
@@ -476,17 +578,24 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 					Terminated: &pbpeerstream.ReplicationMessage_Terminated{},
 				},
 			}
-			if err := streamSend(term); err != nil {
+			// The Terminated message must actually reach the peer before this
+			// handler returns and tears down the stream, otherwise the peer
+			// never learns the peering was deleted and stays PENDING forever.
+			if err := streamSendSync(incomingHeartbeatCtx, term); err != nil {
 				// Nolint directive needed due to bug in govet that doesn't see that the cancel
 				// func of the incomingHeartbeatTimer _does_ get called.
 				//nolint:govet
-				return fmt.Errorf("failed to send to stream: %v", err)
+				return gen, true, fmt.Errorf("failed to send to stream: %v", err)
 			}
 
 			logger.Trace("deleting stream status")
 			s.Tracker.DeleteStatus(streamReq.LocalID)
 
-			return nil
+			return gen, true, nil
+
+		// Handle errors received from the sender goroutine.
+		case err := <-sendErrCh:
+			return gen, true, fmt.Errorf("error sending to stream: %w", err)
 
 		// Handle errors received from the stream by shutting down our handler.
 		case err := <-recvErrCh:
@@ -501,11 +610,11 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 				err = fmt.Errorf("unexpected error receiving from the stream: %w", err)
 			}
 			status.TrackRecvError(err.Error())
-			return err
+			return gen, true, err
 
 		// We haven't received a heartbeat within the expected interval. Kill the stream.
 		case <-incomingHeartbeatCtx.Done():
-			return fmt.Errorf("heartbeat timeout")
+			return gen, true, fmt.Errorf("heartbeat timeout")
 
 		case msg := <-recvCh:
 			// NOTE: this code should have similar error handling to the
@@ -520,15 +629,15 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 					&pbpeerstream.LeaderAddress{Address: s.Backend.GetLeaderAddress()})
 				if err != nil {
 					logger.Error(fmt.Sprintf("failed to marshal the leader address in response; err: %v", err))
-					return grpcstatus.Error(codes.FailedPrecondition, "node is not a leader anymore; cannot continue streaming")
+					return gen, true, grpcstatus.Error(codes.FailedPrecondition, "node is not a leader anymore; cannot continue streaming")
 				} else {
-					return st.Err()
+					return gen, true, st.Err()
 				}
 			}
 
 			if req := msg.GetRequest(); req != nil {
 				if !pbpeerstream.KnownTypeURL(req.ResourceURL) {
-					return grpcstatus.Errorf(codes.InvalidArgument, "subscription request to unknown resource URL: %s", req.ResourceURL)
+					return gen, true, grpcstatus.Errorf(codes.InvalidArgument, "subscription request to unknown resource URL: %s", req.ResourceURL)
 				}
 
 				// There are different formats of requests depending upon where in the stream lifecycle we are.
@@ -570,7 +679,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 						if req.PeerID != "" && req.PeerID != streamReq.RemoteID {
 							// Not necessary after the first request from the dialer,
 							// but if provided must match.
-							return grpcstatus.Errorf(codes.InvalidArgument,
+							return gen, true, grpcstatus.Errorf(codes.InvalidArgument,
 								"initial subscription requests for a resource type must have consistent PeerID values: got=%q expected=%q",
 								req.PeerID,
 								streamReq.RemoteID,
@@ -578,10 +687,10 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 						}
 					}
 					if req.ResponseNonce != "" {
-						return grpcstatus.Error(codes.InvalidArgument, "initial subscription requests for a resource type must not contain a nonce")
+						return gen, true, grpcstatus.Error(codes.InvalidArgument, "initial subscription requests for a resource type must not contain a nonce")
 					}
 					if req.Error != nil {
-						return grpcstatus.Error(codes.InvalidArgument, "initial subscription request for a resource type must not contain an error")
+						return gen, true, grpcstatus.Error(codes.InvalidArgument, "initial subscription request for a resource type must not contain an error")
 					}
 
 					if remoteSubTracker.Subscribe(req.ResourceURL) {
@@ -622,8 +731,8 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 				}
 
 				// We are replying ACK or NACK depending on whether we successfully processed the response.
-				if err := streamSend(reply); err != nil {
-					return fmt.Errorf("failed to send to stream: %v", err)
+				if err := streamSend(incomingHeartbeatCtx, reply); err != nil {
+					return gen, true, fmt.Errorf("failed to send to stream: %v", err)
 				}
 
 				continue
@@ -636,7 +745,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 				if err := s.Backend.PeeringTerminateByID(&pbpeering.PeeringTerminateByIDRequest{ID: streamReq.LocalID}); err != nil {
 					logger.Error("failed to mark peering as terminated: %w", err)
 				}
-				return nil
+				return gen, true, nil
 			}
 
 			if msg.GetHeartbeat() != nil {
@@ -655,7 +764,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 					context.WithTimeout(context.Background(), s.incomingHeartbeatTimeout)
 			}
 
-		case update := <-subCh:
+		case update := <-subChSelect:
 			var resp *pbpeerstream.ReplicationMessage_Response
 			switch {
 			case strings.HasPrefix(update.CorrelationID, subExportedServiceList):
@@ -700,11 +809,10 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 			nonce++
 			resp.Nonce = fmt.Sprintf("%08x", nonce)
 
-			replResp := makeReplicationResponse(resp)
-			if err := streamSend(replResp); err != nil {
-				// note: govet warns of context leak but it is cleaned up in a defer
-				return fmt.Errorf("failed to push data for %q: %w", update.CorrelationID, err)
-			}
+			pendingUpdateMsg = makeReplicationResponse(resp)
+
+		case sendChSelect <- sendReq{msg: pendingUpdateMsg}:
+			pendingUpdateMsg = nil
 		}
 	}
 }
