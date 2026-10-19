@@ -55,7 +55,6 @@ require (
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/hashicorp/consul v1.16.1 // indirect
 	github.com/hashicorp/consul-server-connection-manager v0.1.12 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-hclog v1.6.3 // indirect
@@ -130,7 +129,6 @@ require (
 )
 
 replace (
-	github.com/hashicorp/consul => ../
 	github.com/hashicorp/consul/api => ../api
 	github.com/hashicorp/consul/envoyextensions => ../envoyextensions
 	github.com/hashicorp/consul/proto-public => ../proto-public

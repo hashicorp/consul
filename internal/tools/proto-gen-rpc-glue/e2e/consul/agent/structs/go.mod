@@ -1,4 +1,4 @@
-module github.com/hashicorp/consul
+module github.com/hashicorp/consul/agent/structs
 
 go 1.26.9
 
