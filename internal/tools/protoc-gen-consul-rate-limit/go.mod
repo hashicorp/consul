@@ -5,6 +5,6 @@ go 1.26.9
 replace github.com/hashicorp/consul/proto-public => ../../../proto-public
 
 require (
-	github.com/hashicorp/consul/proto-public v0.8.1
+	github.com/hashicorp/consul/proto-public v0.9.0
 	google.golang.org/protobuf v1.36.11
 )
