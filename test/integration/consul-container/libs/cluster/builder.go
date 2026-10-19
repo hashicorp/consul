@@ -167,7 +167,7 @@ type Builder struct {
 // * default ports with no plaintext options
 // * debug logging
 // * single server with bootstrap
-// * bind to all interfaces, advertise on 'eth0' (overridden by -advertise when run in a container pod)
+// * bind to all interfaces, advertise on 'eth0'
 // * connect enabled
 func NewConfigBuilder(ctx *BuildContext) *Builder {
 	if ctx == nil {
