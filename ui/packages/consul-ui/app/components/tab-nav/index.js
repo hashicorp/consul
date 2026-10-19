@@ -9,6 +9,7 @@ import { assert } from '@ember/debug';
 import { inject as service } from '@ember/service';
 import { modifier } from 'ember-modifier';
 import tippy from 'tippy.js';
+import matchesRoute from 'consul-ui/utils/routing/matches-route';
 
 // Mirrors the `hideOnEsc` plugin baked into the HDS `{{hds-tooltip}}`
 // modifier so keyboard users can dismiss the tooltip the same way they can
@@ -99,6 +100,7 @@ export class Tab {
 function noop() {}
 export default class TabNav extends Component {
   @service router;
+  @service('navigation-focus') navigationFocus;
 
   // Hds::Tabs renders each tab's yielded content inside its own internal
   // `<button role="tab">`; `...attributes`/modifiers applied to `<T.Tab>`
@@ -154,6 +156,23 @@ export default class TabNav extends Component {
     return 0;
   }
 
+  // Route-backed items are marked `selected` as soon as a transition starts
+  // (see the `is-href` helper), but the outlet keeps rendering the previous
+  // route's template until the transition completes. Placing content by the
+  // route the router has actually entered stops that stale template from
+  // being re-mounted inside the newly selected panel mid-transition.
+  get contentIndex() {
+    const current = this.router.currentRouteName;
+    if (current) {
+      for (let index = 0; index < this.args.items.length; index++) {
+        if (matchesRoute(current, this.itemAt(index).route)) {
+          return index;
+        }
+      }
+    }
+    return this.selectedTabIndex;
+  }
+
   get tabsKey() {
     const keys = [];
     for (let index = 0; index < this.args.items.length; index++) {
@@ -179,6 +198,7 @@ export default class TabNav extends Component {
     this.onTabClicked(item, event);
 
     if (item.route) {
+      this.navigationFocus.tabTransitionTo(item.route);
       this.router.transitionTo(item.route);
     }
   };

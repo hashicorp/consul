@@ -201,14 +201,15 @@
                   )
                 )
               }}
-            />
-            <Outlet
-              @name={{this.routeName}}
-              @model={{assign (hash proxy=this.proxy meta=this.meta item=item) route.model}}
-              as |o|
             >
-              {{outlet}}
-            </Outlet>
+              <Outlet
+                @name={{this.routeName}}
+                @model={{assign (hash proxy=this.proxy meta=this.meta item=item) route.model}}
+                as |o|
+              >
+                {{outlet}}
+              </Outlet>
+            </TabNav>
           </:content>
         </AppView>
       {{/let}}
