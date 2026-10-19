@@ -10,7 +10,7 @@ require (
 	github.com/go-jose/go-jose/v3 v3.0.5
 	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/hashicorp/consul/api v1.35.0
-	github.com/hashicorp/consul/envoyextensions v0.11.0
+	github.com/hashicorp/consul/envoyextensions v0.11.1
 	github.com/hashicorp/consul/sdk v0.19.0
 	github.com/hashicorp/consul/testing/deployer v0.0.0-20230811171106-4a0afb5d1373
 	github.com/hashicorp/go-cleanhttp v0.5.2
