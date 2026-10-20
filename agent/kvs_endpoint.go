@@ -247,9 +247,8 @@ func (s *HTTPHandlers) KVSPut(resp http.ResponseWriter, req *http.Request, args 
 		return "Request has no content-length & no body", nil
 
 	case req.ContentLength <= 0 && req.Body != nil:
-		// LimitReader to limit copy of large requests with no Content-Length
-		//+1 ensures we can detect if the body is too large
-		byteReader := http.MaxBytesReader(nil, req.Body, maxSize+1)
+		// MaxBytesReader to limit copy of large requests with no Content-Length
+		byteReader := http.MaxBytesReader(nil, req.Body, maxSize)
 		buf = new(bytes.Buffer)
 		if _, err := io.Copy(buf, byteReader); err != nil {
 			var bodyTooLargeErr *http.MaxBytesError
