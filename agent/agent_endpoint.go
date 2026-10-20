@@ -1715,8 +1715,19 @@ func (s *HTTPHandlers) AgentConnectCALeafCert(resp http.ResponseWriter, req *htt
 		args.MustRevalidate = true
 	}
 
+	s.defaultMetaPartitionToAgent(&args.EnterpriseMeta)
+	var authzContext acl.AuthorizerContext
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
+	if err != nil {
+		return nil, err
+	}
+
 	if !s.validateRequestPartition(resp, &args.EnterpriseMeta) {
 		return nil, nil
+	}
+
+	if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(serviceName, &authzContext); err != nil {
+		return nil, err
 	}
 
 	reply, m, err := s.agent.leafCertManager.Get(req.Context(), &args)
