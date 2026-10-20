@@ -48,6 +48,16 @@ func TestLoad(t *testing.T) {
 	require.NotNil(t, cfg)
 	require.Equal(t, "hobbiton", cfg.NodeName)
 	require.Equal(t, 1*time.Millisecond, cfg.CheckReapInterval)
+	require.Equal(t, DefaultHTTPMaxRequestBodySize, cfg.HTTPMaxRequestBodySize)
+}
+
+func TestLoad_HTTPMaxRequestBodySizeMustBePositive(t *testing.T) {
+	devMode := true
+	_, err := Load(LoadOpts{
+		DevMode: &devMode,
+		HCL:     []string{"limits { http_max_request_body_size = 0 }"},
+	})
+	require.ErrorContains(t, err, "limits.http_max_request_body_size must be strictly positive")
 }
 
 func TestShouldParseFile(t *testing.T) {
