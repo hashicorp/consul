@@ -277,6 +277,7 @@ func (s *HTTPHandlers) KVSPut(resp http.ResponseWriter, req *http.Request, args 
 			return nil, err
 		}
 	}
+	req.Body = http.MaxBytesReader(resp, req.Body, int64(s.agent.config.KVMaxValueSize))
 
 	applyReq.DirEnt.Value = buf.Bytes()
 

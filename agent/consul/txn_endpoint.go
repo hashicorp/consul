@@ -418,6 +418,13 @@ func (t *Txn) Apply(args *structs.TxnRequest, reply *structs.TxnResponse) error 
 	if err != nil {
 		return err
 	}
+
+	// Hold the write locks for every node targeted by catalog operations from
+	// the pre-checks until the Raft apply completes, so stored entries cannot
+	// change between authorization and apply.
+	unlock := t.srv.nodeWriteLocks.lock(txnNodeWriteLockIndexes(args.Ops))
+	defer unlock()
+
 	reply.Errors = t.preCheck(authz, args.Ops)
 	if len(reply.Errors) > 0 {
 		return nil
