@@ -168,6 +168,12 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 		}
 	}
 
+	// Hold the node's write lock from the ownership lookups below until the
+	// Raft apply completes, so a concurrent write to the same node cannot
+	// change an existing check or service between authorization and apply.
+	unlock := c.srv.nodeWriteLocks.lock(registerNodeWriteLockIndexes(args, entMeta.PartitionOrDefault()))
+	defer unlock()
+
 	// Check the complete register request against the given ACL policy.
 	_, ns, err := state.NodeServices(nil, args.Node, entMeta, args.PeerName)
 	if err != nil {
@@ -188,6 +194,21 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 			var existingCtx acl.AuthorizerContext
 			existingByID.FillAuthzContext(&existingCtx)
 			if err := authz.ToAllowAuthorizer().NodeWriteAllowed(existingByID.Node, &existingCtx); err != nil {
+				return err
+			}
+		}
+	}
+
+	for _, check := range args.Checks {
+		if check.CheckID == "" {
+			continue
+		}
+		_, existingCheck, err := state.NodeCheck(check.Node, check.CheckID, &check.EnterpriseMeta, check.PeerName)
+		if err != nil {
+			return fmt.Errorf("check lookup failed: %w", err)
+		}
+		if existingCheck != nil {
+			if err := vetExistingCheckWithACL(authz, existingCheck, ns); err != nil {
 				return err
 			}
 		}
@@ -428,6 +449,25 @@ func vetRegisterWithACL(
 	return nil
 }
 
+func vetExistingCheckWithACL(authz resolver.Result, check *structs.HealthCheck, ns *structs.NodeServices) error {
+	var authzContext acl.AuthorizerContext
+	check.FillAuthzContext(&authzContext)
+
+	if check.ServiceID == "" {
+		return authz.ToAllowAuthorizer().NodeWriteAllowed(check.Node, &authzContext)
+	}
+
+	serviceName := check.ServiceName
+	if ns != nil {
+		if service, ok := ns.Services[check.ServiceID]; ok {
+			serviceName = service.Service
+			service.FillAuthzContext(&authzContext)
+		}
+	}
+
+	return authz.ToAllowAuthorizer().ServiceWriteAllowed(serviceName, &authzContext)
+}
+
 // Deregister a service or check in a node, or the entire node itself.
 //
 // If a ServiceID is provided in the request, any associated Checks
@@ -459,6 +499,11 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 	if err := c.srv.validateEnterpriseRequest(&args.EnterpriseMeta, true); err != nil {
 		return err
 	}
+
+	// Hold the node write lock from the lookups below until the Raft apply
+	// completes, so the target cannot change between authorization and apply.
+	unlock := c.srv.nodeWriteLocks.lock([]int{nodeWriteLockIndex(args.PartitionOrDefault(), args.PeerName, args.Node)})
+	defer unlock()
 
 	// Check the complete deregister request against the given ACL policy.
 	state := c.srv.fsm.State()
