@@ -1,4 +1,4 @@
-## 2.1.0+ent (October 21, 2026)
+## 2.1.0 (October 21, 2026)
 BREAKING CHANGES:
 
 * agent: **(Enterprise only)** Agent HTTP API request bodies are now limited to 512 KiB by default, including chunked requests and requests with an unsupported method, and oversized requests return HTTP 413 before the body is read in full. Very large `/v1/config` writes that previously succeeded can now fail. Raise the limit with the new `limits.http_max_request_body_size` setting if needed.
