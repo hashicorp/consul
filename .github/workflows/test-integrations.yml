@@ -485,7 +485,7 @@ jobs:
               -tags "${{ env.GOTAGS }}" \
               -timeout=30m \
               -json \
-              `go list -tags "${{ env.GOTAGS }}" ./... | grep -v upgrade | grep -v peering_commontopo` \
+              `go list -tags "${{ env.GOTAGS }}" ./... | grep -v upgrade | grep -v peering_commontopo | grep -v libs/decode` \
               --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
               --target-version local \
               --latest-image docker.mirror.hashicorp.services/${{ env.CONSUL_LATEST_IMAGE_NAME }} \
@@ -576,7 +576,7 @@ jobs:
             -parallel=2 \
             -failfast \
             -json \
-            `go list -tags "${{ env.GOTAGS }}" ./... | grep -v peering_commontopo | grep -v upgrade ` \
+            `go list -tags "${{ env.GOTAGS }}" ./... | grep -v peering_commontopo | grep -v upgrade | grep -v libs/decode` \
             --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
             --target-version local \
             --latest-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
