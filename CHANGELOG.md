@@ -13,6 +13,7 @@ BREAKING CHANGES:
 
 SECURITY:
 
+* Upgrade go version to 1.26.10 to address security vulnerabilities. [[GH-24067](https://github.com/hashicorp/consul/issues/24067)]
 * deps: upgrade `github.com/hashicorp/go-discover` to v1.5.0, removing the dependency on the archived `github.com/hashicorp/vic` module. This also upgrades `github.com/vmware/govmomi` to v0.55.1 and adds an `srv` provider for cloud auto-join. [[GH-24021](https://github.com/hashicorp/consul/issues/24021)]
 * security: **(Enterprise only)** Remove the `github.com/hashicorp/consul` root module dependency from the `test-integ` fault-injection tests to address [CVE-2026-15972](https://nvd.nist.gov/vuln/detail/CVE-2026-15972) and [CVE-2026-88021](https://nvd.nist.gov/vuln/detail/CVE-2026-88021).
 * security: Remove the `github.com/hashicorp/consul` root module dependency from the envoy integration test SDS server, the `consul-container` and `test-integ` test modules, and the `proto-gen-rpc-glue` e2e fixture to address [CVE-2026-15972](https://nvd.nist.gov/vuln/detail/CVE-2026-15972). [[GH-24043](https://github.com/hashicorp/consul/issues/24043)]
@@ -57,6 +58,10 @@ operator: Add `GET /v1/operator/features`, `GET /v1/operator/feature/:name`, and
 
 IMPROVEMENTS:
 
+* chore: Update of actions/cache/restore from 4.2.0 to 6.1.0
+* chore: Update of actions/download-artifact from 4.1.7 to 8.0.2 [[GH-13634](https://github.com/hashicorp/consul/issues/13634)]
+* chore: Update of actions/upload-artifact from 4.3.3 to 7.0.2 [[GH-13635](https://github.com/hashicorp/consul/issues/13635)]
+* chore: Update of hashicorp/vault-action from 3 to 4 [[GH-13636](https://github.com/hashicorp/consul/issues/13636)]
 * connect: **(Enterprise Only)** update compatibility tests to Nomad ENT v1.9.13+ent, v1.10.17+ent, v1.11.11+ent, v2.0.7+ent and Vault ENT 1.19.22+ent, 1.20.16+ent, 1.21.11+ent, 2.0.4+ent, 2.1.1+ent and envoy 1.39.4, 1.38.7, 1.37.9, 1.36.13
 * connect: revert the maximum supported Envoy version from 1.39.4 back to 1.39.1. Envoy 1.39.4 support, listed in a prior release note, is not included in this release. [[GH-24057](https://github.com/hashicorp/consul/issues/24057)]
 * connect: deliver the sidecar proxy's leaf certificate and CA roots to Envoy over SDS instead of embedding them inline in the public listener. Leaf certificate rotation is now a hitless hot-swap that no longer changes the listener filter chain hash, so established connections (notably long-lived TCP sessions) are no longer drained and terminated on every rotation. [[GH-23938](https://github.com/hashicorp/consul/issues/23938)]
