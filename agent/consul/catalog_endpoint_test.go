@@ -589,7 +589,12 @@ node_prefix "" { policy = "write" }
 mesh = "write"
 `, "root").SecretID
 
-	for _, key := range []string{"envoy_listener_json", "envoy_cluster_json"} {
+	for _, key := range []string{
+		"envoy_listener_json", "envoy_cluster_json",
+		"EnvoyListenerJSON", "ENVOYLISTENERJSON",
+		"EnvoyClusterJSON", "ENVOYCLUSTERJSON",
+		"envoy_liſtener_json", "EnvoyCluſterJSON",
+	} {
 		key := key
 		t.Run(key, func(t *testing.T) {
 			arg := structs.RegisterRequest{
@@ -4939,3 +4944,200 @@ node "attacker-node" {
 	require.NotNil(t, victimNode, "victim node was deleted — cross-node takeover succeeded")
 	require.Equal(t, "victim-node", victimNode.Node)
 }
+
+func TestCatalog_Register_CheckIDCrossServiceTakeover(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	dir, server := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir)
+	defer server.Shutdown()
+	testrpc.WaitForTestAgent(t, server.RPC, "dc1", testrpc.WithToken("root"))
+	codec := rpcClient(t, server)
+	defer codec.Close()
+
+	var out struct{}
+	register := func(args *structs.RegisterRequest) error {
+		return msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out)
+	}
+
+	// Register both services and the victim's check on one node.
+	for _, service := range []struct {
+		id   string
+		name string
+	}{
+		{id: "victim-svc", name: "victim-svc"},
+		{id: "attacker-svc", name: "attacker-svc"},
+	} {
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "shared-node",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				ID:      service.id,
+				Service: service.name,
+				Port:    8080,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		if service.id == "victim-svc" {
+			args.Checks = []*structs.HealthCheck{{
+				Node:      "shared-node",
+				CheckID:   "victim-check",
+				Name:      "victim health check",
+				Status:    "passing",
+				ServiceID: "victim-svc",
+			}}
+		}
+		require.NoError(t, register(args))
+	}
+
+	attackerToken := createToken(t, codec, `service "attacker-svc" { policy = "write" }`)
+	// The token can write its own service-level checks without node:write.
+	require.NoError(t, register(&structs.RegisterRequest{
+		Datacenter:     "dc1",
+		Node:           "shared-node",
+		SkipNodeUpdate: true,
+		Checks: []*structs.HealthCheck{{
+			Node:      "shared-node",
+			CheckID:   "attacker-check",
+			Name:      "attacker health check",
+			Status:    "passing",
+			ServiceID: "attacker-svc",
+		}},
+		WriteRequest: structs.WriteRequest{Token: attackerToken},
+	}))
+
+	err := register(&structs.RegisterRequest{
+		Datacenter:     "dc1",
+		Node:           "shared-node",
+		SkipNodeUpdate: true,
+		Checks: []*structs.HealthCheck{{
+			Node:        "shared-node",
+			CheckID:     "victim-check",
+			Name:        "attacker check",
+			Status:      "critical",
+			ServiceID:   "attacker-svc",
+			ServiceName: "attacker-svc",
+		}},
+		WriteRequest: structs.WriteRequest{Token: attackerToken},
+	})
+	require.Error(t, err, "a service writer must not overwrite another service's check by reusing its CheckID")
+	require.True(t, acl.IsErrPermissionDenied(err), "expected permission denied, got: %v", err)
+
+	_, storedCheck, err := server.fsm.State().NodeCheck(
+		"shared-node",
+		"victim-check",
+		structs.NodeEnterpriseMetaInDefaultPartition(),
+		"",
+	)
+	require.NoError(t, err)
+	require.NotNil(t, storedCheck)
+	require.Equal(t, "victim-svc", storedCheck.ServiceID)
+	require.Equal(t, "victim-svc", storedCheck.ServiceName)
+	require.Equal(t, "passing", storedCheck.Status)
+}
+
+// // TestCatalog_Register_AIService_GateDisabled exercises the authoritative
+// // server-side consul-ai gate in Catalog.Register by bypassing the agent HTTP
+// // endpoint entirely and calling the RPC directly. A service with an ai {}
+// // block must be rejected with an error containing "consul-ai" when the gate
+// // has not been enabled.
+// func TestCatalog_Register_AIService_GateDisabled(t *testing.T) {
+// 	if testing.Short() {
+// 		t.Skip("too slow for testing.Short")
+// 	}
+// 	t.Parallel()
+
+// 	_, s := testServer(t)
+// 	codec := rpcClient(t, s)
+// 	testrpc.WaitForLeader(t, s.RPC, "dc1")
+// 	waitForFeatureGateInit(t, s)
+
+// 	// Gate is disabled by default; confirm the store agrees before proceeding.
+// 	require.False(t, s.featureGateStore.Enabled(featuregate.ConsulAI),
+// 		"consul-ai gate must be disabled before the test registers a service")
+
+// 	args := structs.RegisterRequest{
+// 		Datacenter: "dc1",
+// 		Node:       "foo",
+// 		Address:    "127.0.0.1",
+// 		Service: &structs.NodeService{
+// 			ID:      "ai-svc",
+// 			Service: "ai-svc",
+// 			Port:    8080,
+// 			AI: &structs.ServiceAI{
+// 				Role: structs.ServiceAIRoleInferenceModel,
+// 				InferenceModel: &structs.AIInferenceModel{
+// 					Protocol: "openai",
+// 					Path:     "/v1",
+// 				},
+// 			},
+// 		},
+// 	}
+// 	var out struct{}
+// 	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out)
+// 	require.Error(t, err, "Catalog.Register must reject an AI service when the gate is disabled")
+// 	require.Contains(t, err.Error(), "consul-ai",
+// 		"error message must reference the feature gate name")
+// }
+
+// // TestCatalog_Register_AIService_GateEnabled exercises the authoritative
+// // server-side consul-ai gate in Catalog.Register: after enabling the gate via
+// // Operator.FeatureGateSet and waiting for the cache to propagate, a service
+// // with an ai {} block must be accepted.
+// func TestCatalog_Register_AIService_GateEnabled(t *testing.T) {
+// 	if testing.Short() {
+// 		t.Skip("too slow for testing.Short")
+// 	}
+// 	t.Parallel()
+
+// 	_, s := testServer(t)
+// 	codec := rpcClient(t, s)
+// 	testrpc.WaitForLeader(t, s.RPC, "dc1")
+// 	waitForFeatureGateInit(t, s)
+
+// 	// Enable the consul-ai gate via the Operator RPC.
+// 	setArgs := &structs.FeatureGateSetRequest{
+// 		Name:    featuregate.ConsulAI.String(),
+// 		Enabled: true,
+// 	}
+// 	var setReply structs.FeatureGateSetResponse
+// 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Operator.FeatureGateSet", setArgs, &setReply))
+// 	require.True(t, setReply.Applied, "FeatureGateSet must report Applied=true on first write")
+
+// 	// The featureGateStore is populated asynchronously by runFeatureGateCache.
+// 	// Wait until it reflects the committed state before registering.
+// 	retry.RunWith(&retry.Timer{Timeout: 10 * time.Second, Wait: 50 * time.Millisecond}, t, func(r *retry.R) {
+// 		require.True(r, s.featureGateStore.Enabled(featuregate.ConsulAI),
+// 			"featureGateStore must report consul-ai enabled before proceeding")
+// 	})
+
+// 	args := structs.RegisterRequest{
+// 		Datacenter: "dc1",
+// 		Node:       "foo",
+// 		Address:    "127.0.0.1",
+// 		Service: &structs.NodeService{
+// 			ID:      "ai-svc",
+// 			Service: "ai-svc",
+// 			Port:    8080,
+// 			AI: &structs.ServiceAI{
+// 				Role: structs.ServiceAIRoleInferenceModel,
+// 				InferenceModel: &structs.AIInferenceModel{
+// 					Protocol: "openai",
+// 					Path:     "/v1",
+// 				},
+// 			},
+// 		},
+// 	}
+// 	var out struct{}
+// 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out),
+// 		"Catalog.Register must accept an AI service when the consul-ai gate is enabled")
+// }

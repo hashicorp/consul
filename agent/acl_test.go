@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/go-metrics"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-metrics"
 	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/acl"
@@ -393,9 +393,25 @@ func TestACL_vetServiceRegister_bootstrapEscapeHatch_Upstream(t *testing.T) {
 	authzServiceOnly := newAuthz(t, `service_prefix "" { policy = "write" }`)
 	authzWithMesh := newAuthz(t, `service_prefix "" { policy = "write" } mesh = "write"`)
 
-	for _, key := range []string{"envoy_listener_json", "envoy_cluster_json"} {
+	for _, key := range []string{
+		"envoy_listener_json",
+		"envoy_cluster_json",
+		"EnvoyListenerJSON",
+		"ENVOYLISTENERJSON",
+		"EnvoyClusterJSON",
+		"ENVOYCLUSTERJSON",
+	} {
 		key := key
 		t.Run(key, func(t *testing.T) {
+			decoded, decodeErr := structs.ParseUpstreamConfigNoDefaults(map[string]interface{}{key: `{}`})
+			require.NoError(t, decodeErr)
+			switch key {
+			case "envoy_listener_json", "EnvoyListenerJSON", "ENVOYLISTENERJSON":
+				require.Equal(t, `{}`, decoded.EnvoyListenerJSON)
+			default:
+				require.Equal(t, `{}`, decoded.EnvoyClusterJSON)
+			}
+
 			svc := &structs.NodeService{
 				ID:      "web-sidecar-proxy",
 				Service: "web-sidecar-proxy",
@@ -440,20 +456,28 @@ func TestACL_vetServiceRegister_bootstrapEscapeHatch_CaseInsensitive(t *testing.
 
 	authzServiceOnly := newAuthz(t, `service_prefix "" { policy = "write" }`)
 
-	svc := &structs.NodeService{
-		ID:      "web-sidecar-proxy",
-		Service: "web-sidecar-proxy",
-		Kind:    structs.ServiceKindConnectProxy,
-		Proxy: structs.ConnectProxyConfig{
-			DestinationServiceName: "web",
-			Config: map[string]interface{}{
-				"Envoy_Extra_Static_Listeners_JSON": `{"name":"attacker-listener"}`,
-			},
-		},
+	for _, key := range []string{
+		"Envoy_Extra_Static_Listeners_JSON",
+		"envoy_local_clu\u017fter_json",
+		"envoy_boot\u017ftrap_json_tpl",
+	} {
+		t.Run(key, func(t *testing.T) {
+			svc := &structs.NodeService{
+				ID:      "web-sidecar-proxy",
+				Service: "web-sidecar-proxy",
+				Kind:    structs.ServiceKindConnectProxy,
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "web",
+					Config: map[string]interface{}{
+						key: `{"name":"attacker-listener"}`,
+					},
+				},
+			}
+			err := a.vetServiceRegisterWithAuthorizer(authzServiceOnly, svc)
+			require.Error(t, err, "expected denial for escape-hatch key without mesh:write")
+			require.True(t, acl.IsErrPermissionDenied(err), "expected permission denied, got: %v", err)
+		})
 	}
-	err := a.vetServiceRegisterWithAuthorizer(authzServiceOnly, svc)
-	require.Error(t, err, "expected denial for mixed-case escape-hatch key without mesh:write")
-	require.True(t, acl.IsErrPermissionDenied(err), "expected permission denied, got: %v", err)
 }
 
 func TestACL_vetServiceUpdateWithAuthorizer(t *testing.T) {

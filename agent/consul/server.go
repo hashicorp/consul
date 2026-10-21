@@ -201,6 +201,10 @@ type Server struct {
 	featureGateRegistry featuregate.Registry
 	featureGateStore    *featuregate.Store
 
+	// nodeWriteLocks serializes ACL-vetted catalog writes per node so that
+	// authorization against stored entries and the Raft apply are atomic.
+	nodeWriteLocks nodeWriteLocks
+
 	// federationStateReplicator is used to manage the leaders replication routines for
 	// federation states
 	federationStateReplicator *Replicator
