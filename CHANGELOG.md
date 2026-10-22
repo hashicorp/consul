@@ -1,3 +1,49 @@
+## 1.21.19+ent (October 15, 2026)
+BREAKING CHANGES:
+
+* agent: Agent HTTP API request bodies are now limited to 512 KiB by default, including chunked requests and requests with an unsupported method, and oversized requests return HTTP 413 before the body is read in full. Very large `/v1/config` writes that previously succeeded can now fail. Raise the limit with the new `limits.http_max_request_body_size` setting if needed.
+* agent: Resource API (`/api/...`) request bodies are now subject to the same `limits.http_max_request_body_size` limit (512 KiB by default), and oversized requests return HTTP 413.
+* agent: `GET /v1/agent/connect/ca/leaf/:service` now requires `service:write` on the requested service for every request, including requests served from the agent's cached leaf certificate. Requests with no token or a token without that permission now receive HTTP 403 instead of the cached certificate. Callers must present a token with `service:write` for the service.
+* catalog: `Catalog.Register` now requires write permission on the node or service of an existing health check when updating it. Tokens that previously updated checks without that permission now receive a permission denied error.
+
+SECURITY:
+
+* Upgrade go version to 1.26.9 to address security vulnerabilities. [[GH-24010](https://github.com/hashicorp/consul/issues/24010)]
+* deps: Upgrade github.com/hashicorp/raft-wal to v0.5.0 (with raft v1.8.0, serf v0.11.0, memberlist v0.7.0 and go-metrics v0.7.0), removing the dependency on github.com/coreos/etcd. [[GH-23985](https://github.com/hashicorp/consul/issues/23985)]
+* deps: Upgrade golang.org/x/net to v0.60.0 to address GO-2026-6610, GO-2026-6611, GO-2026-6603, GO-2026-6617 and GO-2026-6612. [[GH-23994](https://github.com/hashicorp/consul/issues/23994)]
+* deps: upgrade `github.com/hashicorp/go-discover` to v1.5.0, removing the dependency on the archived `github.com/hashicorp/vic` module. This also upgrades `github.com/vmware/govmomi` to v0.55.1 and adds an `srv` provider for cloud auto-join. [[GH-24021](https://github.com/hashicorp/consul/issues/24021)]
+* docker: Run `apk upgrade` when building the Alpine-based container images so base-image packages (such as sqlite and jq) are up to date. [[GH-23964](https://github.com/hashicorp/consul/issues/23964)]
+* security: Upgrade github.com/klauspost/compress to v1.18.7, go.mongodb.org/mongo-driver to v1.17.10, github.com/moby/go-archive to v0.3.0 and github.com/go-openapi/swag to v0.27.1 to address CVE-2026-63209, CVE-2026-88031, CVE-2026-2303, CVE-2026-17106 and CVE-2026-85280. [[GH-23964](https://github.com/hashicorp/consul/issues/23964)]
+* ui: Add Content-Security-Policy header to Consul UI HTTP responses to mitigate XSS and data injection attacks. [[GH-23971](https://github.com/hashicorp/consul/issues/23971)]
+* ui: Pin a newer resolution of morgan to 1.12.1 to address GHSA-9f6g-j8ch-79g4 [[GH-23952](https://github.com/hashicorp/consul/issues/23952)]
+
+FEATURES:
+
+* acl: Add OIDC RP-Initiated IdP logout for tokens created via an `oidc` auth method: `consul logout` prints the identity provider's logout URL for the user to open (or opens it in the default browser with the new `-open-browser` flag or `CONSUL_LOGOUT_OPEN_BROWSER` environment variable), and the web UI opens it on logout, terminating the IdP session. Activates automatically when the IdP advertises an `end_session_endpoint` in its OIDC discovery document, or when the logout endpoint is configured explicitly with the new `OIDCLogoutURL` auth method setting for providers that do not advertise one. [[GH-23739](https://github.com/hashicorp/consul/issues/23739)]
+
+IMPROVEMENTS:
+
+* chore: Update of actions/cache/restore from 4.2.0 to 6.1.0
+* chore: Update of actions/download-artifact from 4.1.7 to 8.0.2 [[GH-13634](https://github.com/hashicorp/consul/issues/13634)]
+* chore: Update of actions/upload-artifact from 4.3.3 to 7.0.2 [[GH-13635](https://github.com/hashicorp/consul/issues/13635)]
+* chore: Update of hashicorp/vault-action from 3 to 4 [[GH-13636](https://github.com/hashicorp/consul/issues/13636)]
+* connect: **(Enterprise Only)** update compatibility tests to Nomad ENT v2.0.7+ent, Vault ENT 2.1.1+ent and Envoy 1.38.7, 1.37.9, 1.36.13, 1.35.13
+* connect: deliver the sidecar proxy's leaf certificate and CA roots to Envoy over SDS instead of embedding them inline in the public listener. Leaf certificate rotation is now a hitless hot-swap that no longer changes the listener filter chain hash, so established connections (notably long-lived TCP sessions) are no longer drained and terminated on every rotation. [[GH-23938](https://github.com/hashicorp/consul/issues/23938)]
+* terminating-gateway: deliver each linked service's Connect leaf certificate and the shared CA roots to Envoy over SDS instead of embedding them inline in the gateway's downstream filter chains. Leaf rotation no longer changes the filter chain hash, so established connections through the gateway are no longer drained. [[GH-23938](https://github.com/hashicorp/consul/issues/23938)]
+* ui: Migrate the Consul UI to the HashiCorp Design System (HDS). This covers the global navigation shell and breadcrumbs, the list pages (key/value, peers, auth methods, services, service instances, nodes, intentions, linked services, upstreams, and access control), and the access control, namespace, and admin partition forms. Includes numerous accessibility (A11y) fixes. [[GH-23911](https://github.com/hashicorp/consul/issues/23911)]
+
+BUG FIXES:
+
+* acl: Fixed Envoy escape-hatch key matching in `Proxy.Config` and per-upstream config so it follows the same case-folding rules as the config decoders. Keys that differ only by Unicode case folding (for example `envoy_local_cluſter_json`), and Go field-name forms such as `EnvoyListenerJSON`, now require `mesh:write` like their canonical spellings.
+* agent: (Enterprise only) Fixed audit logging so request-body capture respects the body-size limit, uses the decoded request path when excluding KV bodies (for example `/v1/k%76/...`), and skips `/v1/txn` bodies. `POST /v1/operator/audit-hash` now returns HTTP 413 for oversized bodies.
+* agent: Fixed `PUT /v1/kv/` so chunked request bodies are bounded by `kv_max_value_size`, matching the existing `Content-Length` check.
+* gateway: Fix a data race in the API gateway controller where the route reconciler kept adding to a `WatchSet` after handing it to a controller trigger that was already iterating it. The trigger is now registered only after all discovery chain reads are complete. [[GH-24018](https://github.com/hashicorp/consul/issues/24018)]
+* proxycfg: Fixed a goroutine and memory leak where a proxy's watches kept running after its state stopped unexpectedly, because replacing, deregistering or closing a stopped state did not cancel them. [[GH-23990](https://github.com/hashicorp/consul/issues/23990)]
+* proxycfg: Fixed a goroutine and memory leak where transparent proxies registered a new health watch for every imported peered service each time the imported services list changed, and never stopped watches for removed upstreams. [[GH-23990](https://github.com/hashicorp/consul/issues/23990)]
+* telemetry: Restore Raft, Serf, and Memberlist metrics in release artifacts by building with the `hashicorpmetrics` tag. [[GH-23813](https://github.com/hashicorp/consul/issues/23813)]
+* ui: Render tab content inside its tab panel so assistive technology can associate it with its tab, and keep focus on a tab after activating it [[GH-24013](https://github.com/hashicorp/consul/issues/24013)]
+* ui: Show errors loading a tab's content inside the page instead of as a second nested page [[GH-24013](https://github.com/hashicorp/consul/issues/24013)]
+
 ## 2.1.0-rc2 (October 12, 2026)
 BREAKING CHANGES:
 
