@@ -16,7 +16,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/go-connections/nat"
 	"github.com/itchyny/gojq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -272,7 +271,7 @@ func TestIngressGateway_UpgradeToTarget_fromLatest(t *testing.T) {
 		// fortio name should be $nameS<X> for /$nameS<X> prefix on router
 		portRouterMapped, _ := cluster.Servers()[0].GetPod().MappedPort(
 			context.Background(),
-			nat.Port(fmt.Sprintf("%d/tcp", portRouter)),
+			fmt.Sprintf("%d/tcp", portRouter),
 		)
 		reqHost := fmt.Sprintf("router.ingress.consul:%d", portRouter)
 
@@ -284,9 +283,9 @@ func TestIngressGateway_UpgradeToTarget_fromLatest(t *testing.T) {
 			// - its envoy has some 503s in stats, and some 200s
 			// - igw envoy says all 503s in stats
 			libassert.AssertFortioNameWithClient(t,
-				fmt.Sprintf("https://localhost:%d/%s", portRouterMapped.Int(), nameS1), nameS1, reqHost, httpClient)
+				fmt.Sprintf("https://localhost:%d/%s", portRouterMapped.Num(), nameS1), nameS1, reqHost, httpClient)
 			libassert.AssertFortioNameWithClient(t,
-				fmt.Sprintf("https://localhost:%d/%s", portRouterMapped.Int(), nameS2), nameS2, reqHost, httpClient)
+				fmt.Sprintf("https://localhost:%d/%s", portRouterMapped.Num(), nameS2), nameS2, reqHost, httpClient)
 		})
 		urlbaseS2 := fmt.Sprintf("https://%s/%s", reqHost, nameS2)
 
@@ -338,7 +337,7 @@ func TestIngressGateway_UpgradeToTarget_fromLatest(t *testing.T) {
 		})
 
 		t.Run("request header manipulation", func(t *testing.T) {
-			resp := mappedHTTPGET(t, fmt.Sprintf("%s/debug?env=dump", urlbaseS2), portRouterMapped.Int(), http.Header(map[string][]string{
+			resp := mappedHTTPGET(t, fmt.Sprintf("%s/debug?env=dump", urlbaseS2), int(portRouterMapped.Num()), http.Header(map[string][]string{
 				"X-Existing-1": {"original"},
 				"X-Existing-2": {"original"},
 				"X-Bad-Req":    {"true"},
@@ -369,7 +368,7 @@ func TestIngressGateway_UpgradeToTarget_fromLatest(t *testing.T) {
 			const params = "?header=x-bad-resp:true&header=x-existing-1:original&header=x-existing-2:original"
 			resp := mappedHTTPGET(t,
 				fmt.Sprintf("%s/echo%s", urlbaseS2, params),
-				portRouterMapped.Int(),
+				int(portRouterMapped.Num()),
 				nil,
 				nil,
 				httpClient,
@@ -393,14 +392,14 @@ func TestIngressGateway_UpgradeToTarget_fromLatest(t *testing.T) {
 		t.Run("hostname=custom", func(t *testing.T) {
 			pm, _ := cluster.Servers()[0].GetPod().MappedPort(
 				context.Background(),
-				nat.Port(fmt.Sprintf("%d/tcp", portS1DirectCustomHostname)),
+				fmt.Sprintf("%d/tcp", portS1DirectCustomHostname),
 			)
 			h := fmt.Sprintf("%s:%d", hostnameS1DirectCustom, portS1DirectCustomHostname)
 			clS1Direct := httpClientWithCA(t, h, root.RootCertPEM)
 			const data = "secret password"
 			resp := mappedHTTPGET(t,
 				"https://"+h,
-				pm.Int(),
+				int(pm.Num()),
 				nil,
 				strings.NewReader(data),
 				clS1Direct,
@@ -414,14 +413,14 @@ func TestIngressGateway_UpgradeToTarget_fromLatest(t *testing.T) {
 		t.Run("hostname=<service>.ingress.consul", func(t *testing.T) {
 			pm, _ := cluster.Servers()[0].GetPod().MappedPort(
 				context.Background(),
-				nat.Port(fmt.Sprintf("%d/tcp", portS1Direct)),
+				fmt.Sprintf("%d/tcp", portS1Direct),
 			)
 			h := fmt.Sprintf("%s.ingress.consul:%d", libservice.StaticServerServiceName, portS1Direct)
 			clS1Direct := httpClientWithCA(t, h, root.RootCertPEM)
 			const data = "secret password"
 			resp := mappedHTTPGET(t,
 				"https://"+h,
-				pm.Int(),
+				int(pm.Num()),
 				nil,
 				strings.NewReader(data),
 				clS1Direct,
@@ -434,7 +433,7 @@ func TestIngressGateway_UpgradeToTarget_fromLatest(t *testing.T) {
 		t.Run("hostname=*", func(t *testing.T) {
 			pm, _ := cluster.Servers()[0].GetPod().MappedPort(
 				context.Background(),
-				nat.Port(fmt.Sprintf("%d/tcp", portWildcard)),
+				fmt.Sprintf("%d/tcp", portWildcard),
 			)
 
 			t.Run("s1 HTTPS echo validates against our CA", func(t *testing.T) {
@@ -443,7 +442,7 @@ func TestIngressGateway_UpgradeToTarget_fromLatest(t *testing.T) {
 				data := fmt.Sprintf("secret-%s", libservice.StaticClientServiceName)
 				resp := mappedHTTPGET(t,
 					"https://"+h,
-					pm.Int(),
+					int(pm.Num()),
 					nil,
 					strings.NewReader(data),
 					cl,
@@ -460,7 +459,7 @@ func TestIngressGateway_UpgradeToTarget_fromLatest(t *testing.T) {
 				data := fmt.Sprintf("secret-%s", libservice.StaticClientServiceName)
 				resp := mappedHTTPGET(t,
 					"https://"+h,
-					pm.Int(),
+					int(pm.Num()),
 					nil,
 					strings.NewReader(data),
 					cl,

@@ -211,10 +211,12 @@ class TokensPage {
 
   /**
    * Returns the row locator for a token matching the given description.
+   * In the HDS DataTable the description renders in a non-link `<em>`, so we
+   * match the whole row by its text and click the name link to navigate.
    * @param {string} description
    */
   tokenRow(description) {
-    return this.page.getByText(description, { exact: true });
+    return this.page.locator('tr').filter({ hasText: description });
   }
 
   /**
@@ -232,7 +234,7 @@ class TokensPage {
   async openToken(description) {
     const row = this.tokenRow(description);
     await expect(row).toBeVisible({ timeout: 30000 });
-    await row.click();
+    await row.locator('.consul-token-list__name a').click();
     await expect(this.page).toHaveURL(/\/tokens\//, { timeout: 30000 });
   }
 

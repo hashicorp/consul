@@ -44,6 +44,25 @@ export default class AuthDialog extends Component {
       // we are ok to fire and forget here
       this.repo.logout(get(this, 'previousToken.SecretID'));
     }
+    // If the login response carried the provider's RP-Initiated logout URL
+    // (present when the IdP advertises an end_session_endpoint), open it in a
+    // new tab to terminate the IdP session too. This is a no-op when the field
+    // isn't present (e.g. the IdP advertises no end_session_endpoint, or this
+    // wasn't an SSO login).
+    const idpLogoutURL = get(this, 'previousToken.IDPLogoutURL');
+    if (typeof idpLogoutURL === 'string' && idpLogoutURL !== '') {
+      // Only open well-formed http(s) URLs so an unexpected scheme (e.g.
+      // javascript:) injected upstream can never be handed to window.open.
+      let scheme;
+      try {
+        scheme = new URL(idpLogoutURL).protocol;
+      } catch (e) {
+        scheme = null;
+      }
+      if (scheme === 'http:' || scheme === 'https:') {
+        window.open(idpLogoutURL, '_blank', 'noopener,noreferrer');
+      }
+    }
     this.previousToken = null;
     this.args.onchange({ data: null, type: 'logout' });
   }

@@ -1542,3 +1542,86 @@ func TestTxn_Apply_ServiceSet_NoTokenCannotWriteConsulService(t *testing.T) {
 	require.Equal(t, "127.0.0.1", svc.Address)
 	require.Equal(t, 8300, svc.Port)
 }
+
+// TestTxn_Apply_NodeSetRejectsCrossNodeTakeoverByID verifies that Txn.Apply /
+// NodeSet with a victim's Node.ID but the attacker's node name is rejected when
+// the caller lacks write permission on the victim's real node name.
+//
+// Without the fix in vetNodeTxnOp, the ACL check only examined the attacker's
+// own node name and passed; ensureNodeTxn then resolved by ID and cascade-
+// deleted the victim.
+func TestTxn_Apply_NodeSetRejectsCrossNodeTakeoverByID(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	victimID := types.NodeID("11111111-2222-3333-4444-555555555555")
+
+	// Register victim node with a service via the management token.
+	state := s1.fsm.State()
+	require.NoError(t, state.EnsureNode(1, &structs.Node{
+		ID:      victimID,
+		Node:    "victim-node",
+		Address: "10.0.0.1",
+	}))
+	require.NoError(t, state.EnsureService(2, "victim-node", &structs.NodeService{
+		ID:      "victim-svc",
+		Service: "victim-svc",
+		Address: "10.0.0.1",
+		Port:    9999,
+	}))
+
+	// Attacker token: write on "attacker-node" only.
+	attackerToken := createToken(t, rpcClient(t, s1), `
+node "attacker-node" {
+  policy = "write"
+}`)
+
+	// Attacker submits a NodeSet Txn using their own node name but the
+	// victim's Node.ID. The fix must reject this with permission denied.
+	arg := structs.TxnRequest{
+		Datacenter: "dc1",
+		Ops: structs.TxnOps{
+			{
+				Node: &structs.TxnNodeOp{
+					Verb: api.NodeSet,
+					Node: structs.Node{
+						ID:      victimID,
+						Node:    "attacker-node",
+						Address: "10.0.0.2",
+					},
+				},
+			},
+		},
+		WriteRequest: structs.WriteRequest{Token: attackerToken},
+	}
+	var out structs.TxnResponse
+	err := msgpackrpc.CallWithCodec(codec, "Txn.Apply", &arg, &out)
+
+	// Either the RPC itself returns an error, or the error is surfaced inside
+	// the TxnResponse.Errors slice (Txn.Apply returns errors per-op).
+	hasPermDenied := acl.IsErrPermissionDenied(err)
+	if !hasPermDenied && len(out.Errors) > 0 {
+		hasPermDenied = strings.Contains(out.Errors[0].Error(), acl.ErrPermissionDenied.Error())
+	}
+	require.True(t, hasPermDenied, "expected the cross-node takeover to be rejected with a permission error; err=%v txnErrors=%v", err, out.Errors)
+
+	// Victim node must still exist.
+	_, victimNode, err := state.GetNodeID(victimID, structs.NodeEnterpriseMetaInDefaultPartition(), "")
+	require.NoError(t, err)
+	require.NotNil(t, victimNode, "victim node was deleted — cross-node takeover succeeded")
+	require.Equal(t, "victim-node", victimNode.Node)
+}

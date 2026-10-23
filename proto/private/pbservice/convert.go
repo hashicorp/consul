@@ -280,6 +280,26 @@ func NewServiceDefinitionPtrFromStructs(t *structs.ServiceDefinition) *ServiceDe
 	return sd
 }
 
+// TODO: handle this with mog
+func ServiceAIPtrToStructs(s *ServiceAI) *structs.ServiceAI {
+	if s == nil {
+		return nil
+	}
+	a := new(structs.ServiceAI)
+	ServiceAIToStructs(s, a)
+	return a
+}
+
+// TODO: handle this with mog
+func NewServiceAIPtrFromStructs(t *structs.ServiceAI) *ServiceAI {
+	if t == nil {
+		return nil
+	}
+	a := new(ServiceAI)
+	ServiceAIFromStructs(t, a)
+	return a
+}
+
 // PortsToStructs converts a slice of protobuf Port messages to a slice of agent Port structs.
 func PortsToStructs(s []*ServicePort) structs.ServicePorts {
 	if s == nil {

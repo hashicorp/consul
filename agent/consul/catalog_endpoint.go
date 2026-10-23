@@ -10,18 +10,19 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-metrics"
-	"github.com/hashicorp/go-metrics/prometheus"
 	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-metrics"
+	"github.com/hashicorp/go-metrics/prometheus"
 	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/configentry"
+	"github.com/hashicorp/consul/agent/consul/adapter"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/ipaddr"
@@ -167,11 +168,52 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 		}
 	}
 
+	// Hold the node's write lock from the ownership lookups below until the
+	// Raft apply completes, so a concurrent write to the same node cannot
+	// change an existing check or service between authorization and apply.
+	unlock := c.srv.nodeWriteLocks.lock(registerNodeWriteLockIndexes(args, entMeta.PartitionOrDefault()))
+	defer unlock()
+
 	// Check the complete register request against the given ACL policy.
 	_, ns, err := state.NodeServices(nil, args.Node, entMeta, args.PeerName)
 	if err != nil {
 		return fmt.Errorf("Node lookup failed: %v", err)
 	}
+
+	// If the request carries a Node.ID, check whether that ID already belongs
+	// to a different node. ensureNodeTxn resolves by ID first and will cascade-
+	// delete the existing node if the name differs, so we must authorize against
+	// the existing node's real name before vetRegisterWithACL checks the
+	// request's own name. This mirrors the protection in vetNodeTxnOp.
+	if args.ID != "" {
+		_, existingByID, err := state.GetNodeID(args.ID, &args.EnterpriseMeta, args.PeerName)
+		if err != nil {
+			return fmt.Errorf("node lookup by ID failed: %w", err)
+		}
+		if existingByID != nil && !strings.EqualFold(existingByID.Node, args.Node) {
+			var existingCtx acl.AuthorizerContext
+			existingByID.FillAuthzContext(&existingCtx)
+			if err := authz.ToAllowAuthorizer().NodeWriteAllowed(existingByID.Node, &existingCtx); err != nil {
+				return err
+			}
+		}
+	}
+
+	for _, check := range args.Checks {
+		if check.CheckID == "" {
+			continue
+		}
+		_, existingCheck, err := state.NodeCheck(check.Node, check.CheckID, &check.EnterpriseMeta, check.PeerName)
+		if err != nil {
+			return fmt.Errorf("check lookup failed: %w", err)
+		}
+		if existingCheck != nil {
+			if err := vetExistingCheckWithACL(authz, existingCheck, ns); err != nil {
+				return err
+			}
+		}
+	}
+
 	if err := vetRegisterWithACL(authz, args, ns); err != nil {
 		return err
 	}
@@ -264,6 +306,16 @@ func serviceACLCheckWithConsulExemption(
 	if service.Kind == structs.ServiceKindConnectProxy {
 		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(service.Proxy.DestinationServiceName, &authzContext); err != nil {
 			return err
+		}
+	}
+
+	// Escape-hatch keys in Proxy.Config or Proxy.Upstreams[*].Config embed
+	// arbitrary Envoy JSON into the sidecar's bootstrap configuration or xDS
+	// listener/cluster resources. They can introduce code-executing HTTP
+	// filters and therefore require mesh:write independently of service:write.
+	if service.Proxy.HasEnvoyEscapeHatchOverride() {
+		if err := authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext); err != nil {
+			return fmt.Errorf("mesh:write required to set an Envoy escape-hatch key in Proxy.Config or Proxy.Upstreams[*].Config: %w", err)
 		}
 	}
 
@@ -397,6 +449,25 @@ func vetRegisterWithACL(
 	return nil
 }
 
+func vetExistingCheckWithACL(authz resolver.Result, check *structs.HealthCheck, ns *structs.NodeServices) error {
+	var authzContext acl.AuthorizerContext
+	check.FillAuthzContext(&authzContext)
+
+	if check.ServiceID == "" {
+		return authz.ToAllowAuthorizer().NodeWriteAllowed(check.Node, &authzContext)
+	}
+
+	serviceName := check.ServiceName
+	if ns != nil {
+		if service, ok := ns.Services[check.ServiceID]; ok {
+			serviceName = service.Service
+			service.FillAuthzContext(&authzContext)
+		}
+	}
+
+	return authz.ToAllowAuthorizer().ServiceWriteAllowed(serviceName, &authzContext)
+}
+
 // Deregister a service or check in a node, or the entire node itself.
 //
 // If a ServiceID is provided in the request, any associated Checks
@@ -405,6 +476,10 @@ func vetRegisterWithACL(
 // If a ServiceID or CheckID is not provided in the request, the entire
 // node is deregistered.
 func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) error {
+	if args.PeerName != structs.DefaultPeerKeyword {
+		return errors.New("deregistering peer-imported catalog objects is not supported")
+	}
+
 	if done, err := c.srv.ForwardRPC("Catalog.Deregister", args, reply); done {
 		return err
 	}
@@ -424,6 +499,11 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 	if err := c.srv.validateEnterpriseRequest(&args.EnterpriseMeta, true); err != nil {
 		return err
 	}
+
+	// Hold the node write lock from the lookups below until the Raft apply
+	// completes, so the target cannot change between authorization and apply.
+	unlock := c.srv.nodeWriteLocks.lock([]int{nodeWriteLockIndex(args.PartitionOrDefault(), args.PeerName, args.Node)})
+	defer unlock()
 
 	// Check the complete deregister request against the given ACL policy.
 	state := c.srv.fsm.State()
@@ -876,6 +956,7 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 				return err
 			}
 			reply.ServiceNodes = raw.(structs.ServiceNodes)
+			adapter.PopulateLegacyServiceNodePorts(reply.ServiceNodes)
 
 			return c.srv.sortNodesByDistanceFrom(args.Source, reply.ServiceNodes)
 		})
@@ -972,6 +1053,9 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 					return err
 				}
 				reply.NodeServices.Services = raw.(map[string]*structs.NodeService)
+				for _, service := range reply.NodeServices.Services {
+					adapter.PopulateLegacyNodeServicePort(service)
+				}
 			}
 
 			return nil
@@ -1083,6 +1167,9 @@ func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *stru
 				return err
 			}
 			reply.NodeServices.Services = raw.([]*structs.NodeService)
+			for _, service := range reply.NodeServices.Services {
+				adapter.PopulateLegacyNodeServicePort(service)
+			}
 
 			return nil
 		})

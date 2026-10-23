@@ -1128,7 +1128,7 @@ func TestFSM_FeatureGateUpdate(t *testing.T) {
 			},
 		},
 	}
-	buf, err := structs.Encode(structs.FeatureGateRequestType, req)
+	buf, err := structs.Encode(structs.FeatureGateRequestType|structs.IgnoreUnknownTypeFlag, req)
 	require.NoError(t, err)
 	require.Equal(t, true, fsm.Apply(makeLog(buf)))
 
@@ -1154,7 +1154,7 @@ func TestFSM_FeatureGateUpdate_EmitsMetrics(t *testing.T) {
 			},
 		},
 	}
-	buf, err := structs.Encode(structs.FeatureGateRequestType, req)
+	buf, err := structs.Encode(structs.FeatureGateRequestType|structs.IgnoreUnknownTypeFlag, req)
 	require.NoError(t, err)
 	require.Equal(t, true, fsm.Apply(makeLog(buf)))
 

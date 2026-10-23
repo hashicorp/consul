@@ -1,0 +1,119 @@
+/**
+ * Copyright IBM Corp. 2024, 2026
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+.consul-nspace-list {
+  /* Keep multi-word column headers on a single line. */
+  .hds-table__th {
+    white-space: nowrap;
+  }
+
+  /* Name column: enforce a minimum width so short-but-hyphenated names like
+     "team-08" are never squeezed into a multi-line stack by overflow-wrap. */
+  .hds-table__th:nth-child(1),
+  .hds-table__td:nth-child(1) {
+    min-width: 120px;
+  }
+
+  /* Let the Description column (4th) absorb all the surplus width so the
+     trailing Actions column collapses to just the menu button. Without an
+     explicit stretch column the spare width would be spread across every
+     column — including Actions, leaving a large empty gap before the menu
+     button. Give it a min-width so it stays readable when the table
+     overflows into horizontal scroll. */
+  .hds-table__th:nth-child(4),
+  .hds-table__td:nth-child(4) {
+    width: 100%;
+    min-width: 200px;
+  }
+
+  /* Badge columns (Policies=2, Roles=3): cap width so they
+     don't push the Description column off-screen on narrow viewports.
+     The badges themselves wrap via flex-wrap on the inner container. */
+  .hds-table__th:nth-child(2),
+  .hds-table__td:nth-child(2),
+  .hds-table__th:nth-child(3),
+  .hds-table__td:nth-child(3) {
+    max-width: 280px;
+  }
+
+  /* Wrap long values (including unbreakable ones with no spaces, e.g. a
+     namespace name with no whitespace) onto multiple lines instead of
+     forcing the column endlessly wider. The trailing Actions column is
+     excluded so its menu button stays on one line. */
+  .hds-table__td:not(:last-child) {
+    overflow-wrap: anywhere;
+  }
+
+  /* The legacy `%table` rules (app/components/table/index.scss, reached because
+     `.app-shell__main` @extends `%main-content`, whose `table` descendants
+     extend `%table`) force every body cell's child to
+     `white-space: nowrap; overflow: hidden; text-overflow: ellipsis`.
+     Because the HDS table reuses native <table>/<td> markup, those rules
+     apply here and truncate the cell content with an ellipsis. Override them
+     on the content columns so the text wraps to the next line and is shown in
+     full (no clip, no ellipsis). The extra class selectors raise specificity
+     above the legacy rule. The trailing Actions column is left untouched so
+     its menu button stays on one line. */
+  .hds-table__tbody .hds-table__td:not(:last-child) > * {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  /* HDS badges must not have white-space:normal forced onto them — they need
+     their own nowrap to keep the icon + label on one line. Re-apply it after
+     the legacy-override rule above. */
+  .hds-table__tbody .hds-table__td .hds-badge {
+    white-space: nowrap;
+  }
+
+  /* Actions is the last column: shrink it to just fit the menu button so the
+     remaining width goes to the content columns. */
+  .hds-table__th:last-child,
+  .hds-table__td:last-child {
+    width: 1%;
+    white-space: nowrap;
+  }
+}
+
+/* Name cell: flex column so the management badge sits below the name link,
+   matching the tokens list layout. */
+.consul-nspace-list__name {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  font-weight: var(--token-typography-font-weight-semibold);
+
+  /* allow the flex container (and its link) to shrink below the name's
+     intrinsic width so a long, unbreakable name wraps instead of stretching
+     the column. */
+  min-width: 0;
+
+  a {
+    font-weight: var(--token-typography-font-weight-semibold);
+    overflow-wrap: anywhere;
+    min-width: 0;
+  }
+}
+
+.consul-nspace-list__description {
+  display: block;
+  color: var(--token-color-foreground-faint);
+  font-style: normal;
+}
+
+.consul-nspace-list__actions {
+  display: inline-flex;
+}
+
+/* Badge group wrapper: wrap badges onto multiple lines so that e.g.
+   "drive-policy  abcd-policy" sits on one row and "bandwidth-policy"
+   wraps to the next — matching the Figma cell layout. */
+.consul-nspace-list__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}

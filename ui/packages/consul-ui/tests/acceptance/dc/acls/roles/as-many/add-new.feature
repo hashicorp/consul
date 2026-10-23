@@ -23,6 +23,7 @@ Feature: dc / acls / roles / as-many / add-new: Add new
     ---
     Then the url should be /datacenter/acls/tokens/key
     And I click roles.create
+    Then I see the "[data-test-role-creator]" element
     Then I fill in the roles.form with yaml
     ---
       Name: New-Role
@@ -36,6 +37,7 @@ Feature: dc / acls / roles / as-many / add-new: Add new
         Name: New-Role
         Description: New Role Description
     ---
+    And I don't see the "[data-test-role-creator]" element
     And I submit
     Then a PUT request was made to "/v1/acl/token/key?dc=datacenter&ns=@namespace" from yaml
     ---
@@ -75,14 +77,14 @@ Feature: dc / acls / roles / as-many / add-new: Add new
     And "[data-notification]" has the "hds-alert--color-success" class
   Scenario: Add Role and add a new Policy
     And I click roles.form.policies.create
+    Then I see the "[data-test-policy-form]" element
     Then I fill in the roles.form.policies.form with yaml
     ---
       Name: New-Policy
       Description: New Policy Description
       Rules: key {}
     ---
-    # This next line is actually the popped up policyForm due to the way things currently work
-    And I click submit on the roles.form
+    And I click submit on the roles.form.policies.form
     Then a PUT request was made to "/v1/acl/policy?dc=datacenter&ns=@namespace" from yaml
     ---
       body:
@@ -90,6 +92,7 @@ Feature: dc / acls / roles / as-many / add-new: Add new
         Description: New Policy Description
         Rules: key {}
     ---
+    And I see the "[data-test-role-form] [name='role[Name]']" element
     And I click submit on the roles.form
     Then a PUT request was made to "/v1/acl/role?dc=datacenter&ns=@namespace" from yaml
     ---
@@ -144,7 +147,7 @@ Feature: dc / acls / roles / as-many / add-new: Add new
     Then the url should be /datacenter/acls/tokens
     And "[data-notification]" has the "hds-toast" class
     And "[data-notification]" has the "hds-alert--color-success" class
-@ignore:
-  Scenario: Click the cancel form
-    Then ok
-    # And I click cancel on the policyForm
+  Scenario: Cancel the inline role form
+    And I click cancel on the roles.form
+    Then I don't see the "[data-test-role-creator]" element
+    And I see the "[data-test-role-create]" element

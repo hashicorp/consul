@@ -69,6 +69,8 @@ func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 	var resources []proto.Message
 	validateClusters := meshValidateClusters(cfgSnap)
 	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
+		upstream, _ := cfgSnap.ConnectProxy.GetUpstream(uid, &cfgSnap.ProxyID.EnterpriseMeta)
+		chain = discoveryChainForPortQualifiedUpstream(cfgSnap, uid, upstream, chain)
 		if chain.Default {
 			continue
 		}
@@ -256,6 +258,10 @@ func (s *ResourceGenerator) makeRoutes(
 	return resources, nil
 }
 
+// routesForMeshGateway emits RDS resources for HTTP-like compiled discovery
+// chains. The corresponding mesh-gateway listener filter chain references the
+// same UpstreamID-based route name; enterprise helpers add matching
+// port-qualified resources where needed.
 func (s *ResourceGenerator) routesForMeshGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	if cfgSnap == nil {
 		return nil, errors.New("nil config given")
@@ -294,6 +300,11 @@ func (s *ResourceGenerator) routesForMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 			route.ValidateClusters = response.MakeBoolValue(true)
 		}
 		resources = append(resources, route)
+
+		resources, err = s.appendEntMeshGatewayPeeredMultiportRoutes(resources, cfgSnap, svc, chain, route)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return resources, nil
@@ -668,10 +679,7 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 	if !skip && upstream != nil {
 		upstreamConfigMap = upstream.Config
 	}
-	destinationPort := ""
-	if upstream != nil {
-		destinationPort = upstream.DestinationPort
-	}
+	destinationPort := destinationPortForDiscoveryChain(cfgSnap, uid, upstream, chain)
 	rawUpstreamConfig, err := structs.ParseUpstreamConfigNoDefaults(upstreamConfigMap)
 	if err != nil {
 		return nil, err
@@ -700,7 +708,7 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 
 			switch nextNode.Type {
 			case structs.DiscoveryGraphNodeTypeSplitter:
-				ra, agg, err := s.makeRouteActionForSplitterWithFailover(cfgSnap, upstreamsSnapshot, nextNode.Splits, chain, rawUpstreamConfig, forMeshGateway, destinationPort)
+				ra, agg, err := s.makeRouteActionForSplitterWithFailover(cfgSnap, uid, upstreamsSnapshot, nextNode.Splits, chain, rawUpstreamConfig, forMeshGateway, destinationPort)
 				if err != nil {
 					return nil, err
 				}
@@ -1136,6 +1144,7 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 // checks if any of the splits have an aggregate cluster (failover) and returns that flag.
 func (s *ResourceGenerator) makeRouteActionForSplitterWithFailover(
 	cfgSnap *proxycfg.ConfigSnapshot,
+	uid proxycfg.UpstreamID,
 	upstreamsSnapshot *proxycfg.ConfigSnapshotUpstreams,
 	splits []*structs.DiscoverySplit,
 	chain *structs.CompiledDiscoveryChain,
@@ -1155,7 +1164,7 @@ func (s *ResourceGenerator) makeRouteActionForSplitterWithFailover(
 
 		// Check if this split's resolver has failover (aggregate cluster)
 		upstreamConfig := finalizeUpstreamConfig(rawUpstreamConfig, chain, nextNode.Resolver.ConnectTimeout)
-		mappedTargets, err := s.mapDiscoChainTargets(cfgSnap, chain, nextNode, upstreamConfig, forMeshGateway, destinationPort)
+		mappedTargets, err := s.mapDiscoChainTargets(cfgSnap, uid, chain, nextNode, upstreamConfig, forMeshGateway, destinationPort)
 		if err != nil {
 			s.Logger.Debug("failed to map disco chain targets for split", "error", err)
 		} else if mappedTargets.isAggregateCluster() {

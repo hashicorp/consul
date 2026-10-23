@@ -38,7 +38,7 @@ Feature: page-navigation
     When I click [Item] on the [Model]
     Then the url should be [URL]
     Then a GET request was made to "[Endpoint]"
-    And I click "[data-test-back] a"
+    And I click "[data-test-breadcrumb-item]:first-child a"
     Then the url should be [Back]
   Where:
     -------------------------------------------------------------------------------------------------------------------------------------
@@ -104,24 +104,9 @@ Feature: page-navigation
 @ignore
   Scenario: Clicking items in the listings, without depending on the salt ^
     Then ok
-  Scenario: Clicking create in the [Model] listing
-    When I visit the [Model] page for yaml
-    ---
-      dc: dc1
-    ---
-    When I click create
-    Then the url should be [URL]
-    And I click "[data-test-back] a"
-    Then the url should be [Back]
-  Where:
-    ---------------------------------------------------------------------------
-    | Item      | Model      | URL                       | Back               |
-  # FIXME
-    # | kv        | kvs        | /dc1/kv/create            | /dc1/kv            |
-    | intention | intentions | /dc1/intentions/create    | /dc1/intentions    |
-    | token     | tokens     | /dc1/acls/tokens/create   | /dc1/acls/tokens   |
-    | policy    | policies   | /dc1/acls/policies/create | /dc1/acls/policies |
-    ---------------------------------------------------------------------------
+@ignore
+  Scenario: Clicking create in the [Model] listing — migrated to page-navigation-create-test.js
+    Then ok
 @ignore
   Scenario: Using I click on should change the currentPage ^
     Then ok

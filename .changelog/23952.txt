@@ -1,0 +1,3 @@
+```release-note:security
+ui: Pin a newer resolution of morgan to 1.12.1 to address GHSA-9f6g-j8ch-79g4
+```

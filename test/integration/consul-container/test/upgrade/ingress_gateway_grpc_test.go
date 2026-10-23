@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/docker/go-connections/nat"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
@@ -103,9 +102,9 @@ func TestIngressGateway_GRPC_UpgradeToTarget_fromLatest(t *testing.T) {
 		t.Run("grpc via igw", func(t *testing.T) {
 			pm, _ := cluster.Servers()[0].GetPod().MappedPort(
 				context.Background(),
-				nat.Port(fmt.Sprintf("%d/tcp", portS1DirectNoTLS)),
+				fmt.Sprintf("%d/tcp", portS1DirectNoTLS),
 			)
-			libassert.GRPCPing(t, fmt.Sprintf("localhost:%d", pm.Int()))
+			libassert.GRPCPing(t, fmt.Sprintf("localhost:%d", pm.Num()))
 		})
 	}
 

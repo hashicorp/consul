@@ -14,7 +14,6 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 
 	"github.com/hashicorp/consul/api"
-
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
@@ -124,7 +123,7 @@ func (c exampleContainer) Terminate() error {
 
 func (c exampleContainer) GetStatus() (string, error) {
 	state, err := c.container.State(c.ctx)
-	return state.Status, err
+	return string(state.Status), err
 }
 
 // NewCustomService creates a new test service from a custom testcontainers.ContainerRequest.

@@ -102,6 +102,10 @@ func (c *Client) Notify(
 func (c *Client) useStreaming(req structs.ServiceSpecificRequest) bool {
 	return c.UseStreamingBackend &&
 		!req.Ingress &&
+		// API gateway queries, like ingress queries, resolve services through the
+		// gateway-services mapping rather than a plain service-health topic, which
+		// the streaming backend does not support. Force the RPC/cache path.
+		!req.APIGateway &&
 		// Streaming is incompatible with NearestN queries (due to lack of ordering),
 		// so we can only use it if the NearestN would never work (Node == "")
 		// or if we explicitly say to ignore the Node field for queries (agentless xDS).

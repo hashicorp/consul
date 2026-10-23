@@ -26,8 +26,6 @@ import (
 	"github.com/hashicorp/yamux"
 	"google.golang.org/grpc"
 
-	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/blockingquery"
 	"github.com/hashicorp/consul/agent/consul/rate"
@@ -246,8 +244,23 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 			conn.Close()
 			return
 		}
-		conn = tls.Server(conn, s.tlsConfigurator.IncomingInsecureRPCConfig())
-		s.handleInsecureConn(conn)
+		tlsConn := tls.Server(conn, s.tlsConfigurator.IncomingInsecureRPCConfig())
+		// This protocol enters TLS without another magic-byte read to bound the handshake.
+		ctx := context.Background()
+		var cancel context.CancelFunc
+		if s.config.RPCHandshakeTimeout > 0 {
+			ctx, cancel = context.WithTimeout(ctx, s.config.RPCHandshakeTimeout)
+		}
+		err := tlsConn.HandshakeContext(ctx)
+		if cancel != nil {
+			cancel()
+		}
+		if err != nil {
+			s.rpcLogger().Error("TLS handshake failed", "conn", logConn(conn), "error", err)
+			tlsConn.Close()
+			return
+		}
+		s.handleInsecureConn(tlsConn)
 
 	case pool.RPCGRPC:
 		s.internalGRPCHandler.Handle(conn)
@@ -425,7 +438,10 @@ func (s *Server) handleMultiplexV2(conn net.Conn) {
 // handleConsulConn is used to service a single Consul RPC connection
 func (s *Server) handleConsulConn(conn net.Conn) {
 	defer conn.Close()
-	rpcCodec := msgpackrpc.NewCodecFromHandle(true, true, conn, structs.MsgpackHandle)
+
+	// Preserve read-ahead bytes across requests on the same connection.
+	rpcCodec := newBoundedHeaderCodec(conn, structs.MsgpackHandle, int(s.rpcMaxHeaderBytes.Load()), s.config.RPCHandshakeTimeout)
+
 	for {
 		select {
 		case <-s.shutdownCh:
@@ -433,7 +449,9 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 		default:
 		}
 
-		if err := s.rpcServer.ServeRequest(rpcCodec); err != nil {
+		err := s.rpcServer.ServeRequest(rpcCodec)
+
+		if err != nil {
 			//EOF or closed are not considered as errors.
 			if err == io.EOF || strings.Contains(err.Error(), "closed") {
 				return
@@ -458,7 +476,9 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 // handleInsecureConsulConn is used to service a single Consul INSECURERPC connection
 func (s *Server) handleInsecureConn(conn net.Conn) {
 	defer conn.Close()
-	rpcCodec := msgpackrpc.NewCodecFromHandle(true, true, conn, structs.MsgpackHandle)
+
+	rpcCodec := newBoundedHeaderCodec(conn, structs.MsgpackHandle, int(s.rpcMaxHeaderBytes.Load()), s.config.RPCHandshakeTimeout)
+
 	for {
 		select {
 		case <-s.shutdownCh:
@@ -466,7 +486,9 @@ func (s *Server) handleInsecureConn(conn net.Conn) {
 		default:
 		}
 
-		if err := s.insecureRPCServer.ServeRequest(rpcCodec); err != nil {
+		err := s.insecureRPCServer.ServeRequest(rpcCodec)
+
+		if err != nil {
 			if err != io.EOF && !strings.Contains(err.Error(), "closed") {
 				s.rpcLogger().Error("INSECURERPC error",
 					"conn", logConn(conn),

@@ -10,6 +10,9 @@
     {{else if (eq @noMetricsReason 'remote-dc')}}
       {{t "components.consul.topology-metrics.status.error"}}
       <span
+        role="group"
+        tabindex="-1"
+        aria-label={{t "components.consul.topology-metrics.status.remote-dc"}}
         {{hds-tooltip (t "components.consul.topology-metrics.status.remote-dc") options=(detached-tooltip-options)}}
       />
     {{else if @error}}

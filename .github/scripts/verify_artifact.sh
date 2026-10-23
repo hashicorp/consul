@@ -118,19 +118,19 @@ function verify_deb {
   case "${artifact_path}" in
     *_i386.deb)
       docker_platform="linux/386"
-      docker_image="i386/debian:bullseye"
+      docker_image="i386/debian:bookworm"
       ;;
     *_amd64.deb)
       docker_platform="linux/amd64"
-      docker_image="amd64/debian:bullseye"
+      docker_image="amd64/debian:bookworm"
       ;;
     *_armhf.deb)
       docker_platform="linux/arm/v7"
-      docker_image="arm32v7/debian:bullseye"
+      docker_image="arm32v7/debian:bookworm"
       ;;
     *_arm64.deb)
       docker_platform="linux/arm64"
-      docker_image="arm64v8/debian:bullseye"
+      docker_image="arm64v8/debian:bookworm"
       ;;
     *)
       echo "${artifact_path} did not match known patterns for debs"
@@ -191,7 +191,7 @@ function verify_zip {
           -v $(pwd):/workdir \
           -v ${SCRIPT_DIR}:/scripts \
           -w /workdir  \
-        amd64/debian \
+        amd64/debian:bookworm \
         /scripts/verify_bin.sh \
         ./consul \
         "${expect_version}"
@@ -209,7 +209,7 @@ function verify_zip {
           -v $(pwd):/workdir \
           -v ${SCRIPT_DIR}:/scripts \
           -w /workdir  \
-        arm32v7/debian \
+        arm32v7/debian:bookworm \
         /scripts/verify_bin.sh \
         ./consul \
         "${expect_version}"
@@ -227,7 +227,7 @@ function verify_zip {
           -v $(pwd):/workdir \
           -v ${SCRIPT_DIR}:/scripts \
           -w /workdir  \
-        arm64v8/debian \
+        arm64v8/debian:bookworm \
         /scripts/verify_bin.sh \
         ./consul \
         "${expect_version}"

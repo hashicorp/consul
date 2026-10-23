@@ -19,10 +19,13 @@ as |route|>
   
 
     <:error as |loader|>
-      <AppError
-        @error={{loader.error}}
-        @login={{route.model.app.login.open}}
-      />
+      <div class="tab-section">
+        <AppError
+          @nested={{true}}
+          @error={{loader.error}}
+          @login={{route.model.app.login.open}}
+        />
+      </div>
     </:error>
 
     <:loaded as |loader|>
@@ -38,10 +41,8 @@ as |items|}}
     <p>
       Successful authentication with an auth method returns a set of trusted identity attributes corresponding to the authenticated identity. Those attributes are matched against all configured binding rules for that auth method to determine what privileges to grant the Consul ACL token it will ultimately create.
     </p>
-    <hr />
     {{#each items as |item|}}
       <Consul::AuthMethod::BindingList @item={{item}} />
-      <hr />
     {{/each}}
   {{else}}
     <EmptyState>

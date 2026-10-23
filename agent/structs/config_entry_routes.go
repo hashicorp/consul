@@ -452,9 +452,10 @@ const (
 // HTTPHeaderMatch specifies how a match should be done
 // on a request's headers.
 type HTTPHeaderMatch struct {
-	Match HTTPHeaderMatchType
-	Name  string
-	Value string
+	Match  HTTPHeaderMatchType
+	Name   string
+	Value  string
+	Invert bool `json:",omitempty"`
 }
 
 // HTTPPathMatchType specifies how path matching criteria
@@ -521,11 +522,20 @@ type ExtProcFilter struct {
 	Overrides  *ExtProcOverrides `json:",omitempty"`
 }
 
+// ExtProcMetadataKV is a single key/value pair injected as gRPC initial metadata
+// on the ext_proc stream when Mode is "override". Used by CAMP to pass the
+// per-route credential binding ID (x-camp-auth-binding) to the auth processor.
+type ExtProcMetadataKV struct {
+	Key   string `json:",omitempty"`
+	Value string `json:",omitempty"`
+}
+
 // ExtProcOverrides carries per-route overrides applied when Mode is "override".
 type ExtProcOverrides struct {
-	Processing *ExtProcProcessing `json:",omitempty"`
-	// MessageTimeout   string             `json:",omitempty"`
-	// FailureModeAllow *bool              `json:",omitempty"`
+	Processing          *ExtProcProcessing  `json:",omitempty"`
+	GRPCInitialMetadata []ExtProcMetadataKV `json:",omitempty"`
+	// MessageTimeout   string              `json:",omitempty"`
+	// FailureModeAllow *bool               `json:",omitempty"`
 }
 
 // ExtProcProcessing configures request and response processing modes.

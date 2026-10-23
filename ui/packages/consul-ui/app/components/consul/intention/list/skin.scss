@@ -25,6 +25,9 @@
 %consul-intention-list span[class|='partition']::before {
   @extend %with-user-team-mask;
 }
+%consul-intention-list span[class|='peer']::before {
+  @extend %with-network-alt-mask;
+}
 
 .consul-intention-list {
   @extend %consul-intention-list;

@@ -786,6 +786,10 @@ type ServiceSpecificRequest struct {
 	// Ingress if true will only search for Ingress gateways for the given service.
 	Ingress bool
 
+	// APIGateway if true will only search for API gateways that front the given
+	// service. This powers DNS resolution of services exposed via an API gateway.
+	APIGateway bool
+
 	// MergeCentralConfig when set to true returns a service definition merged with
 	// the proxy-defaults/global and service-defaults/:service config entries.
 	// This can be used to ensure a full service definition is returned in the response
@@ -842,6 +846,7 @@ func (r *ServiceSpecificRequest) CacheInfo() cache.RequestInfo {
 		r.ServiceKind,
 		r.MergeCentralConfig,
 		r.HealthFilterType,
+		r.APIGateway,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
@@ -1100,7 +1105,10 @@ type ServiceNode struct {
 	ServiceEnableTagOverride bool
 	ServiceProxy             ConnectProxyConfig
 	ServiceConnect           ServiceConnect
-	ServiceLocality          *Locality `bexpr:"-"`
+	// ServiceAI is the inline AI role block (CAMP). Optional; nil when the
+	// service is not an AI workload.
+	ServiceAI       *ServiceAI `bexpr:"-"`
+	ServiceLocality *Locality  `bexpr:"-"`
 
 	// If not empty, PeerName represents the peer that this ServiceNode was imported from.
 	PeerName string `json:",omitempty"`
@@ -1160,6 +1168,7 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 		ServiceEnableTagOverride: s.ServiceEnableTagOverride,
 		ServiceProxy:             s.ServiceProxy,
 		ServiceConnect:           s.ServiceConnect,
+		ServiceAI:                s.ServiceAI.Clone(),
 		ServiceLocality:          s.ServiceLocality,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
@@ -1187,6 +1196,7 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 		EnableTagOverride: s.ServiceEnableTagOverride,
 		Proxy:             s.ServiceProxy,
 		Connect:           s.ServiceConnect,
+		AI:                s.ServiceAI,
 		PeerName:          s.PeerName,
 		EnterpriseMeta:    s.EnterpriseMeta,
 		Locality:          s.ServiceLocality,
@@ -1258,7 +1268,8 @@ func (k ServiceKind) IsProxy() bool {
 		ServiceKindMeshGateway,
 		ServiceKindTerminatingGateway,
 		ServiceKindIngressGateway,
-		ServiceKindAPIGateway:
+		ServiceKindAPIGateway,
+		ServiceKindInferenceGateway:
 		return true
 	}
 	return false
@@ -1294,6 +1305,14 @@ const (
 	// This service allows external traffic to enter the mesh based on
 	// centralized configuration.
 	ServiceKindAPIGateway ServiceKind = "api-gateway"
+
+	// ServiceKindInferenceGateway is an Inference Gateway for the Agent Gateway
+	// (Inference plane). It accepts agent (A2LLM) traffic over mesh mTLS,
+	// enforces SPIFFE identity + intentions on inbound like a terminating
+	// gateway, runs an ext_proc filter over a loopback/UDS socket to a
+	// co-located policy processor, and dispatches to LLM providers via a
+	// terminating gateway. Routing is defined in the inference-gateway config entry.
+	ServiceKindInferenceGateway ServiceKind = "inference-gateway"
 
 	// ServiceKindDestination is a Destination  for the Consul Service Mesh feature.
 	// This service allows external traffic to exit the mesh through a terminating gateway
@@ -1426,6 +1445,11 @@ type NodeService struct {
 	// Connect are the Connect settings for a service. This is purposely NOT
 	// a pointer so that we never have to nil-check this.
 	Connect ServiceConnect
+
+	// AI is the inline AI role block (CAMP). It carries the service's AI
+	// semantics (inference-model, mcp-server, or ai-agent). It is a pointer
+	// because the block is optional and most services do not have one.
+	AI *ServiceAI `json:",omitempty" bexpr:"-"`
 
 	// TODO: rename to reflect that this is used to express future intent to register.
 	// LocallyRegisteredAsSidecar is private as it is only used by a local agent
@@ -1597,7 +1621,8 @@ func (s *NodeService) IsGateway() bool {
 	return s.Kind == ServiceKindMeshGateway ||
 		s.Kind == ServiceKindTerminatingGateway ||
 		s.Kind == ServiceKindIngressGateway ||
-		s.Kind == ServiceKindAPIGateway
+		s.Kind == ServiceKindAPIGateway ||
+		s.Kind == ServiceKindInferenceGateway
 }
 
 // Validate validates the node service configuration.
@@ -1620,6 +1645,14 @@ func (s *NodeService) Validate() error {
 		if s.Port == 0 && s.SocketPath == "" {
 			result = multierror.Append(result, fmt.Errorf("Port or SocketPath must be set for a %s", s.Kind))
 		}
+	}
+
+	if s.AI != nil {
+		result = multierror.Append(fmt.Errorf("ai is ent only feature"))
+	}
+
+	if s.Kind == ServiceKindInferenceGateway {
+		result = multierror.Append(result, fmt.Errorf("inference-gateway is a consul enterprise feature"))
 	}
 
 	commonValidation := s.ValidateForAgent()
@@ -1842,6 +1875,7 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 		s.Kind != other.Kind ||
 		!reflect.DeepEqual(s.Proxy, other.Proxy) ||
 		s.Connect != other.Connect ||
+		!reflect.DeepEqual(s.AI, other.AI) ||
 		s.PeerName != other.PeerName ||
 		!s.EnterpriseMeta.IsSame(&other.EnterpriseMeta) {
 		return false
@@ -1878,6 +1912,7 @@ func (s *ServiceNode) IsSameService(other *ServiceNode) bool {
 		s.ServiceEnableTagOverride != other.ServiceEnableTagOverride ||
 		!reflect.DeepEqual(s.ServiceProxy, other.ServiceProxy) ||
 		!reflect.DeepEqual(s.ServiceConnect, other.ServiceConnect) ||
+		!reflect.DeepEqual(s.ServiceAI, other.ServiceAI) ||
 		!s.IsSame(&other.EnterpriseMeta) {
 		return false
 	}
@@ -1915,6 +1950,7 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 		ServiceEnableTagOverride: s.EnableTagOverride,
 		ServiceProxy:             s.Proxy,
 		ServiceConnect:           s.Connect,
+		ServiceAI:                s.AI,
 		ServiceLocality:          s.Locality,
 		EnterpriseMeta:           s.EnterpriseMeta,
 		PeerName:                 s.PeerName,
@@ -2505,6 +2541,20 @@ func (psn PeeredServiceName) String() string {
 	return fmt.Sprintf("%v:%v", psn.ServiceName.String(), psn.Peer)
 }
 
+// PeeredServiceNameFromString reverses PeeredServiceName.String. The final
+// colon separates the service identity from the peer name.
+func PeeredServiceNameFromString(input string) (PeeredServiceName, bool) {
+	idx := strings.LastIndex(input, ":")
+	if idx <= 0 || idx == len(input)-1 {
+		return PeeredServiceName{}, false
+	}
+
+	return PeeredServiceName{
+		ServiceName: ServiceNameFromString(input[:idx]),
+		Peer:        input[idx+1:],
+	}, true
+}
+
 type ServiceNameWithSamenessGroup struct {
 	SamenessGroup string
 	ServiceName
@@ -2561,7 +2611,16 @@ type IndexedServiceList struct {
 }
 
 type IndexedPeeredServiceList struct {
+	// Services is the legacy peered-upstream list. It intentionally contains
+	// only base services so older consumers never interpret synthetic per-port
+	// projections as independently exported services.
 	Services []PeeredServiceName
+	// ServiceVIPs maps a peered service (keyed by PeeredServiceName.String()) to
+	// the virtual IP assigned to it locally by the importing partition. This
+	// includes synthetic per-port entries (service name "<portName>.<serviceName>")
+	// used by enterprise multiport peering so that the dialing proxy can emit a
+	// distinct outbound filter chain per named port. May be empty.
+	ServiceVIPs map[string]string `json:",omitempty"`
 	QueryMeta
 }
 

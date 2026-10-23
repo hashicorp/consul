@@ -1,0 +1,28 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{!
+  Nodes-index toolbar. All the Filter Bar wiring (filter groups, applied tags,
+  search, "Search across" dropdown, stay-expanded behaviour) lives in the
+  generic Consul::ListToolbar; this component only supplies the nodes filter
+  config and the health quick-filter segmented buttons.
+}}
+<Consul::ListToolbar
+  class="consul-node-toolbar"
+  ...attributes
+  @filter={{@filter}}
+  @search={{@search}}
+  @onsearch={{@onsearch}}
+  @filterGroups={{this.filterGroups}}
+  @searchPlaceholder="Search"
+>
+  <:quickFilters as |t|>
+    {{!
+      Health quick filters: mirrors (and stays in sync with) the "Health"
+      multi-select group inside the Filter Bar above.
+    }}
+    <Consul::ListToolbar::HealthFilter @filters={{this.healthQuickFilters}} @api={{t}} />
+  </:quickFilters>
+</Consul::ListToolbar>

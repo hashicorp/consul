@@ -128,6 +128,31 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 	}
 }
 
+func TestResourceHandler_OversizedChunkedWrite(t *testing.T) {
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
+
+	req := httptest.NewRequest(http.MethodPut, "/keith-urban", strings.NewReader(strings.Repeat(" ", 512*1024+1)))
+	req.ContentLength = -1
+	req.TransferEncoding = []string{"chunked"}
+	resp := httptest.NewRecorder()
+	req.Body = http.MaxBytesReader(resp, req.Body, 512*1024)
+
+	handler := resourceHandler{
+		resource.Registration{
+			Type:  demo.TypeV2Artist,
+			Proto: &pbdemov2.Artist{},
+			Scope: resource.ScopeNamespace,
+		},
+		client,
+		func(req *http.Request, token *string) {},
+		hclog.NewNullLogger(),
+	}
+	handler.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusRequestEntityTooLarge, resp.Code)
+}
+
 func TestResourceWriteHandler(t *testing.T) {
 	aclResolver := &svc.MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistReadPolicy, mock.Anything, mock.Anything).

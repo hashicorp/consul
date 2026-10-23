@@ -11,10 +11,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/hashicorp/consul/api"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
+	"github.com/hashicorp/consul/api"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
@@ -137,7 +137,7 @@ func (g gatewayContainer) Restart() error {
 
 func (g gatewayContainer) GetStatus() (string, error) {
 	state, err := g.container.State(g.ctx)
-	return state.Status, err
+	return string(state.Status), err
 }
 
 type GatewayConfig struct {
@@ -145,6 +145,12 @@ type GatewayConfig struct {
 	Kind      string
 	Namespace string
 	Partition string
+
+	// CustomContainerConfig, when set, is applied to the gateway's container
+	// request just before it is launched. It allows a test to tweak the
+	// container (most usefully to append extra Envoy flags to Cmd) without
+	// having to duplicate the whole construction path.
+	CustomContainerConfig func(testcontainers.ContainerRequest) testcontainers.ContainerRequest
 }
 
 func NewGatewayService(ctx context.Context, gwCfg GatewayConfig, node libcluster.Agent, ports ...int) (Service, error) {
@@ -224,6 +230,10 @@ func NewGatewayServiceReg(ctx context.Context, gwCfg GatewayConfig, node libclus
 		portStr      = "8443"
 		adminPortStr = strconv.Itoa(adminPort)
 	)
+
+	if gwCfg.CustomContainerConfig != nil {
+		req = gwCfg.CustomContainerConfig(req)
+	}
 
 	extraPorts := []string{}
 	for _, port := range ports {

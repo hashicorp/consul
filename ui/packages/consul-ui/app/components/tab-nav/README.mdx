@@ -3,42 +3,77 @@ state: needs-love
 ---
 # TabNav
 
-`<TabNav />` renders a list of items as linked tabs (there is also an option
-to use labels vs anchors for links for radio button based tabs).
+`<TabNav />` adapts route-backed and state-backed items to `Hds::Tabs`.
 
-Each item in the list should be a hash of `label`, `href` and `selected`.
+Each item in the list should be a hash of `label`, `route` and `selected`.
 
 - `label`: The text to show
-- `href`: a href, probably generated via `href-to`
+- `route`: an Ember route name. Omit this for state-backed tabs using one of the event handlers.
 - `selected`: whether the item is in the selected state or not, probably
   of the state to transition to.
 
-There are two similar event handlers, `@onclick` and `@onTabClick`.
+There are two similar event handlers, `@onclick` and `@onTabClicked`.
 
 When using `@onclick`, the `item.label` is passed to the handler. When using
 `@onTabClick` the entire 'item' is passed instead, therefore you can add
 arbitrary properties to the 'item' to be used in the handler.
 
+## Tab content
 
-**Please note:** This component should probably be rebuilt using contextual
-components, and real events. Alternatively this could be hand built with native
-HTML using the same `nav/ul/li/a` pattern and you could just use the CSS
-component to style it. Unless there is a reason to do this, this component
-should be used pending a refactor (please remove this note once refactored into
-contextual components)
+Pass the tab content as the block so it is rendered inside the HDS tabpanel
+that is programmatically associated (`role="tabpanel"`/`aria-labelledby`) with
+its tab. Rendering content outside of `<TabNav>` leaves the tabpanels empty and
+breaks that relationship for assistive technology.
+
+By default the block is only rendered inside the selected panel, which is what
+route-backed tabs need as `{{outlet}}` must only be rendered once:
+
+```hbs
+<TabNav @items={{this.tabs}}>
+  <Outlet @name={{this.routeName}} @model={{route.model}} as |o|>
+    {{outlet}}
+  </Outlet>
+</TabNav>
+```
+
+Set `@renderAllPanels={{true}}` to render the block inside every panel, for
+state-backed tabs whose content must stay mounted while hidden. The block then
+receives a hash of `item`, `index` and `isVisible` and is responsible for
+rendering the right content for each panel:
+
+```hbs
+<TabNav @items={{this.tabs}} @onclick={{this.change}} @renderAllPanels={{true}} as |panel|>
+  {{#if (eq panel.index 0)}}
+    <FirstTabContent />
+  {{else}}
+    <SecondTabContent />
+  {{/if}}
+</TabNav>
+```
+
+`@items` is keyed by `label`, so labels must be unique within a TabNav.
+
+## Focus
+
+Activating a route-backed tab keeps keyboard focus on that tab, as in the
+WAI-ARIA tabs pattern. TabNav records the transition with the
+`navigation-focus` service, whose validator stops `Hds::AppHeader` from moving
+focus to the top of the page for that route change. All other route changes
+still move focus as usual.
+
 
 ```hbs
 <figure>
-  <figcaption>A TabNav with a conditional button using `compact` which removes empty values from arrays</figcaption>
+ <figcaption>A TabNav with a conditional button using `compact` which removes empty values from arrays</figcaption>
 <TabNav @items={{
-  compact
-      (array
-          (hash label="Health Checks" href="#" selected=true)
-          (hash label="Service Instances" href="#" selected=(is-href "docs.something"))
-(if false (hash label="Don't show me" href="#" selected=false) '')
-          (hash label="Lock Sessions" href="#" selected=false)
-          (hash label="Metadata" href="#" selected=false)
-      )
+ compact
+     (array
+         (hash label="Health Checks" route="docs.health-checks" selected=true)
+         (hash label="Service Instances" route="docs.service-instances" selected=(is-href "docs.service-instances"))
+(if false (hash label="Don't show me" route="docs.hidden" selected=false) '')
+         (hash label="Lock Sessions" route="docs.lock-sessions" selected=false)
+         (hash label="Metadata" route="docs.metadata" selected=false)
+     )
 }}/>
 </figure>
 ```
@@ -67,11 +102,3 @@ A TabNav with using a `StateMachine.dispatch`
   />
 </figure>
 ```
-
-```css
-.tab-nav {
-  @extend %tab-nav;
-}
-```
-
-

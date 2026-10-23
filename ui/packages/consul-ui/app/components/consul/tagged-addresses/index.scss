@@ -1,0 +1,38 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+/* Stack of address row cards with a consistent gap between them. */
+.consul-tagged-addresses {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Each card: constrain padding to the design spec (24px left/right, 16px top/bottom). */
+.consul-tagged-addresses__card {
+  padding: 16px 24px;
+}
+
+/* Row layout: badge — address text — copy button, all on one line, vertically centred.
+   The copy button is always visible and sits right next to the address text. */
+.consul-tagged-addresses__content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.consul-tagged-addresses__value {
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  font-weight: var(--token-typography-font-weight-medium);
+  color: var(--token-color-foreground-strong);
+}
+
+/* Copy button sits immediately after the address text with a tighter gap,
+   and is always visible (no hover hide). Override the default gap so it
+   reads as part of the address rather than a trailing action. */
+.consul-tagged-addresses__copy {
+  margin-left: -4px; /* pull it slightly closer to the address string */
+}

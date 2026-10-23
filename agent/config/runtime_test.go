@@ -21,9 +21,10 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/hashicorp/go-metrics/prometheus"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
+
+	"github.com/hashicorp/go-metrics/prometheus"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -4770,6 +4771,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.HTTPMaxConnsPerClient = 200
 			rt.GRPCMaxConnsPerClient = 100
 			rt.RPCMaxConnsPerClient = 100
+			rt.RPCMaxHeaderBytes = 512
 			rt.RequestLimitsMode = consulrate.ModeDisabled
 			rt.RequestLimitsReadRate = rate.Inf
 			rt.RequestLimitsWriteRate = rate.Inf
@@ -5725,6 +5727,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.TLS.HTTPS.CAPath = "default_ca_path"
 			rt.TLS.HTTPS.CertFile = "https_cert_file"
 			rt.TLS.HTTPS.TLSMinVersion = "TLSv1_3"
+			rt.TLS.HTTPS.ECDHCurves = types.DefaultConsulAgentPQCECDHCurves
 			rt.TLS.HTTPS.VerifyIncoming = true
 
 			rt.TLS.GRPC.CAFile = "default_ca_file"
@@ -6663,31 +6666,32 @@ func TestLoad_FullConfig(t *testing.T) {
 			EncryptVerifyOutgoing: true,
 		},
 
-		GRPCPort:              4881,
-		GRPCAddrs:             []net.Addr{tcpAddr("32.31.61.91:4881")},
-		GRPCTLSPort:           5201,
-		GRPCTLSAddrs:          []net.Addr{tcpAddr("23.14.88.19:5201")},
-		GRPCKeepaliveInterval: 33 * time.Second,
-		GRPCKeepaliveTimeout:  22 * time.Second,
-		HTTPAddrs:             []net.Addr{tcpAddr("83.39.91.39:7999")},
-		HTTPBlockEndpoints:    []string{"RBvAFcGD", "fWOWFznh"},
-		AllowWriteHTTPFrom:    []*net.IPNet{cidr("127.0.0.0/8"), cidr("22.33.44.55/32"), cidr("0.0.0.0/0")},
-		HTTPPort:              7999,
-		HTTPResponseHeaders:   map[string]string{"M6TKa9NP": "xjuxjOzQ", "JRCrHZed": "rl0mTx81"},
-		HTTPSAddrs:            []net.Addr{tcpAddr("95.17.17.19:15127")},
-		HTTPMaxConnsPerClient: 100,
-		GRPCMaxConnsPerClient: 2953,
-		HTTPMaxHeaderBytes:    10,
-		HTTPReadTimeout:       15 * time.Minute,
-		HTTPReadHeaderTimeout: 10 * time.Second,
-		HTTPWriteTimeout:      15 * time.Minute,
-		HTTPIdleTimeout:       120 * time.Second,
-		HTTPSHandshakeTimeout: 2391 * time.Millisecond,
-		HTTPSPort:             15127,
-		HTTPUseCache:          false,
-		KVMaxValueSize:        1234567800,
-		LeaveDrainTime:        8265 * time.Second,
-		LeaveOnTerm:           true,
+		GRPCPort:               4881,
+		GRPCAddrs:              []net.Addr{tcpAddr("32.31.61.91:4881")},
+		GRPCTLSPort:            5201,
+		GRPCTLSAddrs:           []net.Addr{tcpAddr("23.14.88.19:5201")},
+		GRPCKeepaliveInterval:  33 * time.Second,
+		GRPCKeepaliveTimeout:   22 * time.Second,
+		HTTPAddrs:              []net.Addr{tcpAddr("83.39.91.39:7999")},
+		HTTPBlockEndpoints:     []string{"RBvAFcGD", "fWOWFznh"},
+		AllowWriteHTTPFrom:     []*net.IPNet{cidr("127.0.0.0/8"), cidr("22.33.44.55/32"), cidr("0.0.0.0/0")},
+		HTTPPort:               7999,
+		HTTPResponseHeaders:    map[string]string{"M6TKa9NP": "xjuxjOzQ", "JRCrHZed": "rl0mTx81"},
+		HTTPSAddrs:             []net.Addr{tcpAddr("95.17.17.19:15127")},
+		HTTPMaxConnsPerClient:  100,
+		GRPCMaxConnsPerClient:  2953,
+		HTTPMaxHeaderBytes:     10,
+		HTTPMaxRequestBodySize: 512,
+		HTTPReadTimeout:        15 * time.Minute,
+		HTTPReadHeaderTimeout:  10 * time.Second,
+		HTTPWriteTimeout:       15 * time.Minute,
+		HTTPIdleTimeout:        120 * time.Second,
+		HTTPSHandshakeTimeout:  2391 * time.Millisecond,
+		HTTPSPort:              15127,
+		HTTPUseCache:           false,
+		KVMaxValueSize:         1234567800,
+		LeaveDrainTime:         8265 * time.Second,
+		LeaveOnTerm:            true,
 		Locality: &Locality{
 			Region: strPtr("us-east-2"),
 			Zone:   strPtr("us-east-2b"),
@@ -6716,6 +6720,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		RPCRateLimit:            12029.43,
 		RPCMaxBurst:             44848,
 		RPCMaxConnsPerClient:    2954,
+		RPCMaxHeaderBytes:       8192,
 		RaftProtocol:            3,
 		RaftSnapshotThreshold:   16384,
 		RaftSnapshotInterval:    30 * time.Second,
@@ -7145,6 +7150,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				CertFile:       "1yrhPlMk",
 				KeyFile:        "1bHapOkL",
 				TLSMinVersion:  types.TLSv1_3,
+				ECDHCurves:     types.DefaultConsulAgentPQCECDHCurves,
 				VerifyOutgoing: true,
 			},
 			NodeName:                "otlLxGaI",

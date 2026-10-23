@@ -9,47 +9,60 @@
     as |fsm|
   >
 
-    <TabNav
-      @items={{array
-        (hash
-          label=(t "components.consul.peer.form.generate-label")
-          selected=(state-matches fsm.state "generate")
-          state="GENERATE"
-        )
-        (hash
-          label=(t "components.consul.peer.form.establish-label")
-          selected=(state-matches fsm.state "initiate")
-          state="INITIATE"
-        )
-      }}
-      @onTabClicked={{pick "state" fsm.dispatch}}
-    />
+    {{! Tab order (Generate token, Establish peering) must match
+        consul/peer/form/index.js's TAB_EVENTS. Hds::Tabs keeps every Panel
+        mounted (just `hidden`), and both tabs render same-named form fields,
+        so each Panel's content is still gated by fsm.State: only the active
+        tab's form is ever in the DOM, but it lives inside its tabpanel. }}
+    <Hds::Tabs
+      @selectedTabIndex={{if (state-matches fsm.state "initiate") 1 0}}
+      @onClickTab={{fn this.onClickTab fsm.dispatch}}
+      as |T|
+    >
+      <T.Tab data-test-tab="generate">
+        {{t "components.consul.peer.form.generate-label"}}
+      </T.Tab>
+      <T.Tab data-test-tab="initiate">
+        {{t "components.consul.peer.form.establish-label"}}
+      </T.Tab>
 
-    <fsm.State @matches={{array "generate"}}>
+      <T.Panel data-test-tab-panel="generate">
+        <fsm.State @matches={{array "generate"}}>
+          <DataSource
+            @src={{uri "/${partition}/${nspace}/${dc}/peer-generate/" @params}}
+            as |source|
+          >
+            {{yield
+              (hash
+                Form=(component
+                  "consul/peer/form/generate" item=source.data onCancel=@onCancel
+                )
+              )
+            }}
+          </DataSource>
+        </fsm.State>
+      </T.Panel>
 
-      <DataSource
-        @src={{uri "/${partition}/${nspace}/${dc}/peer-generate/" @params}}
-        as |source|
-      >
-        {{yield
-          (hash Form=(component "consul/peer/form/generate" item=source.data))
-        }}
-      </DataSource>
-
-    </fsm.State>
-
-    <fsm.State @matches="initiate">
-
-      <DataSource
-        @src={{uri "/${partition}/${nspace}/${dc}/peer-initiate/" @params}}
-        as |source|
-      >
-        {{yield
-          (hash Form=(component "consul/peer/form/initiate" item=source.data))
-        }}
-      </DataSource>
-
-    </fsm.State>
+      <T.Panel data-test-tab-panel="initiate">
+        <fsm.State @matches="initiate">
+          <DataSource
+            @src={{uri "/${partition}/${nspace}/${dc}/peer-initiate/" @params}}
+            as |source|
+          >
+            {{yield
+              (hash
+                Form=(component
+                  "consul/peer/form/initiate"
+                  item=source.data
+                  onCancel=@onCancel
+                  onsubmit=@onSubmit
+                )
+              )
+            }}
+          </DataSource>
+        </fsm.State>
+      </T.Panel>
+    </Hds::Tabs>
 
   </StateMachine>
 </div>

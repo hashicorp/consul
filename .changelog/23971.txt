@@ -1,0 +1,3 @@
+```release-note:security
+ui: Add Content-Security-Policy header to Consul UI HTTP responses to mitigate XSS and data injection attacks.
+```

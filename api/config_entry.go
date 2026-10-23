@@ -38,6 +38,7 @@ const (
 	InlineCertificate     string = "inline-certificate"
 	HTTPRoute             string = "http-route"
 	JWTProvider           string = "jwt-provider"
+	InferenceGateway      string = "inference-gateway"
 )
 
 const (
@@ -329,6 +330,12 @@ type UpstreamLimits struct {
 	// to the upstream cluster at a point in time. This is mostly applicable to HTTP/2
 	// clusters since all HTTP/1.1 requests are limited by MaxConnections.
 	MaxConcurrentRequests *int `alias:"max_concurrent_requests"`
+
+	// PassiveHealthCheck configuration determines how upstream proxy instances will
+	// be monitored for removal from the load balancing pool. When set on an API
+	// gateway's Defaults it applies to all routed services; a per-service value
+	// overrides it.
+	PassiveHealthCheck *PassiveHealthCheck `json:",omitempty" alias:"passive_health_check"`
 }
 
 // RateLimits is rate limiting configuration that is applied to
@@ -476,6 +483,8 @@ func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &GlobalRateLimitConfigEntry{Kind: kind, Name: name}, nil
 	case JWTProvider:
 		return &JWTProviderConfigEntry{Kind: kind, Name: name}, nil
+	case InferenceGateway:
+		return &InferenceGatewayConfigEntry{Kind: kind, Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}

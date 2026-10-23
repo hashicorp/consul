@@ -320,6 +320,11 @@ func (w *TokenWriter) write(token, existing *structs.ACLToken, fromLogin bool) (
 		return nil, err
 	}
 
+	// IDPLogoutURL is response-only. It is never accepted from callers or
+	// written to Raft; the OIDC login handler sets it on the reply after the
+	// token has been persisted.
+	token.IDPLogoutURL = ""
+
 	token.SetHash(true)
 
 	// Persist the token by writing to Raft.

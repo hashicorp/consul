@@ -824,6 +824,12 @@ type RuntimeConfig struct {
 	// If zero, or negative, http.DefaultMaxHeaderBytes is used.
 	HTTPMaxHeaderBytes int
 
+	// HTTPMaxRequestBodySize limits request bodies read by the agent HTTP API.
+	// A positive value is required; the default is 512 KiB.
+	//
+	// hcl: limits { http_max_request_body_size = bytes }
+	HTTPMaxRequestBodySize int64
+
 	// HTTPReadTimeout is the maximum duration for reading the entire request,
 	// including the body. This timeout prevents slow request body attacks.
 	// A zero or negative value means there will be no timeout.
@@ -1026,6 +1032,17 @@ type RuntimeConfig struct {
 	//
 	// hcl: limits { rpc_max_conns_per_client = 100 }
 	RPCMaxConnsPerClient int
+
+	// RPCMaxHeaderBytes limits the encoded size of a single RPC request header
+	// (ServiceMethod + Seq). A request header exceeding this limit is rejected
+	// and the connection is closed before method lookup, rate limiting, or ACL
+	// evaluation. This bounds pre-authorization memory allocation in the
+	// MessagePack decoder, which would otherwise honour an attacker-controlled
+	// str32 length before any authorization runs. A non-positive value falls
+	// back to a built-in default (512 bytes).
+	//
+	// hcl: limits { rpc_max_header_bytes = 512 }
+	RPCMaxHeaderBytes int
 
 	// RPCProtocol is the Consul protocol version to use.
 	//

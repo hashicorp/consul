@@ -51,7 +51,7 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
-	"github.com/hashicorp/consul/sdk/iptables"
+	nftables "github.com/hashicorp/consul/sdk/nftables"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -91,7 +91,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 	var outboundListener *envoy_listener_v3.Listener
 
 	if cfgSnap.Proxy.Mode == structs.ProxyModeTransparent {
-		port := iptables.DefaultTProxyOutboundPort
+		port := nftables.DefaultTProxyOutboundPort
 		if cfgSnap.Proxy.TransparentProxy.OutboundListenerPort != 0 {
 			port = cfgSnap.Proxy.TransparentProxy.OutboundListenerPort
 		}
@@ -124,7 +124,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 
 		outboundListener.ListenerFilters = []*envoy_listener_v3.ListenerFilter{
 			// The original_dst filter is a listener filter that recovers the original destination
-			// address before the iptables redirection. This filter is needed for transparent
+			// address before the nftables redirection. This filter is needed for transparent
 			// proxies because they route to upstreams using filter chains that match on the
 			// destination IP address. If the filter is not present, no chain will match.
 			originalDstFilter,
@@ -155,6 +155,8 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		if upstreamCfg != nil {
 			destinationPort = upstreamCfg.DestinationPort
 		}
+		clusterDestinationPort := destinationPortForDiscoveryChain(cfgSnap, uid, upstreamCfg, chain)
+		chain = discoveryChainForPortQualifiedUpstream(cfgSnap, uid, upstreamCfg, chain)
 
 		cfg := s.getAndModifyUpstreamConfigForListener(uid, upstreamCfg, chain)
 
@@ -181,7 +183,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			}
 
 			clusterName = s.getTargetClusterName(upstreamsSnapshot, chain, target.ID, false)
-			clusterName = destinationPortClusterName(clusterName, destinationPort)
+			clusterName = destinationPortClusterName(clusterName, clusterDestinationPort)
 			if clusterName == "" {
 				continue
 			}
@@ -276,6 +278,8 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			endpoints,
 			clusterName,
 			filterName,
+			chain,
+			cfgSnap.Roots.TrustDomain,
 			filterChainOpts{
 				accessLogs:          &cfgSnap.Proxy.AccessLogs,
 				routeName:           uid.EnvoyID(),
@@ -518,20 +522,35 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		// Below we create a filter chain per upstream, rather than a listener per upstream
 		// as we do for explicit upstreams above.
 
-		filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
-			accessLogs:  &cfgSnap.Proxy.AccessLogs,
-			routeName:   uid.EnvoyID(),
-			clusterName: clusterName,
-			filterName: fmt.Sprintf("%s.%s.%s",
-				uid.Name,
-				uid.NamespaceOrDefault(),
-				uid.Peer),
+		filterName := fmt.Sprintf("%s.%s.%s",
+			uid.Name,
+			uid.NamespaceOrDefault(),
+			uid.Peer)
+
+		filterOpts := filterChainOpts{
+			accessLogs:          &cfgSnap.Proxy.AccessLogs,
+			routeName:           uid.EnvoyID(),
+			clusterName:         clusterName,
+			filterName:          filterName,
 			protocol:            cfg.Protocol,
 			useRDS:              false,
 			statPrefix:          "upstream_peered.",
 			tracing:             tracing,
 			maxRequestHeadersKb: proxyCfg.MaxRequestHeadersKB,
-		})
+		}
+
+		if err := s.appendEntPeeredUpstreamMultiportFilterChains(
+			outboundListener,
+			cfgSnap,
+			uid,
+			clusterName,
+			filterName,
+			filterOpts,
+		); err != nil {
+			return nil, err
+		}
+
+		filterChain, err := s.makeUpstreamFilterChain(filterOpts)
 		if err != nil {
 			return nil, err
 		}
@@ -740,6 +759,43 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			return nil, err
 		}
 		resources = append(resources, l)
+	}
+
+	// The inline virtual DNS listener and the egress recursor DNS listener are
+	// both gated by the featuregate.LocalizedDNS feature. When disabled,
+	// neither listener is added, regardless of virtual IP or recursor
+	// configuration.
+	if cfgSnap.LocalizedDNSEnabled {
+		// Configure the inline virtual DNS listener. When enabled, this builds a
+		// dns_filter listener with an inline FQDN->VIP table from catalog data and
+		// binds it on 127.0.0.1:8653. It is part of the LDS resources so it is
+		// recomputed and re-pushed whenever upstream VIPs change.
+		dnsListener, err := s.makeInlineDNSListener(cfgSnap)
+		if err != nil {
+			return nil, err
+		}
+		if dnsListener != nil {
+			resources = append(resources, dnsListener)
+		}
+
+		// Configure the egress recursor DNS listener. When recursors are configured,
+		// this builds a dns_filter listener that forwards non-Consul queries to the
+		// configured upstream recursors via the c-ares resolver and binds it on
+		// 127.0.0.1:8654. It is part of the LDS resources so it is recomputed and
+		// re-pushed whenever the recursor configuration changes.
+		var dnsRecursors []string
+		if s.CfgFetcher != nil {
+			dnsRecursors = s.CfgFetcher.DNSRecursors()
+		}
+		if len(dnsRecursors) > 0 {
+			egressDNSListener, err := s.makeEgressDNSListener(dnsRecursors)
+			if err != nil {
+				return nil, err
+			}
+			if egressDNSListener != nil {
+				resources = append(resources, egressDNSListener)
+			}
+		}
 	}
 
 	return resources, nil
@@ -1322,7 +1378,7 @@ func injectRequestNormalizationOnFilterChains(
 // since TLS validation will be done against root certs for all peers
 // that might dial this proxy.
 func (s *ResourceGenerator) injectConnectTLSForPublicListener(cfgSnap *proxycfg.ConfigSnapshot, listener *envoy_listener_v3.Listener) error {
-	transportSocket, err := createDownstreamTransportSocketForConnectTLS(cfgSnap, cfgSnap.GetProxyConfig(s.Logger), cfgSnap.PeeringTrustBundles())
+	transportSocket, err := createDownstreamTransportSocketForConnectTLS(cfgSnap, cfgSnap.GetProxyConfig(s.Logger), cfgSnap.PeeringTrustBundles(), cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout())
 	if err != nil {
 		return err
 	}
@@ -1356,7 +1412,7 @@ func getConnectTLSAlpnProtocols(cfgSnap *proxycfg.ConfigSnapshot, protocol strin
 	return alpnProtocols
 }
 
-func createDownstreamTransportSocketForConnectTLS(cfgSnap *proxycfg.ConfigSnapshot, proxyCfg *config.ProxyConfig, peerBundles []*pbpeering.PeeringTrustBundle) (*envoy_core_v3.TransportSocket, error) {
+func createDownstreamTransportSocketForConnectTLS(cfgSnap *proxycfg.ConfigSnapshot, proxyCfg *config.ProxyConfig, peerBundles []*pbpeering.PeeringTrustBundle, fetchTimeout *durationpb.Duration) (*envoy_core_v3.TransportSocket, error) {
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
 	case structs.ServiceKindMeshGateway:
@@ -1364,11 +1420,18 @@ func createDownstreamTransportSocketForConnectTLS(cfgSnap *proxycfg.ConfigSnapsh
 		return nil, fmt.Errorf("cannot inject peering trust bundles for kind %q", cfgSnap.Kind)
 	}
 
-	// Create TLS validation context for mTLS with leaf certificate and root certs.
-	tlsContext := makeCommonTLSContext(
-		cfgSnap.Leaf(),
-		cfgSnap.RootPEMs(),
+	// Use SDS-backed secrets for the default Connect leaf/root pair so leaf
+	// rotations update Secret resources rather than rebuilding listeners.
+	//
+	// This is intentionally not gated on whether the leaf and roots are
+	// actually present in the snapshot: the context only carries secret
+	// *names*, so it stays byte-identical even while either is unavailable.
+	// See secretsFromSnapshotConnectProxy for why gating here would
+	// reintroduce connection draining.
+	tlsContext := makeCommonConnectTLSContext(
+		connectLeafSecretName,
 		makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSIncoming()),
+		fetchTimeout,
 	)
 
 	if tlsContext != nil {
@@ -1396,6 +1459,16 @@ func injectSpiffeValidatorConfigForPeers(cfgSnap *proxycfg.ConfigSnapshot, tlsCo
 	spiffeConfig, err := makeSpiffeValidatorConfig(cfgSnap.Roots.TrustDomain, cfgSnap.RootPEMs(), peerBundles)
 	if err != nil {
 		return err
+	}
+
+	// Connect downstream contexts fetch their trust bundle over SDS. The SPIFFE
+	// validator has to carry the per-trust-domain roots itself, so replace the
+	// SDS validation context with an inline one for these proxies. The leaf
+	// certificate keeps using SDS, which is what makes rotation hitless.
+	if _, isSDS := tlsContext.ValidationContextType.(*envoy_tls_v3.CommonTlsContext_ValidationContextSdsSecretConfig); isSDS {
+		tlsContext.ValidationContextType = &envoy_tls_v3.CommonTlsContext_ValidationContext{
+			ValidationContext: &envoy_tls_v3.CertificateValidationContext{},
+		}
 	}
 
 	typ, ok := tlsContext.ValidationContextType.(*envoy_tls_v3.CommonTlsContext_ValidationContext)
@@ -1685,7 +1758,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		} else {
 			l.FilterChains = append(l.FilterChains, chain)
 
-			// With tproxy, the REDIRECT iptables target rewrites the destination ip/port
+			// With tproxy, the REDIRECT nftables target rewrites the destination ip/port
 			// to the proxy ip/port (e.g. 127.0.0.1:20000) for incoming packets.
 			// We need the original_dst filter to recover the original destination address.
 			originalDstFilter, err := makeEnvoyListenerFilter("envoy.filters.listener.original_dst", &envoy_original_dst_v3.OriginalDst{})
@@ -2029,11 +2102,15 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 	// We need to at least match the SNI and use the root PEMs from the local cluster
 	sniMatches := []string{tgtwyOpts.cluster}
 
+	// The gateway presents a Connect leaf per linked service on this chain.
+	// Those leaves rotate automatically, so they are referenced by SDS name
+	// rather than inlined, which keeps the filter chain hash stable across a
+	// rotation and avoids draining the service's connections.
 	tlsContext := &envoy_tls_v3.DownstreamTlsContext{
-		CommonTlsContext: makeCommonTLSContext(
-			cfgSnap.TerminatingGateway.ServiceLeaves[tgtwyOpts.service],
-			cfgSnap.RootPEMs(),
+		CommonTlsContext: makeCommonConnectTLSContext(
+			terminatingGatewayLeafSecretName(tgtwyOpts.service),
 			makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSIncoming()),
+			cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
 		),
 		RequireClientCertificate: &wrapperspb.BoolValue{Value: true},
 	}
@@ -2212,14 +2289,14 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 		peerNames := cfgSnap.MeshGateway.ExportedServicesWithPeers[svc]
 		chain := cfgSnap.MeshGateway.DiscoveryChain[svc]
 
-		filterChain, err := s.makeMeshGatewayPeerFilterChain(cfgSnap, svc, peerNames, chain)
+		filterChains, err := s.makeMeshGatewayPeerFilterChains(cfgSnap, svc, peerNames, chain)
 		if err != nil {
 			return nil, err
-		} else if filterChain == nil {
+		} else if len(filterChains) == 0 {
 			continue
 		}
 
-		l.FilterChains = append(l.FilterChains, filterChain)
+		l.FilterChains = append(l.FilterChains, filterChains...)
 	}
 
 	// We need 1 Filter Chain per remote cluster
@@ -2388,6 +2465,14 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 	})
 	l.FilterChains = append(l.FilterChains, peerServerFilterChains...)
 
+	if err := s.appendEntGatewayOutgoingPeeringServiceMultiportFilterChains(l, name, cfgSnap); err != nil {
+		return nil, err
+	}
+
+	if err := s.appendEntMeshGatewayMultiportFilterChains(l, name, cfgSnap); err != nil {
+		return nil, err
+	}
+
 	// This needs to get tacked on at the end as it has no
 	// matching and will act as a catch all
 	l.FilterChains = append(l.FilterChains, sniClusterChain)
@@ -2401,6 +2486,26 @@ func (s *ResourceGenerator) makeMeshGatewayPeerFilterChain(
 	peerNames []string,
 	chain *structs.CompiledDiscoveryChain,
 ) (*envoy_listener_v3.FilterChain, error) {
+	filterChains, err := s.makeMeshGatewayPeerFilterChains(cfgSnap, svc, peerNames, chain)
+	if err != nil || len(filterChains) == 0 {
+		return nil, err
+	}
+	// The base chain is always last; enterprise per-port chains are prepended.
+	return filterChains[len(filterChains)-1], nil
+}
+
+// makeMeshGatewayPeerFilterChains returns the filter chains a mesh gateway uses
+// to terminate traffic for a service exported to peers.
+//
+// In CE this returns either nil (not ready) or exactly the one filter chain
+// that makeMeshGatewayPeerFilterChain used to return, unchanged. Enterprise may
+// prepend one additional chain per named port.
+func (s *ResourceGenerator) makeMeshGatewayPeerFilterChains(
+	cfgSnap *proxycfg.ConfigSnapshot,
+	svc structs.ServiceName,
+	peerNames []string,
+	chain *structs.CompiledDiscoveryChain,
+) ([]*envoy_listener_v3.FilterChain, error) {
 	var (
 		useHTTPFilter = structs.IsProtocolHTTPLike(chain.Protocol)
 		// RDS, Envoy's Route Discovery Service, is only used for HTTP services.
@@ -2484,6 +2589,7 @@ func (s *ResourceGenerator) makeMeshGatewayPeerFilterChain(
 		ServerNames: peeredServerNames,
 	}
 
+	var peeredTransportSocket *envoy_core_v3.TransportSocket
 	if useHTTPFilter {
 		// We only terminate TLS if we're doing an L7 proxy.
 		var peerBundles []*pbpeering.PeeringTrustBundle
@@ -2493,14 +2599,31 @@ func (s *ResourceGenerator) makeMeshGatewayPeerFilterChain(
 			}
 		}
 
-		peeredTransportSocket, err := createDownstreamTransportSocketForConnectTLS(cfgSnap, cfgSnap.GetProxyConfig(s.Logger), peerBundles)
+		peeredTransportSocket, err = createDownstreamTransportSocketForConnectTLS(cfgSnap, cfgSnap.GetProxyConfig(s.Logger), peerBundles, cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout())
 		if err != nil {
 			return nil, err
 		}
 		filterChain.TransportSocket = peeredTransportSocket
 	}
 
-	return filterChain, nil
+	// Enterprise multiport exports prepend one more specific filter chain per
+	// named port. This returns nil in CE, leaving the result identical to the
+	// single chain built above.
+	perPortFilterChains, err := s.appendEntPeeredMultiportFilterChains(
+		cfgSnap,
+		svc,
+		peeredServerNames,
+		filterName,
+		chain,
+		useHTTPFilter,
+		peeredTransportSocket,
+		maxRequestHeadersKb,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return append(perPortFilterChains, filterChain), nil
 }
 
 type filterChainOpts struct {
@@ -2707,7 +2830,7 @@ func makeListenerFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, err
 		fallthrough
 	default:
 		if opts.useRDS {
-			return nil, fmt.Errorf("RDS is not compatible with the tcp proxy filter")
+			return nil, fmt.Errorf("RDS is not compatible with the tcp proxy filter (protocol=%q filterName=%q cluster=%q)", opts.protocol, opts.filterName, opts.cluster)
 		} else if opts.cluster == "" {
 			return nil, fmt.Errorf("cluster name is required for a tcp proxy filter")
 		}
@@ -3055,6 +3178,44 @@ func makeCommonTLSContext(
 	}
 }
 
+// makeCommonConnectTLSContext builds a downstream TLS context that refers to
+// its leaf and CA roots by SDS name instead of embedding the PEMs. Because the
+// listener then carries only names, a certificate rotation changes just the
+// Secret resources and leaves the filter chain hash untouched, so Envoy does
+// not drain established connections.
+//
+// leafSecretName is a parameter because terminating gateways hold a separate
+// leaf per linked service, while a connect proxy has exactly one. The CA roots
+// are shared in both cases.
+func makeCommonConnectTLSContext(leafSecretName string, tlsParams *envoy_tls_v3.TlsParameters, fetchTimeout *durationpb.Duration) *envoy_tls_v3.CommonTlsContext {
+	if tlsParams == nil {
+		tlsParams = &envoy_tls_v3.TlsParameters{}
+	}
+
+	return &envoy_tls_v3.CommonTlsContext{
+		TlsParams: tlsParams,
+		TlsCertificateSdsSecretConfigs: []*envoy_tls_v3.SdsSecretConfig{
+			makeADSSecretConfig(leafSecretName, fetchTimeout),
+		},
+		ValidationContextType: &envoy_tls_v3.CommonTlsContext_ValidationContextSdsSecretConfig{
+			ValidationContextSdsSecretConfig: makeADSSecretConfig(connectRootSecretName, fetchTimeout),
+		},
+	}
+}
+
+func makeADSSecretConfig(name string, fetchTimeout *durationpb.Duration) *envoy_tls_v3.SdsSecretConfig {
+	return &envoy_tls_v3.SdsSecretConfig{
+		Name: name,
+		SdsConfig: &envoy_core_v3.ConfigSource{
+			ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
+				Ads: &envoy_core_v3.AggregatedConfigSource{},
+			},
+			ResourceApiVersion:  envoy_core_v3.ApiVersion_V3,
+			InitialFetchTimeout: fetchTimeout,
+		},
+	}
+}
+
 func makeDownstreamTLSTransportSocket(tlsContext *envoy_tls_v3.DownstreamTlsContext) (*envoy_core_v3.TransportSocket, error) {
 	if tlsContext == nil {
 		return nil, nil
@@ -3180,18 +3341,28 @@ var tlsVersionsWithConfigurableCipherSuites = map[types.TLSVersion]struct{}{
 	types.TLSv1_2: {},
 }
 
+var defaultPQCECDHCurves = types.DefaultPQCECDHCurves
+
 func makeTLSParametersFromProxyTLSConfig(tlsConf *structs.MeshDirectionalTLSConfig) *envoy_tls_v3.TlsParameters {
 	if tlsConf == nil {
 		return &envoy_tls_v3.TlsParameters{}
 	}
 
-	return makeTLSParametersFromTLSConfig(tlsConf.TLSMinVersion, tlsConf.TLSMaxVersion, tlsConf.CipherSuites)
+	curves := tlsConf.ECDHCurves
+	if len(curves) == 0 {
+		if err, isLessThanTLS13 := tlsConf.TLSMinVersion.LessThan(types.TLSv1_3); err == nil && !isLessThanTLS13 {
+			curves = defaultPQCECDHCurves
+		}
+	}
+
+	return makeTLSParametersFromTLSConfig(tlsConf.TLSMinVersion, tlsConf.TLSMaxVersion, tlsConf.CipherSuites, curves)
 }
 
 func makeTLSParametersFromTLSConfig(
 	tlsMinVersion types.TLSVersion,
 	tlsMaxVersion types.TLSVersion,
 	cipherSuites []types.TLSCipherSuite,
+	ecdhCurves []string,
 ) *envoy_tls_v3.TlsParameters {
 	tlsParams := envoy_tls_v3.TlsParameters{}
 
@@ -3207,6 +3378,10 @@ func makeTLSParametersFromTLSConfig(
 	}
 	if len(cipherSuites) != 0 {
 		tlsParams.CipherSuites = types.MarshalEnvoyTLSCipherSuiteStrings(cipherSuites)
+	}
+
+	if len(ecdhCurves) > 0 {
+		tlsParams.EcdhCurves = append([]string(nil), ecdhCurves...)
 	}
 
 	return &tlsParams

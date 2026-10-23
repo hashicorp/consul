@@ -373,9 +373,11 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 	// redirects to service B, the dialing proxy needs to associate A's virtual IP
 	// with A's discovery chain.
 	//
-	// Outside of transparent mode we only watch the chain target, B,
-	// since A is a virtual service and traffic will not be sent to it.
-	if !watchedChainEndpoints && s.proxyCfg.Mode == structs.ProxyModeTransparent {
+	// Outside of transparent mode we normally only watch the chain target, B,
+	// since A is a virtual service and traffic will not be sent to it. A
+	// port-qualified upstream is an exception: it selects a named port on A
+	// directly, so its endpoints are also required.
+	if !watchedChainEndpoints && (s.proxyCfg.Mode == structs.ProxyModeTransparent || shouldWatchRootServiceForDestinationPort(snap, uid)) {
 		chainEntMeta := acl.NewEnterpriseMetaWithPartition(chain.Partition, chain.Namespace)
 
 		opts := targetWatchOpts{

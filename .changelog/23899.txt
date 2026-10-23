@@ -1,0 +1,11 @@
+```release-note:security
+catalog: Fixed an ACL bypass vulnerability in `Catalog.Register` where a caller
+with `node:write` on an attacker-controlled node name could supply a victim node's
+`Node.ID` to cascade-delete the victim node and all its services and health checks.
+`vetRegisterWithACL` checked ACLs only against the request's node name;
+`ensureNodeTxn` resolved by `Node.ID` first and silently deleted any existing node
+whose name differed. The fix looks up any existing node by the request's `Node.ID`
+before ACL evaluation and requires `node:write` on the existing node's real name
+when it differs from the request's name, mirroring the protection already present
+in `vetNodeTxnOp`.
+```

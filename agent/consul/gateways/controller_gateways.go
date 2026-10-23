@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -449,18 +448,12 @@ func (r *apiGatewayReconciler) reconcileRoute(_ context.Context, req controller.
 		return nil
 	}
 
-	var triggerOnce sync.Once
 	for _, service := range route.GetServiceNames() {
 		_, chainSet, err := store.ReadDiscoveryChainConfigEntries(ws, service.Name, pointerTo(service.EnterpriseMeta))
 		if err != nil {
 			logger.Warn("error reading discovery chain", "error", err)
 			return err
 		}
-
-		// trigger a watch since we now need to check when the discovery chain gets updated
-		triggerOnce.Do(func() {
-			r.controller.AddTrigger(req, ws.WatchCtx)
-		})
 
 		// make sure that we can actually compile a discovery chain based on this route
 		// the main check is to make sure that all of the protocols align
@@ -485,10 +478,15 @@ func (r *apiGatewayReconciler) reconcileRoute(_ context.Context, req controller.
 		updater.SetCondition(routeAccepted())
 	}
 
-	// if we have no upstream targets, then set the route as invalid
-	// this should already happen in the validation check on write, but
-	// we'll do it here too just in case
-	if len(route.GetServiceNames()) == 0 {
+	if len(route.GetServiceNames()) > 0 {
+		// trigger a watch since we now need to check when the discovery chain gets updated.
+		// This must happen after all reads: WatchCtx iterates ws concurrently, and
+		// further ReadDiscoveryChainConfigEntries calls would write to the same map.
+		r.controller.AddTrigger(req, ws.WatchCtx)
+	} else {
+		// if we have no upstream targets, then set the route as invalid
+		// this should already happen in the validation check on write, but
+		// we'll do it here too just in case
 		updater.SetCondition(routeNoUpstreams())
 	}
 
@@ -629,6 +627,10 @@ func getAllGatewayMeta(store *state.Store) ([]*gatewayMeta, error) {
 		for _, g := range gateways {
 			gateway := g.(*structs.APIGatewayConfigEntry)
 			if bound.IsInitializedForGateway(gateway) {
+				// The stored bound entry may predate the current gateway
+				// config, so refresh the copied listener configuration before
+				// any route binding is written back.
+				syncBoundListenerConfig(bound, gateway)
 				meta = append(meta, (&gatewayMeta{
 					BoundGateway: bound,
 					Gateway:      gateway,
@@ -639,6 +641,26 @@ func getAllGatewayMeta(store *state.Store) ([]*gatewayMeta, error) {
 		}
 	}
 	return meta, nil
+}
+
+// syncBoundListenerConfig copies the listener configuration from the APIGateway
+// onto the matching listeners of its BoundAPIGateway, preserving the bound
+// routes and certificates. This keeps the route reconciliation path from
+// persisting a bound entry that carries listener config stale with respect to
+// its parent gateway.
+func syncBoundListenerConfig(bound *structs.BoundAPIGatewayConfigEntry, gateway *structs.APIGatewayConfigEntry) {
+	listeners := make(map[string]structs.APIGatewayListener, len(gateway.Listeners))
+	for _, listener := range gateway.Listeners {
+		listeners[listener.Name] = listener
+	}
+
+	for i := range bound.Listeners {
+		listener, ok := listeners[bound.Listeners[i].Name]
+		if !ok {
+			continue
+		}
+		bound.Listeners[i].SetConfigFromListener(listener)
+	}
 }
 
 // updateRouteBinding takes a BoundRoute and modifies the listeners on the
@@ -901,12 +923,13 @@ func newGatewayMeta(gateway *structs.APIGatewayConfigEntry, bound structs.Config
 	}
 
 	// we just clear out the bound state here since we recalculate it entirely
-	// in the gateway control loop
+	// in the gateway control loop. Copy config fields from the APIGatewayListener
+	// so that BoundAPIGatewayListener is self-contained for proxycfg/xds consumers.
 	listeners := make([]structs.BoundAPIGatewayListener, 0, len(gateway.Listeners))
 	for _, listener := range gateway.Listeners {
-		listeners = append(listeners, structs.BoundAPIGatewayListener{
-			Name: listener.Name,
-		})
+		bound := structs.BoundAPIGatewayListener{Name: listener.Name}
+		bound.SetConfigFromListener(listener)
+		listeners = append(listeners, bound)
 	}
 
 	b.Listeners = listeners

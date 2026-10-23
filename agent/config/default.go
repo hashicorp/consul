@@ -100,6 +100,7 @@ func DefaultSource() Source {
 		}
 		limits = {
 			http_max_conns_per_client = 200
+			http_max_request_body_size = ` + strconv.FormatInt(DefaultHTTPMaxRequestBodySize, 10) + `
 			https_handshake_timeout = "5s"
 			grpc_max_conns_per_client = 100
 			request_limits = {
@@ -112,6 +113,7 @@ func DefaultSource() Source {
 			rpc_rate = -1
 			rpc_max_burst = 1000
 			rpc_max_conns_per_client = 100
+			rpc_max_header_bytes = 512
 			kv_max_value_size = ` + strconv.FormatInt(raft.SuggestedMaxDataSize, 10) + `
 			txn_max_req_len = ` + strconv.FormatInt(raft.SuggestedMaxDataSize, 10) + `
 		}

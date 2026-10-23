@@ -479,7 +479,165 @@ func TestCatalog_Register_ConnectProxy_invalid(t *testing.T) {
 	assert.Contains(t, err.Error(), "DestinationServiceName")
 }
 
-// Test that write is required for the proxy destination to register a proxy.
+// TestCatalog_Register_ConnectProxy_EscapeHatchKeyRequiresMeshWrite verifies
+// that registering a connect-proxy via Catalog.Register with any escape-hatch
+// key in Proxy.Config requires mesh:write in addition to service:write
+// (SECVULN — Vector 2, catalog path).
+func TestCatalog_Register_ConnectProxy_EscapeHatchKeyRequiresMeshWrite(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	// Token with service:write on both names but no mesh:write.
+	serviceOnlyToken := createTokenWithPolicyNameFull(t, codec, "escape-hatch-service-only", `
+service_prefix "" { policy = "write" }
+node_prefix "" { policy = "write" }
+`, "root").SecretID
+
+	// Token with service:write + mesh:write.
+	meshToken := createTokenWithPolicyNameFull(t, codec, "escape-hatch-mesh-write", `
+service_prefix "" { policy = "write" }
+node_prefix "" { policy = "write" }
+mesh = "write"
+`, "root").SecretID
+
+	for _, key := range structs.EnvoyEscapeHatchKeyNames() {
+		key := key
+		t.Run(key, func(t *testing.T) {
+			arg := structs.RegisterRequest{
+				Datacenter: "dc1",
+				Node:       "foo",
+				Address:    "127.0.0.1",
+				Service: &structs.NodeService{
+					ID:      "web-sidecar-proxy",
+					Service: "web-sidecar-proxy",
+					Kind:    structs.ServiceKindConnectProxy,
+					Port:    20000,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "web",
+						Config:                 map[string]interface{}{key: `{}`},
+					},
+				},
+			}
+
+			var out struct{}
+
+			// service:write only — must be denied.
+			arg.Token = serviceOnlyToken
+			err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
+			require.Error(t, err, "key %q: expected denial without mesh:write", key)
+			require.True(t, acl.IsErrPermissionDenied(err), "key %q: expected permission denied, got: %v", key, err)
+
+			// service:write + mesh:write — ACL check must pass. The registration
+			// may still fail with a virtual-IP error in environments where no
+			// agent HTTP listener is running (pre-existing limitation of
+			// testServerWithConfig); that is not caused by our ACL gate.
+			arg.Token = meshToken
+			err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
+			if err != nil {
+				require.False(t, acl.IsErrPermissionDenied(err),
+					"key %q: mesh:write token must not be ACL-denied, got: %v", key, err)
+			}
+		})
+	}
+}
+
+// TestCatalog_Register_ConnectProxy_UpstreamEscapeHatchKeyRequiresMeshWrite
+// verifies that escape-hatch keys (envoy_listener_json, envoy_cluster_json)
+// set on a per-upstream Config map — not just the top-level Proxy.Config —
+// also require mesh:write via Catalog.Register (SECVULN — Vector 2, catalog
+// path, per-upstream placement).
+func TestCatalog_Register_ConnectProxy_UpstreamEscapeHatchKeyRequiresMeshWrite(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	serviceOnlyToken := createTokenWithPolicyNameFull(t, codec, "upstream-escape-hatch-service-only", `
+service_prefix "" { policy = "write" }
+node_prefix "" { policy = "write" }
+`, "root").SecretID
+
+	meshToken := createTokenWithPolicyNameFull(t, codec, "upstream-escape-hatch-mesh-write", `
+service_prefix "" { policy = "write" }
+node_prefix "" { policy = "write" }
+mesh = "write"
+`, "root").SecretID
+
+	for _, key := range []string{
+		"envoy_listener_json", "envoy_cluster_json",
+		"EnvoyListenerJSON", "ENVOYLISTENERJSON",
+		"EnvoyClusterJSON", "ENVOYCLUSTERJSON",
+		"envoy_liſtener_json", "EnvoyCluſterJSON",
+	} {
+		key := key
+		t.Run(key, func(t *testing.T) {
+			arg := structs.RegisterRequest{
+				Datacenter: "dc1",
+				Node:       "foo",
+				Address:    "127.0.0.1",
+				Service: &structs.NodeService{
+					ID:      "web-sidecar-proxy",
+					Service: "web-sidecar-proxy",
+					Kind:    structs.ServiceKindConnectProxy,
+					Port:    20000,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "web",
+						Upstreams: structs.Upstreams{
+							{
+								DestinationName: "db",
+								LocalBindPort:   9191,
+								Config:          map[string]interface{}{key: `{}`},
+							},
+						},
+					},
+				},
+			}
+
+			var out struct{}
+
+			// service:write only — must be denied.
+			arg.Token = serviceOnlyToken
+			err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
+			require.Error(t, err, "upstream key %q: expected denial without mesh:write", key)
+			require.True(t, acl.IsErrPermissionDenied(err), "upstream key %q: expected permission denied, got: %v", key, err)
+
+			// service:write + mesh:write — ACL check must pass.
+			arg.Token = meshToken
+			err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
+			if err != nil {
+				require.False(t, acl.IsErrPermissionDenied(err),
+					"upstream key %q: mesh:write token must not be ACL-denied, got: %v", key, err)
+			}
+		})
+	}
+}
+
 func TestCatalog_Register_ConnectProxy_ACLDestinationServiceName(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -595,6 +753,56 @@ func TestCatalog_Deregister(t *testing.T) {
 
 	if err := msgpackrpc.CallWithCodec(codec, "Catalog.Deregister", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
+	}
+}
+
+// TestCatalog_Deregister_PeerName verifies that Catalog.Deregister rejects any
+// request that carries a non-default PeerName, preventing a local token from
+// deleting peer-imported catalog objects.
+func TestCatalog_Deregister_PeerName(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	tests := map[string]struct {
+		peerName string
+		wantErr  string
+	}{
+		"non-empty peer name rejected": {
+			peerName: "peer1",
+			wantErr:  "deregistering peer-imported catalog objects is not supported",
+		},
+		"default peer name allowed": {
+			peerName: structs.DefaultPeerKeyword,
+			wantErr:  "",
+		},
+	}
+
+	for name, tc := range tests {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			arg := structs.DeregisterRequest{
+				Datacenter: "dc1",
+				Node:       "foo",
+				PeerName:   tc.peerName,
+			}
+			var out struct{}
+			err := msgpackrpc.CallWithCodec(codec, "Catalog.Deregister", &arg, &out)
+			if tc.wantErr != "" {
+				require.ErrorContains(t, err, tc.wantErr)
+			} else {
+				require.NoError(t, err)
+			}
+		})
 	}
 }
 
@@ -4669,3 +4877,267 @@ func TestCatalog_VirtualIPForService_ACLDeny(t *testing.T) {
 	require.Contains(t, err.Error(), acl.ErrPermissionDenied.Error())
 	require.Equal(t, "", out2)
 }
+
+// TestCatalog_Register_NodeIDCrossNodeTakeover verifies that a caller who holds
+// node:write on their own node name cannot use a victim's Node.ID to cascade-
+// delete the victim's entire catalog registration and steal its identity.
+//
+// Without the fix, vetRegisterWithACL only checked the attacker's own node name;
+// ensureNodeTxn then resolved by ID, deleted the victim node, and re-inserted it
+// under the attacker's name.
+func TestCatalog_Register_NodeIDCrossNodeTakeover(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	victimID := types.NodeID("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
+
+	// Register victim node with a service via the management token.
+	var out struct{}
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &structs.RegisterRequest{
+		Datacenter: "dc1",
+		ID:         victimID,
+		Node:       "victim-node",
+		Address:    "10.0.0.1",
+		Service: &structs.NodeService{
+			ID:      "victim-svc",
+			Service: "victim-svc",
+			Port:    9999,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}, &out))
+
+	// Attacker token: write on "attacker-node" only; no access to "victim-node".
+	attackerToken := createToken(t, codec, `
+node "attacker-node" {
+  policy = "write"
+}`)
+
+	// Attacker submits Catalog.Register using their own node name but the
+	// victim's Node.ID. The fix must reject this with permission denied.
+	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &structs.RegisterRequest{
+		Datacenter:   "dc1",
+		ID:           victimID,
+		Node:         "attacker-node",
+		Address:      "10.0.0.2",
+		WriteRequest: structs.WriteRequest{Token: attackerToken},
+	}, &out)
+	require.Error(t, err, "expected the cross-node takeover to be rejected with a permission error")
+	require.True(t, acl.IsErrPermissionDenied(err), "expected permission denied, got: %v", err)
+
+	// Victim node must still exist in the state store.
+	_, victimNode, err := s1.fsm.State().GetNodeID(victimID, structs.NodeEnterpriseMetaInDefaultPartition(), "")
+	require.NoError(t, err)
+	require.NotNil(t, victimNode, "victim node was deleted — cross-node takeover succeeded")
+	require.Equal(t, "victim-node", victimNode.Node)
+}
+
+func TestCatalog_Register_CheckIDCrossServiceTakeover(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	dir, server := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir)
+	defer server.Shutdown()
+	testrpc.WaitForTestAgent(t, server.RPC, "dc1", testrpc.WithToken("root"))
+	codec := rpcClient(t, server)
+	defer codec.Close()
+
+	var out struct{}
+	register := func(args *structs.RegisterRequest) error {
+		return msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out)
+	}
+
+	// Register both services and the victim's check on one node.
+	for _, service := range []struct {
+		id   string
+		name string
+	}{
+		{id: "victim-svc", name: "victim-svc"},
+		{id: "attacker-svc", name: "attacker-svc"},
+	} {
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "shared-node",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				ID:      service.id,
+				Service: service.name,
+				Port:    8080,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		if service.id == "victim-svc" {
+			args.Checks = []*structs.HealthCheck{{
+				Node:      "shared-node",
+				CheckID:   "victim-check",
+				Name:      "victim health check",
+				Status:    "passing",
+				ServiceID: "victim-svc",
+			}}
+		}
+		require.NoError(t, register(args))
+	}
+
+	attackerToken := createToken(t, codec, `service "attacker-svc" { policy = "write" }`)
+	// The token can write its own service-level checks without node:write.
+	require.NoError(t, register(&structs.RegisterRequest{
+		Datacenter:     "dc1",
+		Node:           "shared-node",
+		SkipNodeUpdate: true,
+		Checks: []*structs.HealthCheck{{
+			Node:      "shared-node",
+			CheckID:   "attacker-check",
+			Name:      "attacker health check",
+			Status:    "passing",
+			ServiceID: "attacker-svc",
+		}},
+		WriteRequest: structs.WriteRequest{Token: attackerToken},
+	}))
+
+	err := register(&structs.RegisterRequest{
+		Datacenter:     "dc1",
+		Node:           "shared-node",
+		SkipNodeUpdate: true,
+		Checks: []*structs.HealthCheck{{
+			Node:        "shared-node",
+			CheckID:     "victim-check",
+			Name:        "attacker check",
+			Status:      "critical",
+			ServiceID:   "attacker-svc",
+			ServiceName: "attacker-svc",
+		}},
+		WriteRequest: structs.WriteRequest{Token: attackerToken},
+	})
+	require.Error(t, err, "a service writer must not overwrite another service's check by reusing its CheckID")
+	require.True(t, acl.IsErrPermissionDenied(err), "expected permission denied, got: %v", err)
+
+	_, storedCheck, err := server.fsm.State().NodeCheck(
+		"shared-node",
+		"victim-check",
+		structs.NodeEnterpriseMetaInDefaultPartition(),
+		"",
+	)
+	require.NoError(t, err)
+	require.NotNil(t, storedCheck)
+	require.Equal(t, "victim-svc", storedCheck.ServiceID)
+	require.Equal(t, "victim-svc", storedCheck.ServiceName)
+	require.Equal(t, "passing", storedCheck.Status)
+}
+
+// // TestCatalog_Register_AIService_GateDisabled exercises the authoritative
+// // server-side consul-ai gate in Catalog.Register by bypassing the agent HTTP
+// // endpoint entirely and calling the RPC directly. A service with an ai {}
+// // block must be rejected with an error containing "consul-ai" when the gate
+// // has not been enabled.
+// func TestCatalog_Register_AIService_GateDisabled(t *testing.T) {
+// 	if testing.Short() {
+// 		t.Skip("too slow for testing.Short")
+// 	}
+// 	t.Parallel()
+
+// 	_, s := testServer(t)
+// 	codec := rpcClient(t, s)
+// 	testrpc.WaitForLeader(t, s.RPC, "dc1")
+// 	waitForFeatureGateInit(t, s)
+
+// 	// Gate is disabled by default; confirm the store agrees before proceeding.
+// 	require.False(t, s.featureGateStore.Enabled(featuregate.ConsulAI),
+// 		"consul-ai gate must be disabled before the test registers a service")
+
+// 	args := structs.RegisterRequest{
+// 		Datacenter: "dc1",
+// 		Node:       "foo",
+// 		Address:    "127.0.0.1",
+// 		Service: &structs.NodeService{
+// 			ID:      "ai-svc",
+// 			Service: "ai-svc",
+// 			Port:    8080,
+// 			AI: &structs.ServiceAI{
+// 				Role: structs.ServiceAIRoleInferenceModel,
+// 				InferenceModel: &structs.AIInferenceModel{
+// 					Protocol: "openai",
+// 					Path:     "/v1",
+// 				},
+// 			},
+// 		},
+// 	}
+// 	var out struct{}
+// 	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out)
+// 	require.Error(t, err, "Catalog.Register must reject an AI service when the gate is disabled")
+// 	require.Contains(t, err.Error(), "consul-ai",
+// 		"error message must reference the feature gate name")
+// }
+
+// // TestCatalog_Register_AIService_GateEnabled exercises the authoritative
+// // server-side consul-ai gate in Catalog.Register: after enabling the gate via
+// // Operator.FeatureGateSet and waiting for the cache to propagate, a service
+// // with an ai {} block must be accepted.
+// func TestCatalog_Register_AIService_GateEnabled(t *testing.T) {
+// 	if testing.Short() {
+// 		t.Skip("too slow for testing.Short")
+// 	}
+// 	t.Parallel()
+
+// 	_, s := testServer(t)
+// 	codec := rpcClient(t, s)
+// 	testrpc.WaitForLeader(t, s.RPC, "dc1")
+// 	waitForFeatureGateInit(t, s)
+
+// 	// Enable the consul-ai gate via the Operator RPC.
+// 	setArgs := &structs.FeatureGateSetRequest{
+// 		Name:    featuregate.ConsulAI.String(),
+// 		Enabled: true,
+// 	}
+// 	var setReply structs.FeatureGateSetResponse
+// 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Operator.FeatureGateSet", setArgs, &setReply))
+// 	require.True(t, setReply.Applied, "FeatureGateSet must report Applied=true on first write")
+
+// 	// The featureGateStore is populated asynchronously by runFeatureGateCache.
+// 	// Wait until it reflects the committed state before registering.
+// 	retry.RunWith(&retry.Timer{Timeout: 10 * time.Second, Wait: 50 * time.Millisecond}, t, func(r *retry.R) {
+// 		require.True(r, s.featureGateStore.Enabled(featuregate.ConsulAI),
+// 			"featureGateStore must report consul-ai enabled before proceeding")
+// 	})
+
+// 	args := structs.RegisterRequest{
+// 		Datacenter: "dc1",
+// 		Node:       "foo",
+// 		Address:    "127.0.0.1",
+// 		Service: &structs.NodeService{
+// 			ID:      "ai-svc",
+// 			Service: "ai-svc",
+// 			Port:    8080,
+// 			AI: &structs.ServiceAI{
+// 				Role: structs.ServiceAIRoleInferenceModel,
+// 				InferenceModel: &structs.AIInferenceModel{
+// 					Protocol: "openai",
+// 					Path:     "/v1",
+// 				},
+// 			},
+// 		},
+// 	}
+// 	var out struct{}
+// 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out),
+// 		"Catalog.Register must accept an AI service when the consul-ai gate is enabled")
+// }

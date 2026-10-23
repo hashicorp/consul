@@ -1,0 +1,24 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{!
+  Tokens-index toolbar. All the Filter Bar wiring (filter groups, applied tags,
+  search, "Search across" dropdown, stay-expanded behaviour) lives in the
+  generic Consul::ListToolbar; this component only supplies the token Type
+  filter config.
+}}
+<Consul::ListToolbar
+  class="consul-token-toolbar"
+  ...attributes
+  @filter={{@filter}}
+  @search={{@search}}
+  @onsearch={{@onsearch}}
+  @filterGroups={{this.filterGroups}}
+  @searchPlaceholder="Search"
+>
+  <:quickFilters>
+    {{yield to="quickFilters"}}
+  </:quickFilters>
+</Consul::ListToolbar>

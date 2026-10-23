@@ -2,20 +2,28 @@
   Copyright (c) HashiCorp, Inc.
   SPDX-License-Identifier: BUSL-1.1
 }}
-
+{{! The wrapping <label> makes the whole card clickable; @label deliberately
+  overrides its accessible name (which would otherwise be the long body
+  sentence, not the short header) via aria-label on the input, which wins
+  in accname computation. }}
+{{!-- template-lint-disable require-input-label --}}
 <label
   ...attributes
   class="radio-card{{if @checked ' checked'}}"
 >
-  <div>
-    {{! workaround FF/Ember problem where you cannnot set a value to be value="" (empty)}}
-    {{#if (gt @value.length 0) }}
-      <input type="radio" name={{@name}} value={{@value}} checked={{@checked}} onchange={{action @onchange}} />
-    {{else}}
-      <input type="radio" name={{@name}} value="" checked={{@checked}} onchange={{action @onchange}} />
+  {{! Top content section: icon (if provided) + header + body text }}
+  <div class="radio-card-content">
+    {{#if @icon}}
+      <Hds::Icon @name={{@icon}} @size="24" />
     {{/if}}
-  </div>
-  <div>
     {{yield}}
+  </div>
+  {{! Bottom control strip: the radio input centred in a full-width footer }}
+  <div class="radio-card-control">
+    {{#if (gt @value.length 0) }}
+      <input type="radio" name={{@name}} value={{@value}} checked={{@checked}} onchange={{action @onchange}} aria-label={{@label}} />
+    {{else}}
+      <input type="radio" name={{@name}} value="" checked={{@checked}} onchange={{action @onchange}} aria-label={{@label}} />
+    {{/if}}
   </div>
 </label>

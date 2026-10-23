@@ -10,6 +10,7 @@ import (
 	memdb "github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/adapter"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/private/pbcommon"
@@ -63,12 +64,23 @@ func (e EventPayloadCheckServiceNode) Subject() stream.Subject {
 }
 
 func (e EventPayloadCheckServiceNode) ToSubscriptionEvent(idx uint64) *pbsubscribe.Event {
+	value := e.Value
+	if value != nil {
+		valueCopy := *value
+		if value.Service != nil {
+			serviceCopy := *value.Service
+			valueCopy.Service = &serviceCopy
+		}
+		adapter.PopulateLegacyCheckServiceNodePorts(structs.CheckServiceNodes{valueCopy})
+		value = &valueCopy
+	}
+
 	return &pbsubscribe.Event{
 		Index: idx,
 		Payload: &pbsubscribe.Event_ServiceHealth{
 			ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
 				Op:               e.Op,
-				CheckServiceNode: pbservice.NewCheckServiceNodeFromStructs(e.Value),
+				CheckServiceNode: pbservice.NewCheckServiceNodeFromStructs(value),
 			},
 		},
 	}

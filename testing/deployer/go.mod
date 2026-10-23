@@ -1,14 +1,14 @@
 module github.com/hashicorp/consul/testing/deployer
 
-go 1.26.5
+go 1.26.9
 
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/google/go-cmp v0.7.0
 	github.com/hashicorp/consul-server-connection-manager v0.1.12
-	github.com/hashicorp/consul/api v1.34.3
-	github.com/hashicorp/consul/proto-public v0.8.1
-	github.com/hashicorp/consul/sdk v0.18.1
+	github.com/hashicorp/consul/api v1.35.0
+	github.com/hashicorp/consul/proto-public v0.9.0
+	github.com/hashicorp/consul/sdk v0.19.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-multierror v1.1.1
@@ -18,9 +18,9 @@ require (
 	github.com/mitchellh/copystructure v1.2.0
 	github.com/rboyer/safeio v0.2.2
 	github.com/stretchr/testify v1.11.1
-	golang.org/x/crypto v0.53.0
+	golang.org/x/crypto v0.57.0
 	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa
-	google.golang.org/grpc v1.79.3
+	google.golang.org/grpc v1.83.2
 	google.golang.org/protobuf v1.36.11
 )
 
@@ -55,11 +55,9 @@ require (
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/zclconf/go-cty v1.12.1 // indirect
-	go.opentelemetry.io/otel/metric v1.42.0 // indirect
-	go.opentelemetry.io/otel/trace v1.42.0 // indirect
-	golang.org/x/net v0.56.0 // indirect
-	golang.org/x/sys v0.46.0 // indirect
-	golang.org/x/text v0.38.0 // indirect
+	golang.org/x/net v0.60.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
+	golang.org/x/text v0.42.0 // indirect
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

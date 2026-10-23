@@ -5,32 +5,31 @@
 
 {{yield}}
 {{#if (gt @items.length 0)}}
-  <TabularCollection
-      data-test-tokens
-      class="token-list"
-      @rows={{5}}
-      @items={{sort-by 'AccessorID:asc' @items}}
+  <Hds::Table
+    data-test-tokens
+    aria-label={{@caption}}
   >
-    <:caption>
-      {{#if @caption}}
-        {{@caption}}
-      {{/if}}
-    </:caption>
-    <:header>
-        <th>AccessorID</th>
-        <th>Scope</th>
-        <th>Description</th>
-    </:header>
-    <:row as |item index|>
-        <td data-test-token={{item.AccessorID}}>
-          <a href={{href-to 'dc.acls.tokens.edit' item.AccessorID}} target={{or @target ''}}>{{truncate item.AccessorID 8 false}}</a>
-        </td>
-        <td>
-          {{if item.Local 'local' 'global'}}
-        </td>
-        <td>
-          <p>{{item.Description}}</p>
-        </td>
-    </:row>
-  </TabularCollection>
+    <:head as |H|>
+      <H.Tr>
+        <H.Th>AccessorID</H.Th>
+        <H.Th>Scope</H.Th>
+        <H.Th>Description</H.Th>
+      </H.Tr>
+    </:head>
+    <:body as |B|>
+      {{#each (sort-by 'AccessorID:asc' @items) as |item|}}
+        <B.Tr>
+          <B.Td data-test-token={{item.AccessorID}}>
+            <a href={{href-to 'dc.acls.tokens.edit' item.AccessorID}} target={{or @target ''}}>{{truncate item.AccessorID 8 false}}</a>
+          </B.Td>
+          <B.Td>
+            {{if item.Local 'local' 'global'}}
+          </B.Td>
+          <B.Td>
+            {{item.Description}}
+          </B.Td>
+        </B.Tr>
+      {{/each}}
+    </:body>
+  </Hds::Table>
 {{/if}}

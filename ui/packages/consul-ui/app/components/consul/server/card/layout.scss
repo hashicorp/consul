@@ -4,6 +4,10 @@
  */
 
 .consul-server-card {
+  /* the header reserves this much height whether or not the leader tile
+     renders, so the name sits at the same place on every card */
+  --consul-server-card-tile-size: 36px;
+
   border-radius: 6px;
   box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.04);
   transition: box-shadow 0.2s, background 0.2s;
@@ -17,9 +21,10 @@
   }
 }
 
+/* same border width as every other card, so the content box lines up */
 .consul-server-card--leader {
   background: linear-gradient(135deg, #ffe3ec 0%, #fff6fa 100%);
-  border: 2px solid #e36fa0;
+  border-color: #e36fa0;
 
   &:hover {
     background: linear-gradient(135deg, #ffe3ec 0%, #fff6fa 100%);
@@ -29,8 +34,9 @@
 
 .consul-server-card__link {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
   padding: 16px;
   text-decoration: none;
   color: inherit;
@@ -44,12 +50,32 @@
   }
 }
 
-.consul-server-card__content {
+.consul-server-card__header {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--consul-server-card-tile-size);
   min-width: 0;
-  justify-content: center;
+}
+
+.consul-server-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.consul-server-card__role {
+  @extend %body-200-regular;
+
+  color: var(--token-color-foreground-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.consul-server-card--leader .consul-server-card__role {
+  color: #d23c7c;
 }
 
 .consul-server-card__leader-tile {
@@ -57,19 +83,22 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
+  width: var(--consul-server-card-tile-size);
+  height: var(--consul-server-card-tile-size);
   border-radius: 6px;
   border: 2px solid #e36fa0;
   background: #ffe3ec;
   box-shadow: 0 2px 8px 0 rgba(227, 111, 160, 0.1);
 }
 
-.consul-server-card__name {
+/* qualified by the card so it outweighs the app-wide `%main-content p` rule,
+   which otherwise forces the name back to the regular weight */
+.consul-server-card .consul-server-card__name {
   font-weight: var(--token-typography-font-weight-semibold);
   font-size: var(--token-typography-display-200-font-size);
   line-height: var(--token-typography-display-200-line-height);
   color: var(--token-color-hashicorp-brand);
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

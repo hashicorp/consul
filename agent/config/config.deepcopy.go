@@ -382,13 +382,25 @@ func (o *RuntimeConfig) DeepCopy() *RuntimeConfig {
 		cp.TLS.InternalRPC.CipherSuites = make([]types.TLSCipherSuite, len(o.TLS.InternalRPC.CipherSuites))
 		copy(cp.TLS.InternalRPC.CipherSuites, o.TLS.InternalRPC.CipherSuites)
 	}
+	if o.TLS.InternalRPC.ECDHCurves != nil {
+		cp.TLS.InternalRPC.ECDHCurves = make([]types.TLSECDHCurve, len(o.TLS.InternalRPC.ECDHCurves))
+		copy(cp.TLS.InternalRPC.ECDHCurves, o.TLS.InternalRPC.ECDHCurves)
+	}
 	if o.TLS.GRPC.CipherSuites != nil {
 		cp.TLS.GRPC.CipherSuites = make([]types.TLSCipherSuite, len(o.TLS.GRPC.CipherSuites))
 		copy(cp.TLS.GRPC.CipherSuites, o.TLS.GRPC.CipherSuites)
 	}
+	if o.TLS.GRPC.ECDHCurves != nil {
+		cp.TLS.GRPC.ECDHCurves = make([]types.TLSECDHCurve, len(o.TLS.GRPC.ECDHCurves))
+		copy(cp.TLS.GRPC.ECDHCurves, o.TLS.GRPC.ECDHCurves)
+	}
 	if o.TLS.HTTPS.CipherSuites != nil {
 		cp.TLS.HTTPS.CipherSuites = make([]types.TLSCipherSuite, len(o.TLS.HTTPS.CipherSuites))
 		copy(cp.TLS.HTTPS.CipherSuites, o.TLS.HTTPS.CipherSuites)
+	}
+	if o.TLS.HTTPS.ECDHCurves != nil {
+		cp.TLS.HTTPS.ECDHCurves = make([]types.TLSECDHCurve, len(o.TLS.HTTPS.ECDHCurves))
+		copy(cp.TLS.HTTPS.ECDHCurves, o.TLS.HTTPS.ECDHCurves)
 	}
 	if o.TaggedAddresses != nil {
 		cp.TaggedAddresses = make(map[string]string, len(o.TaggedAddresses))

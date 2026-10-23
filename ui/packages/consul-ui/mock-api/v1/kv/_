@@ -1,35 +1,45 @@
 ${
     http.method == "GET" ?
-      typeof location.search.keys !== 'undefined' ? `
-[
-  ${
-    range(
-      env(
-        'CONSUL_KV_COUNT',
-        Math.floor(
-          (
-            Math.random() * env('CONSUL_KV_MAX', 10)
-          ) + parseInt(env('CONSUL_KV_MIN', 1))
-        )
+      typeof location.search.keys !== 'undefined' ? `${
+(function () {
+  // Folder currently being listed ('' at the root). Real Consul always answers
+  // with fully-qualified keys, so every entry below is prefixed with this.
+  const prefix = location.pathname.slice(3);
+  const depth = prefix === '' ? 0 : prefix.replace(/\/+$/, '').split('/').length;
+  // env() hands back cookie values as strings, so parse before using them as
+  // numbers -- `{max: '3'}` does not bound faker and produced 20+ level keys.
+  const maxDepth = parseInt(env('CONSUL_KV_MAX_DEPTH', 0), 10) || 0;
+  const count = parseInt(
+    env(
+      'CONSUL_KV_COUNT',
+      Math.floor(
+        (Math.random() * parseInt(env('CONSUL_KV_MAX', 10), 10)) +
+        parseInt(env('CONSUL_KV_MIN', 1), 10)
       )
-    ).map(
-        function(item, i) {
-            return `"${
-                range(
-                    fake.random.number(
-                        {max: env('CONSUL_KV_MAX_DEPTH', 0)}
-                    )
-                ).reduce(
-                    function(prev, item, i, arr) {
-                        return `${prev}/${fake.lorem.word()}-${i}`
-                    },
-                  `${i}-${i === 0 ? 'key-value' : fake.lorem.word()}`
-                )}"`;
-        }
-    )
-  }
-]
-      ` : `
+    ),
+    10
+  );
+  const name = function (i) {
+    return i === 0 ? `${i}-key-value` : `${i}-${fake.lorem.word()}`;
+  };
+  const keys = range(count).map(function (item, i) {
+    // Without a separator Consul returns every key beneath the prefix, so the
+    // deeper ones are nested; with one it only returns this single level.
+    if (typeof location.search.separator === 'undefined') {
+      return range(maxDepth > depth ? i % (maxDepth - depth + 1) : 0).reduce(
+        function (prev, item, d) {
+          return `${prev}/${fake.lorem.word()}-${d}`;
+        },
+        `${prefix}${name(i)}`
+      );
+    }
+    // A folder is signalled purely by a trailing separator -- utils/isFolder
+    // keys the UI's folder/leaf rendering off exactly that.
+    return `${prefix}${name(i)}${depth < maxDepth && i % 2 === 0 ? '/' : ''}`;
+  });
+  return JSON.stringify(keys);
+})()
+}` : `
 [
     {
         "LockIndex":0,

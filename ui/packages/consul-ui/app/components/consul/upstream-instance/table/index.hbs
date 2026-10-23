@@ -1,0 +1,61 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+<div class="consul-upstream-instance-table" ...attributes>
+  <Consul::DataTable
+    @items={{@items}}
+    @columns={{this.columns}}
+    @ariaLabel="Upstreams"
+    @card={{@card}}
+  >
+    <:row as |item B|>
+      {{! ---- Upstream name ---- }}
+      <B.Td data-test-upstream-name>
+        {{item.DestinationName}}
+      </B.Td>
+
+      {{! ---- Namespace ---- }}
+      {{#if this.showNamespace}}
+        <B.Td data-test-upstream-namespace>
+          {{or (this.namespaceFor item) "-"}}
+        </B.Td>
+      {{/if}}
+
+      {{! ---- Admin partition ---- }}
+      {{#if this.showPartition}}
+        <B.Td data-test-upstream-partition>
+          {{or (this.partitionFor item) "-"}}
+        </B.Td>
+      {{/if}}
+
+      {{! ---- Datacenter ---- }}
+      <B.Td data-test-upstream-datacenter>
+        {{or (this.datacenterFor item) "-"}}
+      </B.Td>
+
+      {{! ---- Address ---- }}
+      <B.Td data-test-upstream-address>
+        {{#let (this.addressFor item) as |address|}}
+          {{#if address}}
+            <span class="consul-upstream-instance-table__address">
+              {{address}}
+              <ConsulCopyButton
+                @value={{address}}
+                @name="Address"
+              />
+            </span>
+          {{else}}
+            -
+          {{/if}}
+        {{/let}}
+      </B.Td>
+
+      {{! ---- Mode ---- }}
+      <B.Td data-test-upstream-mode>
+        {{or (this.modeFor item) "-"}}
+      </B.Td>
+    </:row>
+  </Consul::DataTable>
+</div>

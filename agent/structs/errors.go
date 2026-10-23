@@ -25,6 +25,8 @@ const (
 	errStateReadOnly                         = "CA Provider State is read-only"
 	errSamenessGroupNotFound                 = "Sameness Group not found"
 	errSamenessGroupMustBeDefaultForFailover = "Sameness Group must have DefaultForFailover set to true in order to use this endpoint"
+	errUnknownFeatureGate                    = "unknown feature gate"
+	errFeatureGatePolicyUninitialized        = "feature-gate policy is not initialized yet"
 )
 
 var (
@@ -43,6 +45,8 @@ var (
 	ErrStateReadOnly                         = errors.New(errStateReadOnly)
 	ErrSamenessGroupNotFound                 = errors.New(errSamenessGroupNotFound)
 	ErrSamenessGroupMustBeDefaultForFailover = errors.New(errSamenessGroupMustBeDefaultForFailover)
+	ErrUnknownFeatureGate                    = errors.New(errUnknownFeatureGate)
+	ErrFeatureGatePolicyUninitialized        = errors.New(errFeatureGatePolicyUninitialized)
 )
 
 func IsErrNoDCPath(err error) bool {
@@ -67,4 +71,14 @@ func IsErrSamenessGroupNotFound(err error) bool {
 
 func IsErrSamenessGroupMustBeDefaultForFailover(err error) bool {
 	return err != nil && strings.Contains(err.Error(), errSamenessGroupMustBeDefaultForFailover)
+}
+
+// IsErrUnknownFeatureGate matches by message because the error crosses RPC boundaries as a string.
+func IsErrUnknownFeatureGate(err error) bool {
+	return err != nil && strings.Contains(err.Error(), errUnknownFeatureGate)
+}
+
+// IsErrFeatureGatePolicyUninitialized matches by message because the error crosses RPC boundaries as a string.
+func IsErrFeatureGatePolicyUninitialized(err error) bool {
+	return err != nil && strings.Contains(err.Error(), errFeatureGatePolicyUninitialized)
 }

@@ -3,35 +3,49 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
+// Card shell — unselected state
 %radio-card {
-  border: var(--decor-border-100);
-  border-radius: var(--decor-radius-100);
-  border-color: var(--token-color-surface-interactive-active);
-  box-shadow: var(--token-surface-mid-box-shadow);
-  color: var(--token-color-foreground-faint);
+  border: 1px solid var(--token-color-border-primary);
+  border-radius: 6px;
   cursor: pointer;
+  // Figma Elevation/Mid
+  box-shadow:
+    0px 8px 16px -10px var(--token-color-palette-alpha-200),
+    0px 2px 3px 0px var(--token-color-palette-alpha-100);
+  background: var(--token-color-surface-primary);
 }
+
+// Card shell — selected state: blue border
 %radio-card.checked {
-  border-color: var(--token-color-foreground-action);
+  border-color: var(--token-color-palette-blue-300);
 }
-%radio-card > :first-child {
-  background-color: var(--token-color-surface-strong);
-}
-%radio-card.checked > :first-child {
-  background-color: var(--token-color-surface-action);
-}
+
+// Header text: strong/black, 18px bold, -0.5px tracking (Figma Display/300/Bold)
 %radio-card header {
-  margin-bottom: 0.5em;
+  margin: 0;
+  color: var(--token-color-foreground-strong);
+  font-size: var(--token-typography-display-300-font-size, 18px);
+  font-weight: var(--token-typography-font-weight-bold, 700);
+  line-height: var(--token-typography-display-300-line-height, 24px);
+  letter-spacing: -0.5px;
 }
-%radio-card header {
-  color: var(--token-color-hashicorp-brand);
+
+// Body text: primary colour (Figma Body/100/Regular)
+%radio-card p {
+  margin: 0;
+  color: var(--token-color-foreground-primary);
+  font-size: var(--token-typography-body-100-font-size, 13px);
+  line-height: var(--token-typography-body-100-line-height, 18px);
 }
-%radio-card-with-icon > :last-child {
-  padding-left: 47px;
-  position: relative;
+
+// Control strip unselected: surface-faint bg, border-primary top
+%radio-card > .radio-card-control {
+  background: var(--token-color-surface-faint);
+  border-top-color: var(--token-color-border-primary);
 }
-%radio-card-with-icon > :last-child::before {
-  position: absolute;
-  left: 14px;
-  font-size: 1rem;
+
+// Control strip selected: action bg, action border top
+%radio-card.checked > .radio-card-control {
+  background: var(--token-color-surface-action);
+  border-top-color: var(--token-color-border-action);
 }

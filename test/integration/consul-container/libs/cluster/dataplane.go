@@ -11,9 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
+
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 type ConsulDataplaneContainer struct {
@@ -60,7 +61,7 @@ func (g ConsulDataplaneContainer) Exec(ctx context.Context, cmd []string) (strin
 
 func (g ConsulDataplaneContainer) GetStatus() (string, error) {
 	state, err := g.container.State(g.ctx)
-	return state.Status, err
+	return string(state.Status), err
 }
 
 func NewConsulDataplane(ctx context.Context, proxyID string, serverAddresses string, grpcPort int, serviceBindPorts []int,

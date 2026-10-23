@@ -1,0 +1,109 @@
+/**
+ * Copyright IBM Corp. 2024, 2026
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+// Shared header styles (.consul-nspace-form-section-*) are in
+// consul-ui/components/selector-section-header, imported via components.scss.
+
+.consul-nspace-form {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+
+  fieldset {
+    border: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+}
+
+/* Split the form actions row: Save+Cancel on the left, Delete on the right. */
+.consul-nspace-form__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+
+// Override legacy global table styles that bleed into Hds::Table in the roles fieldset
+#roles {
+  // Global rule sets table th to display-100 (13px); correct back to 14px
+  .hds-table__th {
+    font-size: var(--token-typography-body-200-font-size, 14px) !important;
+  }
+
+  // Global rule adds an ⓘ ::after pseudo-element to every table th span; remove it
+  .hds-table__th span::after {
+    display: none;
+  }
+
+  // Global rule sets td:first-child to semibold; roles name cell should be regular weight
+  .hds-table__tbody .hds-table__td:first-child {
+    font-weight: var(--token-typography-font-weight-regular, 400) !important;
+  }
+
+  // Role name link: action color, no underline (matches Figma plain-text link style)
+  .hds-table__tbody .hds-table__td:first-child a {
+    color: var(--token-color-foreground-action, #1060ff) !important;
+    font-weight: var(--token-typography-font-weight-regular, 400) !important;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  // Column widths: Role description takes all remaining space; Actions shrinks to content
+  .hds-table__th:nth-child(2),
+  .hds-table__td:nth-child(2) {
+    width: 100%;
+  }
+
+  .hds-table__th:last-child,
+  .hds-table__td:last-child {
+    width: 1%;
+    white-space: nowrap;
+  }
+
+  // Actions cell: the td has text-align:right from HDS; make dropdown inline-block
+  // so the text-align on the td positions it to the right
+  .hds-table__tbody .hds-table__td:last-child > .hds-dropdown {
+    display: inline-block;
+  }
+}
+
+// Accordion item content row: datacenter info left, Remove button right
+.policy-accordion-content-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.policy-accordion-datacenter-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+
+  dt {
+    font-size: var(--token-typography-body-100-font-size, 13px);
+    font-weight: var(--token-typography-font-weight-medium, 500);
+    color: var(--token-color-foreground-faint, #656a76);
+    line-height: var(--token-typography-body-100-line-height, 18px);
+  }
+
+  dd {
+    font-size: var(--token-typography-body-100-font-size, 13px);
+    font-weight: var(--token-typography-font-weight-regular, 400);
+    color: var(--token-color-foreground-primary, #3b3d45);
+    line-height: var(--token-typography-body-100-line-height, 18px);
+    margin: 0;
+  }
+}

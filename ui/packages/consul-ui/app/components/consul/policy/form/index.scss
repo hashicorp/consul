@@ -1,0 +1,67 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+// Policy create/edit form layout.
+// Mirrors the token and role form patterns: flex column with 32px gap between
+// each top-level child (fieldsets, separators, tokens section, action row).
+// Separators' built-in margins are reset to zero so the gap is the sole source
+// of vertical rhythm.
+.consul-policy-form {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+
+  // Reset HDS separator margins so the form gap is the sole source of spacing.
+  > .hds-separator {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+
+  // All top-level fieldsets: flex column so HDS form fields stack with 24px gap.
+  > fieldset {
+    border: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  // Wrapper that groups the separator + "Applied to tokens" block as one flex
+  // child so the form gap only fires once above this section.
+  &__used-by {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+
+    // Reset HDS separator margins inside the used-by block.
+    > .hds-separator {
+      margin-top: 0;
+      margin-bottom: 0;
+    }
+  }
+
+  // "Applied to the following tokens" section: label + table stacked at 8px.
+  &__usage {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  // Actions row: Save/Cancel on the left, Delete on the right.
+  &__actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  // Datacenter checkbox list: wrap items in a row, consistent with the Figma
+  // horizontal arrangement.
+  .consul-policy-fieldsets__datacenter-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+}

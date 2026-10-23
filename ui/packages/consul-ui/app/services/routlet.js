@@ -197,9 +197,14 @@ export default class RoutletService extends Service {
     outlets.set(name, outlet);
   }
 
-  removeOutlet(name) {
+  removeOutlet(name, outlet) {
     schedule('afterRender', () => {
-      outlets.delete(name);
+      // An Outlet can be re-created under the same name in the same render
+      // (e.g. when it moves into a different tab panel), so don't remove a
+      // newer registration.
+      if (typeof outlet === 'undefined' || outlets.get(name) === outlet) {
+        outlets.delete(name);
+      }
     });
   }
 }

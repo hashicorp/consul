@@ -201,6 +201,10 @@ type Server struct {
 	featureGateRegistry featuregate.Registry
 	featureGateStore    *featuregate.Store
 
+	// nodeWriteLocks serializes ACL-vetted catalog writes per node so that
+	// authorization against stored entries and the Raft apply are atomic.
+	nodeWriteLocks nodeWriteLocks
+
 	// federationStateReplicator is used to manage the leaders replication routines for
 	// federation states
 	federationStateReplicator *Replicator
@@ -317,6 +321,11 @@ type Server struct {
 
 	// rpcConnLimiter limits the number of RPC connections from a single source IP
 	rpcConnLimiter connlimit.Limiter
+
+	// rpcMaxHeaderBytes bounds the encoded size of a single RPC request header.
+	// It is read per new RPC connection and stored atomically so ReloadConfig
+	// can update it without a server restart.
+	rpcMaxHeaderBytes atomic.Int64
 
 	// Listener is used to listen for incoming connections
 	Listener            net.Listener
@@ -539,6 +548,8 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	}
 	incomingRPCLimiter.Register(s)
 
+	s.rpcMaxHeaderBytes.Store(int64(config.RPCMaxHeaderBytes))
+
 	s.raftStorageBackend, err = raftstorage.NewBackend(&raftHandle{s}, logger.Named("raft-storage-backend"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create storage backend: %w", err)
@@ -555,7 +566,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		Publisher:      flat.EventPublisher,
 		StorageBackend: s.raftStorageBackend,
 	})
-	go s.runFeatureGateCache(&lib.StopChannelContext{StopCh: shutdownCh})
 
 	var recorder *middleware.RequestRecorder
 	if flat.NewRequestRecorderFunc != nil {
@@ -676,6 +686,9 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start Raft: %v", err)
 	}
+
+	// Started after setupRaft so the goroutine observes the assigned s.raft.
+	go s.runFeatureGateCache(&lib.StopChannelContext{StopCh: shutdownCh})
 
 	s.caManager = NewCAManager(&caDelegateWithState{Server: s}, s.leaderRoutineManager, s.logger.ResetNamed("connect.ca"), s.config)
 	if s.config.ConnectEnabled && (s.config.AutoEncryptAllowTLS || s.config.AutoConfigAuthzEnabled) {
@@ -1818,6 +1831,7 @@ func (s *Server) ReloadConfig(config ReloadableConfig) error {
 	s.rpcConnLimiter.SetConfig(connlimit.Config{
 		MaxConnsPerClientIP: config.RPCMaxConnsPerClient,
 	})
+	s.rpcMaxHeaderBytes.Store(int64(config.RPCMaxHeaderBytes))
 	s.connPool.SetRPCClientTimeout(config.RPCClientTimeout)
 
 	if s.IsLeader() {

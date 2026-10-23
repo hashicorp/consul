@@ -33,8 +33,12 @@ func parseConfig[T any](m map[string]any, cfg *T) error {
 
 // XDSCommonConfig contains the configuration from the opaque map that is common to both gateways and sidecar proxies.
 type XDSCommonConfig struct {
-	// XDSFetchTimeoutMs specifies the amount of milliseconds to wait for dynamically configured Envoy data (EDS, RDS).
-	// Uses the Envoy default value if not specified or negative. A value of zero disables the timeout.
+	// XDSFetchTimeoutMs specifies the amount of milliseconds to wait for dynamically configured Envoy data
+	// (EDS, RDS, SDS). SDS is covered because Connect leaf certificates and CA roots are delivered as SDS
+	// secrets, so the public listener depends on a secret fetch before it can serve traffic.
+	//
+	// Uses the Envoy default value (15s) if not specified or negative. A value of zero disables the timeout,
+	// meaning Envoy waits indefinitely for the first response.
 	XDSFetchTimeoutMs *int `mapstructure:"xds_fetch_timeout_ms"`
 }
 

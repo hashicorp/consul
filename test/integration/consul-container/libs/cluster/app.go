@@ -8,10 +8,11 @@ import (
 	"fmt"
 	"time"
 
-	dockercontainer "github.com/docker/docker/api/types/container"
 	"github.com/docker/go-connections/nat"
-	"github.com/hashicorp/go-multierror"
+	dockercontainer "github.com/moby/moby/api/types/container"
 	"github.com/testcontainers/testcontainers-go"
+
+	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
@@ -89,11 +90,11 @@ func LaunchContainerOnNode(
 
 	ports := make(map[string]nat.Port)
 	for _, portStr := range mapPorts {
-		mapped, err := pod.MappedPort(ctx, nat.Port(portStr))
+		mapped, err := pod.MappedPort(ctx, portStr)
 		if err != nil {
 			return nil, fmt.Errorf("mapping port %s: %w", portStr, err)
 		}
-		ports[portStr] = mapped
+		ports[portStr] = nat.Port(mapped.String())
 	}
 
 	info := &LaunchInfo{

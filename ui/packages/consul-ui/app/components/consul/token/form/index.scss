@@ -1,0 +1,40 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+// Token create/edit form layout.
+// Mirrors the nspaces form pattern: flex column with 32px gap between each
+// top-level child (fieldsets, separators, button row).  The separators
+// themselves carry 24px margin on each side via hds-separator--spacing-24,
+// so the 32px form gap + 24px separator margin matches the Figma rhythm.
+.consul-token-form {
+  display: flex;
+  flex-direction: column;
+  // All section-level spacing is driven by this single gap value.
+  // The separators' built-in margins are reset to zero below so they
+  // don't add extra space on top of the gap.
+  gap: 32px;
+
+  // Reset HDS separator margins so the form gap is the sole source of spacing.
+  > .hds-separator {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+
+  // All top-level fieldsets: flex column so HDS form fields stack with a 24px gap.
+  // Covers the main token fields, #roles, and #policies sections.
+  > fieldset {
+    border: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  &__actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+}

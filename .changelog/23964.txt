@@ -1,0 +1,7 @@
+```release-note:security
+security: Upgrade github.com/klauspost/compress to v1.18.7, go.mongodb.org/mongo-driver to v1.17.10, github.com/moby/go-archive to v0.3.0 and github.com/go-openapi/swag to v0.27.1 to address CVE-2026-63209, CVE-2026-88031, CVE-2026-2303, CVE-2026-17106 and CVE-2026-85280.
+```
+
+```release-note:security
+docker: Run `apk upgrade` when building the Alpine-based container images so base-image packages (such as sqlite and jq) are up to date.
+```

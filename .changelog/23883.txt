@@ -1,0 +1,5 @@
+```release-note:bug
+api-gateway: Fixed a bug where a single misconfigured route on an API Gateway listener could cause discovery-chain
+synthesis to fail for the entire listener, dropping the xDS configuration for every other route sharing it.
+The misconfigured route is now skipped and logged instead, while the rest of the listener's routes continue to be served.
+```

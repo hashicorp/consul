@@ -3,18 +3,16 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-.tag-list,
-td.tags {
-  @extend %tag-list;
-}
-%tag-list {
-  @extend %horizontal-kv-list;
-}
-%tag-list dt::before {
-  @extend %with-tag-mask, %as-pseudo;
-  color: inherit;
-  color: var(--token-color-foreground-faint);
-}
-%tag-list dd {
-  @extend %csv-list;
+.tag-list {
+  padding: 24px;
+
+  /* Tags wrap across multiple lines within the card. Per the Figma design the
+     row gap is 12px and the column gap is 8px. Each pill is a standard
+     Hds::Tag, which supplies its own border / radius / typography. */
+  .tag-list__tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 8px;
+  }
 }

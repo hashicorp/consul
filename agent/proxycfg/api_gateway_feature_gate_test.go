@@ -33,10 +33,46 @@ func TestHandlerAPIGateway_ComposeUpstreamRoutingEnabled_AgentlessOnly(t *testin
 		featureGate: store,
 		agentless:   false,
 	}}}
-	require.False(t, agentful.composeUpstreamRoutingEnabled())
+	require.True(t, agentful.composeUpstreamRoutingEnabled())
 
 	require.True(t, store.Publish(featuregate.Snapshot{StatusIndex: 2}))
 	require.False(t, agentless.composeUpstreamRoutingEnabled())
+	require.True(t, agentful.composeUpstreamRoutingEnabled(), "the gate must not affect agentful gateways")
+
+	agentfulNoStore := &handlerAPIGateway{handlerState: handlerState{stateConfig: stateConfig{agentless: false}}}
+	require.True(t, agentfulNoStore.composeUpstreamRoutingEnabled())
+}
+
+func TestManager_RefreshFeatureGates_APIGatewayAndConnectProxy(t *testing.T) {
+	newTestState := func(source ProxySource, kind structs.ServiceKind) *state {
+		return &state{
+			source:          source,
+			serviceInstance: serviceInstance{kind: kind},
+			ch:              make(chan UpdateEvent, 1),
+			doneCh:          make(chan struct{}),
+		}
+	}
+	agentlessGateway := newTestState(ProxySourceCatalog, structs.ServiceKindAPIGateway)
+	agentfulGateway := newTestState(ProxySourceLocal, structs.ServiceKindAPIGateway)
+	agentlessSidecar := newTestState(ProxySourceCatalog, structs.ServiceKindConnectProxy)
+	localSidecar := newTestState(ProxySourceLocal, structs.ServiceKindConnectProxy)
+	m := &Manager{proxies: map[ProxyID]*state{
+		{NodeName: "catalog-gateway"}: agentlessGateway,
+		{NodeName: "local-gateway"}:   agentfulGateway,
+		{NodeName: "catalog-sidecar"}: agentlessSidecar,
+		{NodeName: "local-sidecar"}:   localSidecar,
+	}}
+
+	m.refreshFeatureGates()
+	require.Equal(t, featureGateWatchID, (<-agentlessGateway.ch).CorrelationID)
+	require.Equal(t, featureGateWatchID, (<-agentlessSidecar.ch).CorrelationID)
+	select {
+	case event := <-agentfulGateway.ch:
+		t.Fatalf("unexpected invalidation event: %#v", event)
+	case event := <-localSidecar.ch:
+		t.Fatalf("unexpected invalidation event: %#v", event)
+	default:
+	}
 }
 
 func TestManager_RefreshFeatureGates_AgentlessAPIGatewayOnly(t *testing.T) {
@@ -59,12 +95,11 @@ func TestManager_RefreshFeatureGates_AgentlessAPIGatewayOnly(t *testing.T) {
 
 	m.refreshFeatureGates()
 	require.Equal(t, featureGateWatchID, (<-agentlessGateway.ch).CorrelationID)
-	for _, unaffected := range []*state{agentfulGateway, agentlessSidecar} {
-		select {
-		case event := <-unaffected.ch:
-			t.Fatalf("unexpected invalidation event: %#v", event)
-		default:
-		}
+	require.Equal(t, featureGateWatchID, (<-agentlessSidecar.ch).CorrelationID)
+	select {
+	case event := <-agentfulGateway.ch:
+		t.Fatalf("unexpected invalidation event: %#v", event)
+	default:
 	}
 }
 

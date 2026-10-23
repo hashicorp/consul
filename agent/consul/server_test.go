@@ -2055,6 +2055,7 @@ func TestServer_ReloadConfig(t *testing.T) {
 		c.RequestLimitsReadRate = 500
 		c.RequestLimitsWriteRate = 500
 		c.RPCClientTimeout = 60 * time.Second
+		c.RPCMaxHeaderBytes = 512
 		// Set one raft param to be non-default in the initial config, others are
 		// default.
 		c.RaftConfig.TrailingLogs = 1234
@@ -2069,6 +2070,7 @@ func TestServer_ReloadConfig(t *testing.T) {
 	require.Equal(t, 5000, limiter.Burst())
 
 	require.Equal(t, 60*time.Second, s.connPool.RPCClientTimeout())
+	require.Equal(t, int64(512), s.rpcMaxHeaderBytes.Load())
 
 	rc := ReloadableConfig{
 		RequestLimits: &RequestLimits{
@@ -2079,6 +2081,7 @@ func TestServer_ReloadConfig(t *testing.T) {
 		RPCClientTimeout:     2 * time.Minute,
 		RPCRateLimit:         1000,
 		RPCMaxBurst:          10000,
+		RPCMaxHeaderBytes:    1024,
 		ConfigEntryBootstrap: []structs.ConfigEntry{entryInit},
 		// Reset the custom one to default be removing it from config file (it will
 		// be a zero value here).
@@ -2109,6 +2112,9 @@ func TestServer_ReloadConfig(t *testing.T) {
 	limiter = s.rpcLimiter.Load().(*rate.Limiter)
 	require.Equal(t, rate.Limit(1000), limiter.Limit())
 	require.Equal(t, 10000, limiter.Burst())
+
+	// Check the RPC header byte limit got updated
+	require.Equal(t, int64(1024), s.rpcMaxHeaderBytes.Load())
 
 	// Check the incoming RPC rate limiter got updated
 	mockHandler.AssertCalled(t, "UpdateConfig", rpcRate.HandlerConfig{

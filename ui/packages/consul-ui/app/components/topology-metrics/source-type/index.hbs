@@ -6,6 +6,9 @@
 <span
   data-test-topology-metrics-source-type
   class="topology-metrics-source-type"
+  role="group"
+  tabindex="-1"
+  aria-label={{t (concat "components.consul.topology-metrics.source-type." @source ".text")}}
   {{hds-tooltip (t (concat "components.consul.topology-metrics.source-type." @source ".tooltip")) options=(detached-tooltip-options)}}
 >
   {{t (concat "components.consul.topology-metrics.source-type." @source ".text")}}
