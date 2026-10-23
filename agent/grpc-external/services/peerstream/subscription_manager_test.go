@@ -601,6 +601,181 @@ func TestSubscriptionManager_InitialSnapshot(t *testing.T) {
 	})
 }
 
+// Under a wildcard export, a discovery chain is announced to peers only while
+// its service has instances here. A chain-only service (a service-resolver with
+// no instances) is in DiscoChains but not in the exported-service-list; the
+// DC's mesh gateway cannot serve it, so announcing it makes it a dead-end
+// failover target for peers, and since #23377 it was re-sent forever and
+// never retracted once the chain was removed.
+func TestSubscriptionManager_WildcardChainOnlyNotAnnounced(t *testing.T) {
+	backend := newTestSubscriptionBackend(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	_, id := backend.ensurePeering(t, "my-peering")
+	partition := acl.DefaultEnterpriseMeta().PartitionOrEmpty()
+
+	tracker := newResourceSubscriptionTracker()
+	tracker.Subscribe(pbpeerstream.TypeURLExportedService)
+
+	mgr := newSubscriptionManager(ctx, testutil.Logger(t), Config{
+		Datacenter:     "dc1",
+		ConnectEnabled: true,
+	}, connect.TestTrustDomain, backend, func() StateStore {
+		return backend.store
+	}, tracker)
+	subCh := mgr.subscribe(ctx, id, "my-peering", partition)
+
+	chainProxyCorrID := subExportedService + structs.NewServiceName("chain-sidecar-proxy", nil).String()
+
+	type matcher struct {
+		desc  string
+		match func(cache.UpdateEvent) bool
+	}
+	// waitFor drains events until each matcher has matched one, in any order,
+	// ignoring everything else.
+	waitFor := func(t *testing.T, matchers ...matcher) {
+		t.Helper()
+		pending := append([]matcher(nil), matchers...)
+		timeout := time.After(10 * time.Second)
+		for len(pending) > 0 {
+			select {
+			case <-timeout:
+				var descs []string
+				for _, m := range pending {
+					descs = append(descs, m.desc)
+				}
+				t.Fatalf("timed out waiting for %v", descs)
+			case evt := <-subCh:
+				for i, m := range pending {
+					if m.match(evt) {
+						pending = append(pending[:i], pending[i+1:]...)
+						break
+					}
+				}
+			}
+		}
+	}
+	// never drains events for d and fails if any matches.
+	never := func(t *testing.T, d time.Duration, m matcher) {
+		t.Helper()
+		deadline := time.After(d)
+		for {
+			select {
+			case <-deadline:
+				return
+			case evt := <-subCh:
+				if m.match(evt) {
+					t.Fatalf("unexpected %s", m.desc)
+				}
+			}
+		}
+	}
+	chainProxyNodes := func(n int) func(cache.UpdateEvent) bool {
+		return func(evt cache.UpdateEvent) bool {
+			if evt.CorrelationID != chainProxyCorrID {
+				return false
+			}
+			return len(evt.Result.(*pbservice.IndexedCheckServiceNodes).Nodes) == n
+		}
+	}
+	anyChainProxy := func(evt cache.UpdateEvent) bool {
+		return evt.CorrelationID == chainProxyCorrID
+	}
+	exportedList := func(want bool, name string) func(cache.UpdateEvent) bool {
+		return func(evt cache.UpdateEvent) bool {
+			if evt.CorrelationID != subExportedServiceList {
+				return false
+			}
+			found := false
+			for _, s := range evt.Result.(*pbpeerstream.ExportedServiceList).Services {
+				if s == structs.NewServiceName(name, nil).String() {
+					found = true
+				}
+			}
+			return found == want
+		}
+	}
+
+	backend.ensureNode(t, &structs.Node{Node: "mgw", Address: "10.1.1.1"})
+	backend.ensureService(t, "mgw", &structs.NodeService{ID: "gateway-1", Kind: structs.ServiceKindMeshGateway, Service: "gateway", Port: 8443})
+	backend.ensureNode(t, &structs.Node{Node: "foo", Address: "10.0.0.1"})
+	backend.ensureService(t, "foo", &structs.NodeService{ID: "web-1", Service: "web", Port: 8080})
+
+	backend.ensureConfigEntry(t, &structs.ServiceResolverConfigEntry{
+		Kind: structs.ServiceResolver,
+		Name: "chain",
+	})
+	backend.ensureConfigEntry(t, &structs.ExportedServicesConfigEntry{
+		Name: "default",
+		Services: []structs.ExportedService{
+			{
+				Name:      structs.WildcardSpecifier,
+				Consumers: []structs.ServiceConsumer{{Peer: "my-peering"}},
+			},
+		},
+	})
+
+	// expectListNoChain drains events for d, requires an exported-service-list
+	// event matching want, and fails on any chain-sidecar-proxy event.
+	expectListNoChain := func(t *testing.T, d time.Duration, desc string, want func(cache.UpdateEvent) bool) {
+		t.Helper()
+		seen := false
+		deadline := time.After(d)
+		for {
+			select {
+			case <-deadline:
+				require.True(t, seen, "no %s", desc)
+				return
+			case evt := <-subCh:
+				if anyChainProxy(evt) {
+					t.Fatalf("chain-only service announced: %+v", evt)
+				}
+				if want(evt) {
+					seen = true
+				}
+			}
+		}
+	}
+
+	testutil.RunStep(t, "chain-only service is not announced", func(t *testing.T) {
+		expectListNoChain(t, 2*time.Second, "exported-service-list with web, without chain", func(evt cache.UpdateEvent) bool {
+			return exportedList(true, "web")(evt) && exportedList(false, "chain")(evt)
+		})
+
+		// A further exported-service-list update must not announce it either.
+		backend.ensureService(t, "foo", &structs.NodeService{ID: "api-1", Service: "api", Port: 8081})
+		expectListNoChain(t, 2*time.Second, "exported-service-list with api", exportedList(true, "api"))
+	})
+
+	testutil.RunStep(t, "service gaining instances is announced", func(t *testing.T) {
+		backend.ensureService(t, "foo", &structs.NodeService{ID: "chain-1", Service: "chain", Port: 9090})
+
+		waitFor(t,
+			matcher{"exported-service-list with chain", exportedList(true, "chain")},
+			matcher{"chain-sidecar-proxy with 1 node", chainProxyNodes(1)},
+		)
+	})
+
+	testutil.RunStep(t, "service losing its instances is retracted", func(t *testing.T) {
+		backend.deleteService(t, "foo", "chain-1")
+
+		waitFor(t,
+			matcher{"exported-service-list without chain", exportedList(false, "chain")},
+			matcher{"chain-sidecar-proxy DELETE (0 nodes)", chainProxyNodes(0)},
+		)
+	})
+
+	testutil.RunStep(t, "removing the chain-only resolver sends nothing", func(t *testing.T) {
+		backend.deleteConfigEntry(t, structs.ServiceResolver, "chain")
+
+		never(t, 500*time.Millisecond, matcher{"chain-sidecar-proxy with nodes", func(evt cache.UpdateEvent) bool {
+			return anyChainProxy(evt) && len(evt.Result.(*pbservice.IndexedCheckServiceNodes).Nodes) > 0
+		}})
+	})
+}
+
 func TestSubscriptionManager_CARoots(t *testing.T) {
 	backend := newTestSubscriptionBackend(t)
 
