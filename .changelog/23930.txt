@@ -1,0 +1,3 @@
+```release-note:improvement
+connect: `consul connect envoy` now names the range of Envoy versions the Consul binary supports when it rejects an incompatible Envoy version.
+```
