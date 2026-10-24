@@ -411,123 +411,125 @@ jobs:
           DD_ENV: ci
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
 
-  # compatibility-integration-test:
-  #   runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }} # NOTE: do not change without tuning the -p and -parallel flags in go test.
-  #   needs:
-  #     - setup
-  #     - get-go-version
-  #     - get-envoy-versions
-  #     - dev-build
-  #   permissions:
-  #     id-token: write # NOTE: this permission is explicitly required for Vault auth.
-  #     contents: read
-  #   env:
-  #     ENVOY_VERSION: ${{ needs.get-envoy-versions.outputs.max-envoy-version }}
-  #     #TODO don't harcode this image name
-  #     CONSUL_DATAPLANE_IMAGE: "docker.mirror.hashicorp.services/hashicorppreview/consul-dataplane:1.6-dev-ubi"
-  #   steps:
-  #     - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-  #     # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
-  #     - name: Setup Git
-  #       if: ${{ endsWith(github.repository, '-enterprise') }}
-  #       run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-  #     - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
-  #       with:
-  #         go-version: ${{ needs.get-go-version.outputs.go-version }}
-  #     - run: go env
-  #     - name: docker env
-  #       run: |
-  #         docker version
-  #         docker info
-  #     - name: fetch binary
-  #       uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-  #       with:
-  #         name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
-  #         path: .
-  #     - name: restore mode+x
-  #       run: chmod +x consul
-  #     # Build the consul:local image from the already built binary
-  #     - name: Build consul:local image
-  #       run: docker build -t ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local -f ./build-support/docker/Consul-Dev.dockerfile .
-  #     - name: Build consul-envoy:target-version image
-  #       id: buildConsulEnvoyImage
-  #       continue-on-error: true
-  #       run: docker build -t consul-envoy:target-version --build-arg CONSUL_IMAGE=${{ env.CONSUL_LATEST_IMAGE_NAME }}:local --build-arg ENVOY_VERSION=${{ env.ENVOY_VERSION }} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
-  #     - name: Retry Build consul-envoy:target-version image
-  #       if: steps.buildConsulEnvoyImage.outcome == 'failure'
-  #       run: docker build -t consul-envoy:target-version --build-arg CONSUL_IMAGE=${{ env.CONSUL_LATEST_IMAGE_NAME }}:local --build-arg ENVOY_VERSION=${{ env.ENVOY_VERSION }} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
-  #     - name: Build consul-dataplane:local image
-  #       run: docker build -t consul-dataplane:local --build-arg CONSUL_IMAGE=${{ env.CONSUL_LATEST_IMAGE_NAME }}:local --build-arg CONSUL_DATAPLANE_IMAGE=${{ env.CONSUL_DATAPLANE_IMAGE }} -f ./test/integration/consul-container/assets/Dockerfile-consul-dataplane ./test/integration/consul-container/assets
-  #     - name: Configure GH workaround for ipv6 loopback
-  #       if: ${{ !endsWith(github.repository, '-enterprise') }}
-  #       run: |
-  #         cat /etc/hosts && echo "-----------"
-  #         sudo sed -i 's/::1 *localhost ip6-localhost ip6-loopback/::1 ip6-localhost ip6-loopback/g' /etc/hosts
-  #         cat /etc/hosts
-      
-  #     # TODO: Disabling the "Compatibility Integration Tests" test temporarily, need to enable again once dependent pipeline issues are fixed.
-  #     # Please run this test locally and post results in PR description.
-  #     # - name: Compatibility Integration Tests
-  #     #   run: |
-  #     #       mkdir -p "/tmp/test-results"
-  #     #       cd ./test/integration/consul-container
-  #     #       docker run --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
-  #     #       go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-  #     #         --raw-command \
-  #     #         --format=github-actions \
-  #     #         --rerun-fails \
-  #     #         -- \
-  #     #         go test \
-  #     #         -p=6 \
-  #     #         -parallel=4 \
-  #     #         -tags "${{ env.GOTAGS }}" \
-  #     #         -timeout=30m \
-  #     #         -json \
-  #     #         `go list -tags "${{ env.GOTAGS }}" ./... | grep -v upgrade | grep -v peering_commontopo` \
-  #     #         --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
-  #     #         --target-version local \
-  #     #         --latest-image docker.mirror.hashicorp.services/${{ env.CONSUL_LATEST_IMAGE_NAME }} \
-  #     #         --latest-version latest
-  #     #       ls -lrt
-  #     #   env:
-  #     #     # this is needed because of incompatibility between RYUK container and GHA
-  #     #     GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
-  #     #     GOTESTSUM_FORMAT: standard-verbose
-  #     #     COMPOSE_INTERACTIVE_NO_CLI: 1
-  #     #     # tput complains if this isn't set to something.
-  #     #     TERM: ansi
+  compatibility-integration-test:
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }} # NOTE: do not change without tuning the -p and -parallel flags in go test.
+    needs:
+      - setup
+      - get-go-version
+      - get-envoy-versions
+      - dev-build
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read
+    env:
+      ENVOY_VERSION: ${{ needs.get-envoy-versions.outputs.max-envoy-version }}
+      # TODO: don't hardcode this image name
+      CONSUL_DATAPLANE_IMAGE: "docker.mirror.hashicorp.services/hashicorppreview/consul-dataplane:1.6-dev-ubi"
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
+      - name: Setup Git
+        if: ${{ endsWith(github.repository, '-enterprise') }}
+        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
+      # setup-go v6 writes GOTOOLCHAIN=local to $GITHUB_ENV; restore auto so go can
+      # upgrade the toolchain when a tool requires a newer version.
+      - name: Restore GOTOOLCHAIN=auto
+        run: echo "GOTOOLCHAIN=auto" >> "$GITHUB_ENV"
+      - run: go env
+      - name: docker env
+        run: |
+          docker version
+          docker info
+      - name: fetch binary
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
+          path: .
+      - name: restore mode+x
+        run: chmod +x consul
+      # Build the consul:local image from the already built binary
+      - name: Build consul:local image
+        run: docker build -t ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local -f ./build-support/docker/Consul-Dev.dockerfile .
+      - name: Build consul-envoy:target-version image
+        id: buildConsulEnvoyImage
+        continue-on-error: true
+        run: docker build -t consul-envoy:target-version --build-arg CONSUL_IMAGE=${{ env.CONSUL_LATEST_IMAGE_NAME }}:local --build-arg ENVOY_VERSION=${{ env.ENVOY_VERSION }} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
+      - name: Retry Build consul-envoy:target-version image
+        if: steps.buildConsulEnvoyImage.outcome == 'failure'
+        run: docker build -t consul-envoy:target-version --build-arg CONSUL_IMAGE=${{ env.CONSUL_LATEST_IMAGE_NAME }}:local --build-arg ENVOY_VERSION=${{ env.ENVOY_VERSION }} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
+      - name: Build consul-dataplane:local image
+        run: docker build -t consul-dataplane:local --build-arg CONSUL_IMAGE=${{ env.CONSUL_LATEST_IMAGE_NAME }}:local --build-arg CONSUL_DATAPLANE_IMAGE=${{ env.CONSUL_DATAPLANE_IMAGE }} -f ./test/integration/consul-container/assets/Dockerfile-consul-dataplane ./test/integration/consul-container/assets
+      - name: Configure GH workaround for ipv6 loopback
+        if: ${{ !endsWith(github.repository, '-enterprise') }}
+        run: |
+          cat /etc/hosts && echo "-----------"
+          sudo sed -i 's/::1 *localhost ip6-localhost ip6-loopback/::1 ip6-localhost ip6-loopback/g' /etc/hosts
+          cat /etc/hosts
 
-  #     # NOTE: ENT specific step as we store secrets in Vault.
-  #     - name: Authenticate to Vault
-  #       if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
-  #       id: vault-auth
-  #       run: vault-auth
+      - name: Compatibility Integration Tests
+        run: |
+            mkdir -p "/tmp/test-results"
+            cd ./test/integration/consul-container
+            docker run --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
+            go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --raw-command \
+              --format=github-actions \
+              --rerun-fails \
+              -- \
+              go test \
+              -p=6 \
+              -parallel=4 \
+              -tags "${{ env.GOTAGS }}" \
+              -timeout=30m \
+              -json \
+              `go list -tags "${{ env.GOTAGS }}" ./... | grep -v upgrade | grep -v peering_commontopo | grep -v libs/decode` \
+              --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
+              --target-version local \
+              --latest-image docker.mirror.hashicorp.services/${{ env.CONSUL_LATEST_IMAGE_NAME }} \
+              --latest-version latest
+            ls -lrt
+        env:
+          # this is needed because of incompatibility between RYUK container and GHA
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          # tput complains if this isn't set to something.
+          TERM: ansi
 
-  #     # NOTE: ENT specific step as we store secrets in Vault.
-  #     - name: Fetch Secrets
-  #       if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
-  #       id: secrets
-  #       uses: hashicorp/vault-action@v4
-  #       with:
-  #         url: ${{ steps.vault-auth.outputs.addr }}
-  #         caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
-  #         token: ${{ steps.vault-auth.outputs.token }}
-  #         secrets: |
-  #             kv/data/github/${{ github.repository }}/datadog apikey | DATADOG_API_KEY;
+      # NOTE: ENT specific step as we store secrets in Vault.
+      - name: Authenticate to Vault
+        if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
+        id: vault-auth
+        run: vault-auth
 
-  #     - name: prepare datadog-ci
-  #       if: ${{ !cancelled() && !endsWith(github.repository, '-enterprise') }}
-  #       run: |
-  #         curl -L --fail "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci"
-  #         chmod +x /usr/local/bin/datadog-ci
+      # NOTE: ENT specific step as we store secrets in Vault.
+      - name: Fetch Secrets
+        if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
+        id: secrets
+        uses: hashicorp/vault-action@v4
+        with:
+          url: ${{ steps.vault-auth.outputs.addr }}
+          caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
+          token: ${{ steps.vault-auth.outputs.token }}
+          secrets: |
+              kv/data/github/${{ github.repository }}/datadog apikey | DATADOG_API_KEY;
 
-  #     - name: upload coverage
-  #       # do not run on forks and dependabot PRs
-  #       if: ${{ !cancelled() && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]' }}
-  #       env:
-  #         DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
-  #         DD_ENV: ci
-  #       run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
+      - name: prepare datadog-ci
+        if: ${{ !cancelled() && !endsWith(github.repository, '-enterprise') }}
+        run: |
+          curl -L --fail "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci"
+          chmod +x /usr/local/bin/datadog-ci
+
+      - name: upload coverage
+        # do not run on forks and dependabot PRs
+        if: ${{ !cancelled() && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]' }}
+        env:
+          DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
+          DD_ENV: ci
+        run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
 
   integration-test-with-deployer:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large ) }}
@@ -574,7 +576,7 @@ jobs:
             -parallel=2 \
             -failfast \
             -json \
-            `go list -tags "${{ env.GOTAGS }}" ./... | grep -v peering_commontopo | grep -v upgrade ` \
+            `go list -tags "${{ env.GOTAGS }}" ./... | grep -v peering_commontopo | grep -v upgrade | grep -v libs/decode` \
             --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
             --target-version local \
             --latest-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
@@ -627,6 +629,7 @@ jobs:
     - vault-integration-test
     - generate-envoy-job-matrices
     - envoy-integration-test
+    - compatibility-integration-test
     - integration-test-with-deployer
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     if: always() && needs.conditional-skip.outputs.skip-ci != 'true'

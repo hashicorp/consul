@@ -177,7 +177,7 @@ func NewGatewayServiceReg(ctx context.Context, gwCfg GatewayConfig, node libclus
 		"-service", gwCfg.Name,
 		"-namespace", gwCfg.Namespace,
 		"-partition", gwCfg.Partition,
-		"-address", "{{ GetInterfaceIP \"eth0\" }}:8443",
+		"-address", fmt.Sprintf("%s:8443", node.GetIP()),
 		"-admin-bind", fmt.Sprintf("0.0.0.0:%d", adminPort),
 	}
 	if doRegister {
