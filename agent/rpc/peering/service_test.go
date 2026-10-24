@@ -1611,7 +1611,7 @@ func TestPeeringService_PeeringDisabled(t *testing.T) {
 		actErr, ok := grpcstatus.FromError(err)
 		require.True(t, ok)
 		require.Equal(t, codes.FailedPrecondition, actErr.Code())
-		require.Equal(t, "peering must be enabled to use this endpoint", actErr.Message())
+		require.Equal(t, "peering is disabled", actErr.Message())
 	}
 
 	// Test all the endpoints.
