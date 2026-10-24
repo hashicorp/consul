@@ -264,6 +264,41 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			// No header_to_metadata filter; XFCC is still built and forwarded.
+			name: "http-public-listener-disable-xfcc-source-metadata",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["protocol"] = "http"
+					ns.Proxy.Config["envoy_disable_xfcc_source_metadata"] = true
+				}, nil)
+			},
+		},
+		{
+			// With peering the RBAC XFCC match must stay exactly as it is without the option.
+			name: "http-public-listener-disable-xfcc-source-metadata-with-peer-trust-bundles",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["protocol"] = "http"
+					ns.Proxy.Config["envoy_disable_xfcc_source_metadata"] = true
+				}, []proxycfg.UpdateEvent{{CorrelationID: "peering-trust-bundles", Result: proxycfg.TestPeerTrustBundles(t)}})
+			},
+		},
+		{
+			// Baseline for the case below: peered L7 intention, XFCC source metadata enabled.
+			name: "http-public-listener-peered-l7-intention",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return testSnapshotHTTPPeeredL7Intention(t, false)
+			},
+		},
+		{
+			// Same as above with the option set: the RBAC XFCC match must be identical and only
+			// the header_to_metadata filter may disappear.
+			name: "http-public-listener-peered-l7-intention-disable-xfcc-source-metadata",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return testSnapshotHTTPPeeredL7Intention(t, true)
+			},
+		},
+		{
 			name: "http-listener-with-timeouts",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
@@ -3866,4 +3901,33 @@ func getXDSFetchTimeoutTestCases() []goldenTestCase {
 			},
 		},
 	}
+}
+
+// testSnapshotHTTPPeeredL7Intention returns an HTTP sidecar snapshot with peer trust bundles and an
+// L7 intention from a peer, so the public listener RBAC filter matches on the XFCC header.
+func testSnapshotHTTPPeeredL7Intention(t testinf.T, disableXFCCSourceMetadata bool) *proxycfg.ConfigSnapshot {
+	bundles := proxycfg.TestPeerTrustBundles(t)
+	return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+		ns.Proxy.Config["protocol"] = "http"
+		if disableXFCCSourceMetadata {
+			ns.Proxy.Config["envoy_disable_xfcc_source_metadata"] = true
+		}
+	}, []proxycfg.UpdateEvent{
+		{CorrelationID: "peering-trust-bundles", Result: bundles},
+		{
+			CorrelationID: "intentions",
+			Result: structs.SimplifiedIntentions{
+				{
+					SourceName:      "source",
+					SourcePeer:      bundles.Bundles[0].PeerName,
+					DestinationName: "web",
+					Action:          structs.IntentionActionAllow,
+					Permissions: []*structs.IntentionPermission{{
+						Action: structs.IntentionActionAllow,
+						HTTP:   &structs.IntentionHTTPPermission{PathPrefix: "/api"},
+					}},
+				},
+			},
+		},
+	})
 }
