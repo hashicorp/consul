@@ -151,3 +151,11 @@ func TestRunWithClientAndLogger_NilLogger(t *testing.T) {
 		t.Fatalf("watcher didn't exit")
 	}
 }
+
+func TestMakeQueryOptionsWithContextAfterStop(t *testing.T) {
+	plan := mustParse(t, `{"type":"noop"}`)
+	plan.Stop()
+
+	makeQueryOptionsWithContext(plan, false)
+	defer plan.cancelFunc()
+}
