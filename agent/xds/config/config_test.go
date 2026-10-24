@@ -197,6 +197,38 @@ func TestParseProxyConfig(t *testing.T) {
 			},
 		},
 		{
+			name: "upstream connection idle timeout override",
+			input: map[string]interface{}{
+				"upstream_connection_idle_timeout_ms": float64(300000),
+			},
+			want: ProxyConfig{
+				LocalConnectTimeoutMs:           5000,
+				UpstreamConnectionIdleTimeoutMs: intPointer(300000),
+				Protocol:                        "tcp",
+			},
+		},
+		{
+			name: "upstream connection idle timeout zero disables it",
+			input: map[string]interface{}{
+				"upstream_connection_idle_timeout_ms": 0,
+			},
+			want: ProxyConfig{
+				LocalConnectTimeoutMs:           5000,
+				UpstreamConnectionIdleTimeoutMs: intPointer(0),
+				Protocol:                        "tcp",
+			},
+		},
+		{
+			name: "upstream connection idle timeout negative is ignored",
+			input: map[string]interface{}{
+				"upstream_connection_idle_timeout_ms": -1,
+			},
+			want: ProxyConfig{
+				LocalConnectTimeoutMs: 5000,
+				Protocol:              "tcp",
+			},
+		},
+		{
 			name: "balance inbound connections override, string",
 			input: map[string]interface{}{
 				"balance_inbound_connections": "exact_balance",
