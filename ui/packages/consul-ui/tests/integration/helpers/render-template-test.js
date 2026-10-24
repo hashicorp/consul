@@ -89,7 +89,18 @@ module('Integration | Helper | render-template', function (hooks) {
       result: 'http://localhost/?=',
     },
     {
-      href: 'http://localhost/?={{deep.Name}}',
+      href: 'http://localhost/?={{Service.Meta.dashboard}}',
+      vars: {
+        Service: {
+          Name: 'my-service',
+          Meta: {
+            dashboard: 'G7Z29GzMGz',
+          },
+        },
+      },
+      result: 'http://localhost/?=G7Z29GzMGz',
+    },
+    {
       vars: {
         deep: {
           Name: '#Na/me',
