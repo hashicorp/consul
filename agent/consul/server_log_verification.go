@@ -4,6 +4,7 @@
 package consul
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 
@@ -22,6 +23,15 @@ func isLogVerifyCheckpoint(l *raft.Log) (bool, error) {
 	if len(l.Data) < 1 {
 		// Shouldn't be possible! But no need to make it an error if it wasn't one
 		// before.
+		return false, nil
+	}
+	if len(l.Extensions) < 8 {
+		return false, nil
+	}
+	// Chunked raft entries can begin with any byte from the original payload,
+	// including the checkpoint message type. Only verifier checkpoints have the
+	// verifier's magic prefix in Extensions.
+	if binary.LittleEndian.Uint64(l.Extensions[:8]) != verifier.ExtensionMagicPrefix {
 		return false, nil
 	}
 	// Allow for the "ignore missing" bit to be set.
