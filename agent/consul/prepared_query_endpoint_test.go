@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"reflect"
 	"sort"
@@ -21,6 +22,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 
+	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
@@ -3339,6 +3341,205 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 			require.Equal(t, tt.expectedQuery, mock.JoinQueryLog())
 		})
 	}
+}
+
+// truncatedExecuteRemote performs a PreparedQuery.ExecuteRemote call through
+// the real msgpack client codec against a fake remote server. The server
+// encodes a response holding the given nodes but only writes the bytes up to
+// cutAfter and a few bytes past it, then closes the connection. This mimics a
+// remote RPC that fails part way through the reply, for example when the
+// session is torn down while the response is still being read.
+func truncatedExecuteRemote(t *testing.T, args *structs.PreparedQueryExecuteRemoteRequest,
+	reply *structs.PreparedQueryExecuteResponse, nodes structs.CheckServiceNodes, cutAfter string) error {
+	t.Helper()
+
+	clientConn, serverConn := net.Pipe()
+	t.Cleanup(func() {
+		clientConn.Close()
+		serverConn.Close()
+	})
+
+	serverErr := make(chan error, 1)
+	go func() {
+		defer serverConn.Close()
+
+		srv := msgpackrpc.NewCodecFromHandle(true, true, serverConn, structs.MsgpackHandle)
+		var req rpc.Request
+		if err := srv.ReadRequestHeader(&req); err != nil {
+			serverErr <- err
+			return
+		}
+		if err := srv.ReadRequestBody(nil); err != nil {
+			serverErr <- err
+			return
+		}
+
+		var buf bytes.Buffer
+		enc := codec.NewEncoder(&buf, structs.MsgpackHandle)
+		resp := rpc.Response{ServiceMethod: req.ServiceMethod, Seq: req.Seq}
+		if err := enc.Encode(&resp); err != nil {
+			serverErr <- err
+			return
+		}
+		if err := enc.Encode(&structs.PreparedQueryExecuteResponse{
+			Service:    "web",
+			Nodes:      nodes,
+			Datacenter: args.Datacenter,
+		}); err != nil {
+			serverErr <- err
+			return
+		}
+
+		full := buf.Bytes()
+		idx := bytes.Index(full, []byte(cutAfter))
+		if idx < 0 {
+			serverErr <- fmt.Errorf("cut marker %q not found in encoded reply", cutAfter)
+			return
+		}
+		cut := idx + len(cutAfter) + 4
+		if cut >= len(full) {
+			serverErr <- fmt.Errorf("cut point %d is not inside the %d byte reply", cut, len(full))
+			return
+		}
+		_, err := serverConn.Write(full[:cut])
+		serverErr <- err
+	}()
+
+	cc := msgpackrpc.NewCodecFromHandle(true, true, clientConn, structs.MsgpackHandle)
+	err := msgpackrpc.CallWithCodec(cc, "PreparedQuery.ExecuteRemote", args, reply)
+	require.NoError(t, <-serverErr)
+	return err
+}
+
+func TestQueryFailover_DiscardsPartialReplyOnError(t *testing.T) {
+	t.Parallel()
+
+	webNodes := func(n int) structs.CheckServiceNodes {
+		var nodes structs.CheckServiceNodes
+		for i := 1; i <= n; i++ {
+			nodes = append(nodes, structs.CheckServiceNode{
+				Node: &structs.Node{Node: fmt.Sprintf("node%d", i), Datacenter: "dc4"},
+				Service: &structs.NodeService{
+					ID:      fmt.Sprintf("web-%d", i),
+					Service: "web",
+					Port:    8080,
+				},
+			})
+		}
+		return nodes
+	}
+
+	requireNoNilServices := func(t *testing.T, nodes structs.CheckServiceNodes) {
+		t.Helper()
+		for i, node := range nodes {
+			require.NotNil(t, node.Node, "node %d has a nil Node", i)
+			require.NotNil(t, node.Service, "node %d has a nil Service", i)
+		}
+	}
+
+	query := func(dcs ...string) structs.PreparedQuery {
+		return structs.PreparedQuery{
+			Name: "web",
+			Service: structs.ServiceQuery{
+				Service: "web",
+				Failover: structs.QueryFailoverOptions{
+					Datacenters: dcs,
+				},
+			},
+		}
+	}
+
+	// Documents the underlying behavior: when the stream ends inside the
+	// Nodes array, the decoder has already sized the slice from the array
+	// header and the entries it did not reach are left zero valued.
+	t.Run("truncated reply decodes with nil Service entries", func(t *testing.T) {
+		var reply structs.PreparedQueryExecuteResponse
+		err := truncatedExecuteRemote(t, &structs.PreparedQueryExecuteRemoteRequest{Datacenter: "dc4"},
+			&reply, webNodes(20), "web-1")
+		require.Error(t, err)
+		require.Len(t, reply.Nodes, 20)
+
+		var nilServices int
+		for _, node := range reply.Nodes {
+			if node.Service == nil {
+				nilServices++
+			}
+		}
+		require.Positive(t, nilServices)
+	})
+
+	t.Run("last failover target fails", func(t *testing.T) {
+		mock := &mockQueryServer{
+			Datacenters: []string{"dc2", "dc3", "dc4"},
+			QueryFn: func(args *structs.PreparedQueryExecuteRemoteRequest, reply *structs.PreparedQueryExecuteResponse) error {
+				if args.Datacenter == "dc4" {
+					return truncatedExecuteRemote(t, args, reply, webNodes(20), "web-1")
+				}
+				return nil
+			},
+		}
+
+		var reply structs.PreparedQueryExecuteResponse
+		err := queryFailover(mock, query("dc2", "dc3", "dc4"), &structs.PreparedQueryExecuteRequest{}, &reply)
+		require.NoError(t, err)
+		require.Empty(t, reply.Nodes)
+		require.Equal(t, 3, reply.Failovers)
+		require.Equal(t, "dc2:PreparedQuery.ExecuteRemote|dc3:PreparedQuery.ExecuteRemote|dc4:PreparedQuery.ExecuteRemote",
+			mock.JoinQueryLog())
+	})
+
+	t.Run("single failover target fails", func(t *testing.T) {
+		mock := &mockQueryServer{
+			Datacenters: []string{"dc2"},
+			QueryFn: func(args *structs.PreparedQueryExecuteRemoteRequest, reply *structs.PreparedQueryExecuteResponse) error {
+				return truncatedExecuteRemote(t, args, reply, webNodes(20), "web-1")
+			},
+		}
+
+		var reply structs.PreparedQueryExecuteResponse
+		err := queryFailover(mock, query("dc2"), &structs.PreparedQueryExecuteRequest{}, &reply)
+		require.NoError(t, err)
+		require.Empty(t, reply.Nodes)
+		require.Equal(t, 1, reply.Failovers)
+	})
+
+	t.Run("non-last failover target fails", func(t *testing.T) {
+		mock := &mockQueryServer{
+			Datacenters: []string{"dc2", "dc3"},
+			QueryFn: func(args *structs.PreparedQueryExecuteRemoteRequest, reply *structs.PreparedQueryExecuteResponse) error {
+				if args.Datacenter == "dc2" {
+					return truncatedExecuteRemote(t, args, reply, webNodes(20), "web-1")
+				}
+				reply.Nodes = webNodes(2)
+				return nil
+			},
+		}
+
+		var reply structs.PreparedQueryExecuteResponse
+		err := queryFailover(mock, query("dc2", "dc3"), &structs.PreparedQueryExecuteRequest{}, &reply)
+		require.NoError(t, err)
+		require.Len(t, reply.Nodes, 2)
+		requireNoNilServices(t, reply.Nodes)
+		require.Equal(t, "dc3", reply.Datacenter)
+		require.Equal(t, 2, reply.Failovers)
+	})
+
+	// With no nodes in the reply the array header carries a zero length,
+	// so a truncated stream has nothing to leave behind.
+	t.Run("truncated empty reply cannot produce nil entries", func(t *testing.T) {
+		mock := &mockQueryServer{
+			Datacenters: []string{"dc2"},
+			QueryFn: func(args *structs.PreparedQueryExecuteRemoteRequest, reply *structs.PreparedQueryExecuteResponse) error {
+				return truncatedExecuteRemote(t, args, reply, nil, "Nodes")
+			},
+		}
+
+		var reply structs.PreparedQueryExecuteResponse
+		err := queryFailover(mock, query("dc2"), &structs.PreparedQueryExecuteRequest{}, &reply)
+		require.NoError(t, err)
+		require.Empty(t, reply.Nodes)
+		require.Equal(t, 1, reply.Failovers)
+	})
 }
 
 type serverTestMetadata struct {

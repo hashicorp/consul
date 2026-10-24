@@ -813,6 +813,8 @@ func queryFailover(q queryServer, query structs.PreparedQuery,
 
 		err = targetSelector(q, query, args, target, reply)
 		if err != nil {
+			// A failed RPC can leave a partly decoded reply; never return it.
+			reply.Nodes = nil
 			continue
 		}
 
