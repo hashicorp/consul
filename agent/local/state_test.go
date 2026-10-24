@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -2613,8 +2614,68 @@ func TestState_SyncChanges_DuplicateAddServiceOnlySyncsOnce(t *testing.T) {
 	require.Len(t, rpc.calls, 4)
 }
 
+func TestState_SyncFull_ConcurrentCheckUpdate(t *testing.T) {
+	state := local.NewState(local.Config{}, hclog.New(nil), new(token.Store))
+	state.TriggerSyncChanges = func() {}
+	check := &structs.HealthCheck{CheckID: "ttl", Status: api.HealthPassing}
+	checkID := check.CompoundCheckID()
+	var remote atomic.Pointer[structs.HealthCheck]
+	remote.Store(check.Clone())
+
+	readStarted := make(chan struct{})
+	finishRead := make(chan struct{})
+	state.Delegate = &fakeRPC{handle: func(method string, args, reply interface{}) error {
+		switch method {
+		case "Catalog.NodeServiceList":
+			reply.(*structs.IndexedNodeServiceList).NodeServices = structs.NodeServiceList{}
+		case "Health.NodeChecks":
+			reply.(*structs.IndexedHealthChecks).HealthChecks = structs.HealthChecks{remote.Load().Clone()}
+			close(readStarted)
+			<-finishRead
+		case "Catalog.Register":
+			if c := args.(*structs.RegisterRequest).Check; c != nil {
+				remote.Store(c.Clone())
+			}
+		default:
+			return fmt.Errorf("unexpected RPC: %s", method)
+		}
+		return nil
+	}}
+	require.NoError(t, state.AddCheck(check, "", false))
+	require.NoError(t, state.SyncChanges())
+
+	// Hold a full sync's passing snapshot while the TTL expires and an HTTP
+	// request tries to sync the critical state, then renews the TTL.
+	fullDone := make(chan error, 1)
+	go func() { fullDone <- state.SyncFull() }()
+	<-readStarted
+	state.UpdateCheck(checkID, api.HealthCritical, "TTL expired")
+	partialDone := make(chan error, 1)
+	go func() { partialDone <- state.SyncChanges() }()
+	select {
+	case err := <-partialDone:
+		require.NoError(t, err)
+		partialDone = nil
+	case <-time.After(100 * time.Millisecond):
+		// A partial sync must wait until the full sync has used its snapshot.
+	}
+	state.UpdateCheck(checkID, api.HealthPassing, "")
+	close(finishRead)
+	require.NoError(t, <-fullDone)
+	if partialDone != nil {
+		require.NoError(t, <-partialDone)
+	}
+
+	// Repeated heartbeats must not leave a passing check marked in sync
+	// while the catalog still contains the expired check.
+	state.UpdateCheck(checkID, api.HealthPassing, "")
+	require.NoError(t, state.SyncChanges())
+	require.Equal(t, state.Check(checkID), remote.Load())
+}
+
 type fakeRPC struct {
-	calls []callRPC
+	calls  []callRPC
+	handle func(method string, args, reply interface{}) error
 }
 
 type callRPC struct {
@@ -2624,6 +2685,9 @@ type callRPC struct {
 }
 
 func (f *fakeRPC) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
+	if f.handle != nil {
+		return f.handle(method, args, reply)
+	}
 	f.calls = append(f.calls, callRPC{method: method, args: args, reply: reply})
 	return nil
 }
