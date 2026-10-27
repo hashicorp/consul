@@ -3,16 +3,26 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<AppView>
-  <:header>
-    <h1>
-      Error {{@error.status}}
-    </h1>
-  </:header>
-  <:content>
-    <ErrorState
-      @error={{@error}}
-      @login={{if (eq @error.status "403") @login}}
-    />
-  </:content>
-</AppView>
+{{! @nested renders only the error state, for errors shown inside an existing
+    page (e.g. a tab panel), which already has its own AppView breadcrumbs and
+    heading. }}
+{{#if @nested}}
+  <ErrorState
+    @error={{@error}}
+    @login={{if (eq @error.status "403") @login}}
+  />
+{{else}}
+  <AppView>
+    <:header>
+      <h1>
+        Error {{@error.status}}
+      </h1>
+    </:header>
+    <:content>
+      <ErrorState
+        @error={{@error}}
+        @login={{if (eq @error.status "403") @login}}
+      />
+    </:content>
+  </AppView>
+{{/if}}

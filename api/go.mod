@@ -1,6 +1,6 @@
 module github.com/hashicorp/consul/api
 
-go 1.26.7
+go 1.26.10
 
 replace github.com/hashicorp/consul/sdk => ../sdk
 
@@ -15,7 +15,7 @@ retract (
 require (
 	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/google/go-cmp v0.7.0
-	github.com/hashicorp/consul/sdk v0.18.1
+	github.com/hashicorp/consul/sdk v0.19.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-multierror v1.1.1
@@ -49,7 +49,7 @@ require (
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	golang.org/x/mod v0.41.0 // indirect
-	golang.org/x/net v0.59.0 // indirect
+	golang.org/x/net v0.60.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/tools v0.49.0 // indirect

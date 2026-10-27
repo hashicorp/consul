@@ -18,6 +18,49 @@ When using `@onclick`, the `item.label` is passed to the handler. When using
 `@onTabClick` the entire 'item' is passed instead, therefore you can add
 arbitrary properties to the 'item' to be used in the handler.
 
+## Tab content
+
+Pass the tab content as the block so it is rendered inside the HDS tabpanel
+that is programmatically associated (`role="tabpanel"`/`aria-labelledby`) with
+its tab. Rendering content outside of `<TabNav>` leaves the tabpanels empty and
+breaks that relationship for assistive technology.
+
+By default the block is only rendered inside the selected panel, which is what
+route-backed tabs need as `{{outlet}}` must only be rendered once:
+
+```hbs
+<TabNav @items={{this.tabs}}>
+  <Outlet @name={{this.routeName}} @model={{route.model}} as |o|>
+    {{outlet}}
+  </Outlet>
+</TabNav>
+```
+
+Set `@renderAllPanels={{true}}` to render the block inside every panel, for
+state-backed tabs whose content must stay mounted while hidden. The block then
+receives a hash of `item`, `index` and `isVisible` and is responsible for
+rendering the right content for each panel:
+
+```hbs
+<TabNav @items={{this.tabs}} @onclick={{this.change}} @renderAllPanels={{true}} as |panel|>
+  {{#if (eq panel.index 0)}}
+    <FirstTabContent />
+  {{else}}
+    <SecondTabContent />
+  {{/if}}
+</TabNav>
+```
+
+`@items` is keyed by `label`, so labels must be unique within a TabNav.
+
+## Focus
+
+Activating a route-backed tab keeps keyboard focus on that tab, as in the
+WAI-ARIA tabs pattern. TabNav records the transition with the
+`navigation-focus` service, whose validator stops `Hds::AppHeader` from moving
+focus to the top of the page for that route change. All other route changes
+still move focus as usual.
+
 
 ```hbs
 <figure>

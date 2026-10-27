@@ -1,0 +1,3 @@
+```release-note:feature
+acl: Add OIDC RP-Initiated IdP logout for tokens created via an `oidc` auth method: `consul logout` prints the identity provider's logout URL for the user to open (or opens it in the default browser with the new `-open-browser` flag or `CONSUL_LOGOUT_OPEN_BROWSER` environment variable), and the web UI opens it on logout, terminating the IdP session. Activates automatically when the IdP advertises an `end_session_endpoint` in its OIDC discovery document, or when the logout endpoint is configured explicitly with the new `OIDCLogoutURL` auth method setting for providers that do not advertise one.
+```

@@ -9,9 +9,6 @@ active_versions {
   version "2.1" {
     ce_active = true
   }
-  version "2.0" {
-    ce_active = true
-  }
   version "1.21" {
     lts       = true
   }

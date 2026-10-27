@@ -1,7 +1,7 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
-name: Nightly Frontend Test 2.0.x
+name: Nightly Frontend Test 2.1.x
 on:
   schedule:
     - cron: "0 4 * * *"
@@ -9,8 +9,8 @@ on:
 
 env:
   EMBER_PARTITION_TOTAL: 4 # Has to be changed in tandem with the matrix.partition
-  BRANCH: "release/2.0.x"
-  BRANCH_NAME: "release-2.0.x" # Used for naming artifacts
+  BRANCH: "release/2.1.x"
+  BRANCH_NAME: "release-2.1.x" # Used for naming artifacts
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
 
 jobs:
@@ -91,7 +91,7 @@ jobs:
         run: make build-ci
 
       - name: Upload CE Frontend
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: frontend-ce-${{ env.BRANCH_NAME }}
           path: ./ui/packages/consul-ui/dist
@@ -131,7 +131,7 @@ jobs:
         run: make deps
 
       - name: Download CE Frontend
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: frontend-ce-${{ env.BRANCH_NAME }}
           path: ./ui/packages/consul-ui/dist
@@ -176,7 +176,7 @@ jobs:
         run: make build-ci
 
       - name: Upload ENT Frontend
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: frontend-ent-${{ env.BRANCH_NAME }}
           path: ./ui/packages/consul-ui/dist
@@ -216,7 +216,7 @@ jobs:
         run: make deps
 
       - name: Download ENT Frontend
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: frontend-ent-${{ env.BRANCH_NAME }}
           path: ./ui/packages/consul-ui/dist
@@ -253,7 +253,7 @@ jobs:
         run: make deps
 
       - name: Download ENT Frontend
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: frontend-ent-${{ env.BRANCH_NAME }}
           path: ./ui/packages/consul-ui/dist

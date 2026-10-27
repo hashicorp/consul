@@ -91,6 +91,14 @@ var envoyEscapeHatchKeys = map[string]bool{
 	"envoy_listener_tracing_json":       true,
 }
 
+var envoyEscapeHatchFieldNames = func() map[string]bool {
+	fieldNames := make(map[string]bool, len(envoyEscapeHatchKeys))
+	for key := range envoyEscapeHatchKeys {
+		fieldNames[strings.ReplaceAll(key, "_", "")] = true
+	}
+	return fieldNames
+}()
+
 // IsEnvoyEscapeHatchKey reports whether the given config map key is an Envoy
 // escape-hatch key. Comparison is case-insensitive: the mapstructure decoders
 // that ultimately consume these maps (command/connect/envoy/bootstrap_config.go,
@@ -98,7 +106,22 @@ var envoyEscapeHatchKeys = map[string]bool{
 // case-insensitively by default, so an exact-case comparison here could be
 // bypassed by a caller-supplied key that only differs in case.
 func IsEnvoyEscapeHatchKey(key string) bool {
-	return envoyEscapeHatchKeys[strings.ToLower(key)]
+	for protectedKey := range envoyEscapeHatchKeys {
+		if strings.EqualFold(key, protectedKey) {
+			return true
+		}
+	}
+	// mapstructure also matches Go field names case-insensitively when a key
+	// does not use the snake_case alias, e.g. EnvoyListenerJSON.
+	if strings.Contains(key, "_") {
+		return false
+	}
+	for fieldName := range envoyEscapeHatchFieldNames {
+		if strings.EqualFold(key, fieldName) {
+			return true
+		}
+	}
+	return false
 }
 
 // EnvoyEscapeHatchKeyNames returns a copy of the Envoy escape-hatch key names.

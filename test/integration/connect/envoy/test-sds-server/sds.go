@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"os"
 	"os/signal"
@@ -19,7 +20,6 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	cache "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	xds "github.com/envoyproxy/go-control-plane/pkg/server/v3"
-	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
@@ -68,7 +68,7 @@ func run(log hclog.Logger) error {
 
 	xdsServer := xds.NewServer(ctx, cache, callbacks)
 	grpcServer := grpc.NewServer()
-	grpclog.SetLoggerV2(logging.NewGRPCLogger("DEBUG", log))
+	grpclog.SetLoggerV2(newGRPCLogger("DEBUG", log))
 
 	secretservice.RegisterSecretDiscoveryServiceServer(grpcServer, xdsServer)
 
@@ -161,5 +161,55 @@ func makeLoggerCallbacks(log hclog.Logger) *xds.CallbackFuncs {
 				"resp.version", resp.VersionInfo,
 			)
 		},
+	}
+}
+
+// grpcLogger adapts an hclog.Logger to grpclog.LoggerV2. It mirrors
+// github.com/hashicorp/consul/logging.GRPCLogger so this test server does not
+// need to depend on the root consul module.
+type grpcLogger struct {
+	level  string
+	logger hclog.Logger
+}
+
+var _ grpclog.LoggerV2 = (*grpcLogger)(nil)
+
+func newGRPCLogger(logLevel string, logger hclog.Logger) *grpcLogger {
+	return &grpcLogger{level: logLevel, logger: logger}
+}
+
+// gRPC's INFO level is more akin to hclog's TRACE level.
+func (g *grpcLogger) Info(args ...interface{})         { g.logger.Trace(fmt.Sprint(args...)) }
+func (g *grpcLogger) Infoln(args ...interface{})       { g.Info(fmt.Sprint(args...)) }
+func (g *grpcLogger) Infof(f string, a ...interface{}) { g.Info(fmt.Sprintf(f, a...)) }
+
+func (g *grpcLogger) Warning(args ...interface{})   { g.logger.Warn(fmt.Sprint(args...)) }
+func (g *grpcLogger) Warningln(args ...interface{}) { g.Warning(fmt.Sprint(args...)) }
+func (g *grpcLogger) Warningf(f string, a ...interface{}) {
+	g.Warning(fmt.Sprintf(f, a...))
+}
+
+func (g *grpcLogger) Error(args ...interface{})   { g.logger.Error(fmt.Sprint(args...)) }
+func (g *grpcLogger) Errorln(args ...interface{}) { g.Error(fmt.Sprint(args...)) }
+func (g *grpcLogger) Errorf(f string, a ...interface{}) {
+	g.Error(fmt.Sprintf(f, a...))
+}
+
+func (g *grpcLogger) Fatal(args ...interface{})   { g.logger.Error(fmt.Sprint(args...)) }
+func (g *grpcLogger) Fatalln(args ...interface{}) { g.Fatal(fmt.Sprint(args...)) }
+func (g *grpcLogger) Fatalf(f string, a ...interface{}) {
+	g.Fatal(fmt.Sprintf(f, a...))
+}
+
+func (g *grpcLogger) V(l int) bool {
+	switch g.level {
+	case "TRACE":
+		return true
+	case "DEBUG":
+		return l < 2
+	case "INFO":
+		return l < 1
+	default:
+		return false
 	}
 }
