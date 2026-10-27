@@ -50,9 +50,9 @@ COPY --from=distroless /licenses/copyright.txt /licenses/
 
 COPY --from=consul /bin/consul /bin/
 
-# Install iptables and sudo, needed for tproxy.
+# Install nftables and sudo, needed for tproxy.
 RUN apt update -y \
-	&& apt install -y iptables sudo curl dnsutils
+	&& apt install -y nftables sudo curl dnsutils
 
 RUN sed '/_apt/d' /etc/passwd > /etc/passwd.new \
     && mv -f /etc/passwd.new /etc/passwd \

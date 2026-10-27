@@ -1,0 +1,16 @@
+{{!
+  Copyright IBM Corp. 2024, 2026
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{! Renders the block inside every TabNav tabpanel when there are login method tabs, or once
+    without a tablist when there aren't. Every panel stays mounted because the SSO panel's
+    yielded content must persist while the Token tab is selected (see consul/token/selector).
+    `panel.item` is undefined in the tab-less case, meaning the block owns every method. }}
+{{#if @items}}
+  <TabNav @items={{@items}} @onclick={{@onclick}} @renderAllPanels={{true}} as |panel|>
+    {{yield panel}}
+  </TabNav>
+{{else}}
+  {{yield (hash isVisible=true)}}
+{{/if}}

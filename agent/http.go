@@ -4,6 +4,7 @@
 package agent
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -19,17 +20,16 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/NYTimes/gziphandler"
 	"github.com/go-viper/mapstructure/v2"
-	"github.com/hashicorp/go-metrics"
-	"github.com/hashicorp/go-metrics/prometheus"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-metrics"
+	"github.com/hashicorp/go-metrics/prometheus"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -196,9 +196,7 @@ func (s *HTTPHandlers) handler() http.Handler {
 		// Register the wrapper.
 		wrapper := func(resp http.ResponseWriter, req *http.Request) {
 			start := time.Now()
-
-			// this method is implemented by different flavours of consul e.g. oss, ce. ent.
-			s.enterpriseRequest(resp, req, handler)
+			s.serveWithRequestBodyLimit(resp, req, handler)
 
 			labels := []metrics.Label{{Name: "method", Value: req.Method}, {Name: "path", Value: path_label}}
 			metrics.MeasureSinceWithLabels([]string{"api", "http"}, start, labels)
@@ -274,17 +272,22 @@ func (s *HTTPHandlers) handler() http.Handler {
 	handlePProf("/debug/pprof/trace", pprof.Trace)
 
 	resourceAPIPrefix := "/api"
-	mux.Handle(resourceAPIPrefix+"/",
-		http.StripPrefix(resourceAPIPrefix,
-			resourcehttp.NewHandler(
-				resourceAPIPrefix,
-				s.agent.delegate.ResourceServiceClient(),
-				s.agent.baseDeps.Registry,
-				s.parseToken,
-				s.agent.logger.Named(logging.HTTP),
-			),
+	resourceHandler := http.StripPrefix(resourceAPIPrefix,
+		resourcehttp.NewHandler(
+			resourceAPIPrefix,
+			s.agent.delegate.ResourceServiceClient(),
+			s.agent.baseDeps.Registry,
+			s.parseToken,
+			s.agent.logger.Named(logging.HTTP),
 		),
 	)
+	mux.Handle(resourceAPIPrefix+"/", http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		if shouldLimitRequestBody(req) && !s.limitRequestBody(resp, req) {
+			s.writeRequestBodyTooLarge(resp, req)
+			return
+		}
+		resourceHandler.ServeHTTP(resp, req)
+	}))
 
 	if s.IsUIEnabled() {
 		// Note that we _don't_ support reloading ui_config.{enabled, content_dir,
@@ -554,6 +557,8 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 			}
 
 			switch {
+			case isRequestBodyTooLarge(err):
+				resp.WriteHeader(http.StatusRequestEntityTooLarge)
 			case isForbidden(err):
 				resp.WriteHeader(http.StatusForbidden)
 			case isTooManyRequests(err):
@@ -673,6 +678,97 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 		resp.WriteHeader(httpCode)
 		resp.Write(buf)
 	}
+}
+
+func shouldLimitRequestBody(req *http.Request) bool {
+	if req.Method == http.MethodGet || req.Method == http.MethodHead || req.Method == http.MethodOptions {
+		return false
+	}
+
+	// These endpoints stream data or enforce a separate configurable limit.
+	if req.URL.Path == "/v1/txn" || req.URL.Path == "/v1/snapshot" || req.URL.Path == "/v1/kv" || strings.HasPrefix(req.URL.Path, "/v1/kv/") {
+		return false
+	}
+
+	return true
+}
+
+type requestBodyLimit struct {
+	io.ReadCloser
+	exceeded bool
+}
+
+func (b *requestBodyLimit) Read(p []byte) (int, error) {
+	n, err := b.ReadCloser.Read(p)
+	var maxBytesErr *http.MaxBytesError
+	if errors.As(err, &maxBytesErr) {
+		b.exceeded = true
+	}
+	return n, err
+}
+
+// serveWithRequestBodyLimit enforces the request body limit and then serves the
+// request through enterpriseRequest. Rejected requests still go through
+// enterpriseRequest so they are audited.
+func (s *HTTPHandlers) serveWithRequestBodyLimit(resp http.ResponseWriter, req *http.Request, handler func(http.ResponseWriter, *http.Request)) {
+	if shouldLimitRequestBody(req) && !s.limitRequestBody(resp, req) {
+		handler = s.writeRequestBodyTooLarge
+	}
+	s.enterpriseRequest(resp, req, handler)
+}
+
+func (s *HTTPHandlers) limitRequestBody(resp http.ResponseWriter, req *http.Request) bool {
+	limit := s.agent.config.HTTPMaxRequestBodySize
+	if req.Body == nil || req.Body == http.NoBody {
+		return true
+	}
+	if req.ContentLength > limit {
+		// Drop the declared-oversized body so neither auditing nor handlers read it.
+		req.Body = http.NoBody
+		return false
+	}
+	if req.ContentLength < 0 {
+		// The size of a body without Content-Length is only known once it has
+		// been read in full. Read at most limit+1 bytes so the limit applies to
+		// the whole body, not just to the part a handler decodes before
+		// stopping (for example a JSON value followed by padding).
+		body, err := io.ReadAll(io.LimitReader(req.Body, limit+1))
+		if int64(len(body)) > limit {
+			req.Body = http.NoBody
+			return false
+		}
+		var buffered io.Reader = bytes.NewReader(body)
+		if err != nil {
+			buffered = io.MultiReader(buffered, errReader{err: err})
+		}
+		req.Body = io.NopCloser(buffered)
+		return true
+	}
+	req.Body = &requestBodyLimit{
+		ReadCloser: http.MaxBytesReader(resp, req.Body, limit),
+	}
+	return true
+}
+
+// errReader returns err once the buffered part of a request body is consumed,
+// so handlers see the same read failure they would have seen unbuffered.
+type errReader struct {
+	err error
+}
+
+func (r errReader) Read([]byte) (int, error) {
+	return 0, r.err
+}
+
+func (s *HTTPHandlers) writeRequestBodyTooLarge(resp http.ResponseWriter, _ *http.Request) {
+	resp.Header().Set(contentTypeHeader, plainContentType)
+	resp.WriteHeader(http.StatusRequestEntityTooLarge)
+	fmt.Fprintf(resp, "Request body too large, max size: %d bytes", s.agent.config.HTTPMaxRequestBodySize)
+}
+
+func isRequestBodyTooLarge(err error) bool {
+	var maxBytesErr *http.MaxBytesError
+	return errors.As(err, &maxBytesErr) || strings.Contains(err.Error(), "http: request body too large")
 }
 
 // marshalJSON marshals the object into JSON, respecting the user's pretty-ness

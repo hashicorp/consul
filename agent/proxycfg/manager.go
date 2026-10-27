@@ -212,18 +212,21 @@ func (m *Manager) Register(id ProxyID, ns *structs.NodeService, source ProxySour
 
 func (m *Manager) register(id ProxyID, ns *structs.NodeService, source ProxySource, token string, overwrite bool) error {
 	state, ok := m.proxies[id]
-	if ok && !state.stoppedRunning() {
-		if state.source != source && !overwrite {
-			// Registered by a different source, leave as-is.
-			return nil
+	if ok {
+		if !state.stoppedRunning() {
+			if state.source != source && !overwrite {
+				// Registered by a different source, leave as-is.
+				return nil
+			}
+
+			if !state.Changed(ns, token) {
+				// No change
+				return nil
+			}
 		}
 
-		if !state.Changed(ns, token) {
-			// No change
-			return nil
-		}
-
-		// We are updating the proxy, close its old state
+		// We are replacing the proxy's state, close the old one. A state that
+		// has stopped running may still hold live watches.
 		state.Close(false)
 	}
 
@@ -282,20 +285,25 @@ func (m *Manager) featureGateRefresher() {
 	}
 }
 
-// refreshFeatureGates invalidates only server-catalog API Gateway snapshots.
-// Local agent registrations are Phase 1's explicit fail-closed boundary.
+// refreshFeatureGates invalidates server-catalog API Gateway snapshots as
+// well as Connect proxy (sidecar) snapshots, which need feature-gate updates
+// regardless of source (e.g. LocalizedDNS applies to all sidecars). Local
+// agent registrations for API Gateway are not affected by any gate and are
+// excluded.
 func (m *Manager) refreshFeatureGates() {
 	m.mu.Lock()
 	states := make([]*state, 0)
 	for _, proxyState := range m.proxies {
-		if proxyState.source == ProxySourceCatalog && proxyState.serviceInstance.kind == structs.ServiceKindAPIGateway {
+		if proxyState.source == ProxySourceCatalog &&
+			(proxyState.serviceInstance.kind == structs.ServiceKindAPIGateway ||
+				proxyState.serviceInstance.kind == structs.ServiceKindConnectProxy) {
 			states = append(states, proxyState)
 		}
 	}
 	m.mu.Unlock()
 
 	if m.Logger != nil {
-		m.Logger.Debug("feature-gate refresh: dispatching to API Gateway states", "count", len(states))
+		m.Logger.Debug("feature-gate refresh: dispatching to feature-gate-aware states", "count", len(states))
 	}
 	event := UpdateEvent{CorrelationID: featureGateWatchID}
 	for _, proxyState := range states {

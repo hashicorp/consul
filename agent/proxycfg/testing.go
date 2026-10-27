@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/featuregate"
 	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -748,6 +749,15 @@ func (*noopDataSource[ReqType]) Notify(context.Context, ReqType, string, chan<- 
 	return nil
 }
 
+// staticFeatureGate is a minimal featuregate.Gate used by test fixtures to
+// enable a fixed set of features without requiring the full Store/Resolve
+// machinery.
+type staticFeatureGate map[string]bool
+
+func (g staticFeatureGate) Enabled(feature featuregate.Feature) bool {
+	return g[feature.String()]
+}
+
 // testConfigSnapshotFixture helps you execute normal proxycfg event machinery
 // to assemble a ConfigSnapshot via standard means to ensure test data used in
 // any tests is actually a valid configuration.
@@ -806,6 +816,11 @@ func testConfigSnapshotFixture(
 		},
 		serverSNIFn:           serverSNIFn,
 		intentionDefaultAllow: false, // TODO: make configurable
+		// Enable localized DNS by default in test fixtures so existing tests
+		// continue to exercise the inline/egress DNS listener code paths. Tests
+		// that need to verify the disabled behavior can override
+		// stateConfig.featureGate directly.
+		featureGate: staticFeatureGate{featuregate.LocalizedDNS.String(): true},
 	}
 	testConfigSnapshotFixtureEnterprise(&config)
 	s, err := newServiceInstanceFromNodeService(ProxyID{ServiceID: ns.CompoundServiceID()}, ns, token)

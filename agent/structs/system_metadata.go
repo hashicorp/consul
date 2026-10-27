@@ -39,6 +39,11 @@ const (
 	// Consul version, allowing a future framework revision to advance the marker.
 	SystemMetadataFeatureGatesVersionKey   = "feature-gates-version"
 	SystemMetadataFeatureGatesVersionValue = "2.1.0"
+
+	// SystemMetadataFeatureGatesStateKey names the snapshot-only entry that carries
+	// the feature-gate policy and status, so servers without the framework can
+	// restore the snapshot. It is never stored in the system-metadata table here.
+	SystemMetadataFeatureGatesStateKey = "feature-gates-state"
 )
 
 type SystemMetadataEntry struct {

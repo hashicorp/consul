@@ -13,6 +13,17 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
+var errFeatureGatePolicyUninitialized = HTTPError{
+	StatusCode: http.StatusServiceUnavailable,
+	Reason:     "feature-gate policy is not yet initialized; retry after the leader has committed the first policy generation",
+}
+
+// isFeatureGateUnavailable covers a request forwarded to a server that predates the feature-gate RPCs.
+func isFeatureGateUnavailable(err error) bool {
+	return structs.IsErrFeatureGatePolicyUninitialized(err) ||
+		(err != nil && strings.Contains(err.Error(), "rpc: can't find method Operator.FeatureGate"))
+}
+
 func (s *HTTPHandlers) OperatorFeatureGateList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.FeatureGateQueryRequest
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
@@ -20,6 +31,10 @@ func (s *HTTPHandlers) OperatorFeatureGateList(resp http.ResponseWriter, req *ht
 	}
 	var reply structs.FeatureGateQueryResponse
 	if err := s.agent.RPC(req.Context(), "Operator.FeatureGateGet", &args, &reply); err != nil {
+		if isFeatureGateUnavailable(err) {
+			resp.Header().Set("X-Consul-Feature-Gates-Uninitialized", "true")
+			return []api.FeatureGate{}, nil
+		}
 		return nil, err
 	}
 	defer setMeta(resp, &reply.QueryMeta)
@@ -48,11 +63,17 @@ func (s *HTTPHandlers) OperatorFeatureGate(resp http.ResponseWriter, req *http.R
 		}
 		var reply structs.FeatureGateQueryResponse
 		if err := s.agent.RPC(req.Context(), "Operator.FeatureGateGet", &args, &reply); err != nil {
+			if structs.IsErrUnknownFeatureGate(err) {
+				return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: err.Error()}
+			}
+			if isFeatureGateUnavailable(err) {
+				return nil, errFeatureGatePolicyUninitialized
+			}
 			return nil, err
 		}
 		defer setMeta(resp, &reply.QueryMeta)
 		if reply.Uninitialized {
-			return nil, HTTPError{StatusCode: http.StatusServiceUnavailable, Reason: "feature-gate policy is not yet initialized; retry after the leader has committed the first policy generation"}
+			return nil, errFeatureGatePolicyUninitialized
 		}
 		if len(reply.Features) != 1 {
 			return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: fmt.Sprintf("feature gate %q not found", name)}
@@ -77,6 +98,12 @@ func (s *HTTPHandlers) OperatorFeatureGate(resp http.ResponseWriter, req *http.R
 
 		var reply structs.FeatureGateSetResponse
 		if err := s.agent.RPC(req.Context(), "Operator.FeatureGateSet", &args, &reply); err != nil {
+			if structs.IsErrUnknownFeatureGate(err) {
+				return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: err.Error()}
+			}
+			if isFeatureGateUnavailable(err) {
+				return nil, errFeatureGatePolicyUninitialized
+			}
 			return nil, err
 		}
 		return api.FeatureGateSetResponse{Applied: reply.Applied, Feature: featureGateToAPI(reply.Feature)}, nil

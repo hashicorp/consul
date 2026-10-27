@@ -1491,6 +1491,41 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
+	t.Run("oversized request bodies are rejected before decode", func(t *testing.T) {
+		tests := []struct {
+			name    string
+			method  string
+			path    string
+			chunked bool
+		}{
+			{name: "anonymous login with content length", method: http.MethodPost, path: "/v1/acl/login"},
+			{name: "anonymous login chunked", method: http.MethodPost, path: "/v1/acl/login", chunked: true},
+			{name: "anonymous bootstrap", method: http.MethodPut, path: "/v1/acl/bootstrap"},
+			{name: "generic config map chunked", method: http.MethodPut, path: "/v1/config", chunked: true},
+			{name: "generic discovery map chunked", method: http.MethodPost, path: "/v1/discovery-chain/db", chunked: true},
+			{name: "wrong method body", method: http.MethodPut, path: "/v1/agent/self"},
+			{name: "resource api content length", method: http.MethodPut, path: "/api/demo/v2/artist/foo"},
+			{name: "chunked kv", method: http.MethodPut, path: "/v1/kv/foo", chunked: true},
+			{name: "encoded chunked kv", method: http.MethodPut, path: "/v1/k%76/foo", chunked: true},
+			{name: "chunked transaction", method: http.MethodPut, path: "/v1/txn", chunked: true},
+		}
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				body := bytes.NewReader(bytes.Repeat([]byte(" "), maxRequestBodyBytes+1))
+				req, err := http.NewRequest(tc.method, tc.path, body)
+				require.NoError(t, err)
+				if tc.chunked {
+					req.ContentLength = -1
+					req.TransferEncoding = []string{"chunked"}
+				}
+
+				resp := httptest.NewRecorder()
+				a.srv.h.ServeHTTP(resp, req)
+				require.Equal(t, http.StatusRequestEntityTooLarge, resp.Code)
+			})
+		}
+	})
+
 	idMap := make(map[string]string)
 	methodMap := make(map[string]*structs.ACLAuthMethod)
 	ruleMap := make(map[string]*structs.ACLBindingRule)
@@ -2041,6 +2076,19 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 			require.ErrorContains(t, err, acl.ErrNotFound.Error())
 		})
 	})
+}
+
+func TestHTTPMaxRequestBodySizeConfigurable(t *testing.T) {
+	const configuredLimit = 700 * 1024
+	a := NewTestAgent(t, fmt.Sprintf("limits { http_max_request_body_size = %d }", configuredLimit))
+	defer a.Shutdown()
+
+	body := bytes.NewReader(bytes.Repeat([]byte(" "), 600*1024))
+	req, err := http.NewRequest(http.MethodPut, "/v1/config", body)
+	require.NoError(t, err)
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+	require.NotEqual(t, http.StatusRequestEntityTooLarge, resp.Code)
 }
 
 func TestACLEndpoint_LoginLogout_jwt(t *testing.T) {

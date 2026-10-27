@@ -100,6 +100,7 @@ type FeatureGateInfo struct {
 
 type FeatureGateQueryRequest struct {
 	Name string
+	Node string
 	DCSpecificRequest
 }
 

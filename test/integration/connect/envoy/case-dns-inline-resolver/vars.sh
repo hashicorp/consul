@@ -8,3 +8,8 @@
 # listener advertises. Recursors for the egress DNS listener are supplied via
 # recursors.hcl.
 export REQUIRED_SERVICES="$DEFAULT_REQUIRED_SERVICES"
+
+export SKIP_CASE=""
+if [ "$XDS_TARGET" = "client" ]; then
+  export SKIP_CASE="case-dns-inline-resolver is not yet supported under XDS_TARGET=client"
+fi

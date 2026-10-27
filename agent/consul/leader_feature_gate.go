@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-version"
 
+	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/featuregate"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -33,9 +34,12 @@ func (s *Server) runFeatureGateReconciliation(ctx context.Context) error {
 	ticker := time.NewTicker(featureGateReconciliationInterval)
 	defer ticker.Stop()
 
+	warnedBootstrap := false
 	for {
 		if err := s.reconcileFeatureGates(); err != nil {
 			s.logger.Error("failed to reconcile feature gates", "error", err)
+		} else if !warnedBootstrap {
+			warnedBootstrap = s.warnBootstrapMismatchIfCommitted()
 		}
 
 		select {
@@ -54,12 +58,18 @@ func (s *Server) reconcileFeatureGates() error {
 	if !frameworkReady {
 		return nil
 	}
+	// No alive or failed server (all left or leaving) is an unknown view, not a
+	// cluster state; committing it would disable every gate until the next leader.
+	if _, found := ServersInDCMeetMinimumVersion(s, s.config.Datacenter, version.Must(version.NewVersion("0.0.0"))); !found {
+		return nil
+	}
 
 	_, policy, currentStatus, err := s.fsm.State().FeatureGatePolicyAndStatus(nil)
 	if err != nil {
 		return err
 	}
 
+	// A committed policy is never overwritten from local config.
 	request := structs.FeatureGateUpdateRequest{}
 	if policy == nil {
 		policy = &structs.FeatureGatePolicy{Settings: make(map[string]structs.FeatureGateSetting, len(s.config.FeatureGatesBootstrap))}
@@ -70,11 +80,6 @@ func (s *Server) reconcileFeatureGates() error {
 			}
 		}
 		request.Policy = policy
-	} else {
-		// Policy already committed — warn if local bootstrap config diverges from
-		// what was originally stored so operators notice configuration drift.
-		// Never overwrite committed policy from local config.
-		s.warnBootstrapMismatch(policy)
 	}
 
 	status := resolveFeatureGateStatus(s.featureGateRegistry, policy, func(minimum *version.Version) (bool, bool) {
@@ -211,7 +216,8 @@ func featureGateStatusesEqual(current, candidate *structs.FeatureGateStatus) boo
 // runFeatureGateCache runs on every server. It reads only committed local FSM
 // state and atomically publishes complete final generations.
 func (s *Server) runFeatureGateCache(ctx context.Context) {
-	retryLoopBackoff(ctx, func() error {
+	var lastStateStore *state.Store
+	watchLoopWithRetry(ctx, func() error {
 		stateStore := s.fsm.State()
 		ws := memdb.NewWatchSet()
 		ws.Add(stateStore.AbandonCh())
@@ -220,22 +226,42 @@ func (s *Server) runFeatureGateCache(ctx context.Context) {
 			s.logger.Error("failed to watch committed feature-gate status", "error", err)
 			return err
 		}
+
+		// A different state store means the FSM was replaced (e.g. a snapshot
+		// restore). Its status may be older than the cached generation, so it
+		// must replace the cache rather than go through Publish, which only
+		// accepts newer generations. The Raft applied index makes the change
+		// visible to blocking queries.
+		replaced := lastStateStore != nil && lastStateStore != stateStore
+		lastStateStore = stateStore
+		var appliedIndex uint64
+		if s.raft != nil {
+			appliedIndex = s.raft.AppliedIndex()
+		}
+
 		if status != nil {
 			features := make(map[string]bool, len(status.Features))
 			for name, resolved := range status.Features {
 				features[name] = resolved.EffectiveEnabled
 			}
-			published := s.featureGateStore.Publish(featuregate.Snapshot{
+			snapshot := featuregate.Snapshot{
 				StatusIndex:    status.ModifyIndex,
 				PolicyIndex:    status.PolicyIndex,
 				RegistryDigest: status.RegistryDigest,
 				Features:       features,
-			})
+			}
+			published := true
+			if replaced {
+				s.featureGateStore.Replace(snapshot, appliedIndex)
+			} else {
+				published = s.featureGateStore.Publish(snapshot)
+			}
 			if published {
 				s.logger.Debug("feature-gate cache updated from committed FSM state",
 					"status_index", status.ModifyIndex,
 					"policy_index", status.PolicyIndex,
 					"features", features,
+					"state_store_replaced", replaced,
 				)
 			}
 		} else {
@@ -244,7 +270,7 @@ func (s *Server) runFeatureGateCache(ctx context.Context) {
 			// Reset to an uninitialized, fail-closed state so that a stale snapshot
 			// from a previous generation cannot continue returning true for features
 			// that have not been confirmed by the authoritative FSM.
-			s.featureGateStore.Reset()
+			s.featureGateStore.Reset(appliedIndex)
 		}
 
 		if err := ws.WatchCtx(ctx); err != nil {
@@ -257,6 +283,23 @@ func (s *Server) runFeatureGateCache(ctx context.Context) {
 	}, func(err error) {
 		s.logger.Error("feature-gate cache watch failed, retrying", "error", err)
 	})
+}
+
+// watchLoopWithRetry runs loopFn until ctx is done and pauses only after an
+// error. retryLoopBackoff also rate limits successful iterations to one per
+// 5s after a burst of five, which would delay gate changes.
+func watchLoopWithRetry(ctx context.Context, loopFn func() error, errFn func(error)) {
+	for ctx.Err() == nil {
+		err := loopFn()
+		if err == nil {
+			continue
+		}
+		errFn(err)
+		select {
+		case <-ctx.Done():
+		case <-time.After(time.Second):
+		}
+	}
 }
 
 // bootstrapMismatch describes one divergence between local bootstrap config and
@@ -290,6 +333,17 @@ func bootstrapMismatches(localBootstrap map[string]bool, policy *structs.Feature
 		}
 	}
 	return out
+}
+
+// warnBootstrapMismatchIfCommitted reports whether a committed policy existed
+// and so the local bootstrap config was compared against it.
+func (s *Server) warnBootstrapMismatchIfCommitted() bool {
+	_, policy, _, err := s.fsm.State().FeatureGatePolicyAndStatus(nil)
+	if err != nil || policy == nil {
+		return false
+	}
+	s.warnBootstrapMismatch(policy)
+	return true
 }
 
 // warnBootstrapMismatch logs a warning for each feature in the local

@@ -158,6 +158,10 @@ module.exports = function (defaults, $ = process.env) {
       },
       trees: trees,
       addons: addons,
+      fingerprint: {
+        // referenced by name from the extensionless oidc/callback page
+        exclude: ['oidc/callback.js'],
+      },
       'ember-cli-babel': {
         includePolyfill: false,
       },

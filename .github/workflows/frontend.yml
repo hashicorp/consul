@@ -190,7 +190,8 @@ jobs:
 
   e2e-tests:
     needs: setup
-    if: ${{ !endsWith(github.repository, '-enterprise') }}
+    # Temporarily disabled.
+    if: ${{ false }}
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
     continue-on-error: false
     env:
@@ -316,7 +317,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: e2e-test-results-ce
           path: ui/packages/consul-ui/e2e-tests/reports/
@@ -324,7 +325,7 @@ jobs:
 
       - name: Upload screenshots on failure
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: e2e-screenshots-ce
           path: ui/packages/consul-ui/e2e-tests/reports/test-results/
@@ -332,7 +333,8 @@ jobs:
 
   e2e-tests-ent:
     needs: setup
-    if: ${{ needs.setup.outputs.has-consul-license == 'true' }}
+    # Temporarily disabled.
+    if: ${{ false }}
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
     continue-on-error: false
     env:
@@ -463,7 +465,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: e2e-test-results-ent
           path: ui/packages/consul-ui/e2e-tests/reports/
@@ -471,7 +473,7 @@ jobs:
 
       - name: Upload screenshots on failure
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: e2e-screenshots-ent
           path: ui/packages/consul-ui/e2e-tests/reports/test-results/

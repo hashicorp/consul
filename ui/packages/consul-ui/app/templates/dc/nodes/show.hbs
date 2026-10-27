@@ -79,7 +79,10 @@ as |item tomography|}}
               </h1>
               <Consul::Peer::Info @item={{item}} />
           </:header>
-          <:nav>
+          <:actions>
+            <ConsulCopyButton @value={{format-ipaddr item.Address}} @name="Address">{{format-ipaddr item.Address}}</ConsulCopyButton>
+          </:actions>
+          <:content>
             <TabNav @items={{
               compact
                 (array
@@ -113,23 +116,19 @@ as |item tomography|}}
                     selected=(is-href "dc.nodes.show.metadata")
                   )
                 )
-            }}/>
-          </:nav>
-          <:actions>
-            <ConsulCopyButton @value={{format-ipaddr item.Address}} @name="Address">{{format-ipaddr item.Address}}</ConsulCopyButton>
-          </:actions>
-          <:content>
-            <Outlet
-              @name={{this.routeName}}
-              @model={{assign
-                (hash
-                  item=item
-                  tomography=tomography
-                ) route.model
-              }}
-            as |o|>
-              {{outlet}}
-            </Outlet>
+            }}>
+              <Outlet
+                @name={{this.routeName}}
+                @model={{assign
+                  (hash
+                    item=item
+                    tomography=tomography
+                  ) route.model
+                }}
+              as |o|>
+                {{outlet}}
+              </Outlet>
+            </TabNav>
           </:content>
       </AppView>
 {{/let}}

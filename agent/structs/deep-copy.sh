@@ -25,7 +25,9 @@ deep-copy \
   -type ExposeConfig \
   -type ExportedServicesConfigEntry \
   -type FileSystemCertificateConfigEntry \
+  -type GatewayCredentialInjection \
   -type GatewayService \
+  -type GatewayServiceCredential \
   -type GatewayServiceTLSConfig \
   -type HTTPHeaderModifiers \
   -type HTTPRouteConfigEntry \

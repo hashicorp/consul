@@ -9,6 +9,7 @@ import (
 	"errors"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 	netRPC "github.com/hashicorp/consul-net-rpc/net/rpc"
@@ -52,6 +53,9 @@ var errHeaderTooLarge = errors.New("rpc: request header exceeds maximum allowed 
 //
 // Header and body are read through a single bufio.Reader so no bytes are lost
 // between the validation peek and the decode.
+//
+// A read deadline covers the header and body once the first request byte arrives.
+// Idle connections and handler execution (including blocking queries) are not timed out.
 type boundedHeaderCodec struct {
 	conn           net.Conn
 	br             *bufio.Reader
@@ -59,6 +63,7 @@ type boundedHeaderCodec struct {
 	enc            *codec.Encoder
 	bufW           *bufio.Writer
 	maxHeaderBytes int
+	readTimeout    time.Duration
 
 	writeLock sync.Mutex
 
@@ -68,8 +73,8 @@ type boundedHeaderCodec struct {
 
 // newBoundedHeaderCodec builds a ServerCodec for conn that enforces a per
 // request header byte cap. A non-positive maxHeaderBytes falls back to
-// rpcMaxHeaderBytes.
-func newBoundedHeaderCodec(conn net.Conn, h *codec.MsgpackHandle, maxHeaderBytes int) *boundedHeaderCodec {
+// rpcMaxHeaderBytes. A non-positive readTimeout disables request read deadlines.
+func newBoundedHeaderCodec(conn net.Conn, h *codec.MsgpackHandle, maxHeaderBytes int, readTimeout time.Duration) *boundedHeaderCodec {
 	if maxHeaderBytes <= 0 {
 		maxHeaderBytes = rpcMaxHeaderBytes
 	}
@@ -89,6 +94,7 @@ func newBoundedHeaderCodec(conn net.Conn, h *codec.MsgpackHandle, maxHeaderBytes
 		enc:            codec.NewEncoder(bufW, h),
 		bufW:           bufW,
 		maxHeaderBytes: maxHeaderBytes,
+		readTimeout:    readTimeout,
 	}
 }
 
@@ -97,9 +103,20 @@ func newBoundedHeaderCodec(conn net.Conn, h *codec.MsgpackHandle, maxHeaderBytes
 // prefixes; the trusted decoder then performs the actual decode, now guaranteed
 // not to allocate more than maxHeaderBytes for the header.
 func (c *boundedHeaderCodec) ReadRequestHeader(r *netRPC.Request) error {
+	if c.readTimeout > 0 {
+		// Peek before setting the deadline so idle pooled streams remain reusable.
+		if _, err := c.br.Peek(1); err != nil {
+			return err
+		}
+		if err := c.conn.SetReadDeadline(time.Now().Add(c.readTimeout)); err != nil {
+			return err
+		}
+	}
+
 	if err := c.validateHeaderSize(); err != nil {
 		return err
 	}
+
 	return c.dec.Decode(r)
 }
 
@@ -148,9 +165,15 @@ func (c *boundedHeaderCodec) ReadRequestBody(body interface{}) error {
 	if body == nil {
 		// net/rpc asks us to discard the body (e.g. unknown method).
 		var throwaway interface{}
-		return c.dec.Decode(&throwaway)
+		body = &throwaway
 	}
-	return c.dec.Decode(body)
+	if err := c.dec.Decode(body); err != nil {
+		return err
+	}
+	if c.readTimeout > 0 {
+		return c.conn.SetReadDeadline(time.Time{})
+	}
+	return nil
 }
 
 // WriteResponse encodes the response header and body back to the client.
