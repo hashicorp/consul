@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-metrics"
 	"github.com/hashicorp/go-metrics/prometheus"
 	"github.com/hashicorp/go-version"
@@ -151,14 +152,24 @@ func (c *ConfigEntry) checkMeshPQCCompatibility(entry structs.ConfigEntry) error
 		c.logger.Debug("unable to list LAN members to check post-quantum TLS support", "error", err)
 		return nil
 	}
-	if outdated := agentsWithoutMeshPQCSupport(members); len(outdated) > 0 {
-		metrics.IncrCounter([]string{"config_entry", "mesh", "pqc_outdated_agents"}, float32(len(outdated)))
-		c.logger.Warn("mesh config entry enables post-quantum TLS key exchange, but some agents run a Consul version that ignores it; "+
-			"sidecar proxies and gateways managed by these agents keep their previous TLS settings until the agents are upgraded",
-			"min_version", minMeshPQCVersion.String(),
-			"count", len(outdated),
-			"agents", formatNodeNames(outdated, maxReportedOutdatedAgents),
-		)
-	}
+	reportAgentsWithoutMeshPQCSupport(c.logger, members, metrics.IncrCounter)
 	return nil
+}
+
+// reportAgentsWithoutMeshPQCSupport logs a warning and increments
+// config_entry.mesh.pqc_outdated_agents when alive agents are too old to apply
+// mesh post-quantum settings. It returns the number of outdated agents.
+func reportAgentsWithoutMeshPQCSupport(logger hclog.Logger, members []serf.Member, incrCounter func(key []string, val float32)) int {
+	outdated := agentsWithoutMeshPQCSupport(members)
+	if len(outdated) == 0 {
+		return 0
+	}
+	incrCounter([]string{"config_entry", "mesh", "pqc_outdated_agents"}, float32(len(outdated)))
+	logger.Warn("mesh config entry enables post-quantum TLS key exchange, but some agents run a Consul version that ignores it; "+
+		"sidecar proxies and gateways managed by these agents keep their previous TLS settings until the agents are upgraded",
+		"min_version", minMeshPQCVersion.String(),
+		"count", len(outdated),
+		"agents", formatNodeNames(outdated, maxReportedOutdatedAgents),
+	)
+	return len(outdated)
 }

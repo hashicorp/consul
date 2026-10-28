@@ -4,11 +4,13 @@
 package consul
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"testing"
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
@@ -364,5 +366,57 @@ func TestConfigEntry_Apply_MeshECDHCurvesServerVersionGate(t *testing.T) {
 		_, entry, err := s.fsm.State().ConfigEntry(nil, structs.MeshConfig, structs.MeshConfigMesh, nil)
 		require.NoError(t, err)
 		require.Equal(t, []string{"X25519MLKEM768", "X25519"}, entry.(*structs.MeshConfigEntry).TLS.Outgoing.ECDHCurves)
+	})
+}
+
+func TestReportAgentsWithoutMeshPQCSupport_MetricAndLog(t *testing.T) {
+	t.Parallel()
+
+	member := func(name, build string) serf.Member {
+		return serf.Member{Name: name, Status: serf.StatusAlive, Tags: map[string]string{"role": "node", "build": build}}
+	}
+
+	type emitted struct {
+		key []string
+		val float32
+	}
+
+	t.Run("outdated agents emit the metric and a warning", func(t *testing.T) {
+		var buf bytes.Buffer
+		logger := hclog.New(&hclog.LoggerOptions{Output: &buf, Level: hclog.Warn})
+		var got []emitted
+		n := reportAgentsWithoutMeshPQCSupport(logger, []serf.Member{
+			member("client-new", "2.1.0:abcdef"),
+			member("client-b", "2.0.4:abcdef"),
+			member("client-a", "1.22.3:abcdef"),
+		}, func(key []string, val float32) { got = append(got, emitted{key, val}) })
+
+		require.Equal(t, 2, n)
+		require.Equal(t, []emitted{{key: []string{"config_entry", "mesh", "pqc_outdated_agents"}, val: 2}}, got)
+		require.Contains(t, buf.String(), "[WARN]")
+		require.Contains(t, buf.String(), "post-quantum TLS key exchange")
+		require.Contains(t, buf.String(), "agents=\"client-a, client-b\"")
+		require.NotContains(t, buf.String(), "client-new")
+	})
+
+	t.Run("no outdated agents emit nothing", func(t *testing.T) {
+		var buf bytes.Buffer
+		logger := hclog.New(&hclog.LoggerOptions{Output: &buf, Level: hclog.Trace})
+		called := false
+		n := reportAgentsWithoutMeshPQCSupport(logger, []serf.Member{
+			member("client-1", "2.1.0:abcdef"),
+		}, func([]string, float32) { called = true })
+
+		require.Zero(t, n)
+		require.False(t, called)
+		require.Empty(t, buf.String())
+	})
+
+	t.Run("metric is registered for Prometheus", func(t *testing.T) {
+		var names [][]string
+		for _, d := range ConfigEntryCounters {
+			names = append(names, d.Name)
+		}
+		require.Contains(t, names, []string{"config_entry", "mesh", "pqc_outdated_agents"})
 	})
 }
