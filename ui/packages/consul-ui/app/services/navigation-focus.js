@@ -29,6 +29,7 @@ export default class NavigationFocusService extends Service {
     if (tabRoute && matchesRoute(transition.to?.name, tabRoute)) {
       return false;
     }
-    return !routeInfoEqual(transition.from, transition.to);
+    // Live search changes ?filter= without navigating away from the list.
+    return !routeInfoEqual(transition.from, transition.to, ['filter']);
   };
 }
