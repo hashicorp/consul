@@ -1049,6 +1049,7 @@ func Test_injectRequestNormalizationOnFilterChains(t *testing.T) {
 }
 
 func TestMakeTLSParametersFromProxyTLSConfig_ECDHCurves(t *testing.T) {
+	pqcDefaults := []string{"X25519MLKEM768", "X25519", "P-256"}
 	tests := map[string]struct {
 		input *structs.MeshDirectionalTLSConfig
 		want  *envoy_tls_v3.TlsParameters
@@ -1068,7 +1069,8 @@ func TestMakeTLSParametersFromProxyTLSConfig_ECDHCurves(t *testing.T) {
 			},
 			want: &envoy_tls_v3.TlsParameters{
 				TlsMinimumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
-				EcdhCurves:                []string{"X25519MLKEM768", "X25519"},
+				TlsMaximumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
+				EcdhCurves:                pqcDefaults,
 			},
 		},
 		"TLSv1_3 with empty curves slice injects PQC default curves": {
@@ -1078,7 +1080,8 @@ func TestMakeTLSParametersFromProxyTLSConfig_ECDHCurves(t *testing.T) {
 			},
 			want: &envoy_tls_v3.TlsParameters{
 				TlsMinimumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
-				EcdhCurves:                []string{"X25519MLKEM768", "X25519"},
+				TlsMaximumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
+				EcdhCurves:                pqcDefaults,
 			},
 		},
 		"TLSv1_3 with explicit curves overrides default": {
@@ -1088,17 +1091,55 @@ func TestMakeTLSParametersFromProxyTLSConfig_ECDHCurves(t *testing.T) {
 			},
 			want: &envoy_tls_v3.TlsParameters{
 				TlsMinimumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
+				TlsMaximumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
 				EcdhCurves:                []string{"P-384"},
 			},
 		},
-		"TLSv1_3 with explicit PQC and classical curves": {
+		"TLSv1_3 with explicit PQC and classical curves is not extended with P-256": {
 			input: &structs.MeshDirectionalTLSConfig{
 				TLSMinVersion: types.TLSv1_3,
 				ECDHCurves:    []string{"X25519MLKEM768", "X25519"},
 			},
 			want: &envoy_tls_v3.TlsParameters{
 				TlsMinimumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
+				TlsMaximumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
 				EcdhCurves:                []string{"X25519MLKEM768", "X25519"},
+			},
+		},
+		"TLSv1_3 min with TLS_AUTO max defaults max to TLSv1_3": {
+			input: &structs.MeshDirectionalTLSConfig{
+				TLSMinVersion: types.TLSv1_3,
+				TLSMaxVersion: types.TLSVersionAuto,
+			},
+			want: &envoy_tls_v3.TlsParameters{
+				TlsMinimumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
+				TlsMaximumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
+				EcdhCurves:                pqcDefaults,
+			},
+		},
+		"TLSv1_3 min and max are preserved": {
+			input: &structs.MeshDirectionalTLSConfig{
+				TLSMinVersion: types.TLSv1_3,
+				TLSMaxVersion: types.TLSv1_3,
+			},
+			want: &envoy_tls_v3.TlsParameters{
+				TlsMinimumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
+				TlsMaximumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
+				EcdhCurves:                pqcDefaults,
+			},
+		},
+		"TLS_AUTO min does not set max or inject curves": {
+			input: &structs.MeshDirectionalTLSConfig{
+				TLSMinVersion: types.TLSVersionAuto,
+			},
+			want: &envoy_tls_v3.TlsParameters{},
+		},
+		"unspecified min with TLSv1_3 max is unchanged": {
+			input: &structs.MeshDirectionalTLSConfig{
+				TLSMaxVersion: types.TLSv1_3,
+			},
+			want: &envoy_tls_v3.TlsParameters{
+				TlsMaximumProtocolVersion: envoy_tls_v3.TlsParameters_TLSv1_3,
 			},
 		},
 		"TLSv1_2 with explicit TLSv1_3 max version": {
@@ -1113,7 +1154,7 @@ func TestMakeTLSParametersFromProxyTLSConfig_ECDHCurves(t *testing.T) {
 				EcdhCurves:                nil,
 			},
 		},
-		"TLSv1_2 with nil curves does not inject curves": {
+		"TLSv1_2 with nil curves does not inject curves or set max": {
 			input: &structs.MeshDirectionalTLSConfig{
 				TLSMinVersion: types.TLSv1_2,
 				ECDHCurves:    nil,
@@ -1140,6 +1181,14 @@ func TestMakeTLSParametersFromProxyTLSConfig_ECDHCurves(t *testing.T) {
 			assert.Equal(t, tc.want, got)
 		})
 	}
+}
+
+func TestMakeTLSParametersFromProxyTLSConfig_DoesNotAliasDefaults(t *testing.T) {
+	before := append([]string(nil), types.DefaultPQCECDHCurves...)
+	got := makeTLSParametersFromProxyTLSConfig(&structs.MeshDirectionalTLSConfig{TLSMinVersion: types.TLSv1_3})
+	require.NotEmpty(t, got.EcdhCurves)
+	got.EcdhCurves[0] = "mutated"
+	require.Equal(t, before, types.DefaultPQCECDHCurves)
 }
 
 func TestMakeTLSParametersFromGatewayTLSConfig(t *testing.T) {
