@@ -5,6 +5,7 @@ package consul
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -258,6 +259,11 @@ func (c *Client) LANMembers(filter LANMemberFilter) ([]serf.Member, error) {
 	return c.serf.Members(), nil
 }
 
+// ErrNodeNotFound is returned when a node targeted by an operation, such
+// as a force-leave, is not a member of the cluster. Callers that surface
+// this to clients can map it to a 404 instead of a generic 500.
+var ErrNodeNotFound = errors.New("agent: No node found")
+
 // RemoveFailedNode is used to remove a failed node from the cluster.
 func (c *Client) RemoveFailedNode(node string, prune bool, entMeta *acl.EnterpriseMeta) error {
 	// Partitions definitely have to match.
@@ -266,7 +272,7 @@ func (c *Client) RemoveFailedNode(node string, prune bool, entMeta *acl.Enterpri
 			c.config.AgentEnterpriseMeta().PartitionOrDefault(), entMeta.PartitionOrDefault())
 	}
 	if !isSerfMember(c.serf, node) {
-		return fmt.Errorf("agent: No node found with name '%s'", node)
+		return fmt.Errorf("%w with name '%s'", ErrNodeNotFound, node)
 	}
 	if prune {
 		return c.serf.RemoveFailedNodePrune(node)
