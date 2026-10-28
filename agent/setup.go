@@ -425,6 +425,7 @@ func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.G
 		cache.Counters,
 		consul.ACLCounters,
 		consul.CatalogCounters,
+		consul.ConfigEntryCounters,
 		consul.ClientCounters,
 		consul.RPCCounters,
 		grpcWare.StatsCounters,

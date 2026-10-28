@@ -2957,7 +2957,7 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 			} else {
 				// Automatic curve injection: keep behaviour same as connect mesh
 				if err, isLessThanTLS13 := dst.TLSMinVersion.LessThan(types.TLSv1_3); err == nil && !isLessThanTLS13 {
-					dst.ECDHCurves = types.DefaultConsulAgentPQCECDHCurves
+					dst.ECDHCurves = append([]types.TLSECDHCurve(nil), types.DefaultConsulAgentPQCECDHCurves...)
 				}
 			}
 		} else {
