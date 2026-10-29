@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: Add acceptance coverage for `Service.Namespace` in dashboard URL templates
+```
