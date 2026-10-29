@@ -77,6 +77,9 @@ type MockStream struct {
 	sendCh chan *pbpeerstream.ReplicationMessage
 	recvCh chan *pbpeerstream.ReplicationMessage
 
+	mu      sync.Mutex
+	sendErr error
+
 	ctx context.Context
 }
 
@@ -92,8 +95,20 @@ func newTestReplicationStream(ctx context.Context) *MockStream {
 
 // Send implements pbpeerstream.PeeringService_StreamResourcesServer
 func (s *MockStream) Send(r *pbpeerstream.ReplicationMessage) error {
+	s.mu.Lock()
+	err := s.sendErr
+	s.mu.Unlock()
+	if err != nil {
+		return err
+	}
 	s.sendCh <- r
 	return nil
+}
+
+func (s *MockStream) SetSendErr(err error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.sendErr = err
 }
 
 // Recv implements pbpeerstream.PeeringService_StreamResourcesServer
