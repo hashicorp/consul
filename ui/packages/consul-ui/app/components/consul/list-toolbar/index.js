@@ -15,6 +15,7 @@ import { schedule } from '@ember/runloop';
  * page's existing query-param backed filter state (`@filter`, `@search` /
  * `@onsearch`) to and from the Filter Bar's `@filters` shape and `@onFilter`
  * callback, and renders a multi-select group per entry in `@filterGroups`.
+ * Search updates on input, including when the search field is cleared.
  *
  * It performs no data fetching of its own. The set of filters is fully
  * configuration-driven so the same toolbar can back different list pages
@@ -164,6 +165,19 @@ export default class ConsulListToolbar extends Component {
     }
 
     return filters;
+  }
+
+  // HDS commits search on change; handle input before blur, ignoring other controls.
+  @action
+  onSearchInput(event) {
+    if (!event.target.matches('.hds-filter-bar__search')) {
+      return;
+    }
+
+    if (this.args.onsearch && event.target.value !== (this.args.search || '')) {
+      this.args.onsearch(event);
+      this.ensureExpanded();
+    }
   }
 
   // Receives the full set of applied filters from the Filter Bar whenever the

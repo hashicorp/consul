@@ -35,7 +35,9 @@
     @filters={{this.appliedFilters}}
     @onFilter={{this.onFilter}}
     @hasSearch={{true}}
+    @hasLiveSearch={{true}}
     @searchPlaceholder={{this.searchPlaceholder}}
+    {{on "input" this.onSearchInput}}
     {{did-insert this.setupFilterBar}}
     as |F|
   >

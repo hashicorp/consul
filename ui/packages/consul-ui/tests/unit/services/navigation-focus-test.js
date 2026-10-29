@@ -24,6 +24,23 @@ module('Unit | Service | navigation-focus', function (hooks) {
     assert.false(service.routeChangeValidator(transition('dc.nodes.show', 'dc.nodes.show')));
   });
 
+  test('search does not prevent focus moving for other navigation', function (assert) {
+    const service = this.owner.lookup('service:navigation-focus');
+    const queryTransition = transition('dc.services.index', 'dc.services.index');
+    queryTransition.to.queryParams = { filter: 'consul', sort: 'Name:desc' };
+    assert.true(service.routeChangeValidator(queryTransition), 'other query params still count');
+
+    const paramTransition = transition('dc.services.index', 'dc.services.index');
+    paramTransition.from.params = { dc: 'dc1' };
+    paramTransition.to.params = { dc: 'dc2' };
+    paramTransition.to.queryParams = { filter: 'consul' };
+    assert.true(service.routeChangeValidator(paramTransition), 'route params still count');
+
+    const initialTransition = transition(undefined, 'dc.services.index');
+    initialTransition.to.queryParams = { filter: 'consul' };
+    assert.true(service.routeChangeValidator(initialTransition), 'initial navigation moves focus');
+  });
+
   test('it keeps focus on the tab for a TabNav route change, once', function (assert) {
     const service = this.owner.lookup('service:navigation-focus');
     service.tabTransitionTo('dc.nodes.show.sessions');

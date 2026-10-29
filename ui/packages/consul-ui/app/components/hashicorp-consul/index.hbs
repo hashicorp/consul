@@ -12,8 +12,9 @@
       region below. Silencing just the announced text here — rather than
       disabling @hasA11yRefocus outright — keeps the narrator's other jobs
       intact: it's also what renders the "Skip to main content" link and
-      moves focus on route change. Route changes made by activating a TabNav
-      tab are excluded so focus stays on the tab (see navigation-focus). }}
+      moves focus on route change. TabNav transitions and search-only query
+      changes are excluded so focus stays on the active control (see
+      navigation-focus). }}
     <Hds::AppHeader
       @a11yRefocusNavigationText=""
       @a11yRefocusRouteChangeValidator={{this.navigationFocus.routeChangeValidator}}
