@@ -6,6 +6,7 @@ package structs
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/hashicorp/consul/acl"
@@ -399,7 +400,24 @@ func validateECDHCurves(minVersion types.TLSVersion, curves []string) error {
 	if err := types.ValidateTLSVersionECDHCurvesCompat(minVersion); err != nil {
 		return err
 	}
-	return types.ValidateEnvoyECDHCurves(curves)
+	if err := types.ValidateEnvoyECDHCurves(curves); err != nil {
+		return err
+	}
+
+	// Consul service mesh leaf certificates always use ECDSA P-256 keys,
+	// regardless of the CA key type. In TLS 1.2 a peer only accepts an ECDSA
+	// certificate whose curve it offered, so a TLS 1.2 handshake fails with
+	// WRONG_CURVE unless P-256 is in the list.
+	if minVersion != types.TLSv1_3 && !slices.Contains(curves, string(types.CurveP256)) {
+		shown := string(minVersion)
+		if minVersion == types.TLSVersionUnspecified {
+			shown = "unspecified"
+		}
+		return fmt.Errorf("ecdh_curves must include %q when TLS 1.2 can be negotiated (TLSMinVersion is %s): "+
+			"Consul service mesh certificates use ECDSA P-256 keys. Add %q to ECDHCurves, or set TLSMinVersion and TLSMaxVersion to %q",
+			types.CurveP256, shown, types.CurveP256, types.TLSv1_3)
+	}
+	return nil
 }
 
 func validateTLSConfig(

@@ -886,9 +886,14 @@ func TestBuilder_buildTLSConfig_ECDHCurves(t *testing.T) {
 
 		res, err := b.buildTLSConfig(RuntimeConfig{}, cfg)
 		require.NoError(t, err)
-		require.Equal(t, types.DefaultConsulAgentPQCECDHCurves, res.InternalRPC.ECDHCurves)
-		require.Equal(t, types.DefaultConsulAgentPQCECDHCurves, res.GRPC.ECDHCurves)
+		pqcDefaults := []types.TLSECDHCurve{types.CurveX25519MLKEM768, types.CurveX25519, types.CurveP256}
+		require.Equal(t, pqcDefaults, res.InternalRPC.ECDHCurves)
+		require.Equal(t, pqcDefaults, res.GRPC.ECDHCurves)
 		require.Equal(t, []types.TLSECDHCurve{types.CurveP256}, res.HTTPS.ECDHCurves)
+
+		// The injected slice must not alias the package-level default.
+		res.InternalRPC.ECDHCurves[0] = "mutated"
+		require.Equal(t, pqcDefaults, types.DefaultConsulAgentPQCECDHCurves)
 	})
 
 	t.Run("safe omit curves on legacy override", func(t *testing.T) {

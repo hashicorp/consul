@@ -1,0 +1,15 @@
+```release-note:bug
+connect: When the mesh `TLSMinVersion` is `TLSv1_3` and `TLSMaxVersion` is unset or `TLS_AUTO`, Consul now sets the Envoy maximum TLS version to TLS 1.3. Previously, Envoy upstream connections defaulted to a TLS 1.2 maximum and every handshake failed with `NO_SUPPORTED_VERSIONS_ENABLED`.
+```
+
+```release-note:bug
+connect: The automatically injected post-quantum key-exchange list for TLS 1.3 is now `X25519MLKEM768, X25519, P-256` for Envoy and agent TLS, so peers that only support P-256 keep working after an upgrade. Explicitly configured `ECDHCurves` and `tls_ecdh_curves` are unchanged.
+```
+
+```release-note:improvement
+connect: Mesh config entry validation rejects `ECDHCurves` without `P-256` when TLS 1.2 can be negotiated, because service mesh certificates use ECDSA P-256 keys and such handshakes fail with `WRONG_CURVE`.
+```
+
+```release-note:improvement
+connect: Writing `ECDHCurves` in the mesh config entry is rejected while any server in the datacenter runs a version older than 2.1.0. When a mesh config entry enables post-quantum key exchange, servers log a warning listing agents older than 2.1.0, which ignore the setting, and increment `consul.config_entry.mesh.pqc_outdated_agents`.
+```

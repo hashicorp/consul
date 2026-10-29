@@ -266,26 +266,91 @@ func TestMeshConfigEntry_validateMeshDirectionalTLSConfig(t *testing.T) {
 			},
 			wantErr: `unsupported ecdh_curve "INVALID_CURVE"; must be one of [P-256, P-384, P-521, X25519, X25519MLKEM768]`,
 		},
-		"ECDHCurves with TLSv1_2 is valid": {
+		"ECDHCurves with TLSv1_2 including P-256 is valid": {
+			input: &MeshDirectionalTLSConfig{
+				TLSMinVersion: types.TLSv1_2,
+				ECDHCurves:    []string{"X25519MLKEM768", "X25519", "P-256"},
+			},
+			wantErr: "",
+		},
+		"ECDHCurves with TLSv1_2 and only P-256 is valid": {
+			input: &MeshDirectionalTLSConfig{
+				TLSMinVersion: types.TLSv1_2,
+				ECDHCurves:    []string{"P-256"},
+			},
+			wantErr: "",
+		},
+		"ECDHCurves with TLSv1_2 without P-256 is rejected": {
 			input: &MeshDirectionalTLSConfig{
 				TLSMinVersion: types.TLSv1_2,
 				ECDHCurves:    []string{"X25519MLKEM768", "X25519"},
 			},
+			wantErr: `ecdh_curves must include "P-256" when TLS 1.2 can be negotiated (TLSMinVersion is TLSv1_2): Consul service mesh certificates use ECDSA P-256 keys. Add "P-256" to ECDHCurves, or set TLSMinVersion and TLSMaxVersion to "TLSv1_3"`,
+		},
+		"ECDHCurves with TLSv1_2 min and TLSv1_3 max without P-256 is rejected": {
+			input: &MeshDirectionalTLSConfig{
+				TLSMinVersion: types.TLSv1_2,
+				TLSMaxVersion: types.TLSv1_3,
+				ECDHCurves:    []string{"X25519MLKEM768", "X25519"},
+			},
+			wantErr: `ecdh_curves must include "P-256" when TLS 1.2 can be negotiated (TLSMinVersion is TLSv1_2): Consul service mesh certificates use ECDSA P-256 keys. Add "P-256" to ECDHCurves, or set TLSMinVersion and TLSMaxVersion to "TLSv1_3"`,
+		},
+		"ECDHCurves with TLSv1_2 and other NIST curves without P-256 is rejected": {
+			input: &MeshDirectionalTLSConfig{
+				TLSMinVersion: types.TLSv1_2,
+				ECDHCurves:    []string{"P-384", "P-521"},
+			},
+			wantErr: `ecdh_curves must include "P-256" when TLS 1.2 can be negotiated (TLSMinVersion is TLSv1_2): Consul service mesh certificates use ECDSA P-256 keys. Add "P-256" to ECDHCurves, or set TLSMinVersion and TLSMaxVersion to "TLSv1_3"`,
+		},
+		"ECDHCurves with TLS_AUTO including P-256 is valid": {
+			input: &MeshDirectionalTLSConfig{
+				TLSMinVersion: types.TLSVersionAuto,
+				ECDHCurves:    []string{"X25519", "P-256"},
+			},
 			wantErr: "",
 		},
-		"ECDHCurves with TLS_AUTO is valid": {
+		"ECDHCurves with TLS_AUTO without P-256 is rejected": {
 			input: &MeshDirectionalTLSConfig{
 				TLSMinVersion: types.TLSVersionAuto,
 				ECDHCurves:    []string{"X25519"},
 			},
+			wantErr: `ecdh_curves must include "P-256" when TLS 1.2 can be negotiated (TLSMinVersion is TLS_AUTO): Consul service mesh certificates use ECDSA P-256 keys. Add "P-256" to ECDHCurves, or set TLSMinVersion and TLSMaxVersion to "TLSv1_3"`,
+		},
+		"ECDHCurves with unspecified TLS version including P-256 is valid": {
+			input: &MeshDirectionalTLSConfig{
+				TLSMinVersion: types.TLSVersionUnspecified,
+				ECDHCurves:    []string{"X25519MLKEM768", "P-256"},
+			},
 			wantErr: "",
 		},
-		"ECDHCurves with unspecified TLS version is valid": {
+		"ECDHCurves with unspecified TLS version without P-256 is rejected": {
 			input: &MeshDirectionalTLSConfig{
 				TLSMinVersion: types.TLSVersionUnspecified,
 				ECDHCurves:    []string{"X25519MLKEM768"},
 			},
+			wantErr: `ecdh_curves must include "P-256" when TLS 1.2 can be negotiated (TLSMinVersion is unspecified): Consul service mesh certificates use ECDSA P-256 keys. Add "P-256" to ECDHCurves, or set TLSMinVersion and TLSMaxVersion to "TLSv1_3"`,
+		},
+		"ECDHCurves with unspecified min and TLSv1_3 max without P-256 is rejected": {
+			input: &MeshDirectionalTLSConfig{
+				TLSMaxVersion: types.TLSv1_3,
+				ECDHCurves:    []string{"X25519MLKEM768", "X25519"},
+			},
+			wantErr: `ecdh_curves must include "P-256" when TLS 1.2 can be negotiated (TLSMinVersion is unspecified): Consul service mesh certificates use ECDSA P-256 keys. Add "P-256" to ECDHCurves, or set TLSMinVersion and TLSMaxVersion to "TLSv1_3"`,
+		},
+		"ECDHCurves with TLSv1_3 min and max without P-256 is valid": {
+			input: &MeshDirectionalTLSConfig{
+				TLSMinVersion: types.TLSv1_3,
+				TLSMaxVersion: types.TLSv1_3,
+				ECDHCurves:    []string{"X25519MLKEM768", "X25519"},
+			},
 			wantErr: "",
+		},
+		"unsupported curve is reported before the P-256 requirement": {
+			input: &MeshDirectionalTLSConfig{
+				TLSMinVersion: types.TLSv1_2,
+				ECDHCurves:    []string{"secp256k1"},
+			},
+			wantErr: `unsupported ecdh_curve "secp256k1"; must be one of [P-256, P-384, P-521, X25519, X25519MLKEM768]`,
 		},
 		"ECDHCurves with TLSv1_1 is rejected": {
 			input: &MeshDirectionalTLSConfig{
@@ -305,7 +370,7 @@ func TestMeshConfigEntry_validateMeshDirectionalTLSConfig(t *testing.T) {
 			input: &MeshDirectionalTLSConfig{
 				TLSMinVersion: types.TLSv1_2,
 				CipherSuites:  []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256},
-				ECDHCurves:    []string{"X25519"},
+				ECDHCurves:    []string{"X25519", "P-256"},
 			},
 			wantErr: "",
 		},
@@ -371,6 +436,31 @@ func TestMeshConfigEntry_Validate_DirectionalTLS(t *testing.T) {
 				},
 			},
 			wantErr: "error in outgoing TLS configuration: ecdh_curves can only be configured when tls_min_version is 'TLSv1_2' or higher, TLSMinVersion is set to TLSv1_1",
+		},
+		"incoming TLSv1_2 curves without P-256 propagates error": {
+			entry: &MeshConfigEntry{
+				TLS: &MeshTLSConfig{
+					Incoming: &MeshDirectionalTLSConfig{
+						TLSMinVersion: types.TLSv1_2,
+						ECDHCurves:    []string{"X25519MLKEM768", "X25519"},
+					},
+				},
+			},
+			wantErr: `error in incoming TLS configuration: ecdh_curves must include "P-256" when TLS 1.2 can be negotiated (TLSMinVersion is TLSv1_2): Consul service mesh certificates use ECDSA P-256 keys. Add "P-256" to ECDHCurves, or set TLSMinVersion and TLSMaxVersion to "TLSv1_3"`,
+		},
+		"outgoing curves without P-256 and no TLS version propagates error": {
+			entry: &MeshConfigEntry{
+				TLS: &MeshTLSConfig{
+					Incoming: &MeshDirectionalTLSConfig{
+						TLSMinVersion: types.TLSv1_3,
+						ECDHCurves:    []string{"X25519MLKEM768", "X25519"},
+					},
+					Outgoing: &MeshDirectionalTLSConfig{
+						ECDHCurves: []string{"X25519MLKEM768", "X25519"},
+					},
+				},
+			},
+			wantErr: `error in outgoing TLS configuration: ecdh_curves must include "P-256" when TLS 1.2 can be negotiated (TLSMinVersion is unspecified): Consul service mesh certificates use ECDSA P-256 keys. Add "P-256" to ECDHCurves, or set TLSMinVersion and TLSMaxVersion to "TLSv1_3"`,
 		},
 	}
 	for name, tc := range tests {
