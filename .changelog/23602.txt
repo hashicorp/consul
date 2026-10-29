@@ -1,0 +1,3 @@
+```release-note:bug
+connect: Fix a file descriptor leak in the internal Envoy bootstrap pipe shim when writing the bootstrap payload to the named pipe fails.
+```
