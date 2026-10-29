@@ -26,7 +26,7 @@ overrides:
   on-headers@<1.1.0: '>=1.1.0'
   tmp@<0.2.6: '>=0.2.6'
   rollup@<2.80.0: '>=2.80.0'
-  qs: '>=6.16.0'
+  qs: '>=6.16.1'
   underscore: '>=1.13.8'
   immutable: '>=5.1.8'
   serialize-javascript@<=7.0.4: '>=7.0.5'
