@@ -286,6 +286,7 @@ func (s *HTTPHandlers) CatalogServices(resp http.ResponseWriter, req *http.Reque
 	defer setMeta(resp, &out.QueryMeta)
 
 	if args.UseCache {
+		s.boundCacheBlockingWait(&args.QueryOptions)
 		raw, m, err := s.agent.cache.Get(req.Context(), cachetype.CatalogListServicesName, &args)
 		if err != nil {
 			metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_services"}, 1,
@@ -378,6 +379,7 @@ func (s *HTTPHandlers) catalogServiceNodes(resp http.ResponseWriter, req *http.R
 	defer setMeta(resp, &out.QueryMeta)
 
 	if args.UseCache {
+		s.boundCacheBlockingWait(&args.QueryOptions)
 		raw, m, err := s.agent.cache.Get(req.Context(), cachetype.CatalogServicesName, &args)
 		if err != nil {
 			metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_service_nodes"}, 1,
