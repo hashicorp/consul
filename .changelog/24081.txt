@@ -1,0 +1,3 @@
+```release-note:bug
+cli: fix acl binding-rule update resetting the bind type to service on partial updates
+```

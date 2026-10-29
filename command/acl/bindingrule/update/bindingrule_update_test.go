@@ -997,3 +997,120 @@ func TestBindingRuleUpdateCommand_noMerge(t *testing.T) {
 		require.Empty(t, rule.Selector)
 	})
 }
+
+func TestBindingRuleUpdateCommand_mergeKeepsUnsetBindType(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	a := agent.NewTestAgent(t, `
+	primary_datacenter = "dc1"
+	acl {
+		enabled = true
+		tokens {
+			initial_management = "root"
+		}
+	}`)
+
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	client := a.Client()
+
+	{
+		_, _, err := client.ACL().AuthMethodCreate(
+			&api.ACLAuthMethod{
+				Name: "test",
+				Type: "testing",
+			},
+			&api.WriteOptions{Token: "root"},
+		)
+		require.NoError(t, err)
+	}
+
+	t.Run("merge without bind-type keeps role bind type", func(t *testing.T) {
+		rule, _, err := client.ACL().BindingRuleCreate(
+			&api.ACLBindingRule{
+				AuthMethod:  "test",
+				Description: "test rule",
+				BindType:    api.BindingRuleBindTypeRole,
+				BindName:    "test",
+				Selector:    "serviceaccount.namespace==default",
+			},
+			&api.WriteOptions{Token: "root"},
+		)
+		require.NoError(t, err)
+
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		// Only the selector is changed, like the repro in #22228. No
+		// -bind-type flag is given, so the merge must keep "role".
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-id", rule.ID,
+			"-selector=serviceaccount.namespace==alt and serviceaccount.name==demo",
+		}
+
+		code := cmd.Run(args)
+		require.Equal(t, 0, code, "err: %s", ui.ErrorWriter.String())
+		require.Empty(t, ui.ErrorWriter.String())
+
+		updated, _, err := client.ACL().BindingRuleRead(
+			rule.ID,
+			&api.QueryOptions{Token: "root"},
+		)
+		require.NoError(t, err)
+		require.NotNil(t, updated)
+
+		require.Equal(t, api.BindingRuleBindTypeRole, updated.BindType)
+		require.Equal(t, "test", updated.BindName)
+		require.Equal(t, "serviceaccount.namespace==alt and serviceaccount.name==demo", updated.Selector)
+	})
+
+	t.Run("merge without bind-type keeps templated-policy bind vars", func(t *testing.T) {
+		rule, _, err := client.ACL().BindingRuleCreate(
+			&api.ACLBindingRule{
+				AuthMethod:  "test",
+				Description: "test rule",
+				BindType:    api.BindingRuleBindTypeTemplatedPolicy,
+				BindName:    api.ACLTemplatedPolicyServiceName,
+				BindVars: &api.ACLTemplatedPolicyVariables{
+					Name: "test-${serviceaccount.name}",
+				},
+				Selector: "serviceaccount.namespace==default",
+			},
+			&api.WriteOptions{Token: "root"},
+		)
+		require.NoError(t, err)
+
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-id", rule.ID,
+			"-selector=serviceaccount.namespace==alt and serviceaccount.name==demo",
+		}
+
+		code := cmd.Run(args)
+		require.Equal(t, 0, code, "err: %s", ui.ErrorWriter.String())
+		require.Empty(t, ui.ErrorWriter.String())
+
+		updated, _, err := client.ACL().BindingRuleRead(
+			rule.ID,
+			&api.QueryOptions{Token: "root"},
+		)
+		require.NoError(t, err)
+		require.NotNil(t, updated)
+
+		require.Equal(t, api.BindingRuleBindTypeTemplatedPolicy, updated.BindType)
+		require.NotNil(t, updated.BindVars)
+		require.Equal(t, "test-${serviceaccount.name}", updated.BindVars.Name)
+		require.Equal(t, "serviceaccount.namespace==alt and serviceaccount.name==demo", updated.Selector)
+	})
+}
