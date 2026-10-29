@@ -48,6 +48,28 @@ func TestParseProxyConfig(t *testing.T) {
 			},
 		},
 		{
+			name: "disable xfcc source metadata, bool",
+			input: map[string]interface{}{
+				"envoy_disable_xfcc_source_metadata": true,
+			},
+			want: ProxyConfig{
+				Protocol:                  "tcp",
+				LocalConnectTimeoutMs:     5000,
+				DisableXFCCSourceMetadata: "1",
+			},
+		},
+		{
+			name: "disable xfcc source metadata, string",
+			input: map[string]interface{}{
+				"envoy_disable_xfcc_source_metadata": "true",
+			},
+			want: ProxyConfig{
+				Protocol:                  "tcp",
+				LocalConnectTimeoutMs:     5000,
+				DisableXFCCSourceMetadata: "true",
+			},
+		},
+		{
 			name: "protocol override",
 			input: map[string]interface{}{
 				"protocol": "http",
@@ -438,6 +460,35 @@ func Test_ProxyConfig_GetXDSFetchTimeout(t *testing.T) {
 				require.NoError(t, err)
 			}
 			require.True(t, proto.Equal(tc.expect, conf.GetXDSFetchTimeout()))
+		})
+	}
+}
+
+func TestProxyConfig_XFCCSourceMetadataDisabled(t *testing.T) {
+	cases := []struct {
+		name  string
+		input map[string]interface{}
+		want  bool
+	}{
+		{"unset", map[string]interface{}{}, false},
+		{"bool true", map[string]interface{}{"envoy_disable_xfcc_source_metadata": true}, true},
+		{"bool false", map[string]interface{}{"envoy_disable_xfcc_source_metadata": false}, false},
+		{"string true", map[string]interface{}{"envoy_disable_xfcc_source_metadata": "true"}, true},
+		{"string TRUE", map[string]interface{}{"envoy_disable_xfcc_source_metadata": "TRUE"}, true},
+		{"string false", map[string]interface{}{"envoy_disable_xfcc_source_metadata": "false"}, false},
+		{"number 1", map[string]interface{}{"envoy_disable_xfcc_source_metadata": 1}, true},
+		{"junk string", map[string]interface{}{"envoy_disable_xfcc_source_metadata": "maybe"}, false},
+		// A bad value must never fail the decode of the whole config: the protocol stays http.
+		{"junk does not drop protocol", map[string]interface{}{"protocol": "http", "envoy_disable_xfcc_source_metadata": "maybe"}, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := ParseProxyConfig(tc.input)
+			require.NoError(t, err)
+			require.Equal(t, tc.want, got.XFCCSourceMetadataDisabled())
+			if p, ok := tc.input["protocol"]; ok {
+				require.Equal(t, p, got.Protocol)
+			}
 		})
 	}
 }
