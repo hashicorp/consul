@@ -1103,6 +1103,7 @@ func (s *HTTPHandlers) parseConsistency(resp http.ResponseWriter, req *http.Requ
 	if maxStale := query.Get("max_stale"); maxStale != "" {
 		dur, err := time.ParseDuration(maxStale)
 		if err != nil {
+			resp.Header().Set(contentTypeHeader, plainContentType)
 			resp.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(resp, "Invalid max_stale value %q", maxStale)
 			return true
