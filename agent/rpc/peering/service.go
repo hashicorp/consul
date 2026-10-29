@@ -196,7 +196,7 @@ type Store interface {
 	TrustBundleListByService(ws memdb.WatchSet, service, dc string, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.PeeringTrustBundle, error)
 }
 
-var peeringNotEnabledErr = grpcstatus.Error(codes.FailedPrecondition, "peering must be enabled to use this endpoint")
+var peeringNotEnabledErr = grpcstatus.Error(codes.FailedPrecondition, "peering is disabled")
 
 // GenerateToken implements the PeeringService RPC method to generate a
 // peering token which is the initial step in establishing a peering relationship
