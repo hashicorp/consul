@@ -821,6 +821,19 @@ func getMeshGatewayPeeringGoldenTestCases() []goldenTestCase {
 			},
 		},
 		{
+			// The exported http services get no idle timeout: mesh gateways pass
+			// connections through without pooling them.
+			name: "mesh-gateway-with-exported-peered-services-http-upstream-connection-idle-timeout",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotPeeredMeshGateway(t, "default-services-http", func(ns *structs.NodeService) {
+					if ns.Proxy.Config == nil {
+						ns.Proxy.Config = map[string]interface{}{}
+					}
+					ns.Proxy.Config["upstream_connection_idle_timeout_ms"] = 300000
+				}, nil)
+			},
+		},
+		{
 			name: "mesh-gateway-with-exported-peered-services-http-with-router",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotPeeredMeshGateway(t, "chain-and-l7-stuff", nil, nil)
@@ -2556,6 +2569,28 @@ func getCustomConfigurationGoldenTestCases(enterprise bool) []goldenTestCase {
 			},
 		},
 		{
+			// db is http and gets HTTP/1.1 set explicitly; the geo-cache prepared
+			// query stays tcp and is left alone.
+			name: "custom-upstream-connection-idle-timeout",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["upstream_connection_idle_timeout_ms"] = 300000
+					ns.Proxy.Upstreams[0].Config["protocol"] = "http"
+				}, nil)
+			},
+		},
+		{
+			// Both keep their HTTP/2 config alongside the idle timeout.
+			name: "custom-upstream-connection-idle-timeout-http2",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["upstream_connection_idle_timeout_ms"] = 300000
+					ns.Proxy.Upstreams[0].Config["protocol"] = "http2"
+					ns.Proxy.Upstreams[1].Config = map[string]interface{}{"protocol": "grpc"}
+				}, nil)
+			},
+		},
+		{
 			name: "custom-passive-healthcheck",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
@@ -2875,6 +2910,16 @@ func getTerminatingGatewayPeeringGoldenTestCases() []goldenTestCase {
 		{
 			name:   "terminating-gateway-http2-upstream-subsets",
 			create: proxycfg.TestConfigSnapshotTerminatingGatewaySubsetsHTTP2,
+		},
+		{
+			// Covers both the service cluster and its subset clusters.
+			name: "terminating-gateway-upstream-connection-idle-timeout",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				snap := proxycfg.TestConfigSnapshotTerminatingGatewaySubsetsHTTP2(t)
+				web := structs.NewServiceName("web", nil)
+				snap.TerminatingGateway.ServiceConfigs[web].ProxyConfig["upstream_connection_idle_timeout_ms"] = 300000
+				return snap
+			},
 		},
 		{
 			name:   "terminating-gateway-ignore-extra-resolvers",
@@ -3387,6 +3432,18 @@ func getIngressGatewayGoldenTestCases() []goldenTestCase {
 			},
 		},
 		{
+			name: "ingress-with-chain-upstream-connection-idle-timeout",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "http",
+					"simple", func(ns *structs.NodeService) {
+						if ns.Proxy.Config == nil {
+							ns.Proxy.Config = map[string]interface{}{}
+						}
+						ns.Proxy.Config["upstream_connection_idle_timeout_ms"] = 300000
+					}, nil, nil)
+			},
+		},
+		{
 			name:   "ingress-http-multiple-services",
 			create: proxycfg.TestConfigSnapshotIngress_HTTPMultipleServices,
 		},
@@ -3778,6 +3835,17 @@ func getPeeredGoldenTestCases() []goldenTestCase {
 			name: "connect-proxy-with-peered-upstreams-http2",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotPeeringWithHTTP2(t, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-peered-upstreams-http2-upstream-connection-idle-timeout",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotPeeringWithHTTP2(t, func(ns *structs.NodeService) {
+					if ns.Proxy.Config == nil {
+						ns.Proxy.Config = map[string]interface{}{}
+					}
+					ns.Proxy.Config["upstream_connection_idle_timeout_ms"] = 300000
+				})
 			},
 		},
 		{

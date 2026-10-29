@@ -1,0 +1,190 @@
+{
+  "nonce": "00000001",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "address": {
+        "socketAddress": {
+          "address": "127.0.0.1",
+          "portValue": 9090
+        }
+      },
+      "filterChains": [
+        {
+          "filters": [
+            {
+              "name": "envoy.filters.network.http_connection_manager",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+                "http2ProtocolOptions": {},
+                "httpFilters": [
+                  {
+                    "name": "envoy.filters.http.router",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
+                    }
+                  }
+                ],
+                "routeConfig": {
+                  "name": "payments?peer=cloud",
+                  "virtualHosts": [
+                    {
+                      "domains": [
+                        "*"
+                      ],
+                      "name": "payments.default.cloud",
+                      "routes": [
+                        {
+                          "match": {
+                            "prefix": "/"
+                          },
+                          "route": {
+                            "cluster": "payments.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "statPrefix": "upstream_peered.payments.default.cloud",
+                "tracing": {
+                  "randomSampling": {}
+                },
+                "upgradeConfigs": [
+                  {
+                    "upgradeType": "websocket"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "name": "payments?peer=cloud:127.0.0.1:9090",
+      "trafficDirection": "OUTBOUND"
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "address": {
+        "socketAddress": {
+          "address": "0.0.0.0",
+          "portValue": 9999
+        }
+      },
+      "filterChains": [
+        {
+          "filters": [
+            {
+              "name": "envoy.filters.network.rbac",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
+                "rules": {},
+                "statPrefix": "connect_authz"
+              }
+            },
+            {
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                "cluster": "local_app",
+                "statPrefix": "public_listener"
+              }
+            }
+          ],
+          "transportSocket": {
+            "name": "tls",
+            "typedConfig": {
+              "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
+              "commonTlsContext": {
+                "tlsCertificateSdsSecretConfigs": [
+                  {
+                    "name": "connect-leaf",
+                    "sdsConfig": {
+                      "ads": {},
+                      "resourceApiVersion": "V3"
+                    }
+                  }
+                ],
+                "tlsParams": {},
+                "validationContextSdsSecretConfig": {
+                  "name": "connect-root",
+                  "sdsConfig": {
+                    "ads": {},
+                    "resourceApiVersion": "V3"
+                  }
+                }
+              },
+              "requireClientCertificate": true
+            }
+          }
+        }
+      ],
+      "name": "public_listener:0.0.0.0:9999",
+      "trafficDirection": "INBOUND"
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "address": {
+        "socketAddress": {
+          "address": "127.0.0.1",
+          "portValue": 9090
+        }
+      },
+      "filterChains": [
+        {
+          "filters": [
+            {
+              "name": "envoy.filters.network.http_connection_manager",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+                "http2ProtocolOptions": {},
+                "httpFilters": [
+                  {
+                    "name": "envoy.filters.http.router",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
+                    }
+                  }
+                ],
+                "routeConfig": {
+                  "name": "refunds?peer=cloud",
+                  "virtualHosts": [
+                    {
+                      "domains": [
+                        "*"
+                      ],
+                      "name": "refunds.default.cloud",
+                      "routes": [
+                        {
+                          "match": {
+                            "prefix": "/"
+                          },
+                          "route": {
+                            "cluster": "refunds.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "statPrefix": "upstream_peered.refunds.default.cloud",
+                "tracing": {
+                  "randomSampling": {}
+                },
+                "upgradeConfigs": [
+                  {
+                    "upgradeType": "websocket"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "name": "refunds?peer=cloud:127.0.0.1:9090",
+      "trafficDirection": "OUTBOUND"
+    }
+  ],
+  "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
+  "versionInfo": "00000001"
+}
