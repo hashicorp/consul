@@ -513,6 +513,23 @@ func TestStructs_ServiceNode_IsSameService(t *testing.T) {
 			expect: true,
 		},
 		{
+			name: "ServiceMultiPort_DefaultChanged",
+			setup: func(sn *ServiceNode) {
+				sn.ServicePorts = ServicePorts{
+					{
+						Name:    "http",
+						Port:    8080,
+						Default: false,
+					},
+					{
+						Name:    "https",
+						Port:    8443,
+						Default: true,
+					},
+				}
+			},
+		},
+		{
 			name: "ServiceMultiPort_Different",
 			setup: func(sn *ServiceNode) {
 				sn.ServicePorts = ServicePorts{
@@ -1684,6 +1701,7 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 	}
 	check(func() { other.TaggedAddresses["lan"] = ServiceAddress{Address: "127.0.0.1", Port: 9999} }, func() { other.TaggedAddresses["lan"] = ServiceAddress{Address: "127.0.0.1", Port: 3456} })
 	check(func() { other.Ports[0].Name = "port1" }, func() { other.Ports[0].Name = "http" })
+	check(func() { other.Ports[1].Default = true }, func() { other.Ports[1].Default = false })
 }
 
 func TestStructs_NodeService_DefaultPort(t *testing.T) {
@@ -3435,6 +3453,80 @@ func TestServicePorts_GetPortWithName(t *testing.T) {
 	p, ok = ports.GetPortWithName("other")
 	require.False(t, ok)
 	require.Equal(t, 0, p)
+}
+
+func TestServicePorts_IsSame(t *testing.T) {
+	base := ServicePorts{
+		{Name: "metrics", Port: 9121, Default: true},
+		{Name: "server", Port: 6379},
+	}
+
+	cases := map[string]struct {
+		other  ServicePorts
+		expect bool
+	}{
+		"identical": {
+			other: ServicePorts{
+				{Name: "metrics", Port: 9121, Default: true},
+				{Name: "server", Port: 6379},
+			},
+			expect: true,
+		},
+		"different order": {
+			other: ServicePorts{
+				{Name: "server", Port: 6379},
+				{Name: "metrics", Port: 9121, Default: true},
+			},
+			expect: true,
+		},
+		"default port changed": {
+			other: ServicePorts{
+				{Name: "metrics", Port: 9121},
+				{Name: "server", Port: 6379, Default: true},
+			},
+			expect: false,
+		},
+		"default port changed in different order": {
+			other: ServicePorts{
+				{Name: "server", Port: 6379, Default: true},
+				{Name: "metrics", Port: 9121},
+			},
+			expect: false,
+		},
+		"port changed": {
+			other: ServicePorts{
+				{Name: "metrics", Port: 9122, Default: true},
+				{Name: "server", Port: 6379},
+			},
+			expect: false,
+		},
+		"name changed": {
+			other: ServicePorts{
+				{Name: "metrics", Port: 9121, Default: true},
+				{Name: "redis", Port: 6379},
+			},
+			expect: false,
+		},
+		"fewer ports": {
+			other: ServicePorts{
+				{Name: "metrics", Port: 9121, Default: true},
+			},
+			expect: false,
+		},
+		"nil": {
+			other:  nil,
+			expect: false,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			require.Equal(t, tc.expect, base.IsSame(tc.other))
+			require.Equal(t, tc.expect, tc.other.IsSame(base))
+		})
+	}
+
+	require.True(t, ServicePorts(nil).IsSame(ServicePorts{}))
 }
 
 func TestPeeredServiceNameFromString(t *testing.T) {
