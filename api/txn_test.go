@@ -4,6 +4,8 @@
 package api
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -832,4 +834,25 @@ func TestAPI_ClientTxnWrite(t *testing.T) {
 		},
 	}
 	require.Equal(t, expectedEntries, entries)
+}
+
+func TestAPI_ClientTxn_UnexpectedStatusIsStatusError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "Permission denied", http.StatusForbidden)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(&Config{Address: srv.URL, Scheme: "http"})
+	require.NoError(t, err)
+
+	ops := TxnOps{&TxnOp{KV: &KVTxnOp{Verb: KVGet, Key: "test"}}}
+	ok, ret, _, err := c.Txn().Txn(ops, nil)
+	require.False(t, ok)
+	require.Nil(t, ret)
+
+	var statusErr StatusError
+	require.ErrorAs(t, err, &statusErr)
+	require.Equal(t, http.StatusForbidden, statusErr.Code)
+	require.Equal(t, "Permission denied", statusErr.Body)
 }
