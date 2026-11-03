@@ -189,7 +189,10 @@ func (c *cmd) Run(args []string) int {
 		if c.description != "" {
 			rule.Description = c.description
 		}
-		if c.bindType != "" {
+		// Only overwrite the bind type when the flag was actually given.
+		// The flag defaults to "service", so checking the value directly
+		// would clobber the current bind type on every partial update.
+		if isFlagSet(c.flags, "bind-type") {
 			rule.BindType = api.BindingRuleBindType(c.bindType)
 		}
 		if c.bindName != "" {
@@ -198,8 +201,9 @@ func (c *cmd) Run(args []string) int {
 		if len(c.bindVars) > 0 {
 			rule.BindVars = processBindVars
 		}
-		// remove bind vars for non templated-policy binding rules types
-		if api.BindingRuleBindType(c.bindType) != api.BindingRuleBindTypeTemplatedPolicy {
+		// remove bind vars for non templated-policy binding rules types,
+		// based on the effective bind type after merging above
+		if rule.BindType != api.BindingRuleBindTypeTemplatedPolicy {
 			rule.BindVars = nil
 		}
 
