@@ -18,6 +18,10 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
+// vaultAWSServerIDHeader is the header Vault's AWS auth method checks against
+// its configured iam_server_id_header_value.
+const vaultAWSServerIDHeader = "X-Vault-AWS-IAM-Server-ID"
+
 // NewAWSAuthClient returns a VaultAuthClient that can log into Vault using the AWS auth method.
 func NewAWSAuthClient(authMethod *structs.VaultAuthMethod) *VaultAuthClient {
 	authClient := NewVaultAPIAuthClient(authMethod, "")
@@ -96,6 +100,7 @@ func (g *AWSLoginDataGenerator) GenerateLoginData(authMethod *structs.VaultAuthM
 		STSRegion:           awsConfig.Region,
 		STSEndpoint:         stsEndpoint, // Pass custom STS endpoint if specified
 		IAMEndpoint:         iamEndpoint, // Pass custom IAM endpoint if specified
+		ServerIDHeaderName:  vaultAWSServerIDHeader,
 		ServerIDHeaderValue: headerValue,
 		Logger:              hclog.NewNullLogger(),
 	})
