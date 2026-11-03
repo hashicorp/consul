@@ -1,0 +1,3 @@
+```release-note:bug
+peering: Fix a deadlock where cluster peering streams could stall indefinitely after a server restart when both peers export many services. The peering remained ACTIVE but stopped replicating services and heartbeats.
+```
