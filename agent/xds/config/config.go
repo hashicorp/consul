@@ -102,6 +102,12 @@ type ProxyConfig struct {
 	// respected (300s)
 	LocalIdleTimeoutMs *int `mapstructure:"local_idle_timeout_ms"`
 
+	// UpstreamConnectionIdleTimeoutMs is the number of milliseconds a connection
+	// to an http, http2 or grpc upstream can go without requests before the proxy
+	// closes it. If not set or negative, no value is set, Envoy defaults are
+	// respected (1h). 0 disables the timeout.
+	UpstreamConnectionIdleTimeoutMs *int `mapstructure:"upstream_connection_idle_timeout_ms"`
+
 	// Protocol describes the service's protocol. Valid values are "tcp",
 	// "http" and "grpc". Anything else is treated as tcp. This enables
 	// protocol aware features like per-request metrics and connection
@@ -168,6 +174,10 @@ func ParseProxyConfig(m map[string]interface{}) (ProxyConfig, error) {
 	}
 	if cfg.LocalConnectTimeoutMs < 1 {
 		cfg.LocalConnectTimeoutMs = 5000
+	}
+	// Envoy rejects a negative duration, and with it every HTTP upstream cluster.
+	if cfg.UpstreamConnectionIdleTimeoutMs != nil && *cfg.UpstreamConnectionIdleTimeoutMs < 0 {
+		cfg.UpstreamConnectionIdleTimeoutMs = nil
 	}
 
 	return cfg, nil
