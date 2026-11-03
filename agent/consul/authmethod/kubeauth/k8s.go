@@ -9,7 +9,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-jose/go-jose/v3/jwt"
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-hclog"
 	authv1 "k8s.io/api/authentication/v1"
@@ -42,6 +43,17 @@ const (
 
 	serviceAccountServiceNameAnnotation = "consul.hashicorp.com/service-name"
 )
+
+// signingAlgs lists the signature algorithms accepted when parsing Kubernetes
+// service account JWTs. go-jose v4 requires the allowed algorithms to be
+// enumerated explicitly. Signature verification is performed by the
+// Kubernetes TokenReview API, not here.
+var signingAlgs = []jose.SignatureAlgorithm{
+	jose.RS256, jose.RS384, jose.RS512,
+	jose.ES256, jose.ES384, jose.ES512,
+	jose.PS256, jose.PS384, jose.PS512,
+	jose.EdDSA,
+}
 
 type Config struct {
 	// Host must be a host string, a host:port pair, or a URL to the base of
@@ -94,7 +106,7 @@ func NewValidator(method *structs.ACLAuthMethod) (*Validator, error) {
 	if config.ServiceAccountJWT == "" {
 		return nil, fmt.Errorf("Config.ServiceAccountJWT is required")
 	}
-	if _, err := jwt.ParseSigned(config.ServiceAccountJWT); err != nil {
+	if _, err := jwt.ParseSigned(config.ServiceAccountJWT, signingAlgs); err != nil {
 		return nil, fmt.Errorf("Config.ServiceAccountJWT is not a valid JWT: %v", err)
 	}
 
@@ -131,7 +143,7 @@ func (v *Validator) Name() string { return v.name }
 func (v *Validator) Stop() {}
 
 func (v *Validator) ValidateLogin(ctx context.Context, loginToken string) (*authmethod.Identity, error) {
-	if _, err := jwt.ParseSigned(loginToken); err != nil {
+	if _, err := jwt.ParseSigned(loginToken, signingAlgs); err != nil {
 		return nil, fmt.Errorf("failed to parse and validate JWT: %v", err)
 	}
 

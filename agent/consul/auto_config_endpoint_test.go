@@ -34,7 +34,7 @@ import (
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 
-	"github.com/go-jose/go-jose/v3/jwt"
+	"github.com/go-jose/go-jose/v4/jwt"
 )
 
 type mockAutoConfigBackend struct {

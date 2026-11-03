@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-jose/go-jose/v3/jwt"
+	"github.com/go-jose/go-jose/v4/jwt"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 
