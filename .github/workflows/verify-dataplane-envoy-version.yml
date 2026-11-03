@@ -1,0 +1,46 @@
+# Copyright IBM Corp. 2024, 2026
+# SPDX-License-Identifier: BUSL-1.1
+
+# This action checks that the Envoy version bundled in consul-dataplane is within the
+# range of Envoy versions this branch of Consul supports. Verify Envoy Version compares
+# ENVOY_VERSIONS against upstream envoyproxy releases; this one compares it against the
+# Envoy that HashiCorp actually ships to mesh users through consul-dataplane.
+#
+# Pull request runs are limited to main, where the paired consul-dataplane branch is
+# also main. Use the workflow_dispatch input to check a release branch against the
+# consul-dataplane branch it is paired with.
+# Contact Consul team for any questions
+
+name: Verify Dataplane Envoy Version
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - envoyextensions/xdscommon/ENVOY_VERSIONS
+      - .github/scripts/verify_dataplane_envoy_version.sh
+      - .github/workflows/verify-dataplane-envoy-version.yml
+  schedule:
+    # Mondays at 06:00 UTC, so drift introduced by a consul-dataplane bump is reported
+    # even when nothing changes in this repository.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      dataplane-ref:
+        description: The consul-dataplane ref to check against (e.g. release/1.9.x)
+        type: string
+        default: main
+
+jobs:
+  verify-dataplane-envoy-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Verify consul-dataplane Envoy version is supported
+        run: ./.github/scripts/verify_dataplane_envoy_version.sh "${DATAPLANE_REF}"
+        env:
+          DATAPLANE_REF: ${{ inputs.dataplane-ref || 'main' }}
