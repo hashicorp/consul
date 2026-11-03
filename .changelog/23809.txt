@@ -1,0 +1,3 @@
+```release-note:bug
+watch: prevent a panic when a watch is stopped while starting a request
+```
