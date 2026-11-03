@@ -1690,12 +1690,15 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 			filterOpts.stripForwardClientCertHeader = true
 			filterOpts.forwardClientPolicy = envoy_http_v3.HttpConnectionManager_APPEND_FORWARD
 
-			addMeta, err := parseXFCCToDynamicMetaHTTPFilter()
-			if err != nil {
-				return nil, err
+			// The consul.* source metadata costs five regexes over the whole XFCC header per
+			// request. Services that opt out keep XFCC (peered RBAC reads it directly).
+			if !cfg.XFCCSourceMetadataDisabled() {
+				addMeta, err := parseXFCCToDynamicMetaHTTPFilter()
+				if err != nil {
+					return nil, err
+				}
+				filterOpts.httpAuthzFilters = append(filterOpts.httpAuthzFilters, addMeta)
 			}
-			filterOpts.httpAuthzFilters = append(filterOpts.httpAuthzFilters, addMeta)
-
 		}
 		setNormalizationOptions(cfgSnap.MeshConfig().GetHTTPIncomingRequestNormalization(), &filterOpts)
 	}
