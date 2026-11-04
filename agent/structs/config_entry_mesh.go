@@ -490,3 +490,8 @@ func validateHeadersWithUnderscoresAction(v HeadersWithUnderscoresAction) error 
 	}
 	return nil
 }
+
+// ValidateMeshOutgoingECDHCurvesUpdate is a stub replaced in the next commit.
+func ValidateMeshOutgoingECDHCurvesUpdate(updated *MeshConfigEntry, current ConfigEntry) error {
+	return nil
+}

@@ -1206,3 +1206,40 @@ func TestBuilder_serviceKindVal(t *testing.T) {
 		require.Equal(t, structs.ServiceKindTypical, b.serviceKindVal(&s))
 	})
 }
+
+func TestLoad_BootstrapMeshECDHCurvesWithoutP256Warns(t *testing.T) {
+	devMode := true
+	result, err := Load(LoadOpts{
+		DevMode: &devMode,
+		HCL: []string{`
+config_entries {
+  bootstrap = [
+    {
+      kind = "mesh"
+      tls {
+        incoming {
+          tls_min_version = "TLSv1_2"
+          ecdh_curves     = ["X25519MLKEM768", "X25519"]
+        }
+        outgoing {
+          tls_min_version = "TLSv1_2"
+          ecdh_curves     = ["X25519MLKEM768", "X25519"]
+        }
+      }
+    }
+  ]
+}`},
+	})
+	require.NoError(t, err)
+	require.Len(t, result.RuntimeConfig.ConfigEntryBootstrap, 1)
+
+	var p256Warnings []string
+	for _, w := range result.Warnings {
+		if strings.Contains(w, `does not include "P-256"`) {
+			p256Warnings = append(p256Warnings, w)
+		}
+	}
+	require.Len(t, p256Warnings, 2)
+	require.Contains(t, p256Warnings[0], "config_entries.bootstrap[0]: mesh TLS.Incoming.ECDHCurves")
+	require.Contains(t, p256Warnings[1], "config_entries.bootstrap[0]: mesh TLS.Outgoing.ECDHCurves")
+}

@@ -83,7 +83,8 @@ func meshEntryEnablesPQC(entry structs.ConfigEntry) bool {
 // in the datacenter runs a release that does not know about ECDHCurves. Older
 // servers silently drop the field, so a write accepted during a mixed-version
 // window could be lost or diverge between servers.
-func serversSupportMeshECDHCurves(provider checkServersProvider, datacenter string) error {
+func serversSupportMeshECDHCurves(provider checkServersProvider, datacenters []string) error {
+	datacenter := datacenters[0]
 	var outdated []string
 	ServersInDCMeetRequirements(provider, datacenter, func(srv *metadata.Server) (bool, bool) {
 		if srv.Status != serf.StatusAlive && srv.Status != serf.StatusFailed {
@@ -142,7 +143,7 @@ func (c *ConfigEntry) checkMeshPQCCompatibility(entry structs.ConfigEntry) error
 	}
 
 	if meshEntryConfiguresECDHCurves(entry) {
-		if err := serversSupportMeshECDHCurves(c.srv, c.srv.config.Datacenter); err != nil {
+		if err := serversSupportMeshECDHCurves(c.srv, []string{c.srv.config.Datacenter}); err != nil {
 			return err
 		}
 	}
@@ -172,4 +173,25 @@ func reportAgentsWithoutMeshPQCSupport(logger hclog.Logger, members []serf.Membe
 		"agents", formatNodeNames(outdated, maxReportedOutdatedAgents),
 	)
 	return len(outdated)
+}
+
+// Stubs replaced in the next commit.
+var ConfigEntryGauges []prometheus.GaugeDefinition
+
+const meshPQCMetricsRoutineName = "mesh PQC metrics"
+
+func logAgentsWithoutMeshPQCSupport(logger hclog.Logger, partition string, members []serf.Member) int {
+	return 0
+}
+
+func meshPQCOutdatedAgentCounts(entries []structs.ConfigEntry, membersFn func(string) ([]serf.Member, error), logger hclog.Logger) map[string]int {
+	return nil
+}
+
+func emitMeshPQCOutdatedAgentGauges(counts map[string]int, reported map[string]struct{}, setGauge func([]string, float32, []metrics.Label)) map[string]struct{} {
+	return nil
+}
+
+func (s *Server) updateMeshPQCOutdatedAgentGauges(reported map[string]struct{}, setGauge func([]string, float32, []metrics.Label)) map[string]struct{} {
+	return nil
 }
