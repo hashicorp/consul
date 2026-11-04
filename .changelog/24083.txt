@@ -7,9 +7,9 @@ connect: The automatically injected post-quantum key-exchange list for TLS 1.3 i
 ```
 
 ```release-note:improvement
-connect: Mesh config entry validation rejects `ECDHCurves` without `P-256` when TLS 1.2 can be negotiated, because service mesh certificates use ECDSA P-256 keys and such handshakes fail with `WRONG_CURVE`.
+connect: Writing a mesh config entry whose new or changed `TLS.Outgoing.ECDHCurves` omits `P-256` while TLS 1.2 can be negotiated is rejected, because service mesh certificates use ECDSA P-256 keys and such handshakes fail with `WRONG_CURVE`. Incoming lists and unchanged stored or bootstrapped entries produce a warning instead.
 ```
 
 ```release-note:improvement
-connect: Writing `ECDHCurves` in the mesh config entry is rejected while any server in the datacenter runs a version older than 2.1.0. When a mesh config entry enables post-quantum key exchange, servers log a warning listing agents older than 2.1.0, which ignore the setting, and increment `consul.config_entry.mesh.pqc_outdated_agents`.
+connect: Writing `ECDHCurves` in the mesh config entry is rejected while any server in any WAN-federated datacenter runs a version older than 2.1.0. Servers log a warning listing agents in the entry's admin partition that are older than 2.1.0 and ignore the setting, and the leader reports their count in the `consul.mesh.pqc_outdated_agents` gauge.
 ```
