@@ -482,24 +482,6 @@ func applyMeshEntry(t *testing.T, codec rpc.ClientCodec, entry *structs.MeshConf
 	}, &out)
 }
 
-func setServerBuildTag(t *testing.T, s *Server, build string, wantSupported bool) {
-	t.Helper()
-	tags := make(map[string]string)
-	for k, v := range s.config.SerfLANConfig.Tags {
-		tags[k] = v
-	}
-	tags["build"] = build
-	require.NoError(t, s.serfLAN.SetTags(tags))
-	retry.Run(t, func(r *retry.R) {
-		err := serversSupportMeshECDHCurves(s, []string{s.config.Datacenter})
-		if wantSupported {
-			require.NoError(r, err)
-		} else {
-			require.Error(r, err)
-		}
-	})
-}
-
 func TestConfigEntry_Apply_MeshECDHCurvesServerVersionGate(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -547,21 +529,26 @@ func TestConfigEntry_Apply_MeshECDHCurvesServerVersionGate(t *testing.T) {
 		require.Equal(t, []string{"X25519MLKEM768", "X25519"}, entry.(*structs.MeshConfigEntry).TLS.Outgoing.ECDHCurves)
 	})
 
-	t.Run("identical rewrite is a no-op even when servers are now outdated", func(t *testing.T) {
+	t.Run("identical rewrite is a no-op even when servers are outdated", func(t *testing.T) {
 		t.Parallel()
-		dir, s := testServer(t)
+		dir, s := testServerWithConfig(t, func(c *Config) { c.Build = "2.0.4" })
 		defer os.RemoveAll(dir)
 		defer s.Shutdown()
 		codec := rpcClient(t, s)
 		defer codec.Close()
 		testrpc.WaitForLeader(t, s.RPC, "dc1")
 
-		require.NoError(t, applyMeshEntry(t, codec, meshWithCurves, ""))
-		setServerBuildTag(t, s, "2.0.4", false)
+		// Simulate an entry written before the servers were downgraded or
+		// before an outdated server joined.
+		stored := meshWithOutgoing(types.TLSv1_3, "X25519MLKEM768", "X25519")
+		require.NoError(t, stored.Normalize())
+		idx, _, err := s.fsm.State().ConfigEntry(nil, structs.MeshConfig, structs.MeshConfigMesh, nil)
+		require.NoError(t, err)
+		require.NoError(t, s.fsm.State().EnsureConfigEntry(idx+1, stored))
 
 		require.NoError(t, applyMeshEntry(t, codec, meshWithCurves, ""))
 
-		err := applyMeshEntry(t, codec, meshWithOutgoing(types.TLSv1_3, "X25519MLKEM768"), "")
+		err = applyMeshEntry(t, codec, meshWithOutgoing(types.TLSv1_3, "X25519MLKEM768"), "")
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "must run Consul 2.1.0 or later")
 	})

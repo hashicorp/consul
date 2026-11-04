@@ -592,6 +592,16 @@ func TestValidateMeshOutgoingECDHCurvesUpdate(t *testing.T) {
 			current: &ServiceConfigEntry{Kind: ServiceDefaults, Name: "web"},
 			wantErr: outgoingErr,
 		},
+		"lowering a stored TLSv1_3 outgoing minimum to TLSv1_2 with the same curves is rejected": {
+			updated: outgoing(types.TLSv1_2, "X25519MLKEM768", "X25519"),
+			current: outgoing(types.TLSv1_3, "X25519MLKEM768", "X25519"),
+			wantErr: outgoingErr,
+		},
+		"removing P-256 from stored outgoing curves is rejected": {
+			updated: outgoing(types.TLSv1_2, "X25519"),
+			current: outgoing(types.TLSv1_2, "X25519", "P-256"),
+			wantErr: outgoingErr,
+		},
 		"nil updated entry is accepted": {
 			updated: nil,
 		},

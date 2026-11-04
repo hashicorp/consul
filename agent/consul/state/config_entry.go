@@ -2320,3 +2320,8 @@ func convertTargetsToTestSpiffeIDs(chain *structs.CompiledDiscoveryChain) map[st
 	}
 	return out
 }
+
+// ConfigEntriesByKindAllPartitions is a stub replaced in the next commit.
+func (s *Store) ConfigEntriesByKindAllPartitions(ws memdb.WatchSet, kind string) (uint64, []structs.ConfigEntry, error) {
+	return 0, nil, nil
+}
