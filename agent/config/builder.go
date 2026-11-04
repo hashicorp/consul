@@ -842,6 +842,11 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			if err := entry.Validate(); err != nil {
 				return RuntimeConfig{}, fmt.Errorf("config_entries.bootstrap[%d]: %w", i, err)
 			}
+			if warnEntry, ok := entry.(structs.WarningConfigEntry); ok {
+				for _, w := range warnEntry.Warnings() {
+					b.warn("config_entries.bootstrap[%d]: %s", i, w)
+				}
+			}
 			configEntries = append(configEntries, entry)
 		}
 	}

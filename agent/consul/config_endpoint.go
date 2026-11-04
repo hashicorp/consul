@@ -66,10 +66,6 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *bool) error
 		return err
 	}
 
-	if err := c.checkMeshPQCCompatibility(args.Entry); err != nil {
-		return err
-	}
-
 	// Log any applicable warnings about the contents of the config entry.
 	if warnEntry, ok := args.Entry.(structs.WarningConfigEntry); ok {
 		warnings := warnEntry.Warnings()
@@ -91,6 +87,16 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *bool) error
 	} else if skip {
 		*reply = true
 		return nil
+	}
+
+	// Compatibility checks run only for authorized writes that change the
+	// stored entry, so they neither leak server details nor block no-ops.
+	_, currentEntry, err := c.srv.fsm.State().ConfigEntry(nil, args.Entry.GetKind(), args.Entry.GetName(), args.Entry.GetEnterpriseMeta())
+	if err != nil {
+		return fmt.Errorf("error reading current config entry value: %w", err)
+	}
+	if err := c.checkMeshPQCCompatibility(args.Entry, currentEntry); err != nil {
+		return err
 	}
 
 	resp, err := c.srv.raftApply(structs.ConfigEntryRequestType, args)

@@ -4,9 +4,13 @@
 package consul
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-metrics"
@@ -14,6 +18,7 @@ import (
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/types"
@@ -28,10 +33,16 @@ var minMeshPQCVersion = version.Must(version.NewVersion("2.1.0"))
 // warning logged when agents cannot apply mesh post-quantum settings.
 const maxReportedOutdatedAgents = 10
 
-var ConfigEntryCounters = []prometheus.CounterDefinition{
+// meshPQCMetricsInterval is how often the leader refreshes the
+// mesh.pqc_outdated_agents gauge.
+var meshPQCMetricsInterval = time.Minute
+
+const meshPQCMetricsRoutineName = "mesh PQC metrics"
+
+var ConfigEntryGauges = []prometheus.GaugeDefinition{
 	{
-		Name: []string{"config_entry", "mesh", "pqc_outdated_agents"},
-		Help: "Increments by the number of alive agents older than 2.1.0 each time a mesh config entry that enables post-quantum key exchange is written. Those agents ignore the setting until they are upgraded.",
+		Name: []string{"mesh", "pqc_outdated_agents"},
+		Help: "Number of alive agents older than 2.1.0 in an admin partition whose mesh config entry enables post-quantum key exchange. Those agents ignore the setting until they are upgraded. Reported by the leader.",
 	},
 }
 
@@ -80,32 +91,71 @@ func meshEntryEnablesPQC(entry structs.ConfigEntry) bool {
 }
 
 // serversSupportMeshECDHCurves returns an error when any alive or failed server
-// in the datacenter runs a release that does not know about ECDHCurves. Older
-// servers silently drop the field, so a write accepted during a mixed-version
-// window could be lost or diverge between servers.
+// in the given datacenters runs a release that does not know about
+// ECDHCurves. Older servers silently drop the field, including when the entry
+// is replicated to secondary datacenters, so a write accepted during a
+// mixed-version window could be lost or diverge between servers. Failed
+// servers count because they can rejoin with the old version.
 func serversSupportMeshECDHCurves(provider checkServersProvider, datacenters []string) error {
-	datacenter := datacenters[0]
-	var outdated []string
-	ServersInDCMeetRequirements(provider, datacenter, func(srv *metadata.Server) (bool, bool) {
-		if srv.Status != serf.StatusAlive && srv.Status != serf.StatusFailed {
-			return true, true
-		}
-		if !meshPQCVersionSupported(&srv.Build) {
-			outdated = append(outdated, fmt.Sprintf("%s (%s)", srv.ShortName, srv.Build.String()))
-			return false, false
-		}
-		return true, false
-	})
-	if len(outdated) == 0 {
+	var alive, failed []string
+	for _, dc := range datacenters {
+		ServersInDCMeetRequirements(provider, dc, func(srv *metadata.Server) (bool, bool) {
+			if srv.Status != serf.StatusAlive && srv.Status != serf.StatusFailed {
+				return true, true
+			}
+			if meshPQCVersionSupported(&srv.Build) {
+				return true, false
+			}
+			name := fmt.Sprintf("%s/%s (%s)", srv.Datacenter, srv.ShortName, srv.Build.String())
+			if srv.Status == serf.StatusFailed {
+				failed = append(failed, name)
+			} else {
+				alive = append(alive, name)
+			}
+			// Keep iterating so every outdated server is reported.
+			return true, false
+		})
+	}
+	if len(alive) == 0 && len(failed) == 0 {
 		return nil
 	}
-	sort.Strings(outdated)
-	return fmt.Errorf("all servers in the datacenter must run Consul %s or later before configuring ECDHCurves in the mesh config entry; servers on older versions: %s",
-		minMeshPQCVersion.String(), formatNodeNames(outdated, maxReportedOutdatedAgents))
+	sort.Strings(alive)
+	sort.Strings(failed)
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "all servers in every datacenter must run Consul %s or later before configuring ECDHCurves in the mesh config entry, "+
+		"because older servers drop the field when they store or replicate the entry", minMeshPQCVersion.String())
+	if len(alive) > 0 {
+		fmt.Fprintf(&b, "; servers on older versions: %s", formatNodeNames(alive, maxReportedOutdatedAgents))
+	}
+	if len(failed) > 0 {
+		fmt.Fprintf(&b, "; failed servers on older versions: %s. Upgrade them, or remove them with 'consul force-leave' if they will not return",
+			formatNodeNames(failed, maxReportedOutdatedAgents))
+	}
+	return errors.New(b.String())
 }
 
-// agentsWithoutMeshPQCSupport returns the sorted names of alive Consul agents
-// whose version renders Envoy configuration without mesh post-quantum settings.
+// meshPQCDatacenters returns the local datacenter and every WAN-federated
+// datacenter known to this server.
+func (s *Server) meshPQCDatacenters() []string {
+	dcs := []string{s.config.Datacenter}
+	for _, dc := range s.router.GetDatacenters() {
+		if !slices.Contains(dcs, dc) {
+			dcs = append(dcs, dc)
+		}
+	}
+	return dcs
+}
+
+// meshPQCMembers returns the LAN members that render Envoy configuration for
+// proxies in the given admin partition.
+func (s *Server) meshPQCMembers(partition string) ([]serf.Member, error) {
+	return s.LANMembers(LANMemberFilter{Partition: partition})
+}
+
+// agentsWithoutMeshPQCSupport returns the sorted, de-duplicated names of alive
+// Consul agents whose version renders Envoy configuration without mesh
+// post-quantum settings.
 func agentsWithoutMeshPQCSupport(members []serf.Member) []string {
 	var names []string
 	for i := range members {
@@ -120,7 +170,7 @@ func agentsWithoutMeshPQCSupport(members []serf.Member) []string {
 		if err != nil || v == nil {
 			continue
 		}
-		if !meshPQCVersionSupported(v) {
+		if !meshPQCVersionSupported(v) && !slices.Contains(names, m.Name) {
 			names = append(names, m.Name)
 		}
 	}
@@ -135,39 +185,49 @@ func formatNodeNames(names []string, limit int) string {
 	return fmt.Sprintf("%s (and %d more)", strings.Join(names[:limit], ", "), len(names)-limit)
 }
 
-// checkMeshPQCCompatibility rejects ECDHCurves writes while servers are being
-// upgraded and warns when client agents will not apply post-quantum settings.
-func (c *ConfigEntry) checkMeshPQCCompatibility(entry structs.ConfigEntry) error {
-	if !meshEntryEnablesPQC(entry) {
+// checkMeshPQCCompatibility runs after the write is authorized and is known to
+// change the stored entry. It rejects Outgoing curve lists that cannot work
+// with TLS 1.2, rejects ECDHCurves while any server is too old to keep the
+// field, and warns when agents in the entry's partition will ignore it.
+func (c *ConfigEntry) checkMeshPQCCompatibility(updated, current structs.ConfigEntry) error {
+	mesh, ok := updated.(*structs.MeshConfigEntry)
+	if !ok {
+		return nil
+	}
+	if err := structs.ValidateMeshOutgoingECDHCurvesUpdate(mesh, current); err != nil {
+		return err
+	}
+	if !meshEntryEnablesPQC(mesh) {
 		return nil
 	}
 
-	if meshEntryConfiguresECDHCurves(entry) {
-		if err := serversSupportMeshECDHCurves(c.srv, []string{c.srv.config.Datacenter}); err != nil {
+	if meshEntryConfiguresECDHCurves(mesh) {
+		if err := serversSupportMeshECDHCurves(c.srv, c.srv.meshPQCDatacenters()); err != nil {
 			return err
 		}
 	}
 
-	members, err := c.srv.lanPoolAllMembers()
+	partition := mesh.GetEnterpriseMeta().PartitionOrDefault()
+	members, err := c.srv.meshPQCMembers(partition)
 	if err != nil {
-		c.logger.Debug("unable to list LAN members to check post-quantum TLS support", "error", err)
+		c.logger.Debug("unable to list LAN members to check post-quantum TLS support", "partition", partition, "error", err)
 		return nil
 	}
-	reportAgentsWithoutMeshPQCSupport(c.logger, members, metrics.IncrCounter)
+	logAgentsWithoutMeshPQCSupport(c.logger, partition, members)
 	return nil
 }
 
-// reportAgentsWithoutMeshPQCSupport logs a warning and increments
-// config_entry.mesh.pqc_outdated_agents when alive agents are too old to apply
-// mesh post-quantum settings. It returns the number of outdated agents.
-func reportAgentsWithoutMeshPQCSupport(logger hclog.Logger, members []serf.Member, incrCounter func(key []string, val float32)) int {
+// logAgentsWithoutMeshPQCSupport logs a warning when alive agents in the
+// partition are too old to apply mesh post-quantum settings. It returns the
+// number of outdated agents.
+func logAgentsWithoutMeshPQCSupport(logger hclog.Logger, partition string, members []serf.Member) int {
 	outdated := agentsWithoutMeshPQCSupport(members)
 	if len(outdated) == 0 {
 		return 0
 	}
-	incrCounter([]string{"config_entry", "mesh", "pqc_outdated_agents"}, float32(len(outdated)))
 	logger.Warn("mesh config entry enables post-quantum TLS key exchange, but some agents run a Consul version that ignores it; "+
 		"sidecar proxies and gateways managed by these agents keep their previous TLS settings until the agents are upgraded",
+		"partition", partition,
 		"min_version", minMeshPQCVersion.String(),
 		"count", len(outdated),
 		"agents", formatNodeNames(outdated, maxReportedOutdatedAgents),
@@ -175,23 +235,88 @@ func reportAgentsWithoutMeshPQCSupport(logger hclog.Logger, members []serf.Membe
 	return len(outdated)
 }
 
-// Stubs replaced in the next commit.
-var ConfigEntryGauges []prometheus.GaugeDefinition
-
-const meshPQCMetricsRoutineName = "mesh PQC metrics"
-
-func logAgentsWithoutMeshPQCSupport(logger hclog.Logger, partition string, members []serf.Member) int {
-	return 0
+// meshPQCOutdatedAgentCounts returns, for each partition with a mesh config
+// entry, the number of alive agents that ignore its post-quantum settings.
+// Partitions whose mesh entry does not enable post-quantum key exchange
+// report zero.
+func meshPQCOutdatedAgentCounts(entries []structs.ConfigEntry, membersFn func(partition string) ([]serf.Member, error), logger hclog.Logger) map[string]int {
+	counts := make(map[string]int)
+	for _, entry := range entries {
+		mesh, ok := entry.(*structs.MeshConfigEntry)
+		if !ok {
+			continue
+		}
+		partition := mesh.GetEnterpriseMeta().PartitionOrDefault()
+		if !meshEntryEnablesPQC(mesh) {
+			counts[partition] = 0
+			continue
+		}
+		members, err := membersFn(partition)
+		if err != nil {
+			logger.Debug("unable to list LAN members for post-quantum TLS metrics", "partition", partition, "error", err)
+			continue
+		}
+		counts[partition] = len(agentsWithoutMeshPQCSupport(members))
+	}
+	return counts
 }
 
-func meshPQCOutdatedAgentCounts(entries []structs.ConfigEntry, membersFn func(string) ([]serf.Member, error), logger hclog.Logger) map[string]int {
-	return nil
+// emitMeshPQCOutdatedAgentGauges sets mesh.pqc_outdated_agents for every
+// partition in counts and resets partitions reported previously but no longer
+// present. It returns the partitions reported in this round.
+func emitMeshPQCOutdatedAgentGauges(counts map[string]int, previous map[string]struct{}, setGauge func(key []string, val float32, labels []metrics.Label)) map[string]struct{} {
+	key := []string{"mesh", "pqc_outdated_agents"}
+	reported := make(map[string]struct{}, len(counts))
+	partitions := make([]string, 0, len(counts))
+	for p := range counts {
+		partitions = append(partitions, p)
+	}
+	sort.Strings(partitions)
+	for _, p := range partitions {
+		setGauge(key, float32(counts[p]), []metrics.Label{{Name: "partition", Value: p}})
+		reported[p] = struct{}{}
+	}
+	for p := range previous {
+		if _, ok := reported[p]; !ok {
+			setGauge(key, 0, []metrics.Label{{Name: "partition", Value: p}})
+		}
+	}
+	return reported
 }
 
-func emitMeshPQCOutdatedAgentGauges(counts map[string]int, reported map[string]struct{}, setGauge func([]string, float32, []metrics.Label)) map[string]struct{} {
-	return nil
+// updateMeshPQCOutdatedAgentGauges computes and emits the gauge for every mesh
+// config entry stored on this server.
+func (s *Server) updateMeshPQCOutdatedAgentGauges(previous map[string]struct{}, setGauge func(key []string, val float32, labels []metrics.Label)) map[string]struct{} {
+	_, entries, err := s.fsm.State().ConfigEntriesByKind(nil, structs.MeshConfig, acl.WildcardEnterpriseMeta())
+	if err != nil {
+		s.logger.Debug("unable to read mesh config entries for post-quantum TLS metrics", "error", err)
+		return previous
+	}
+	counts := meshPQCOutdatedAgentCounts(entries, s.meshPQCMembers, s.logger)
+	return emitMeshPQCOutdatedAgentGauges(counts, previous, setGauge)
 }
 
-func (s *Server) updateMeshPQCOutdatedAgentGauges(reported map[string]struct{}, setGauge func([]string, float32, []metrics.Label)) map[string]struct{} {
-	return nil
+func (s *Server) startMeshPQCMetrics(ctx context.Context) {
+	s.leaderRoutineManager.Start(ctx, meshPQCMetricsRoutineName, s.runMeshPQCMetrics)
+}
+
+func (s *Server) stopMeshPQCMetrics() {
+	s.leaderRoutineManager.Stop(meshPQCMetricsRoutineName)
+}
+
+func (s *Server) runMeshPQCMetrics(ctx context.Context) error {
+	ticker := time.NewTicker(meshPQCMetricsInterval)
+	defer ticker.Stop()
+
+	var reported map[string]struct{}
+	for {
+		reported = s.updateMeshPQCOutdatedAgentGauges(reported, metrics.SetGaugeWithLabels)
+		select {
+		case <-ctx.Done():
+			// Stop reporting stale values after losing leadership.
+			emitMeshPQCOutdatedAgentGauges(nil, reported, metrics.SetGaugeWithLabels)
+			return nil
+		case <-ticker.C:
+		}
+	}
 }
