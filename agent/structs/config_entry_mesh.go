@@ -458,7 +458,10 @@ func ValidateMeshOutgoingECDHCurvesUpdate(updated *MeshConfigEntry, current Conf
 	if updated == nil || updated.TLS == nil || !ecdhCurvesLackP256ForTLS12(updated.TLS.Outgoing) {
 		return nil
 	}
-	if stored, ok := current.(*MeshConfigEntry); ok && stored != nil && stored.TLS != nil && stored.TLS.Outgoing != nil &&
+	// Only an entry that was already stored with the same incompatible
+	// Outgoing curves is exempt, so lowering the TLS minimum is still checked.
+	if stored, ok := current.(*MeshConfigEntry); ok && stored != nil && stored.TLS != nil &&
+		ecdhCurvesLackP256ForTLS12(stored.TLS.Outgoing) &&
 		slices.Equal(stored.TLS.Outgoing.ECDHCurves, updated.TLS.Outgoing.ECDHCurves) {
 		return nil
 	}

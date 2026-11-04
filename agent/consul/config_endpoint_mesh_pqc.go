@@ -18,7 +18,6 @@ import (
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/types"
@@ -287,7 +286,7 @@ func emitMeshPQCOutdatedAgentGauges(counts map[string]int, previous map[string]s
 // updateMeshPQCOutdatedAgentGauges computes and emits the gauge for every mesh
 // config entry stored on this server.
 func (s *Server) updateMeshPQCOutdatedAgentGauges(previous map[string]struct{}, setGauge func(key []string, val float32, labels []metrics.Label)) map[string]struct{} {
-	_, entries, err := s.fsm.State().ConfigEntriesByKind(nil, structs.MeshConfig, acl.WildcardEnterpriseMeta())
+	_, entries, err := s.fsm.State().ConfigEntriesByKindAllPartitions(nil, structs.MeshConfig)
 	if err != nil {
 		s.logger.Debug("unable to read mesh config entries for post-quantum TLS metrics", "error", err)
 		return previous
