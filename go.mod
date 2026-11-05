@@ -2,6 +2,8 @@ module github.com/hashicorp/consul
 
 go 1.26.10
 
+godebug multipathtcp=0
+
 replace (
 	github.com/hashicorp/consul/api => ./api
 	github.com/hashicorp/consul/envoyextensions => ./envoyextensions
