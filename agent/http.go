@@ -331,6 +331,7 @@ func (s *HTTPHandlers) handler() http.Handler {
 
 	h = withRemoteAddrHandler(h)
 	h = ensureContentTypeHeader(h, s.agent.logger)
+	h = s.withBlockingQueryWriteDeadline(h)
 
 	s.h = &wrappedMux{
 		mux:     mux,
@@ -347,6 +348,26 @@ func withRemoteAddrHandler(next http.Handler) http.Handler {
 			remoteAddr := net.TCPAddrFromAddrPort(addrPort)
 			ctx := consul.ContextWithRemoteAddr(req.Context(), remoteAddr)
 			req = req.WithContext(ctx)
+		}
+		next.ServeHTTP(resp, req)
+	})
+}
+
+// withBlockingQueryWriteDeadline sets a per-request write deadline for blocking
+// queries (identified by the ?index param) before the request reaches the mux,
+// where resp is still the raw server ResponseWriter so the deadline lands on the
+// underlying connection. The global http.Server.WriteTimeout is a per-connection
+// deadline on HTTP/2, so a long-lived, reused connection carrying a blocking
+// query long-poll is torn down once write_timeout elapses from connection start.
+// Bounding the deadline by the request's own duration avoids that; non-blocking
+// requests keep the global deadline for slow-drain protection. See
+// hashicorp/consul#23243.
+func (s *HTTPHandlers) withBlockingQueryWriteDeadline(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		if _, blocking := req.URL.Query()["index"]; blocking {
+			if err := http.NewResponseController(resp).SetWriteDeadline(s.blockingQueryWriteDeadline(req)); err != nil {
+				s.agent.logger.Named(logging.HTTP).Debug("could not extend write deadline for blocking query", "error", err)
+			}
 		}
 		next.ServeHTTP(resp, req)
 	})
@@ -1017,6 +1038,26 @@ func parseWait(resp http.ResponseWriter, req *http.Request, b QueryOptionsCompat
 		b.SetMinQueryIndex(index)
 	}
 	return false
+}
+
+// blockingQueryWriteDeadline returns a write deadline large enough to cover a
+// blocking query's maximum duration (bounded max_query_time plus jitter) and an
+// rpc_hold_timeout buffer for leader elections, but never shorter than the
+// configured http_config.write_timeout. It is used to set a per-request write
+// deadline for blocking queries so that a long-lived, reused HTTP/2 connection
+// is not torn down mid-watch by the global per-connection write timeout.
+func (s *HTTPHandlers) blockingQueryWriteDeadline(req *http.Request) time.Time {
+	maxQueryTime := s.agent.config.MaxQueryTime
+	if wait := req.URL.Query().Get("wait"); wait != "" {
+		if d, err := time.ParseDuration(wait); err == nil && d > 0 && d < maxQueryTime {
+			maxQueryTime = d
+		}
+	}
+	bound := maxQueryTime + maxQueryTime/structs.JitterFraction + s.agent.config.RPCHoldTimeout + time.Second
+	if wt := s.agent.config.HTTPWriteTimeout; wt > bound {
+		bound = wt
+	}
+	return time.Now().Add(bound)
 }
 
 // parseCacheControl parses the CacheControl HTTP header value. So far we only
