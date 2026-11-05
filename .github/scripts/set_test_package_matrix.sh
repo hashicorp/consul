@@ -13,7 +13,8 @@ else
   EFFECTIVE_RUNNER_COUNT=$((RUNNER_COUNT-1))
 fi
 
-# set matrix var to list of unique packages containing tests
-matrix="$(go list -json="ImportPath,TestGoFiles" ./... | jq --compact-output '. | select(.TestGoFiles != null) | select(.ImportPath != "github.com/hashicorp/consul/agent") | .ImportPath' | shuf | jq --slurp --compact-output '.' | jq --argjson runnercount $EFFECTIVE_RUNNER_COUNT  -cM '[_nwise(length / $runnercount | ceil)]' | jq --compact-output  '. += [["github.com/hashicorp/consul/agent"]]'))"
+# set matrix var to list of unique packages containing tests, split into chunks
+# of length/runnercount packages (without jq's _nwise helper, removed in jq 1.8)
+matrix="$(go list -json="ImportPath,TestGoFiles" ./... | jq --compact-output '. | select(.TestGoFiles != null) | select(.ImportPath != "github.com/hashicorp/consul/agent") | .ImportPath' | shuf | jq --slurp --compact-output '.' | jq --argjson runnercount $EFFECTIVE_RUNNER_COUNT  -cM '(length / $runnercount | ceil | if . < 1 then 1 else . end) as $size | [ range(0; length; $size) as $i | .[$i:$i + $size] ]' | jq --compact-output  '. += [["github.com/hashicorp/consul/agent"]]'))"
 
 echo "matrix=${matrix}" >> "${GITHUB_OUTPUT}"
