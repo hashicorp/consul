@@ -93,7 +93,9 @@ func CatalogNodeDoesNotExist(t *testing.T, c *api.Client, nodeName string) {
 func CatalogServiceIsHealthy(t *testing.T, c *api.Client, svc string, opts *api.QueryOptions) {
 	CatalogServiceExists(t, c, svc, opts)
 
-	retry.Run(t, func(r *retry.R) {
+	// Allow at least a couple of check intervals (gateway checks run every 10s).
+	timer := &retry.Timer{Timeout: 30 * time.Second, Wait: 500 * time.Millisecond}
+	retry.RunWith(timer, t, func(r *retry.R) {
 		services, _, err := c.Health().Service(svc, "", false, opts)
 		if err != nil {
 			r.Fatal("error reading service health data")
