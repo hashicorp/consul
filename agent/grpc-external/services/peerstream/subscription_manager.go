@@ -68,6 +68,10 @@ func newSubscriptionManager(
 	logger = logger.Named("subscriptions")
 	store := submatview.NewStore(logger.Named("viewstore"))
 	go store.Run(ctx)
+	go func() {
+		<-ctx.Done()
+		store.Stop()
+	}()
 
 	return &subscriptionManager{
 		logger:               logger,
