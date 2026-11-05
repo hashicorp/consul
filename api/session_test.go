@@ -5,11 +5,14 @@ package api
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPI_SessionCreateDestroy(t *testing.T) {
@@ -659,4 +662,24 @@ func TestAPI_SessionServiceChecks(t *testing.T) {
 	}
 	want.Namespace = info.Namespace
 	assert.Equal(t, want, info)
+}
+
+func TestAPI_SessionRenew_UnexpectedStatusIsStatusError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "Permission denied", http.StatusForbidden)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(&Config{Address: srv.URL, Scheme: "http"})
+	require.NoError(t, err)
+
+	entry, wm, err := c.Session().Renew("no-such-session", nil)
+	require.Nil(t, entry)
+	require.Nil(t, wm)
+
+	var statusErr StatusError
+	require.ErrorAs(t, err, &statusErr)
+	require.Equal(t, http.StatusForbidden, statusErr.Code)
+	require.Equal(t, "Permission denied", statusErr.Body)
 }

@@ -1,0 +1,3 @@
+```release-note:bug
+api: Return a `StatusError` from `Txn`, `KV.Txn` and `Session.Renew` when the agent answers with an unexpected status code, as the other client methods do. Callers can read the status code with `errors.As`.
+```
