@@ -1,0 +1,3 @@
+```release-note:bug
+cli: `consul tls cert create` now rejects an invalid `-additional-ipaddress` value instead of silently writing a corrupted certificate.
+```
