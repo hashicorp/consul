@@ -1,0 +1,3 @@
+```release-note:bug-fix
+peerstream: stream handler no longer blocks on synchronous sends; send errors are fatal and the Terminated message is flushed before stream close, keeping peerings from wedging under load or sticking in PENDING after deletion
+```
