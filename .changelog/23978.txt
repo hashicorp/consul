@@ -1,0 +1,3 @@
+```release-note:bug
+catalog: Fix re-registering a multi-port service when only the default port changes. `ServicePorts.IsSame` ignored the `Default` flag, so the catalog state store and agent anti-entropy treated the update as a no-op and kept serving the previous default port (legacy `ServicePort`, DNS SRV answers). The fix takes effect once all servers are upgraded; services registered through a client agent also require that agent to be upgraded.
+```
