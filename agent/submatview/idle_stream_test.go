@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-metrics"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 
@@ -192,4 +193,36 @@ func TestRPCMaterializer_ActiveStreamIsNotInterrupted(t *testing.T) {
 	subscriptions := len(client.subClients)
 	client.lock.RUnlock()
 	require.Equal(t, 1, subscriptions, "a stream that keeps delivering must never be resubscribed")
+}
+
+// Each idle resubscribe is counted, so a stalling stream is visible in telemetry.
+func TestRPCMaterializer_IdleResubscribeEmitsMetric(t *testing.T) {
+	sink := metrics.NewInmemSink(10*time.Millisecond, time.Minute)
+	cfg := metrics.DefaultConfig("consul")
+	cfg.EnableHostname = false
+	cfg.EnableRuntimeMetrics = false
+	_, err := metrics.NewGlobal(cfg, sink)
+	require.NoError(t, err)
+
+	client := &scriptedStreamClient{scripts: silentThenFreshSnapshotScripts()}
+	mat := newScriptedMaterializer(client, 100*time.Millisecond)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go mat.Run(ctx)
+
+	qctx, qcancel := context.WithTimeout(ctx, 5*time.Second)
+	defer qcancel()
+	_, err = mat.Query(qctx, 5)
+	require.NoError(t, err)
+
+	var count int
+	for _, interval := range sink.Data() {
+		interval.RLock()
+		if c, ok := interval.Counters["consul.streaming.idle_resubscribe"]; ok {
+			count += c.Count
+		}
+		interval.RUnlock()
+	}
+	require.GreaterOrEqual(t, count, 1, "the idle resubscribe counter must be emitted")
 }

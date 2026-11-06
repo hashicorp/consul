@@ -4,8 +4,8 @@
 package rpcclient
 
 import (
-	"time"
 	"context"
+	"time"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"

@@ -5,8 +5,6 @@ package submatview
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -223,20 +221,10 @@ func (m *RPCMaterializer) logIdle(req *pbsubscribe.SubscribeRequest, err idleStr
 		"topic", req.Topic,
 		"index", m.mat.currentIndex(),
 		"idle_timeout", err.idle,
-		// Never log the secret itself; the hash only helps tell tokens apart.
-		"token_hash", tokenHash(req.Token),
 	)
 	if sub := req.GetNamedSubject(); sub != nil {
 		logger = logger.With("key", sub.Key)
 	}
 	logger.Warn("streaming subscription stalled; resubscribing")
 	metrics.IncrCounter([]string{"streaming", "idle_resubscribe"}, 1)
-}
-
-func tokenHash(token string) string {
-	if token == "" {
-		return ""
-	}
-	sum := sha256.Sum256([]byte(token))
-	return hex.EncodeToString(sum[:4])
 }
