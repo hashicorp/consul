@@ -92,10 +92,10 @@ api-double, [tests/pages.js](tests/pages.js) / `tests/pages/`, `tests/lib/page-o
    test environment defaults to namespaces **off** (`config/environment.js`), so a plain
    `pnpm test` only exercises CE.
 4. ✅ **Fix the regressions** below, so later batches don't copy the weakened navigation pattern.
-5. **Decide on `@ignore` scenarios.** Delete the 8 `Then ok` placeholders instead of porting
-   them. The other 13 ignored scenarios have real bodies: 6 scenario-level `@ignore` tags, plus
-   the feature-level `@ignore` on `dc/acls/policies/as-many/add-new` (6 scenarios) and
-   `dc/intentions/permissions/warn` (1). Decide on each when its feature is migrated.
+5. ✅ **`@ignore` scenarios.** The 8 empty `Then ok` placeholders and the 19 orphaned
+   `-steps.js` stubs were deleted. The remaining 8 `@ignore` scenarios have real bodies; decide per
+   scenario when migrating its feature: fix it and un-ignore it, port it as a `skip` with the
+   reason in a comment, or delete it with the reason in the PR description.
 
 ## How to use this document
 
@@ -112,9 +112,7 @@ When you migrate a feature:
    every `a GET request was made to` (with its `ns=` handling). If the UI changed, update the
    assertion; don't delete it.
 4. `git rm` the `.feature` **and** its `-steps.js` stub. ember-cli-yadda always imports the stub
-   from `tests/acceptance/steps/<same path>/<name>-steps.js`, so the pairing is exact. The 19
-   stubs with no matching `.feature` (e.g. `steps/dc/kv/index/view-kvs-steps.js`) are leftovers
-   from long-deleted features and can be deleted at any time.
+   from `tests/acceptance/steps/<same path>/<name>-steps.js`, so the pairing is exact. (19 orphaned stubs with no matching `.feature` were already removed.)
 5. Update this table: set **Status** to ✅ Migrated and fill in the **Native test** link. To avoid
    merge conflicts between parallel PRs, only touch the rows for your own features.
 6. Run both `CONSUL_NSPACES_ENABLED=0` and `=1` suites; run timing-sensitive tests (blocking
@@ -130,7 +128,7 @@ manually in the running UI if needed.
 | Metric | Count |
 | --- | --- |
 | Feature files remaining (yadda) | 102 |
-| Scenarios remaining (yadda) | 253 (21 are `@ignore`: 14 scenario-level tags, 8 of them `Then ok` placeholders, plus 2 feature-level tags covering 7 scenarios) |
+| Scenarios remaining (yadda) | 245 (8 are `@ignore`, each with a real body) |
 | Feature files fully migrated | 27 |
 | Scenarios migrated | 46 from the 27 features, plus 1 (3 `Where:` rows) from `page-navigation.feature` |
 
@@ -267,7 +265,7 @@ problems; the tests document the current behaviour):
 | [dc/kvs/list-order.feature](tests/acceptance/dc/kvs/list-order.feature) | KV keys/folders listed alphabetically. | 1 | ☐ Not migrated |  |
 | [dc/kvs/sessions/invalidate.feature](tests/acceptance/dc/kvs/sessions/invalidate.feature) | Invalidate a lock session attached to a KV incl. error. | 2 | ☐ Not migrated |  |
 | [dc/kvs/trailing-slash.feature](tests/acceptance/dc/kvs/trailing-slash.feature) | KV folder view resolves with and without a trailing slash. | 2 | ☐ Not migrated |  |
-| [dc/kvs/update.feature](tests/acceptance/dc/kvs/update.feature) | Update KV values incl. whitespace/empty/newline values and error handling. | 7 | ☐ Not migrated |  |
+| [dc/kvs/update.feature](tests/acceptance/dc/kvs/update.feature) | Update KV values incl. whitespace/empty/newline values and error handling. | 5 | ☐ Not migrated |  |
 | [dc/nodes/empty-ids.feature](tests/acceptance/dc/nodes/empty-ids.feature) | Node list handles nodes that arrive with no ID. | 1 | ☐ Not migrated |  |
 | [dc/nodes/index.feature](tests/acceptance/dc/nodes/index.feature) | Nodes list: unhealthy node/service checks, synthetic nodes hidden, leader indicator, search, empty state. | 7 | ☐ Not migrated |  |
 | ~~`dc/nodes/navigation.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [navigation-test.js](tests/acceptance/dc/nodes/navigation-test.js) |
@@ -275,7 +273,7 @@ problems; the tests document the current behaviour):
 | [dc/nodes/services/list.feature](tests/acceptance/dc/nodes/services/list.feature) | Node → Services tab listing. | 1 | ☐ Not migrated |  |
 | ~~`dc/nodes/sessions/invalidate.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [invalidate-test.js](tests/acceptance/dc/nodes/sessions/invalidate-test.js) |
 | ~~`dc/nodes/sessions/list.feature`~~ | *(deleted — migrated above)* | 4 | ✅ Migrated | [list-test.js](tests/acceptance/dc/nodes/sessions/list-test.js) |
-| [dc/nodes/show.feature](tests/acceptance/dc/nodes/show.feature) | Node detail: tab visibility/selection, deregister warning while blocking, RTT display. | 5 | ☐ Not migrated |  |
+| [dc/nodes/show.feature](tests/acceptance/dc/nodes/show.feature) | Node detail: tab visibility/selection, deregister warning while blocking. | 3 | ☐ Not migrated |  |
 | ~~`dc/nodes/show/health-checks.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [health-checks-test.js](tests/acceptance/dc/nodes/show/health-checks-test.js) |
 | [dc/nodes/sorting.feature](tests/acceptance/dc/nodes/sorting.feature) | Sorting the nodes list. | 1 | ☐ Not migrated |  |
 | [dc/nspaces/create.feature](tests/acceptance/dc/nspaces/create.feature) | Create a namespace. | 2 | ☐ Not migrated |  |
@@ -325,7 +323,7 @@ problems; the tests document the current behaviour):
 | [login-errors.feature](tests/acceptance/login-errors.feature) | Login 500-error handling (non-legacy-token case). | 1 | ☐ Not migrated |  |
 | [login.feature](tests/acceptance/login.feature) | Logging in via an ACL token and via SSO. | 2 | ☐ Not migrated |  |
 | [navigation-links.feature](tests/acceptance/navigation-links.feature) | Main-navigation link visibility (e.g. no KV read access, empty-state login button). | 2 | ☐ Not migrated |  |
-| [page-navigation.feature](tests/acceptance/page-navigation.feature) | Navigation across pages. 4 active scenarios still need porting (index page, nav links, node and policies endpoint checks). 5 are pre-existing `@ignore` stubs; 1 is a placeholder for the create flow already ported. | 10 | 🔄 In progress | [page-navigation-create-test.js](tests/acceptance/page-navigation-create-test.js) |
+| [page-navigation.feature](tests/acceptance/page-navigation.feature) | Navigation across pages. 4 active scenarios still need porting (index page, nav links, node and policies endpoint checks); 3 are `@ignore` scenarios with real bodies. The create flow is ported. | 7 | 🔄 In progress | [page-navigation-create-test.js](tests/acceptance/page-navigation-create-test.js) |
 | [startup.feature](tests/acceptance/startup.feature) | App boots when loading index.html into a browser. | 1 | ☐ Not migrated |  |
-| [submit-blank.feature](tests/acceptance/submit-blank.feature) | Blank create forms keep the submit button disabled. | 2 | ☐ Not migrated |  |
+| [submit-blank.feature](tests/acceptance/submit-blank.feature) | Blank create forms keep the submit button disabled. | 1 | ☐ Not migrated |  |
 | [token-header.feature](tests/acceptance/token-header.feature) | API requests send the Consul token header after a token is set. | 2 | ☐ Not migrated |  |
