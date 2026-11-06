@@ -237,9 +237,11 @@ func logAgentsWithoutMeshPQCSupport(logger hclog.Logger, partition string, membe
 // meshPQCOutdatedAgentCounts returns, for each partition with a mesh config
 // entry, the number of alive agents that ignore its post-quantum settings.
 // Partitions whose mesh entry does not enable post-quantum key exchange
-// report zero.
+// report zero. Partitions whose members could not be listed are returned in
+// failed instead, so callers can keep their last known value.
 func meshPQCOutdatedAgentCounts(entries []structs.ConfigEntry, membersFn func(partition string) ([]serf.Member, error), logger hclog.Logger) (map[string]int, map[string]struct{}) {
 	counts := make(map[string]int)
+	failed := make(map[string]struct{})
 	for _, entry := range entries {
 		mesh, ok := entry.(*structs.MeshConfigEntry)
 		if !ok {
@@ -252,33 +254,59 @@ func meshPQCOutdatedAgentCounts(entries []structs.ConfigEntry, membersFn func(pa
 		}
 		members, err := membersFn(partition)
 		if err != nil {
-			logger.Debug("unable to list LAN members for post-quantum TLS metrics", "partition", partition, "error", err)
+			logger.Warn("unable to list LAN members for post-quantum TLS metrics; keeping the last reported value",
+				"partition", partition, "error", err)
+			failed[partition] = struct{}{}
 			continue
 		}
 		counts[partition] = len(agentsWithoutMeshPQCSupport(members))
 	}
-	return counts, nil
+	return counts, failed
 }
 
 // emitMeshPQCOutdatedAgentGauges sets mesh.pqc_outdated_agents for every
-// partition in counts and resets partitions reported previously but no longer
-// present. It returns the partitions reported in this round.
+// partition in counts. Partitions in failed keep their previously reported
+// value, which is emitted again so the series does not expire; nothing is
+// emitted for them if no value was reported yet. Partitions reported
+// previously but neither counted nor failed are reset to zero. It returns the
+// value reported for each partition in this round.
 func emitMeshPQCOutdatedAgentGauges(counts map[string]int, failed map[string]struct{}, previous map[string]int, setGauge func(key []string, val float32, labels []metrics.Label)) map[string]int {
 	key := []string{"mesh", "pqc_outdated_agents"}
-	reported := make(map[string]int, len(counts))
-	partitions := make([]string, 0, len(counts))
-	for p := range counts {
+	reported := make(map[string]int, len(counts)+len(failed))
+	for p, n := range counts {
+		reported[p] = n
+	}
+	for p := range failed {
+		if _, counted := counts[p]; counted {
+			continue
+		}
+		if n, ok := previous[p]; ok {
+			reported[p] = n
+		}
+	}
+
+	partitions := make([]string, 0, len(reported))
+	for p := range reported {
 		partitions = append(partitions, p)
 	}
 	sort.Strings(partitions)
 	for _, p := range partitions {
-		setGauge(key, float32(counts[p]), []metrics.Label{{Name: "partition", Value: p}})
-		reported[p] = counts[p]
+		setGauge(key, float32(reported[p]), []metrics.Label{{Name: "partition", Value: p}})
 	}
+
+	var removed []string
 	for p := range previous {
-		if _, ok := reported[p]; !ok {
-			setGauge(key, 0, []metrics.Label{{Name: "partition", Value: p}})
+		if _, ok := reported[p]; ok {
+			continue
 		}
+		if _, ok := failed[p]; ok {
+			continue
+		}
+		removed = append(removed, p)
+	}
+	sort.Strings(removed)
+	for _, p := range removed {
+		setGauge(key, 0, []metrics.Label{{Name: "partition", Value: p}})
 	}
 	return reported
 }
