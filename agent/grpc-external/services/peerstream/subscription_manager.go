@@ -483,8 +483,30 @@ func (m *subscriptionManager) syncDiscoveryChains(
 	pending *pendingPayload,
 	chainsByName map[structs.ServiceName]structs.ExportedDiscoveryChainInfo,
 ) {
+	// Only announce discovery chains whose service is also in the
+	// exported-service-list. Under a wildcard export, a chain-only service (a
+	// service-resolver/router/splitter with no instances here) is in
+	// DiscoChains but not in that list, and:
+	//   - this DC's mesh gateway refuses it anyway (it skips routes for
+	//     services with no instances), so peers that pick it as a failover
+	//     target get their connections reset;
+	//   - the importer prunes its synthetic proxy on every exported-service-list
+	//     update, so without this gate the announce loop re-sends the entry on
+	//     every sync, and the DELETE that should follow chain removal never
+	//     fires.
+	// When the service gains instances it joins the list and is announced
+	// (the scale-up case #23377 was after); when it loses them it is retracted.
+	exportedServicesMap := make(map[structs.ServiceName]struct{}, len(state.exportList.Services))
+	for _, sn := range state.exportList.Services {
+		exportedServicesMap[sn] = struct{}{}
+	}
+
 	// if it was newly added, then try to emit an UPDATE event
 	for chainName, info := range chainsByName {
+		if _, ok := exportedServicesMap[chainName]; !ok {
+			continue
+		}
+
 		if oldInfo, ok := state.connectServices[chainName]; ok && info.Equal(oldInfo) {
 			continue
 		}
@@ -494,20 +516,12 @@ func (m *subscriptionManager) syncDiscoveryChains(
 		m.collectPendingEventForDiscoveryChain(state, pending, chainName, info)
 	}
 
-	exportedServicesMap := make(map[structs.ServiceName]struct{}, len(state.exportList.Services))
-	for _, m := range state.exportList.Services {
-		exportedServicesMap[m] = struct{}{}
-	}
-
-	// if it was dropped, try to emit an DELETE event
+	// if it was dropped or is no longer announced, try to emit a DELETE event
 	for chainName := range state.connectServices {
-		// Deleting stale peer state connect service entry not in exported-service-list
-		if _, ok := exportedServicesMap[chainName]; !ok {
-			delete(state.connectServices, chainName)
-		}
-
 		if _, ok := chainsByName[chainName]; ok {
-			continue
+			if _, ok := exportedServicesMap[chainName]; ok {
+				continue
+			}
 		}
 
 		delete(state.connectServices, chainName)
