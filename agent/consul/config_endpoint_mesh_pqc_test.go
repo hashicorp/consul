@@ -397,27 +397,35 @@ func TestMeshPQCOutdatedAgentCounts(t *testing.T) {
 	}
 
 	t.Run("entry enabling PQC counts outdated agents in its partition", func(t *testing.T) {
-		got := meshPQCOutdatedAgentCounts([]structs.ConfigEntry{pqcMesh()}, membersFn, hclog.NewNullLogger())
+		got, failed := meshPQCOutdatedAgentCounts([]structs.ConfigEntry{pqcMesh()}, membersFn, hclog.NewNullLogger())
 		require.Equal(t, map[string]int{"default": 2}, got)
+		require.Empty(t, failed)
 	})
 
 	t.Run("entry without PQC reports zero", func(t *testing.T) {
-		got := meshPQCOutdatedAgentCounts([]structs.ConfigEntry{plainMesh}, membersFn, hclog.NewNullLogger())
+		got, failed := meshPQCOutdatedAgentCounts([]structs.ConfigEntry{plainMesh}, membersFn, hclog.NewNullLogger())
 		require.Equal(t, map[string]int{"default": 0}, got)
+		require.Empty(t, failed)
 	})
 
 	t.Run("non-mesh entries are ignored", func(t *testing.T) {
-		got := meshPQCOutdatedAgentCounts([]structs.ConfigEntry{
+		got, failed := meshPQCOutdatedAgentCounts([]structs.ConfigEntry{
 			&structs.ServiceConfigEntry{Kind: structs.ServiceDefaults, Name: "web"},
 		}, membersFn, hclog.NewNullLogger())
 		require.Empty(t, got)
+		require.Empty(t, failed)
 	})
 
-	t.Run("member listing errors are skipped", func(t *testing.T) {
-		got := meshPQCOutdatedAgentCounts([]structs.ConfigEntry{pqcMesh()}, func(string) ([]serf.Member, error) {
+	t.Run("member listing errors are reported as failed partitions", func(t *testing.T) {
+		var buf bytes.Buffer
+		logger := hclog.New(&hclog.LoggerOptions{Output: &buf, Level: hclog.Info})
+		got, failed := meshPQCOutdatedAgentCounts([]structs.ConfigEntry{pqcMesh()}, func(string) ([]serf.Member, error) {
 			return nil, fmt.Errorf("boom")
-		}, hclog.NewNullLogger())
+		}, logger)
 		require.Empty(t, got)
+		require.Equal(t, map[string]struct{}{"default": {}}, failed)
+		require.Contains(t, buf.String(), "[WARN]")
+		require.Contains(t, buf.String(), "error=boom")
 	})
 }
 
@@ -425,13 +433,14 @@ func TestEmitMeshPQCOutdatedAgentGauges(t *testing.T) {
 	t.Parallel()
 
 	type gauge struct {
-		key       []string
 		val       float32
 		partition string
 	}
+	key := []string{"mesh", "pqc_outdated_agents"}
 	var got []gauge
-	set := func(key []string, val float32, labels []metrics.Label) {
-		g := gauge{key: key, val: val}
+	set := func(k []string, val float32, labels []metrics.Label) {
+		require.Equal(t, key, k)
+		g := gauge{val: val}
 		for _, l := range labels {
 			if l.Name == "partition" {
 				g.partition = l.Value
@@ -439,25 +448,63 @@ func TestEmitMeshPQCOutdatedAgentGauges(t *testing.T) {
 		}
 		got = append(got, g)
 	}
-	key := []string{"mesh", "pqc_outdated_agents"}
-
-	reported := emitMeshPQCOutdatedAgentGauges(map[string]int{"default": 3}, nil, set)
-	require.Equal(t, []gauge{{key: key, val: 3, partition: "default"}}, got)
-
-	// A partition that is no longer reported is reset to zero once.
-	got = nil
-	reported = emitMeshPQCOutdatedAgentGauges(map[string]int{}, reported, set)
-	require.Equal(t, []gauge{{key: key, val: 0, partition: "default"}}, got)
-
-	got = nil
-	emitMeshPQCOutdatedAgentGauges(map[string]int{}, reported, set)
-	require.Empty(t, got)
-
-	var names [][]string
-	for _, d := range ConfigEntryGauges {
-		names = append(names, d.Name)
+	emit := func(counts map[string]int, failed []string, previous map[string]int) map[string]int {
+		got = nil
+		f := map[string]struct{}{}
+		for _, p := range failed {
+			f[p] = struct{}{}
+		}
+		return emitMeshPQCOutdatedAgentGauges(counts, f, previous, set)
 	}
-	require.Contains(t, names, key)
+
+	t.Run("counts are reported and remembered", func(t *testing.T) {
+		reported := emit(map[string]int{"default": 3}, nil, nil)
+		require.Equal(t, []gauge{{val: 3, partition: "default"}}, got)
+		require.Equal(t, map[string]int{"default": 3}, reported)
+	})
+
+	t.Run("a lookup error after a nonzero gauge keeps the previous value", func(t *testing.T) {
+		reported := emit(map[string]int{"default": 2}, nil, nil)
+		reported = emit(map[string]int{}, []string{"default"}, reported)
+		require.Equal(t, []gauge{{val: 2, partition: "default"}}, got, "must re-emit, not reset to 0")
+		require.Equal(t, map[string]int{"default": 2}, reported)
+
+		// A later successful lookup reports the new count.
+		reported = emit(map[string]int{"default": 5}, nil, reported)
+		require.Equal(t, []gauge{{val: 5, partition: "default"}}, got)
+		require.Equal(t, map[string]int{"default": 5}, reported)
+	})
+
+	t.Run("a lookup error before any report emits nothing", func(t *testing.T) {
+		reported := emit(map[string]int{}, []string{"default"}, nil)
+		require.Empty(t, got)
+		require.Empty(t, reported)
+	})
+
+	t.Run("a partition that is no longer reported is reset to zero once", func(t *testing.T) {
+		reported := emit(map[string]int{"default": 3}, nil, nil)
+		reported = emit(map[string]int{}, nil, reported)
+		require.Equal(t, []gauge{{val: 0, partition: "default"}}, got)
+		require.Empty(t, reported)
+
+		emit(map[string]int{}, nil, reported)
+		require.Empty(t, got)
+	})
+
+	t.Run("an error in one partition does not affect others", func(t *testing.T) {
+		reported := emit(map[string]int{"east": 1, "west": 4}, nil, nil)
+		reported = emit(map[string]int{"west": 0}, []string{"east"}, reported)
+		require.Equal(t, []gauge{{val: 1, partition: "east"}, {val: 0, partition: "west"}}, got)
+		require.Equal(t, map[string]int{"east": 1, "west": 0}, reported)
+	})
+
+	t.Run("gauge is registered", func(t *testing.T) {
+		var names [][]string
+		for _, d := range ConfigEntryGauges {
+			names = append(names, d.Name)
+		}
+		require.Contains(t, names, key)
+	})
 }
 
 func meshWithOutgoing(min types.TLSVersion, curves ...string) *structs.MeshConfigEntry {
@@ -687,7 +734,7 @@ func TestServer_UpdateMeshPQCOutdatedAgentGauges(t *testing.T) {
 		val       float32
 		partition string
 	}
-	collect := func(reported map[string]struct{}) (map[string]struct{}, []gauge) {
+	collect := func(reported map[string]int) (map[string]int, []gauge) {
 		var got []gauge
 		reported = s.updateMeshPQCOutdatedAgentGauges(reported, func(key []string, val float32, labels []metrics.Label) {
 			require.Equal(t, []string{"mesh", "pqc_outdated_agents"}, key)

@@ -238,7 +238,7 @@ func logAgentsWithoutMeshPQCSupport(logger hclog.Logger, partition string, membe
 // entry, the number of alive agents that ignore its post-quantum settings.
 // Partitions whose mesh entry does not enable post-quantum key exchange
 // report zero.
-func meshPQCOutdatedAgentCounts(entries []structs.ConfigEntry, membersFn func(partition string) ([]serf.Member, error), logger hclog.Logger) map[string]int {
+func meshPQCOutdatedAgentCounts(entries []structs.ConfigEntry, membersFn func(partition string) ([]serf.Member, error), logger hclog.Logger) (map[string]int, map[string]struct{}) {
 	counts := make(map[string]int)
 	for _, entry := range entries {
 		mesh, ok := entry.(*structs.MeshConfigEntry)
@@ -257,15 +257,15 @@ func meshPQCOutdatedAgentCounts(entries []structs.ConfigEntry, membersFn func(pa
 		}
 		counts[partition] = len(agentsWithoutMeshPQCSupport(members))
 	}
-	return counts
+	return counts, nil
 }
 
 // emitMeshPQCOutdatedAgentGauges sets mesh.pqc_outdated_agents for every
 // partition in counts and resets partitions reported previously but no longer
 // present. It returns the partitions reported in this round.
-func emitMeshPQCOutdatedAgentGauges(counts map[string]int, previous map[string]struct{}, setGauge func(key []string, val float32, labels []metrics.Label)) map[string]struct{} {
+func emitMeshPQCOutdatedAgentGauges(counts map[string]int, failed map[string]struct{}, previous map[string]int, setGauge func(key []string, val float32, labels []metrics.Label)) map[string]int {
 	key := []string{"mesh", "pqc_outdated_agents"}
-	reported := make(map[string]struct{}, len(counts))
+	reported := make(map[string]int, len(counts))
 	partitions := make([]string, 0, len(counts))
 	for p := range counts {
 		partitions = append(partitions, p)
@@ -273,7 +273,7 @@ func emitMeshPQCOutdatedAgentGauges(counts map[string]int, previous map[string]s
 	sort.Strings(partitions)
 	for _, p := range partitions {
 		setGauge(key, float32(counts[p]), []metrics.Label{{Name: "partition", Value: p}})
-		reported[p] = struct{}{}
+		reported[p] = counts[p]
 	}
 	for p := range previous {
 		if _, ok := reported[p]; !ok {
@@ -285,14 +285,14 @@ func emitMeshPQCOutdatedAgentGauges(counts map[string]int, previous map[string]s
 
 // updateMeshPQCOutdatedAgentGauges computes and emits the gauge for every mesh
 // config entry stored on this server.
-func (s *Server) updateMeshPQCOutdatedAgentGauges(previous map[string]struct{}, setGauge func(key []string, val float32, labels []metrics.Label)) map[string]struct{} {
+func (s *Server) updateMeshPQCOutdatedAgentGauges(previous map[string]int, setGauge func(key []string, val float32, labels []metrics.Label)) map[string]int {
 	_, entries, err := s.fsm.State().ConfigEntriesByKindAllPartitions(nil, structs.MeshConfig)
 	if err != nil {
 		s.logger.Debug("unable to read mesh config entries for post-quantum TLS metrics", "error", err)
 		return previous
 	}
-	counts := meshPQCOutdatedAgentCounts(entries, s.meshPQCMembers, s.logger)
-	return emitMeshPQCOutdatedAgentGauges(counts, previous, setGauge)
+	counts, failed := meshPQCOutdatedAgentCounts(entries, s.meshPQCMembers, s.logger)
+	return emitMeshPQCOutdatedAgentGauges(counts, failed, previous, setGauge)
 }
 
 func (s *Server) startMeshPQCMetrics(ctx context.Context) {
@@ -307,13 +307,13 @@ func (s *Server) runMeshPQCMetrics(ctx context.Context) error {
 	ticker := time.NewTicker(meshPQCMetricsInterval)
 	defer ticker.Stop()
 
-	var reported map[string]struct{}
+	var reported map[string]int
 	for {
 		reported = s.updateMeshPQCOutdatedAgentGauges(reported, metrics.SetGaugeWithLabels)
 		select {
 		case <-ctx.Done():
 			// Stop reporting stale values after losing leadership.
-			emitMeshPQCOutdatedAgentGauges(nil, reported, metrics.SetGaugeWithLabels)
+			emitMeshPQCOutdatedAgentGauges(nil, nil, reported, metrics.SetGaugeWithLabels)
 			return nil
 		case <-ticker.C:
 		}
