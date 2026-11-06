@@ -16,6 +16,7 @@ import {
   page,
   currentURL,
   nspaceURL,
+  assertVisibleCount,
 } from 'consul-ui/tests/helpers/acceptance';
 
 module('Acceptance | dc / tokens / navigation: Tokens Navigation', function (hooks) {
@@ -31,16 +32,13 @@ module('Acceptance | dc / tokens / navigation: Tokens Navigation', function (hoo
 
       assert.equal(currentURL(), nspaceURL(nspace, '/dc-1/acls/tokens'));
       assert.equal(document.title, 'Tokens - Consul');
+      assertVisibleCount(assert, page().tokens, 3, 'tokens');
 
       await page().tokens.objectAt(0).token();
 
       await click('[data-test-breadcrumb-item]:first-child a');
 
-      assert.ok(
-        currentURL().includes('/dc-1/acls/tokens'),
-        `Expected URL to contain /dc-1/acls/tokens, got ${currentURL()}`
-      );
-    },
-    { notNamespaceable: true }
+      assert.equal(currentURL(), nspaceURL(nspace, '/dc-1/acls/tokens'));
+    }
   );
 });
