@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"math/rand"
 	"sync/atomic"
 	"time"
@@ -177,12 +178,23 @@ type idleWatchdog struct {
 // together, so a server does not have to serve all their resubscribes at once.
 const idleJitterFraction = 0.1
 
+// idleJitter returns a random extra wait of up to idleJitterFraction of the
+// timeout, clamped so that the sum can never overflow a time.Duration (a very
+// large but valid timeout would otherwise wrap negative and fire immediately).
+func idleJitter(timeout time.Duration) time.Duration {
+	jitter := time.Duration(rand.Float64() * idleJitterFraction * float64(timeout))
+	if room := time.Duration(math.MaxInt64) - timeout; jitter > room {
+		jitter = room
+	}
+	return jitter
+}
+
 func newIdleWatchdog(timeout time.Duration, cancel context.CancelFunc) *idleWatchdog {
 	w := &idleWatchdog{}
 	if timeout <= 0 {
 		return w
 	}
-	w.timeout = timeout + time.Duration(rand.Float64()*idleJitterFraction*float64(timeout))
+	w.timeout = timeout + idleJitter(timeout)
 	w.timer = time.AfterFunc(w.timeout, func() {
 		w.idle.Store(true)
 		cancel()

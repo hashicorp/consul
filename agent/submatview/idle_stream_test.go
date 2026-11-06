@@ -6,6 +6,7 @@ package submatview
 import (
 	"context"
 	"fmt"
+	"math"
 	"sync"
 	"testing"
 	"time"
@@ -267,4 +268,32 @@ func TestIdleStreamErr_Message(t *testing.T) {
 	var idle idleStreamErr
 	require.ErrorAs(t, fmt.Errorf("wrapped: %w", err), &idle)
 	require.Equal(t, time.Minute, idle.idle)
+}
+
+// Jitter must never push a valid, very large timeout past the largest
+// time.Duration: a wrapped negative timeout would fire immediately.
+func TestIdleWatchdog_JitterCannotOverflow(t *testing.T) {
+	for _, timeout := range []time.Duration{
+		time.Minute,
+		2500000 * time.Hour,
+		time.Duration(math.MaxInt64) - time.Second,
+		time.Duration(math.MaxInt64),
+	} {
+		for i := 0; i < 1000; i++ {
+			jitter := idleJitter(timeout)
+			require.GreaterOrEqual(t, int64(jitter), int64(0), "timeout %s", timeout)
+			require.GreaterOrEqual(t, int64(timeout+jitter), int64(timeout), "timeout %s overflowed", timeout)
+		}
+	}
+
+	fired := make(chan struct{}, 1)
+	w := newIdleWatchdog(time.Duration(math.MaxInt64), func() { fired <- struct{}{} })
+	defer w.stop()
+	require.Greater(t, int64(w.timeout), int64(0))
+	select {
+	case <-fired:
+		t.Fatal("a very large timeout must not fire immediately")
+	case <-time.After(100 * time.Millisecond):
+	}
+	require.False(t, w.fired())
 }

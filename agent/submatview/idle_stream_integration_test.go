@@ -151,13 +151,15 @@ func watch(ctx context.Context, c *health.Client, token string, w *tokenWatcher)
 			continue
 		}
 		index = meta.Index
-		w.latest.Store(meta.Index)
 		names := make([]string, 0, len(result.Nodes))
 		for _, n := range result.Nodes {
 			names = append(names, n.Node.Node)
 		}
 		sort.Strings(names)
+		// Publish the node list before its index: a reader that sees an index
+		// must also see the nodes that belong to it.
 		w.nodes.Store(names)
+		w.latest.Store(meta.Index)
 	}
 	return nil
 }
