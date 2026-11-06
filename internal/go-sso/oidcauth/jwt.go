@@ -16,7 +16,8 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/go-jose/go-jose/v3/jwt"
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
 )
 
 const claimDefaultLeeway = 150
@@ -69,6 +70,16 @@ func (a *Authenticator) ClaimsFromJWT(ctx context.Context, jwt string) (*Claims,
 	return c, nil
 }
 
+// staticKeySigningAlgs lists the signature algorithms accepted when parsing a
+// JWT to be verified against statically configured public keys. go-jose v4
+// requires the caller to enumerate the allowed algorithms explicitly.
+var staticKeySigningAlgs = []jose.SignatureAlgorithm{
+	jose.RS256, jose.RS384, jose.RS512,
+	jose.ES256, jose.ES384, jose.ES512,
+	jose.PS256, jose.PS384, jose.PS512,
+	jose.EdDSA,
+}
+
 func (a *Authenticator) verifyVanillaJWT(ctx context.Context, loginToken string) (map[string]interface{}, error) {
 	var (
 		allClaims = map[string]interface{}{}
@@ -92,7 +103,7 @@ func (a *Authenticator) verifyVanillaJWT(ctx context.Context, loginToken string)
 			return nil, fmt.Errorf("failed to unmarshal claims: %v", err)
 		}
 	case authStaticKeys:
-		parsedJWT, err := jwt.ParseSigned(loginToken)
+		parsedJWT, err := jwt.ParseSigned(loginToken, staticKeySigningAlgs)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing token: %v", err)
 		}
