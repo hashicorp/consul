@@ -3349,13 +3349,20 @@ func makeTLSParametersFromProxyTLSConfig(tlsConf *structs.MeshDirectionalTLSConf
 	}
 
 	curves := tlsConf.ECDHCurves
-	if len(curves) == 0 {
-		if err, isLessThanTLS13 := tlsConf.TLSMinVersion.LessThan(types.TLSv1_3); err == nil && !isLessThanTLS13 {
+	maxVersion := tlsConf.TLSMaxVersion
+	if err, isLessThanTLS13 := tlsConf.TLSMinVersion.LessThan(types.TLSv1_3); err == nil && !isLessThanTLS13 {
+		if len(curves) == 0 {
 			curves = defaultPQCECDHCurves
+		}
+		// Envoy defaults the maximum protocol version of upstream (client) TLS
+		// contexts to TLS 1.2. Without an explicit maximum, a TLS 1.3 minimum
+		// leaves no usable version and every handshake fails.
+		if maxVersion == types.TLSVersionUnspecified || maxVersion == types.TLSVersionAuto {
+			maxVersion = types.TLSv1_3
 		}
 	}
 
-	return makeTLSParametersFromTLSConfig(tlsConf.TLSMinVersion, tlsConf.TLSMaxVersion, tlsConf.CipherSuites, curves)
+	return makeTLSParametersFromTLSConfig(tlsConf.TLSMinVersion, maxVersion, tlsConf.CipherSuites, curves)
 }
 
 func makeTLSParametersFromTLSConfig(
