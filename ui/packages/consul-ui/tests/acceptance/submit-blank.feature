@@ -17,7 +17,3 @@ Feature: submit-blank
     | Model     | Slug       |
     | kv        | kv         |
     --------------------------
-@ignore
-  Scenario: The button is disabled
-    Then ok
-
