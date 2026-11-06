@@ -27,6 +27,7 @@ import api from 'consul-ui/tests/helpers/api';
 import pages from 'consul-ui/tests/pages';
 
 export { api, pages };
+export { nspaceJSON, nspaceYAML, nspaceEndpoint } from 'consul-ui/tests/helpers/nspace-template';
 
 // Captured once so afterEach can restore the <html> class list exactly like the
 // yadda reset() does (prevents mutated feature-detection classes from leaking).
@@ -252,4 +253,216 @@ export function requestNotMade(assert, method, url) {
  */
 export function clipboard() {
   return window.localStorage.getItem('clipboard');
+}
+
+/**
+ * Assert that every URL in `urls` was requested with `method`
+ * (equivalent to `the last $method requests included from yaml`).
+ */
+export function requestsIncluded(assert, method, urls) {
+  const made = new Set(lastNthRequest(null, method).map((item) => item.url));
+  const missing = urls.filter((url) => !made.has(url));
+  assert.equal(missing.length, 0, `Expected requests "${missing.join(', ')}"`);
+}
+
+/**
+ * Assert a request of `method` to `url` was made with no body (equivalent to
+ * `a $method request was made to "$endpoint" with no body`).
+ */
+export function requestMadeWithNoBody(assert, method, url) {
+  const request = lastNthRequest(null, method).find((item) => item.url === url);
+  assert.ok(request, `Expected a ${method} request to ${url}`);
+  if (request) {
+    assert.equal(
+      request.requestBody,
+      null,
+      `Expected the request body to be null, was ${request.requestBody}`
+    );
+  }
+}
+
+/**
+ * Assert the body of a `method` request to `url` has none of `properties`
+ * (equivalent to `... was made to "$endpoint" without properties from yaml`).
+ */
+export function requestMadeWithoutProperties(assert, method, url, properties) {
+  const request = lastNthRequest(null, method).find((item) => item.url === url);
+  assert.ok(request, `Expected a ${method} request to ${url}`);
+  if (request) {
+    const body = JSON.parse(request.requestBody);
+    properties.forEach((key) => {
+      assert.equal(typeof body[key], 'undefined', `Expected payload to not have a ${key} property`);
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Fixtures / api-double setup (the `Given ...` steps)
+// ---------------------------------------------------------------------------
+
+const setCookie = function (key, value) {
+  document.cookie = `${key}=${value}`;
+  api.server.setCookie(key, value);
+};
+
+/**
+ * Create `count` models of `model`, optionally from fixture data
+ * (`Given $number $model models [with the value "..."|from yaml]`). Creating
+ * datacenters with a value also makes the first one the local datacenter, as
+ * the yadda step did.
+ */
+export function createModels(model, count, value) {
+  if (model === 'dc' && typeof value !== 'undefined') {
+    document.cookie = `CONSUL_DATACENTER_LOCAL=${Array.isArray(value) ? value[0] : value}`;
+  }
+  api.server.createList(model, count, value);
+}
+
+/** `Given the url "$endpoint" responds with ...` - `data` is `{ status, body, headers }`. */
+export function respondWith(url, data) {
+  const response = { ...data };
+  if (typeof response.body !== 'undefined' && typeof response.body !== 'string') {
+    response.body = JSON.stringify(response.body);
+  }
+  api.server.respondWith(url.split('?')[0], response);
+}
+
+/** `Given settings from yaml` - writes each key to localStorage as JSON. */
+export function setSettings(data) {
+  Object.keys(data).forEach((key) => {
+    window.localStorage[key] = JSON.stringify(data[key]);
+  });
+}
+
+/** `Given ui_config from yaml` */
+export function setUiConfig(data) {
+  document.cookie = `CONSUL_UI_CONFIG=${JSON.stringify(data)}`;
+}
+
+/** `Given the local datacenter is "$value"` */
+export function setLocalDatacenter(value) {
+  document.cookie = `CONSUL_DATACENTER_LOCAL=${value}`;
+}
+
+/** `Given ACLs are disabled` (read by the env service from document.cookie). */
+export function disableACLs() {
+  document.cookie = 'CONSUL_ACLS_ENABLE=0';
+}
+
+/** `Given SSO is enabled` */
+export function enableSSO() {
+  setCookie('CONSUL_SSO_ENABLE', 1);
+}
+
+/** `Given partitions are enabled` */
+export function enablePartitions() {
+  setCookie('CONSUL_PARTITIONS_ENABLE', 1);
+}
+
+/** `Given the default ACL policy is "$policy"` */
+export function setDefaultACLPolicy(policy) {
+  api.server.setCookie('CONSUL_ACL_POLICY', policy);
+}
+
+/** `Given a "$value" metrics provider` */
+export function setMetricsProvider(value) {
+  document.cookie = 'CONSUL_METRICS_PROXY_ENABLE=1';
+  document.cookie = `CONSUL_METRICS_PROVIDER=${value}`;
+}
+
+/** `Given permissions from yaml`, e.g. `{ key: { read: false } }`. */
+export function setPermissions(data) {
+  Object.entries(data).forEach(([resource, actions]) => {
+    Object.entries(actions).forEach(([action, value]) => {
+      api.server.setCookie(
+        `CONSUL_RESOURCE_${resource.toUpperCase()}_${action.toUpperCase()}`,
+        value
+      );
+    });
+  });
+}
+
+/** `Given a network latency of $number` */
+export function setLatency(ms) {
+  api.server.setCookie('CONSUL_LATENCY', ms);
+}
+
+/** `Given an API prefix of "$prefix"` */
+export function setApiPrefix(prefix) {
+  api.server.setCookie('CONSUL_API_PREFIX', prefix);
+}
+
+/** `Given I'm using a legacy token` */
+export function useLegacyToken() {
+  window.localStorage['consul:token'] = JSON.stringify({
+    Namespace: 'default',
+    AccessorID: null,
+    SecretID: 'id',
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Page-object queries
+// ---------------------------------------------------------------------------
+
+const objectAtPath = function (path) {
+  return function (obj) {
+    path.forEach((prop) => {
+      obj = obj || {};
+      obj = isNaN(parseInt(prop)) ? obj[prop] : obj.objectAt(parseInt(prop));
+    });
+    return obj;
+  };
+};
+
+/**
+ * Resolve a dotted path (e.g. `options.1.button` or `intentionList.intentions`)
+ * on a page object, defaulting to the current page. Throws if it doesn't exist.
+ */
+export function find(path, root = currentPage) {
+  const parts = path.split('.');
+  const last = parts.pop();
+  let parent = objectAtPath(parts)(root) || root;
+  if (typeof parent.objectAt === 'function') {
+    parent = parent.objectAt(0);
+  }
+  let obj = parent[last];
+  if (typeof obj === 'undefined') {
+    throw new Error(`PageObject not found: The '${path}' object doesn't exist`);
+  }
+  if (typeof obj === 'function') {
+    obj = obj.bind(parent);
+  }
+  return obj;
+}
+
+/**
+ * Assert how many visible items a page-object collection has (equivalent to
+ * `I see $num $model models [on the $component component]`).
+ */
+export function assertVisibleCount(assert, collection, expected, label = 'items') {
+  const actual = collection.filter((item) => item.isVisible).length;
+  assert.equal(actual, expected, `Expected ${expected} ${label}, saw ${actual}`);
+}
+
+/**
+ * Assert `property` on each item of a page-object collection equals the
+ * corresponding entry in `expected` (equivalent to
+ * `I see $property on the $component like yaml`). Numbers in `expected` are
+ * compared as strings because they come from the DOM.
+ */
+export function assertProperties(assert, collection, property, expected, label = 'items') {
+  assert.ok(collection.length > 0, `Expected to find ${label}`);
+  for (let i = 0; i < collection.length; i++) {
+    const value = collection.objectAt(i)[property];
+    const actual = typeof value === 'undefined' ? null : value;
+    const want = typeof expected[i] === 'number' ? expected[i].toString() : expected[i];
+    assert.deepEqual(
+      actual,
+      want,
+      `Expected ${property} on ${label}[${i}] as ${JSON.stringify(want)}, was ${JSON.stringify(
+        actual
+      )}`
+    );
+  }
 }
