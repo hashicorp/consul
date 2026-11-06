@@ -3422,6 +3422,30 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 	run(t, testCase{
+		desc: "streaming_idle_timeout enables the idle check",
+		args: []string{`-data-dir=` + dataDir},
+		json: []string{`{"streaming_idle_timeout": "10m"}`},
+		hcl:  []string{`streaming_idle_timeout = "10m"`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.StreamingIdleTimeout = 10 * time.Minute
+		},
+	})
+	run(t, testCase{
+		desc:        "streaming_idle_timeout below the minimum is rejected",
+		args:        []string{`-data-dir=` + dataDir},
+		json:        []string{`{"streaming_idle_timeout": "5s"}`},
+		hcl:         []string{`streaming_idle_timeout = "5s"`},
+		expectedErr: "streaming_idle_timeout: duration '5s' must be 0 (disabled) or at least 30s",
+	})
+	run(t, testCase{
+		desc:        "streaming_idle_timeout must not be negative",
+		args:        []string{`-data-dir=` + dataDir},
+		json:        []string{`{"streaming_idle_timeout": "-1m"}`},
+		hcl:         []string{`streaming_idle_timeout = "-1m"`},
+		expectedErr: "streaming_idle_timeout: duration '-1m0s' must be 0 (disabled) or at least 30s",
+	})
+	run(t, testCase{
 		desc: "auto_encrypt.allow_tls errors in client mode",
 		args: []string{
 			`-data-dir=` + dataDir,
@@ -7076,6 +7100,7 @@ func TestLoad_FullConfig(t *testing.T) {
 			},
 		},
 		UseStreamingBackend:  true,
+		StreamingIdleTimeout: 5 * time.Minute,
 		SerfAdvertiseAddrLAN: tcpAddr("17.99.29.16:8301"),
 		SerfAdvertiseAddrWAN: tcpAddr("78.63.37.19:8302"),
 		SerfBindAddrLAN:      tcpAddr("99.43.63.15:8301"),

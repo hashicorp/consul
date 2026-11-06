@@ -530,6 +530,7 @@
     "UnixSocketGroup": "",
     "UnixSocketMode": "",
     "UnixSocketUser": "",
+    "StreamingIdleTimeout": "0s",
     "UseStreamingBackend": false,
     "Version": "",
     "VersionMetadata": "",

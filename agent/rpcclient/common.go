@@ -4,6 +4,7 @@
 package rpcclient
 
 import (
+	"time"
 	"context"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -34,6 +35,9 @@ type MaterializedViewStore interface {
 type MaterializerDeps struct {
 	Conn   *grpc.ClientConn
 	Logger hclog.Logger
+	// IdleTimeout is how long a streaming subscription may stay silent before
+	// it is re-established. Zero disables the check.
+	IdleTimeout time.Duration
 }
 
 // Client represents a rpc client, a new Client is created in each sub-package
