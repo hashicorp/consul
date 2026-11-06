@@ -20,7 +20,7 @@
 
 import { test, skip } from 'qunit';
 import { setupApplicationTest } from 'ember-qunit';
-import { settled, getContext, click } from '@ember/test-helpers';
+import { settled, getContext, click, fillIn } from '@ember/test-helpers';
 
 import { env } from 'consul-ui/env';
 import api from 'consul-ui/tests/helpers/api';
@@ -150,6 +150,7 @@ export function visit(name, params = {}, { nspace } = {}) {
     throw new Error(`Unknown page object: "${name}" (see tests/pages.js)`);
   }
   currentPage = page;
+  api.server.clearHistory();
   const data = { ...params };
   if (nspace !== '' && typeof nspace !== 'undefined') {
     data.nspace = `~${nspace}`;
@@ -377,7 +378,7 @@ export function enablePartitions() {
 
 /** `Given the default ACL policy is "$policy"` */
 export function setDefaultACLPolicy(policy) {
-  api.server.setCookie('CONSUL_ACL_POLICY', policy);
+  setCookie('CONSUL_ACL_POLICY', policy);
 }
 
 /** `Given a "$value" metrics provider` */
@@ -390,22 +391,19 @@ export function setMetricsProvider(value) {
 export function setPermissions(data) {
   Object.entries(data).forEach(([resource, actions]) => {
     Object.entries(actions).forEach(([action, value]) => {
-      api.server.setCookie(
-        `CONSUL_RESOURCE_${resource.toUpperCase()}_${action.toUpperCase()}`,
-        value
-      );
+      setCookie(`CONSUL_RESOURCE_${resource.toUpperCase()}_${action.toUpperCase()}`, value);
     });
   });
 }
 
 /** `Given a network latency of $number` */
 export function setLatency(ms) {
-  api.server.setCookie('CONSUL_LATENCY', ms);
+  setCookie('CONSUL_LATENCY', ms);
 }
 
 /** `Given an API prefix of "$prefix"` */
 export function setApiPrefix(prefix) {
-  api.server.setCookie('CONSUL_API_PREFIX', prefix);
+  setCookie('CONSUL_API_PREFIX', prefix);
 }
 
 /** `Given I'm using a legacy token` */
@@ -481,4 +479,30 @@ export function assertProperties(assert, collection, property, expected, label =
       )}`
     );
   }
+}
+
+// ---------------------------------------------------------------------------
+// Forms and external providers
+// ---------------------------------------------------------------------------
+
+/**
+ * Fill in plain `<input name="prefix[key]">` form fields (equivalent to
+ * `I fill in the $prefix form with yaml`). Code editors are not handled here.
+ */
+export async function fillInForm(prefix, data) {
+  for (const key of Object.keys(data)) {
+    await fillIn(`[name="${prefix}[${key}]"]`, data[key]);
+  }
+}
+
+/**
+ * Make the OIDC popup resolve with `response` instead of opening a window
+ * (equivalent to `the "$provider" oidcProvider responds with from yaml`).
+ */
+export function stubOIDCProvider(response) {
+  const { owner } = getContext();
+  const provider = owner.lookup('torii-provider:oidc-with-url');
+  provider.popup.open = async function () {
+    return response;
+  };
 }
