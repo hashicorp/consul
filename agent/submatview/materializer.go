@@ -54,6 +54,12 @@ type Deps struct {
 	Logger  hclog.Logger
 	Waiter  *retry.Waiter
 	Request func(index uint64) *pbsubscribe.SubscribeRequest
+	// IdleTimeout, when greater than zero, is how long a subscription may go
+	// without receiving any message before it is considered stalled and is
+	// re-established. A stream can stay open without delivering events (for
+	// example when the server stops publishing for it without returning an
+	// error), and keepalives cannot detect that. Zero disables the check.
+	IdleTimeout time.Duration
 }
 
 // materializer consumes the event stream, handling any framing events, and

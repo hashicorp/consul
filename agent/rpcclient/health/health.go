@@ -148,6 +148,8 @@ func (r serviceRequest) NewMaterializer() (submatview.Materializer, error) {
 		View:    view,
 		Logger:  r.deps.Logger,
 		Request: NewMaterializerRequest(r.ServiceSpecificRequest),
+
+		IdleTimeout: r.deps.IdleTimeout,
 	}
 
 	return submatview.NewRPCMaterializer(pbsubscribe.NewStateChangeSubscriptionClient(r.deps.Conn), deps), nil

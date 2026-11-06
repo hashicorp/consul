@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/rpcclient"
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -265,4 +266,28 @@ func (f *fakeViewStore) Get(_ context.Context, req submatview.Request) (submatvi
 func (f *fakeViewStore) NotifyCallback(_ context.Context, req submatview.Request, _ string, _ cache.Callback) error {
 	f.calls = append(f.calls, req)
 	return nil
+}
+
+// The idle timeout configured on the client reaches the materializer it creates.
+func TestConfigEntryRequest_NewMaterializer(t *testing.T) {
+	c := &Client{Client: rpcclient.Client{
+		MaterializerDeps: rpcclient.MaterializerDeps{
+			Logger:      hclog.NewNullLogger(),
+			IdleTimeout: time.Minute,
+		},
+	}}
+
+	for name, query := range map[string]*structs.ConfigEntryQuery{
+		"single entry": {Kind: structs.SamenessGroup, Name: "group"},
+		"list":         {Kind: structs.SamenessGroup},
+	} {
+		t.Run(name, func(t *testing.T) {
+			req, err := c.newConfigEntryRequest(query)
+			require.NoError(t, err)
+
+			mat, err := req.NewMaterializer()
+			require.NoError(t, err)
+			require.IsType(t, &submatview.RPCMaterializer{}, mat)
+		})
+	}
 }

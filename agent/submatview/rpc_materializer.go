@@ -5,7 +5,14 @@ package submatview
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"math"
+	"math/rand"
+	"sync/atomic"
+	"time"
 
+	"github.com/hashicorp/go-metrics"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -58,6 +65,15 @@ func (m *RPCMaterializer) Run(ctx context.Context) {
 		if ctx.Err() != nil {
 			return
 		}
+
+		var idle idleStreamErr
+		if errors.As(err, &idle) {
+			// A silent stream is not a failure: keep serving the current view and
+			// resubscribe from its index, without waking callers with an error or
+			// backing off. The idle timeout already paced this attempt.
+			m.logIdle(req, idle)
+			continue
+		}
 		m.mat.handleError(req, err)
 
 		if err := m.mat.retryWaiter.Wait(ctx); err != nil {
@@ -72,15 +88,27 @@ func (m *RPCMaterializer) subscribeOnce(ctx context.Context, req *pbsubscribe.Su
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	// The watchdog covers the whole stream, including a Subscribe call or a
+	// snapshot that never arrives.
+	watchdog := newIdleWatchdog(m.deps.IdleTimeout, cancel)
+	defer watchdog.stop()
+
 	m.handler = initialHandler(req.Index)
 
 	s, err := m.client.Subscribe(ctx, req)
+	if watchdog.fired() {
+		return watchdog.err()
+	}
 	if err != nil {
 		return err
 	}
 
 	for {
 		event, err := s.Recv()
+		if watchdog.fired() {
+			return watchdog.err()
+		}
+		watchdog.reset()
 		switch {
 		case isGrpcStatus(err, codes.Aborted):
 			m.mat.reset()
@@ -125,4 +153,85 @@ func (m *RPCMaterializer) updateView(events []*pbsubscribe.Event, index uint64) 
 // reset implements viewState
 func (m *RPCMaterializer) reset() {
 	m.mat.reset()
+}
+
+// idleStreamErr is returned when a subscription received nothing for longer
+// than Deps.IdleTimeout.
+type idleStreamErr struct {
+	idle time.Duration
+}
+
+// Error implements error
+func (e idleStreamErr) Error() string {
+	return fmt.Sprintf("no events received on the subscription for %s", e.idle)
+}
+
+// idleWatchdog cancels a stream that stays silent. The zero value, returned
+// when the timeout is not positive, never fires.
+type idleWatchdog struct {
+	timeout time.Duration
+	timer   *time.Timer
+	idle    atomic.Bool
+}
+
+// idleJitterFraction spreads the timeouts of subscriptions that were opened
+// together, so a server does not have to serve all their resubscribes at once.
+const idleJitterFraction = 0.1
+
+// idleJitter returns a random extra wait of up to idleJitterFraction of the
+// timeout, clamped so that the sum can never overflow a time.Duration (a very
+// large but valid timeout would otherwise wrap negative and fire immediately).
+func idleJitter(timeout time.Duration) time.Duration {
+	jitter := time.Duration(rand.Float64() * idleJitterFraction * float64(timeout))
+	if room := time.Duration(math.MaxInt64) - timeout; jitter > room {
+		jitter = room
+	}
+	return jitter
+}
+
+func newIdleWatchdog(timeout time.Duration, cancel context.CancelFunc) *idleWatchdog {
+	w := &idleWatchdog{}
+	if timeout <= 0 {
+		return w
+	}
+	w.timeout = timeout + idleJitter(timeout)
+	w.timer = time.AfterFunc(w.timeout, func() {
+		w.idle.Store(true)
+		cancel()
+	})
+	return w
+}
+
+// reset restarts the countdown after a message was received.
+func (w *idleWatchdog) reset() {
+	if w.timer != nil {
+		w.timer.Reset(w.timeout)
+	}
+}
+
+func (w *idleWatchdog) stop() {
+	if w.timer != nil {
+		w.timer.Stop()
+	}
+}
+
+func (w *idleWatchdog) fired() bool {
+	return w.idle.Load()
+}
+
+func (w *idleWatchdog) err() error {
+	return idleStreamErr{idle: w.timeout}
+}
+
+func (m *RPCMaterializer) logIdle(req *pbsubscribe.SubscribeRequest, err idleStreamErr) {
+	logger := m.deps.Logger.With(
+		"topic", req.Topic,
+		"index", m.mat.currentIndex(),
+		"idle_timeout", err.idle,
+	)
+	if sub := req.GetNamedSubject(); sub != nil {
+		logger = logger.With("key", sub.Key)
+	}
+	logger.Warn("streaming subscription stalled; resubscribing")
+	metrics.IncrCounter([]string{"streaming", "idle_resubscribe"}, 1)
 }

@@ -267,6 +267,10 @@ type Config struct {
 	// any other endpoints which support streaming.
 	UseStreamingBackend *bool `mapstructure:"use_streaming_backend" json:"-"`
 
+	// StreamingIdleTimeout is how long a streaming subscription may stay silent
+	// before the agent re-establishes it. Zero (the default) disables the check.
+	StreamingIdleTimeout *string `mapstructure:"streaming_idle_timeout" json:"-"`
+
 	// This isn't used by Consul but we've documented a feature where users
 	// can deploy their snapshot agent configs alongside their Consul configs
 	// so we have a placeholder here so it can be parsed but this doesn't
