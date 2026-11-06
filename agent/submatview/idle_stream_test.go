@@ -5,6 +5,7 @@ package submatview
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -26,6 +27,9 @@ type scriptedStreamClient struct {
 	lock    sync.Mutex
 	scripts [][]*pbsubscribe.Event
 	indexes []uint64
+	// hangFirstSubscribe makes the first Subscribe call block until its context
+	// is cancelled, like a connection that never completes the call.
+	hangFirstSubscribe bool
 }
 
 func (c *scriptedStreamClient) Subscribe(
@@ -34,13 +38,19 @@ func (c *scriptedStreamClient) Subscribe(
 	_ ...grpc.CallOption,
 ) (pbsubscribe.StateChangeSubscription_SubscribeClient, error) {
 	c.lock.Lock()
-	defer c.lock.Unlock()
-
+	n := len(c.indexes)
+	c.indexes = append(c.indexes, req.Index)
+	hang := c.hangFirstSubscribe && n == 0
 	var script []*pbsubscribe.Event
-	if n := len(c.indexes); n < len(c.scripts) {
+	if n < len(c.scripts) {
 		script = c.scripts[n]
 	}
-	c.indexes = append(c.indexes, req.Index)
+	c.lock.Unlock()
+
+	if hang {
+		<-ctx.Done()
+		return nil, ctx.Err()
+	}
 	return &scriptedStream{ctx: ctx, events: script}, nil
 }
 
@@ -225,4 +235,36 @@ func TestRPCMaterializer_IdleResubscribeEmitsMetric(t *testing.T) {
 		interval.RUnlock()
 	}
 	require.GreaterOrEqual(t, count, 1, "the idle resubscribe counter must be emitted")
+}
+
+// A Subscribe call that never completes is also detected and retried.
+func TestRPCMaterializer_IdleDuringSubscribeIsRetried(t *testing.T) {
+	client := &scriptedStreamClient{
+		hangFirstSubscribe: true,
+		scripts: [][]*pbsubscribe.Event{
+			nil,
+			{newEventServiceHealthRegister(3, 1, "srv1"), newEndOfSnapshotEvent(5)},
+		},
+	}
+	mat := newScriptedMaterializer(client, 100*time.Millisecond)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go mat.Run(ctx)
+
+	qctx, qcancel := context.WithTimeout(ctx, 5*time.Second)
+	defer qcancel()
+	result, err := mat.Query(qctx, 0)
+	require.NoError(t, err)
+	require.Equal(t, uint64(5), result.Index)
+	require.GreaterOrEqual(t, len(client.subscribeIndexes()), 2)
+}
+
+func TestIdleStreamErr_Message(t *testing.T) {
+	err := error(idleStreamErr{idle: time.Minute})
+	require.EqualError(t, err, "no events received on the subscription for 1m0s")
+
+	var idle idleStreamErr
+	require.ErrorAs(t, fmt.Errorf("wrapped: %w", err), &idle)
+	require.Equal(t, time.Minute, idle.idle)
 }

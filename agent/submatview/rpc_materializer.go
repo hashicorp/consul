@@ -165,11 +165,6 @@ func (e idleStreamErr) Error() string {
 	return fmt.Sprintf("no events received on the subscription for %s", e.idle)
 }
 
-// Temporary implements the internal Temporary interface
-func (e idleStreamErr) Temporary() bool {
-	return true
-}
-
 // idleWatchdog cancels a stream that stays silent. The zero value, returned
 // when the timeout is not positive, never fires.
 type idleWatchdog struct {
