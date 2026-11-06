@@ -1,0 +1,3 @@
+```release-note:bug
+agent: fix catalog write throughput collapse by using per-node write lock stripes instead of a single shared stripe.
+```
