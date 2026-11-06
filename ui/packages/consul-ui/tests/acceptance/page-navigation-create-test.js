@@ -33,12 +33,8 @@ module('Acceptance | page-navigation / create-flows', function (hooks) {
       assert.equal(currentURL(), nspaceURL(nspace, '/dc1/intentions/create'));
 
       await click('[data-test-breadcrumb-item]:first-child a');
-      assert.ok(
-        currentURL().includes('/dc1/intentions'),
-        `Expected URL to contain /dc1/intentions, got ${currentURL()}`
-      );
-    },
-    { notNamespaceable: true }
+      assert.equal(currentURL(), nspaceURL(nspace, '/dc1/intentions'));
+    }
   );
 
   nspaceScenario(
@@ -52,12 +48,8 @@ module('Acceptance | page-navigation / create-flows', function (hooks) {
       assert.equal(currentURL(), nspaceURL(nspace, '/dc1/acls/tokens/create'));
 
       await click('[data-test-breadcrumb-item]:first-child a');
-      assert.ok(
-        currentURL().includes('/dc1/acls/tokens'),
-        `Expected URL to contain /dc1/acls/tokens, got ${currentURL()}`
-      );
-    },
-    { notNamespaceable: true }
+      assert.equal(currentURL(), nspaceURL(nspace, '/dc1/acls/tokens'));
+    }
   );
 
   nspaceScenario(
@@ -71,11 +63,7 @@ module('Acceptance | page-navigation / create-flows', function (hooks) {
       assert.equal(currentURL(), nspaceURL(nspace, '/dc1/acls/policies/create'));
 
       await click('[data-test-breadcrumb-item]:first-child a');
-      assert.ok(
-        currentURL().includes('/dc1/acls/policies'),
-        `Expected URL to contain /dc1/acls/policies, got ${currentURL()}`
-      );
-    },
-    { notNamespaceable: true }
+      assert.equal(currentURL(), nspaceURL(nspace, '/dc1/acls/policies'));
+    }
   );
 });
