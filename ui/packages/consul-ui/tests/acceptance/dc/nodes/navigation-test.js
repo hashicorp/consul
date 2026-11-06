@@ -16,6 +16,7 @@ import {
   page,
   currentURL,
   nspaceURL,
+  assertVisibleCount,
 } from 'consul-ui/tests/helpers/acceptance';
 
 module('Acceptance | dc / nodes / navigation: Nodes Navigation', function (hooks) {
@@ -34,16 +35,16 @@ module('Acceptance | dc / nodes / navigation: Nodes Navigation', function (hooks
 
       assert.equal(currentURL(), nspaceURL(nspace, '/dc-1/nodes'));
       assert.equal(document.title, 'Nodes - Consul');
+      assertVisibleCount(assert, page().nodes, 3, 'nodes');
 
-      await page().nodes.objectAt(0).node();
+      // The api-double marks the first node as peered, and the breadcrumb link
+      // keeps that peer segment (/:billing/dc-1/nodes). Use an unpeered node so
+      // "back" can be asserted exactly.
+      await page().nodes.objectAt(1).node();
 
       await click('[data-test-breadcrumb-item]:first-child a');
 
-      assert.ok(
-        currentURL().includes('/dc-1/nodes'),
-        `Expected URL to contain /dc-1/nodes, got ${currentURL()}`
-      );
-    },
-    { notNamespaceable: true }
+      assert.equal(currentURL(), nspaceURL(nspace, '/dc-1/nodes'));
+    }
   );
 });

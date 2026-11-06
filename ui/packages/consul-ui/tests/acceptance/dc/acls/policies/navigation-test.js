@@ -16,6 +16,7 @@ import {
   page,
   currentURL,
   nspaceURL,
+  assertVisibleCount,
 } from 'consul-ui/tests/helpers/acceptance';
 
 module('Acceptance | dc / policies / navigation: Policies Navigation', function (hooks) {
@@ -31,16 +32,13 @@ module('Acceptance | dc / policies / navigation: Policies Navigation', function 
 
       assert.equal(currentURL(), nspaceURL(nspace, '/dc-1/acls/policies'));
       assert.equal(document.title, 'Policies - Consul');
+      assertVisibleCount(assert, page().policies, 3, 'policies');
 
       await page().policies.objectAt(0).policy();
 
       await click('[data-test-breadcrumb-item]:first-child a');
 
-      assert.ok(
-        currentURL().includes('/dc-1/acls/policies'),
-        `Expected URL to contain /dc-1/acls/policies, got ${currentURL()}`
-      );
-    },
-    { notNamespaceable: true }
+      assert.equal(currentURL(), nspaceURL(nspace, '/dc-1/acls/policies'));
+    }
   );
 });
