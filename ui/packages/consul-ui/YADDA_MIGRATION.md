@@ -91,8 +91,7 @@ api-double, [tests/pages.js](tests/pages.js) / `tests/pages/`, `tests/lib/page-o
    it after every batch so dropped scenarios, `Where:` rows or tags are caught. Note that the
    test environment defaults to namespaces **off** (`config/environment.js`), so a plain
    `pnpm test` only exercises CE.
-4. **Fix the known regressions** above, so later batches don't copy the weakened navigation
-   pattern.
+4. ✅ **Fix the regressions** above, so later batches don't copy the weakened navigation pattern.
 5. **Decide on `@ignore` scenarios.** Delete the 8 `Then ok` placeholders (⏭️) instead of
    porting them. For the other 8 ignored scenarios, either fix them or delete them with a
    reason; porting them as permanent `skip`s keeps dead code.
@@ -143,29 +142,35 @@ the partial `page-navigation-create-test.js`) and 9 are native-only tests that n
 `dc/nodes/sessions/filter-sort`, `hcp-login`, `unavailable`). Counts are from disk; re-verify with
 `find tests -name '*.feature' | wc -l`.
 
-## Known regressions in completed migrations (fix before building on them)
+## Regressions found in completed migrations (fixed) and findings
 
 Audited by comparing each native test with the original `.feature` removed in #23741 and #23911.
-The #23741 batch (intentions/create, components, settings, dc/*) is faithful. The #23911 batch is
-not:
+The #23741 batch (intentions/create, components, settings, dc/*) was faithful. The #23911 batch was
+not, and has been corrected:
 
-1. **ENT namespace coverage dropped.** These scenarios had no namespace tag (so they ran once per
-   namespace under ENT) but the ports pass `notNamespaceable: true`, with no explanation:
-   - all 8 `*/navigation` ports (auth-methods, policies, roles, tokens, nodes, intentions ×2,
-     services ×2, services/instances)
-   - `components/text-input`
-   - `dc/nodes/sessions/list` "Given 0 sessions with ACLs disabled"
-   - the 3 `page-navigation` create rows
+1. **ENT namespace coverage restored.** 12 ports had `notNamespaceable: true` although the
+   original scenario had no namespace tag (all `*/navigation` tests, `components/text-input`,
+   the sessions "ACLs disabled" scenario and the 3 `page-navigation` create rows). They run for
+   every namespace again (about 60 more Enterprise tests); all pass.
+2. **Assertions restored.** Exact URL checks (`assert.equal(currentURL(), nspaceURL(...))`)
+   replace `includes(...)`, the "I see N models" counts are back, and
+   `dc/services/instances/navigation-test.js` has its proxy/instance fixtures and namespaced
+   `GET /v1/catalog/connect/...` / `GET /v1/health/service/...-proxy` request checks again.
+3. **Dropped `@ignore` scenario.** `dc/acls/policies/index` lost its ignored scenario. This is
+   consistent with the rule to delete, not port, ignored placeholders (see Phase 0), so it stays
+   dropped.
 
-   That is 15 scenario-rows × 4 namespaces = **60 ENT tests that no longer run**. Restore the
-   namespace matrix, or document in the test why the scenario cannot run with a namespace.
-2. **Weaker assertions in the navigation ports.** Exact URL checks became
-   `currentURL().includes(...)`, which is nearly vacuous (e.g. `includes('/dc-1/services')`), and
-   the "I see N models" counts were dropped. `dc/services/instances/navigation-test.js` also drops
-   the proxy fixture and all four namespaced `GET /v1/catalog/connect/...` and
-   `GET /v1/health/service/...-proxy` request assertions.
-3. **Dropped `@ignore` scenario.** `dc/acls/policies/index` lost its ignored scenario instead of
-   keeping it as a skip. Harmless, but the scenario count no longer matches.
+**Behaviour changes the exact assertions exposed** (these are product questions, not test
+problems; the tests document the current behaviour):
+
+- The breadcrumb link back to a list keeps the peer route segment: opening the first (peered)
+  service or node and going back lands on `/:billing/dc-1/services` / `/:billing/dc-1/nodes`,
+  where the old `[data-test-back] a` link went to `/dc-1/services`. The nodes test clicks an
+  unpeered node; the services tests accept an optional peer segment. This happens in CE as well
+  as ENT. `app/services/breadcrumbs.js` says it intends to avoid inheriting peer segments, so
+  this is likely a bug worth a separate fix.
+- Going "back" from a service instance now returns to that service's *instances* tab (the old
+  back link landed on the topology tab).
 
 ## Completed
 
@@ -174,7 +179,7 @@ not:
 | `dc/intentions/create.feature` | Create an intention from the intentions form (source/destination, deny action) and assert the PUT payload; namespaces on and off. | 2 | [tests/acceptance/dc/intentions/create-test.js](tests/acceptance/dc/intentions/create-test.js) |
 | `components/copy-button.feature` | Copy-to-clipboard button copies the expected value when clicked. Carried the feature-level `@ignore`, preserved as a skipped test. | 1 | [tests/acceptance/components/copy-button-test.js](tests/acceptance/components/copy-button-test.js) |
 | `components/kv-filter.feature` | Free-text filter on the KV list narrows results by the typed text. | 1 (2 rows) | [tests/acceptance/components/kv-filter-test.js](tests/acceptance/components/kv-filter-test.js) |
-| `components/text-input.feature` | Text-input component behaves correctly (KV create page enables submit once filled). ⚠️ Original was namespaceable; the port added `notNamespaceable` (see *Known regressions*). | 1 | [tests/acceptance/components/text-input-test.js](tests/acceptance/components/text-input-test.js) |
+| `components/text-input.feature` | Text-input component behaves correctly (KV create page enables submit once filled). | 1 | [tests/acceptance/components/text-input-test.js](tests/acceptance/components/text-input-test.js) |
 | `settings/show.feature` | Settings page shows Blocking Queries; `CONSUL_UI_DISABLE_REALTIME` hides them. `@notNamespaceable` (CE-only, as before). | 2 | [tests/acceptance/settings/show-test.js](tests/acceptance/settings/show-test.js) |
 | `settings/update.feature` | Saving settings with no input typed. Carried the feature-level `@ignore`, preserved as a skipped test. | 1 | [tests/acceptance/settings/update-test.js](tests/acceptance/settings/update-test.js) |
 | `dc/error.feature` | Recovering from a datacenter 500 error: error status shown, then switching dc via the nav recovers and lists services. | 1 | [tests/acceptance/dc/error-test.js](tests/acceptance/dc/error-test.js) |
@@ -187,16 +192,16 @@ not:
 | `dc/acls/policies/index.feature` | Policies list renders and is searchable. The original `@ignore` scenario (global-management policy can't be deleted) was dropped rather than kept as a skip. | 2 | [tests/acceptance/dc/acls/policies/index-test.js](tests/acceptance/dc/acls/policies/index-test.js) |
 | `dc/acls/roles/index.feature` | Roles list renders and is searchable (description, policy name, service identity). | 2 | [tests/acceptance/dc/acls/roles/index-test.js](tests/acceptance/dc/acls/roles/index-test.js) |
 | `dc/acls/tokens/index.feature` | Token list: view, no-write access, search (description/policy/role/SI), legacy notice. | 5 | [tests/acceptance/dc/acls/tokens/index-test.js](tests/acceptance/dc/acls/tokens/index-test.js) |
-| `dc/acls/auth-methods/navigation.feature` | Navigate into an auth-method from the list and back via breadcrumb. ⚠️ Original was namespaceable; the port added `notNamespaceable` (see *Known regressions*). | 1 | [tests/acceptance/dc/acls/auth-methods/navigation-test.js](tests/acceptance/dc/acls/auth-methods/navigation-test.js) |
-| `dc/acls/policies/navigation.feature` | Navigate into a policy from the list and back via breadcrumb. ⚠️ Original was namespaceable; the port added `notNamespaceable` (see *Known regressions*). | 1 | [tests/acceptance/dc/acls/policies/navigation-test.js](tests/acceptance/dc/acls/policies/navigation-test.js) |
-| `dc/acls/roles/navigation.feature` | Navigate into a role from the list and back via breadcrumb. ⚠️ Original was namespaceable; the port added `notNamespaceable` (see *Known regressions*). | 1 | [tests/acceptance/dc/acls/roles/navigation-test.js](tests/acceptance/dc/acls/roles/navigation-test.js) |
-| `dc/acls/tokens/navigation.feature` | Navigate into a token from the list and back via breadcrumb. ⚠️ Original was namespaceable; the port added `notNamespaceable` (see *Known regressions*). | 1 | [tests/acceptance/dc/acls/tokens/navigation-test.js](tests/acceptance/dc/acls/tokens/navigation-test.js) |
-| `dc/intentions/navigation.feature` | Navigate into an intention and to the create form and back via breadcrumb. ⚠️ Original was namespaceable; the port added `notNamespaceable` (see *Known regressions*). | 2 | [tests/acceptance/dc/intentions/navigation-test.js](tests/acceptance/dc/intentions/navigation-test.js) |
-| `dc/nodes/navigation.feature` | Navigate into a node from the list and back via breadcrumb. ⚠️ Original was namespaceable; the port added `notNamespaceable` (see *Known regressions*). | 1 | [tests/acceptance/dc/nodes/navigation-test.js](tests/acceptance/dc/nodes/navigation-test.js) |
-| `dc/services/navigation.feature` | Navigate into a (peered) service from the list and back via breadcrumb. ⚠️ Original was namespaceable; the port added `notNamespaceable` (see *Known regressions*). | 2 | [tests/acceptance/dc/services/navigation-test.js](tests/acceptance/dc/services/navigation-test.js) |
-| `dc/services/instances/navigation.feature` | Navigate into a service instance from the instances tab and back via breadcrumb. ⚠️ Original was namespaceable; the port added `notNamespaceable` (see *Known regressions*). | 1 | [tests/acceptance/dc/services/instances/navigation-test.js](tests/acceptance/dc/services/instances/navigation-test.js) |
+| `dc/acls/auth-methods/navigation.feature` | Navigate into an auth-method from the list and back via breadcrumb. | 1 | [tests/acceptance/dc/acls/auth-methods/navigation-test.js](tests/acceptance/dc/acls/auth-methods/navigation-test.js) |
+| `dc/acls/policies/navigation.feature` | Navigate into a policy from the list and back via breadcrumb. | 1 | [tests/acceptance/dc/acls/policies/navigation-test.js](tests/acceptance/dc/acls/policies/navigation-test.js) |
+| `dc/acls/roles/navigation.feature` | Navigate into a role from the list and back via breadcrumb. | 1 | [tests/acceptance/dc/acls/roles/navigation-test.js](tests/acceptance/dc/acls/roles/navigation-test.js) |
+| `dc/acls/tokens/navigation.feature` | Navigate into a token from the list and back via breadcrumb. | 1 | [tests/acceptance/dc/acls/tokens/navigation-test.js](tests/acceptance/dc/acls/tokens/navigation-test.js) |
+| `dc/intentions/navigation.feature` | Navigate into an intention and to the create form and back via breadcrumb. | 2 | [tests/acceptance/dc/intentions/navigation-test.js](tests/acceptance/dc/intentions/navigation-test.js) |
+| `dc/nodes/navigation.feature` | Navigate into a node from the list and back via breadcrumb. | 1 | [tests/acceptance/dc/nodes/navigation-test.js](tests/acceptance/dc/nodes/navigation-test.js) |
+| `dc/services/navigation.feature` | Navigate into a (peered) service from the list and back via breadcrumb. | 2 | [tests/acceptance/dc/services/navigation-test.js](tests/acceptance/dc/services/navigation-test.js) |
+| `dc/services/instances/navigation.feature` | Navigate into a service instance from the instances tab and back via breadcrumb. | 1 | [tests/acceptance/dc/services/instances/navigation-test.js](tests/acceptance/dc/services/instances/navigation-test.js) |
 | `dc/nodes/show/health-checks.feature` | Node serf health check passing/failing display. Also adds a regression scenario for the "Check type" sort (Service to Node / Node to Service ordering must match the option labels). | 2 (+1 new) | [tests/acceptance/dc/nodes/show/health-checks-test.js](tests/acceptance/dc/nodes/show/health-checks-test.js) |
-| `dc/nodes/sessions/list.feature` | Node lock-sessions HDS table: string TTLs, nanosecond LockDelay rendering, and ACL enabled/disabled empty states. ⚠️ The ACLs-disabled scenario gained `notNamespaceable`. | 4 | [tests/acceptance/dc/nodes/sessions/list-test.js](tests/acceptance/dc/nodes/sessions/list-test.js) |
+| `dc/nodes/sessions/list.feature` | Node lock-sessions HDS table: string TTLs, nanosecond LockDelay rendering, and ACL enabled/disabled empty states. | 4 | [tests/acceptance/dc/nodes/sessions/list-test.js](tests/acceptance/dc/nodes/sessions/list-test.js) |
 | `dc/nodes/sessions/invalidate.feature` | Invalidate a lock session via the HDS confirmation Modal (success + forced-500 error toast). | 2 | [tests/acceptance/dc/nodes/sessions/invalidate-test.js](tests/acceptance/dc/nodes/sessions/invalidate-test.js) |
 
 ## Remaining features
@@ -312,7 +317,7 @@ not:
 | [login-errors.feature](tests/acceptance/login-errors.feature) | Login 500-error handling (non-legacy-token case). | 1 | ☐ Not migrated |  |
 | [login.feature](tests/acceptance/login.feature) | Logging in via an ACL token and via SSO. | 2 | ☐ Not migrated |  |
 | [navigation-links.feature](tests/acceptance/navigation-links.feature) | Main-navigation link visibility (e.g. no KV read access, empty-state login button). | 2 | ☐ Not migrated |  |
-| [page-navigation.feature](tests/acceptance/page-navigation.feature) | Navigation across pages. 4 active scenarios still need porting (index page, nav links, node and policies endpoint checks). 5 are pre-existing `@ignore` stubs; 1 is a placeholder for the create flow already ported (as `notNamespaceable`, see *Known regressions*). | 10 | 🔄 In progress | [page-navigation-create-test.js](tests/acceptance/page-navigation-create-test.js) |
+| [page-navigation.feature](tests/acceptance/page-navigation.feature) | Navigation across pages. 4 active scenarios still need porting (index page, nav links, node and policies endpoint checks). 5 are pre-existing `@ignore` stubs; 1 is a placeholder for the create flow already ported. | 10 | 🔄 In progress | [page-navigation-create-test.js](tests/acceptance/page-navigation-create-test.js) |
 | [startup.feature](tests/acceptance/startup.feature) | App boots when loading index.html into a browser. | 1 | ☐ Not migrated |  |
 | [submit-blank.feature](tests/acceptance/submit-blank.feature) | Blank create forms keep the submit button disabled. | 2 | ☐ Not migrated |  |
 | [token-header.feature](tests/acceptance/token-header.feature) | API requests send the Consul token header after a token is set. | 2 | ☐ Not migrated |  |

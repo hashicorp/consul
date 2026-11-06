@@ -89,30 +89,26 @@ module('Acceptance | dc / nodes / sessions / list', function (hooks) {
       .exists('the login CTA is shown when ACLs are enabled');
   });
 
-  nspaceScenario(
-    'Scenario: Given 0 sessions with ACLs disabled',
-    async function (assert, nspace) {
-      // The env service reads CONSUL_ACLS_ENABLED from document.cookie (not the
-      // api-double server cookie jar), so disable ACLs via document.cookie —
-      // exactly like the original yadda "ACLs are disabled" step. setupAcceptanceTest's
-      // reset() wipes all cookies between tests so this does not leak.
-      document.cookie = 'CONSUL_ACLS_ENABLE=0';
-      api.server.createList('dc', 1, 'dc1');
-      api.server.createList('node', 1, { ID: 'node-0' });
-      api.server.createList('session', 0);
+  nspaceScenario('Scenario: Given 0 sessions with ACLs disabled', async function (assert, nspace) {
+    // The env service reads CONSUL_ACLS_ENABLED from document.cookie (not the
+    // api-double server cookie jar), so disable ACLs via document.cookie —
+    // exactly like the original yadda "ACLs are disabled" step. setupAcceptanceTest's
+    // reset() wipes all cookies between tests so this does not leak.
+    document.cookie = 'CONSUL_ACLS_ENABLE=0';
+    api.server.createList('dc', 1, 'dc1');
+    api.server.createList('node', 1, { ID: 'node-0' });
+    api.server.createList('session', 0);
 
-      await visitSessions(nspace);
+    await visitSessions(nspace);
 
-      assert
-        .dom('.empty-state p')
-        .doesNotIncludeText(
-          'you may not have key:read or session:read permissions',
-          'the empty state omits the ACL permissions line when ACLs are disabled'
-        );
-      assert
-        .dom('[data-test-empty-state-login]')
-        .doesNotExist('the login CTA is hidden when ACLs are disabled');
-    },
-    { notNamespaceable: true }
-  );
+    assert
+      .dom('.empty-state p')
+      .doesNotIncludeText(
+        'you may not have key:read or session:read permissions',
+        'the empty state omits the ACL permissions line when ACLs are disabled'
+      );
+    assert
+      .dom('[data-test-empty-state-login]')
+      .doesNotExist('the login CTA is hidden when ACLs are disabled');
+  });
 });
