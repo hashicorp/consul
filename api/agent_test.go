@@ -2416,3 +2416,145 @@ func TestServicePortsValidation(t *testing.T) {
 		})
 	}
 }
+
+// TestAgent_ServiceCheckIDPathEscaping verifies that Agent methods which
+// embed a service or check ID in the request path escape the ID, so IDs
+// containing "/" or ".." (e.g. "app/../web") reach the agent intact instead
+// of being collapsed by path cleaning (hashicorp/consul#13913).
+func TestAgent_ServiceCheckIDPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	type capturedRequest struct {
+		method     string
+		requestURI string // what went on the wire, including escaping
+		path       string // decoded path, as the handler sees it
+	}
+	var got []capturedRequest
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		got = append(got, capturedRequest{
+			method:     r.Method,
+			requestURI: r.RequestURI,
+			path:       r.URL.Path,
+		})
+		w.Header().Set("Content-Type", "application/json")
+		// AgentHealthServiceByName decodes into a slice, everything else
+		// into an object.
+		if strings.Contains(r.URL.Path, "/health/service/name/") {
+			w.Write([]byte("[]"))
+		} else {
+			w.Write([]byte("{}"))
+		}
+	}))
+	defer srv.Close()
+
+	config := DefaultConfig()
+	config.Address = srv.URL[7:] // Strip off "http://".
+	c, err := NewClient(config)
+	require.NoError(t, err)
+	agent := c.Agent()
+
+	// requestPath returns the path part of the i-th captured request URI,
+	// without any query string.
+	requestPath := func(i int) string {
+		uri := got[i].requestURI
+		if idx := strings.Index(uri, "?"); idx != -1 {
+			uri = uri[:idx]
+		}
+		return uri
+	}
+
+	// IDs containing ".." and "/" must be escaped on the wire, while the
+	// decoded path the handler sees must still be the original ID.
+	calls := []struct {
+		name string
+		call func() error
+		want string // expected escaped path on the wire
+	}{
+		{
+			name: "ServiceDeregister",
+			call: func() error { return agent.ServiceDeregister("app/../web") },
+			want: "/v1/agent/service/deregister/app%2F..%2Fweb",
+		},
+		{
+			name: "ServiceDeregisterOpts",
+			call: func() error { return agent.ServiceDeregisterOpts("app/../web", nil) },
+			want: "/v1/agent/service/deregister/app%2F..%2Fweb",
+		},
+		{
+			name: "ServiceDeregister URL ID",
+			call: func() error {
+				return agent.ServiceDeregister("http://www.example.com/checkpath")
+			},
+			// url.PathEscape leaves ":" unescaped in a path segment; only
+			// the "/"s need escaping for the ID to survive intact.
+			want: "/v1/agent/service/deregister/http:%2F%2Fwww.example.com%2Fcheckpath",
+		},
+		{
+			name: "Service",
+			call: func() error { _, _, err := agent.Service("app/../web", nil); return err },
+			want: "/v1/agent/service/app%2F..%2Fweb",
+		},
+		{
+			name: "AgentHealthServiceByID",
+			call: func() error { _, _, err := agent.AgentHealthServiceByID("app/../web"); return err },
+			want: "/v1/agent/health/service/id/app%2F..%2Fweb",
+		},
+		{
+			name: "AgentHealthServiceByName",
+			call: func() error { _, _, err := agent.AgentHealthServiceByName("app/../web"); return err },
+			want: "/v1/agent/health/service/name/app%2F..%2Fweb",
+		},
+		{
+			name: "CheckDeregister",
+			call: func() error { return agent.CheckDeregister("check/../id") },
+			want: "/v1/agent/check/deregister/check%2F..%2Fid",
+		},
+		{
+			name: "PassTTL",
+			call: func() error { return agent.PassTTL("check/../id", "") },
+			want: "/v1/agent/check/pass/check%2F..%2Fid",
+		},
+		{
+			name: "UpdateTTL",
+			call: func() error { return agent.UpdateTTL("check/../id", "", "passing") },
+			want: "/v1/agent/check/update/check%2F..%2Fid",
+		},
+		{
+			name: "ConnectCALeaf",
+			call: func() error { _, _, err := agent.ConnectCALeaf("app/../web", nil); return err },
+			want: "/v1/agent/connect/ca/leaf/app%2F..%2Fweb",
+		},
+		{
+			name: "EnableServiceMaintenance",
+			call: func() error { return agent.EnableServiceMaintenance("app/../web", "") },
+			want: "/v1/agent/service/maintenance/app%2F..%2Fweb",
+		},
+		{
+			name: "DisableServiceMaintenance",
+			call: func() error { return agent.DisableServiceMaintenance("app/../web") },
+			want: "/v1/agent/service/maintenance/app%2F..%2Fweb",
+		},
+	}
+
+	for _, tc := range calls {
+		t.Run(tc.name, func(t *testing.T) {
+			got = got[:0]
+			require.NoError(t, tc.call())
+			require.Len(t, got, 1, "expected exactly one request")
+			require.Equal(t, tc.want, requestPath(0), "request path on the wire")
+			// The agent handler must still see the original, decoded ID.
+			require.True(t, strings.HasSuffix(got[0].path, "/app/../web") ||
+				strings.HasSuffix(got[0].path, "/check/../id") ||
+				strings.HasSuffix(got[0].path, "/http://www.example.com/checkpath"),
+				"decoded path should carry the original ID, got %q", got[0].path)
+		})
+	}
+
+	// A plain ID without special characters must be sent unchanged.
+	t.Run("plain ID unchanged", func(t *testing.T) {
+		got = got[:0]
+		require.NoError(t, agent.ServiceDeregister("web"))
+		require.Len(t, got, 1)
+		require.Equal(t, "/v1/agent/service/deregister/web", requestPath(0))
+	})
+}

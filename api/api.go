@@ -1081,6 +1081,24 @@ func (c *Client) newRequest(method, path string) *request {
 	return r
 }
 
+// newRequestWithEscapedID creates a request for an endpoint that embeds a
+// service or check ID in the URL path. The ID is escaped with
+// url.PathEscape and stored as the request URL's RawPath, so IDs containing
+// "/" or ".." reach the agent intact instead of being collapsed by the
+// agent's path cleaning (which 307-redirects to the cleaned path, e.g.
+// deregistering "app/../web" would delete "web" instead). The decoded Path
+// is left untouched, so handlers still see the original ID.
+//
+// Note: the escaping must be done via RawPath, not by inlining
+// url.PathEscape into the path string: newRequest stores the path as the
+// decoded URL Path, and EscapedPath would re-escape the "%" (producing
+// "%252F").
+func (c *Client) newRequestWithEscapedID(method, path, id string) *request {
+	r := c.newRequest(method, path)
+	r.url.RawPath = r.url.Path[:len(r.url.Path)-len(id)] + url.PathEscape(id)
+	return r
+}
+
 // doRequest runs a request with our client
 func (c *Client) doRequest(r *request) (time.Duration, *http.Response, error) {
 	req, err := r.toHTTP()

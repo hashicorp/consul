@@ -829,7 +829,7 @@ func (a *Agent) AgentHealthServiceByID(serviceID string) (string, *AgentServiceC
 
 func (a *Agent) AgentHealthServiceByIDOpts(serviceID string, q *QueryOptions) (string, *AgentServiceChecksInfo, error) {
 	path := fmt.Sprintf("/v1/agent/health/service/id/%v", serviceID)
-	r := a.c.newRequest("GET", path)
+	r := a.c.newRequestWithEscapedID("GET", path, serviceID)
 	r.setQueryOptions(q)
 	r.params.Add("format", "json")
 	r.header.Set("Accept", "application/json")
@@ -870,7 +870,7 @@ func (a *Agent) AgentHealthServiceByName(service string) (string, []AgentService
 
 func (a *Agent) AgentHealthServiceByNameOpts(service string, q *QueryOptions) (string, []AgentServiceChecksInfo, error) {
 	path := fmt.Sprintf("/v1/agent/health/service/name/%v", service)
-	r := a.c.newRequest("GET", path)
+	r := a.c.newRequestWithEscapedID("GET", path, service)
 	r.setQueryOptions(q)
 	r.params.Add("format", "json")
 	r.header.Set("Accept", "application/json")
@@ -907,7 +907,7 @@ func (a *Agent) AgentHealthServiceByNameOpts(service string, q *QueryOptions) (s
 // agent-local state. That means there is no persistent raft index so we block
 // based on object hash instead.
 func (a *Agent) Service(serviceID string, q *QueryOptions) (*AgentService, *QueryMeta, error) {
-	r := a.c.newRequest("GET", "/v1/agent/service/"+serviceID)
+	r := a.c.newRequestWithEscapedID("GET", "/v1/agent/service/"+serviceID, serviceID)
 	r.setQueryOptions(q)
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
@@ -1019,7 +1019,7 @@ func (a *Agent) serviceRegister(service *AgentServiceRegistration, opts ServiceR
 // ServiceDeregister is used to deregister a service with
 // the local agent
 func (a *Agent) ServiceDeregister(serviceID string) error {
-	r := a.c.newRequest("PUT", "/v1/agent/service/deregister/"+serviceID)
+	r := a.c.newRequestWithEscapedID("PUT", "/v1/agent/service/deregister/"+serviceID, serviceID)
 	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
@@ -1034,7 +1034,7 @@ func (a *Agent) ServiceDeregister(serviceID string) error {
 // ServiceDeregisterOpts is used to deregister a service with
 // the local agent with QueryOptions.
 func (a *Agent) ServiceDeregisterOpts(serviceID string, q *QueryOptions) error {
-	r := a.c.newRequest("PUT", "/v1/agent/service/deregister/"+serviceID)
+	r := a.c.newRequestWithEscapedID("PUT", "/v1/agent/service/deregister/"+serviceID, serviceID)
 	r.setQueryOptions(q)
 	_, resp, err := a.c.doRequest(r)
 	if err != nil {
@@ -1092,7 +1092,7 @@ func (a *Agent) updateTTL(checkID, note, status string) error {
 		return fmt.Errorf("Invalid status: %s", status)
 	}
 	endpoint := fmt.Sprintf("/v1/agent/check/%s/%s", status, checkID)
-	r := a.c.newRequest("PUT", endpoint)
+	r := a.c.newRequestWithEscapedID("PUT", endpoint, checkID)
 	r.params.Set("note", note)
 	_, resp, err := a.c.doRequest(r)
 	if err != nil {
@@ -1140,7 +1140,7 @@ func (a *Agent) UpdateTTLOpts(checkID, output, status string, q *QueryOptions) e
 	}
 
 	endpoint := fmt.Sprintf("/v1/agent/check/update/%s", checkID)
-	r := a.c.newRequest("PUT", endpoint)
+	r := a.c.newRequestWithEscapedID("PUT", endpoint, checkID)
 	r.setQueryOptions(q)
 	r.obj = &checkUpdate{
 		Status: status,
@@ -1190,7 +1190,7 @@ func (a *Agent) CheckDeregister(checkID string) error {
 // CheckDeregisterOpts is used to deregister a check with
 // the local agent using query options
 func (a *Agent) CheckDeregisterOpts(checkID string, q *QueryOptions) error {
-	r := a.c.newRequest("PUT", "/v1/agent/check/deregister/"+checkID)
+	r := a.c.newRequestWithEscapedID("PUT", "/v1/agent/check/deregister/"+checkID, checkID)
 	r.setQueryOptions(q)
 	_, resp, err := a.c.doRequest(r)
 	if err != nil {
@@ -1331,7 +1331,7 @@ func (a *Agent) ConnectCARoots(q *QueryOptions) (*CARootList, *QueryMeta, error)
 
 // ConnectCALeaf gets the leaf certificate for the given service ID.
 func (a *Agent) ConnectCALeaf(serviceID string, q *QueryOptions) (*LeafCert, *QueryMeta, error) {
-	r := a.c.newRequest("GET", "/v1/agent/connect/ca/leaf/"+serviceID)
+	r := a.c.newRequestWithEscapedID("GET", "/v1/agent/connect/ca/leaf/"+serviceID, serviceID)
 	r.setQueryOptions(q)
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
@@ -1359,7 +1359,7 @@ func (a *Agent) EnableServiceMaintenance(serviceID, reason string) error {
 }
 
 func (a *Agent) EnableServiceMaintenanceOpts(serviceID, reason string, q *QueryOptions) error {
-	r := a.c.newRequest("PUT", "/v1/agent/service/maintenance/"+serviceID)
+	r := a.c.newRequestWithEscapedID("PUT", "/v1/agent/service/maintenance/"+serviceID, serviceID)
 	r.setQueryOptions(q)
 	r.params.Set("enable", "true")
 	r.params.Set("reason", reason)
@@ -1381,7 +1381,7 @@ func (a *Agent) DisableServiceMaintenance(serviceID string) error {
 }
 
 func (a *Agent) DisableServiceMaintenanceOpts(serviceID string, q *QueryOptions) error {
-	r := a.c.newRequest("PUT", "/v1/agent/service/maintenance/"+serviceID)
+	r := a.c.newRequestWithEscapedID("PUT", "/v1/agent/service/maintenance/"+serviceID, serviceID)
 	r.setQueryOptions(q)
 	r.params.Set("enable", "false")
 	_, resp, err := a.c.doRequest(r)
