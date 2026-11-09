@@ -2533,6 +2533,15 @@ func (s *ResourceGenerator) makeMeshGatewayPeerFilterChains(
 	// The priority order is service defaults and then the proxy config
 	// the value set in the proxy defaults is considered to be a default, that can be updated by the value from the service-default
 	proxyCfg := cfgSnap.GetProxyConfig(s.Logger)
+	var tracing *envoy_http_v3.HttpConnectionManager_Tracing
+	if proxyCfg.ListenerTracingJSON != "" {
+		parsedTracing, err := makeTracingFromUserConfig(proxyCfg.ListenerTracingJSON)
+		if err != nil {
+			s.Logger.Warn("failed to parse ListenerTracingJSON config", "error", err)
+		} else {
+			tracing = parsedTracing
+		}
+	}
 	maxRequestHeadersKb := proxyCfg.MaxRequestHeadersKB
 
 	serviceProxyConfig, found := cfgSnap.MeshGateway.ServiceGroups[svc]
@@ -2558,6 +2567,7 @@ func (s *ResourceGenerator) makeMeshGatewayPeerFilterChains(
 		statPrefix:           "mesh_gateway_local_peered.",
 		forwardClientDetails: true,
 		forwardClientPolicy:  envoy_http_v3.HttpConnectionManager_SANITIZE_SET,
+		tracing:              tracing,
 		maxRequestHeadersKb:  maxRequestHeadersKb,
 	})
 	if err != nil {

@@ -29,6 +29,15 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 	readyListeners := getReadyListeners(cfgSnap)
 
 	proxyConfig := cfgSnap.GetProxyConfig(s.Logger)
+	var tracing *envoy_http_v3.HttpConnectionManager_Tracing
+	if proxyConfig.ListenerTracingJSON != "" {
+		parsedTracing, err := makeTracingFromUserConfig(proxyConfig.ListenerTracingJSON)
+		if err != nil {
+			s.Logger.Warn("failed to parse ListenerTracingJSON config", "error", err)
+		} else {
+			tracing = parsedTracing
+		}
+	}
 
 	for _, readyListener := range readyListeners {
 		listenerCfg := readyListener.listenerCfg
@@ -118,6 +127,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 				filterName:      filterName,
 				protocol:        cfg.Protocol,
 				tlsContext:      tlsContext,
+				tracing:         tracing,
 			})
 			if err != nil {
 				return nil, err
@@ -147,6 +157,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 						statPrefix:           "ingress_upstream_",
 						accessLogs:           &cfgSnap.Proxy.AccessLogs,
 						logger:               s.Logger,
+						tracing:              tracing,
 						maxRequestHeadersKb:  maxRequestHeadersKb,
 						suppressEnvoyHeaders: proxyConfig.SuppressEnvoyHeaders,
 						serverHeaderName:     proxyConfig.EnvoyServerHeaderName,
@@ -247,6 +258,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 				httpAuthzFilters:     authFilters,
 				accessLogs:           &cfgSnap.Proxy.AccessLogs,
 				logger:               s.Logger,
+				tracing:              tracing,
 				maxRequestHeadersKb:  maxRequestHeadersKb,
 				suppressEnvoyHeaders: proxyConfig.SuppressEnvoyHeaders,
 				serverHeaderName:     proxyConfig.EnvoyServerHeaderName,
