@@ -91,10 +91,14 @@ func CatalogNodeDoesNotExist(t *testing.T, c *api.Client, nodeName string) {
 
 // CatalogServiceIsHealthy verifies the service name exists and all instances pass healthchecks
 func CatalogServiceIsHealthy(t *testing.T, c *api.Client, svc string, opts *api.QueryOptions) {
+	CatalogServiceIsHealthyWithTimer(t, c, svc, opts, retry.DefaultRetryer())
+}
+
+// CatalogServiceIsHealthyWithTimer is CatalogServiceIsHealthy with a caller-supplied
+// retry timer, for services whose checks need longer than the default to pass.
+func CatalogServiceIsHealthyWithTimer(t *testing.T, c *api.Client, svc string, opts *api.QueryOptions, timer retry.Retryer) {
 	CatalogServiceExists(t, c, svc, opts)
 
-	// Allow at least a couple of check intervals (gateway checks run every 10s).
-	timer := &retry.Timer{Timeout: 30 * time.Second, Wait: 500 * time.Millisecond}
 	retry.RunWith(timer, t, func(r *retry.R) {
 		services, _, err := c.Health().Service(svc, "", false, opts)
 		if err != nil {

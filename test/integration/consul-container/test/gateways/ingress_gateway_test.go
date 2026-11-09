@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
@@ -64,7 +65,8 @@ func TestIngressGateway(t *testing.T) {
 	// We check this is healthy here because in the case of bringing up a new kube cluster,
 	// it is not possible to create the config entry in advance.
 	// The health checks must pass so the pod can start up.
-	libassert.CatalogServiceIsHealthy(t, apiClient, api.IngressGateway, nil)
+	// The ingress gateway's TCP check runs every 10s, longer than the default retry timeout.
+	libassert.CatalogServiceIsHealthyWithTimer(t, apiClient, api.IngressGateway, nil, retry.ThirtySeconds())
 
 	// Register a service to the ingress gateway
 	// **NOTE**: We intentionally wait until after the gateway starts to create the config entry.

@@ -424,7 +424,7 @@ jobs:
     env:
       ENVOY_VERSION: ${{ needs.get-envoy-versions.outputs.max-envoy-version }}
       # TODO: don't hardcode this image name
-      CONSUL_DATAPLANE_IMAGE: "docker.mirror.hashicorp.services/hashicorppreview/consul-dataplane:1.6-dev-ubi"
+      CONSUL_DATAPLANE_IMAGE: "docker.mirror.hashicorp.services/hashicorppreview/consul-dataplane:2.1-dev-ubi"
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
