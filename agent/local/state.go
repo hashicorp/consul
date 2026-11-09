@@ -219,6 +219,12 @@ type State struct {
 	// but the same mechanism could be used for other state changes. Any
 	// future notifications should re-use this mechanism.
 	notifyHandlers map[chan<- struct{}]struct{}
+
+	// paused stores whether sync operations are disabled (e.g. during graceful leave).
+	paused int
+
+	// syncWg tracks in-flight SyncFull operations so PauseSync can wait for them to finish.
+	syncWg sync.WaitGroup
 }
 
 // NewState creates a new local state for the agent.
@@ -1222,9 +1228,52 @@ func (l *State) updateSyncState() error {
 	return nil
 }
 
+// PauseSync disables SyncChanges and SyncFull from pushing updates to the server.
+// It increments the pause counter and waits for any in-flight SyncChanges or
+// SyncFull operations to complete.
+func (l *State) PauseSync() {
+	l.Lock()
+	l.paused++
+	l.Unlock()
+
+	// Wait for any in-flight SyncFull operation to complete.
+	l.syncWg.Wait()
+
+	// Wait out any in-flight SyncChanges operation by acquiring the state lock.
+	l.Lock()
+	defer l.Unlock()
+}
+
+// ResumeSync decrements the pause counter, re-enabling SyncChanges and SyncFull
+// once the counter reaches zero.
+func (l *State) ResumeSync() {
+	l.Lock()
+	defer l.Unlock()
+	l.paused--
+	if l.paused < 0 {
+		panic("unbalanced PauseSync/ResumeSync on local.State")
+	}
+}
+
+// Paused returns whether sync operations are currently paused.
+func (l *State) Paused() bool {
+	l.RLock()
+	defer l.RUnlock()
+	return l.paused > 0
+}
+
 // SyncFull determines the delta between the local and remote state
 // and synchronizes the changes.
 func (l *State) SyncFull() error {
+	l.Lock()
+	if l.paused > 0 {
+		l.Unlock()
+		return nil
+	}
+	l.syncWg.Add(1)
+	l.Unlock()
+	defer l.syncWg.Done()
+
 	// note that we do not acquire the lock here since the methods
 	// we are calling will do that themselves.
 	//
@@ -1245,6 +1294,10 @@ func (l *State) SyncFull() error {
 func (l *State) SyncChanges() error {
 	l.Lock()
 	defer l.Unlock()
+
+	if l.paused > 0 {
+		return nil
+	}
 
 	// Sync the node level info if we need to.
 	// At the start to guarantee sync even if services or checks fail,
