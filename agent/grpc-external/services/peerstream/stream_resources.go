@@ -285,26 +285,45 @@ func (r HandleStreamRequest) IsAcceptor() bool {
 	return r.RemoteID == ""
 }
 
+// streamReceiver tracks the goroutine that reads from a stream handled by HandleStream.
+type streamReceiver struct {
+	// done is closed when the receiver goroutine has returned.
+	done chan struct{}
+	// err is the error that ended the stream. It is only safe to read after done is closed.
+	err error
+}
+
 // DrainStream attempts to gracefully drain the stream when the connection is going to be torn down.
 // Tearing down the connection too quickly can lead our peer receiving a context cancellation error before the stream termination message.
 // Handling the termination message is important to set the expectation that the peering will not be reestablished unless recreated.
 func (s *Server) DrainStream(req HandleStreamRequest) {
-	for {
-		// Ensure that we read until an error, or the peer has nothing more to send.
-		if _, err := req.Stream.Recv(); err != nil {
-			if err != io.EOF {
-				s.Logger.Warn("failed to tear down stream gracefully: peer may not have received termination message",
-					"peer_name", req.PeerName, "peer_id", req.LocalID, "error", err)
+	var err error
+	if v, ok := s.receivers.LoadAndDelete(req.Stream); ok {
+		// The stream's receiver goroutine keeps reading and discarding messages after HandleStream
+		// returns. Wait for it rather than calling Recv concurrently, which gRPC does not allow.
+		r := v.(*streamReceiver)
+		<-r.done
+		err = r.err
+	} else {
+		for {
+			// Ensure that we read until an error, or the peer has nothing more to send.
+			// Since the peering is being torn down we discard all replication messages without an error.
+			// We want to avoid importing new data at this point.
+			if _, err = req.Stream.Recv(); err != nil {
+				break
 			}
-			break
 		}
-		// Since the peering is being torn down we discard all replication messages without an error.
-		// We want to avoid importing new data at this point.
+	}
+	if err != io.EOF {
+		s.Logger.Warn("failed to tear down stream gracefully: peer may not have received termination message",
+			"peer_name", req.PeerName, "peer_id", req.LocalID, "error", err)
 	}
 }
 
 func (s *Server) HandleStream(streamReq HandleStreamRequest) error {
 	if err := s.realHandleStream(streamReq); err != nil {
+		// DrainStream is only called after a graceful shutdown.
+		s.receivers.Delete(streamReq.Stream)
 		s.Tracker.DisconnectedDueToError(streamReq.LocalID, err.Error())
 		return err
 	}
@@ -498,18 +517,35 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 
 	// Start a goroutine to read from the stream and pass to recvCh and recvErrCh.
 	// Using a separate goroutine allows us to process sends and receives all in the main for{} loop.
+	//
+	// This goroutine is the only caller of Recv for the lifetime of the stream. Once this handler
+	// returns it keeps reading and discarding messages until the stream ends, and DrainStream
+	// waits for it instead of calling Recv concurrently.
+	receiver := &streamReceiver{done: make(chan struct{})}
+	s.receivers.Store(streamReq.Stream, receiver)
 	go func() {
+		defer close(receiver.done)
+		draining := false
 		for {
 			msg, err := streamReq.Stream.Recv()
 			if err != nil {
-				recvErrCh <- err
+				receiver.err = err
+				if !draining {
+					select {
+					case recvErrCh <- err:
+					case <-handleStreamCtx.Done():
+					}
+				}
 				return
+			}
+			if draining {
+				continue
 			}
 			logTraceRecv(logger, msg)
 			select {
 			case recvCh <- msg:
 			case <-handleStreamCtx.Done():
-				return
+				draining = true
 			}
 		}
 	}()
@@ -535,19 +571,36 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 		}
 	}()
 
-	// stopSender stops the sender goroutine and waits for any in-flight write to finish so that the
-	// caller can safely close the send side of the stream. Received messages are discarded while
-	// waiting so that the peer can make progress and the in-flight write can complete.
-	stopSender := func() {
+	// stopSender stops the sender goroutine, optionally sends one final message, and waits for all
+	// writes to finish so that the caller can safely close the send side of the stream.
+	//
+	// The final message is written from a separate goroutine because it may have to wait for the
+	// sender's in-flight write to release sendMutex, and that write may be blocked on flow control.
+	// Received messages are discarded while waiting so that the peer can make progress and both
+	// writes can complete.
+	stopSender := func(final *pbpeerstream.ReplicationMessage) error {
 		close(senderStop)
-		for {
+
+		finalErrCh := make(chan error, 1)
+		if final != nil {
+			go func() { finalErrCh <- streamSend(final) }()
+		} else {
+			finalErrCh <- nil
+		}
+
+		var finalErr error
+		finalPending, senderRunning := finalErrCh, senderDone
+		for finalPending != nil || senderRunning != nil {
 			select {
-			case <-senderDone:
-				return
+			case finalErr = <-finalPending:
+				finalPending = nil
+			case <-senderRunning:
+				senderRunning = nil
 			case <-recvCh:
 			case <-recvErrCh:
 			}
 		}
+		return finalErr
 	}
 
 	// incomingHeartbeatCtx will complete if incoming heartbeats time out.
@@ -596,15 +649,14 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 					Terminated: &pbpeerstream.ReplicationMessage_Terminated{},
 				},
 			}
-			if err := streamSend(term); err != nil {
+			// Send the termination message without blocking the receive path, and wait for all
+			// writes to finish so that the caller can safely close the send side of the stream.
+			if err := stopSender(term); err != nil {
 				// Nolint directive needed due to bug in govet that doesn't see that the cancel
 				// func of the incomingHeartbeatTimer _does_ get called.
 				//nolint:govet
 				return fmt.Errorf("failed to send to stream: %v", err)
 			}
-
-			// Wait for the sender to stop so that the caller can safely close the send side of the stream.
-			stopSender()
 
 			logger.Trace("deleting stream status")
 			s.Tracker.DeleteStatus(streamReq.LocalID)
@@ -757,7 +809,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 				if err := s.Backend.PeeringTerminateByID(&pbpeering.PeeringTerminateByIDRequest{ID: streamReq.LocalID}); err != nil {
 					logger.Error("failed to mark peering as terminated: %w", err)
 				}
-				stopSender()
+				_ = stopSender(nil)
 				return nil
 			}
 
