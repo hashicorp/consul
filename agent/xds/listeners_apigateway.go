@@ -29,15 +29,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 	readyListeners := getReadyListeners(cfgSnap)
 
 	proxyConfig := cfgSnap.GetProxyConfig(s.Logger)
-	var tracing *envoy_http_v3.HttpConnectionManager_Tracing
-	if proxyConfig.ListenerTracingJSON != "" {
-		parsedTracing, err := makeTracingFromUserConfig(proxyConfig.ListenerTracingJSON)
-		if err != nil {
-			s.Logger.Warn("failed to parse ListenerTracingJSON config", "error", err)
-		} else {
-			tracing = parsedTracing
-		}
-	}
+	tracing := makeListenerTracing(proxyConfig.ListenerTracingJSON, s.Logger)
 
 	for _, readyListener := range readyListeners {
 		listenerCfg := readyListener.listenerCfg
