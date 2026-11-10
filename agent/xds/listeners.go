@@ -132,12 +132,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 	}
 
 	proxyCfg := cfgSnap.GetProxyConfig(s.Logger)
-	var tracing *envoy_http_v3.HttpConnectionManager_Tracing
-	if proxyCfg.ListenerTracingJSON != "" {
-		if tracing, err = makeTracingFromUserConfig(proxyCfg.ListenerTracingJSON); err != nil {
-			s.Logger.Warn("failed to parse ListenerTracingJSON config", "error", err)
-		}
-	}
+	tracing := makeListenerTracing(proxyCfg.ListenerTracingJSON, s.Logger)
 
 	upstreamsSnapshot, err := cfgSnap.ToConfigSnapshotUpstreams()
 	if err != nil {
@@ -1639,12 +1634,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 	l = makeListener(opts)
 	s.injectConnectionBalanceConfig(cfg.BalanceInboundConnections, l)
 
-	var tracing *envoy_http_v3.HttpConnectionManager_Tracing
-	if cfg.ListenerTracingJSON != "" {
-		if tracing, err = makeTracingFromUserConfig(cfg.ListenerTracingJSON); err != nil {
-			s.Logger.Warn("failed to parse ListenerTracingJSON config", "error", err)
-		}
-	}
+	tracing := makeListenerTracing(cfg.ListenerTracingJSON, s.Logger)
 
 	filterOpts := listenerFilterOpts{
 		protocol:            cfg.Protocol,
@@ -2163,12 +2153,7 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 	}
 
 	proxyCfg := cfgSnap.GetProxyConfig(s.Logger)
-	var tracing *envoy_http_v3.HttpConnectionManager_Tracing
-	if proxyCfg.ListenerTracingJSON != "" {
-		if tracing, err = makeTracingFromUserConfig(proxyCfg.ListenerTracingJSON); err != nil {
-			s.Logger.Warn("failed to parse ListenerTracingJSON config", "error", err)
-		}
-	}
+	tracing := makeListenerTracing(proxyCfg.ListenerTracingJSON, s.Logger)
 
 	// The priority order is service defaults and then the proxy config
 	// the value set in the proxy defaults is considered to be a default, that can be updated by the value from the service-default
@@ -2533,6 +2518,7 @@ func (s *ResourceGenerator) makeMeshGatewayPeerFilterChains(
 	// The priority order is service defaults and then the proxy config
 	// the value set in the proxy defaults is considered to be a default, that can be updated by the value from the service-default
 	proxyCfg := cfgSnap.GetProxyConfig(s.Logger)
+	tracing := makeListenerTracing(proxyCfg.ListenerTracingJSON, s.Logger)
 	maxRequestHeadersKb := proxyCfg.MaxRequestHeadersKB
 
 	serviceProxyConfig, found := cfgSnap.MeshGateway.ServiceGroups[svc]
@@ -2558,6 +2544,7 @@ func (s *ResourceGenerator) makeMeshGatewayPeerFilterChains(
 		statPrefix:           "mesh_gateway_local_peered.",
 		forwardClientDetails: true,
 		forwardClientPolicy:  envoy_http_v3.HttpConnectionManager_SANITIZE_SET,
+		tracing:              tracing,
 		maxRequestHeadersKb:  maxRequestHeadersKb,
 	})
 	if err != nil {
@@ -2899,6 +2886,19 @@ func makeTracingFromUserConfig(configJSON string) (*envoy_http_v3.HttpConnection
 		return nil, err
 	}
 	return &t, nil
+}
+
+func makeListenerTracing(configJSON string, logger hclog.Logger) *envoy_http_v3.HttpConnectionManager_Tracing {
+	if configJSON == "" {
+		return nil
+	}
+
+	tracing, err := makeTracingFromUserConfig(configJSON)
+	if err != nil {
+		logger.Warn("failed to parse ListenerTracingJSON config", "error", err)
+		return nil
+	}
+	return tracing
 }
 
 func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) {
