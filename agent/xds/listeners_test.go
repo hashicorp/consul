@@ -689,13 +689,21 @@ func Test_makeAPIGatewayListeners_maxRequestHeadersKb(t *testing.T) {
 	}
 }
 
-func Test_makeMeshGatewayPeerFilterChain_maxRequestHeadersKb(t *testing.T) {
+func Test_makeMeshGatewayPeerFilterChain_config(t *testing.T) {
+	const listenerTracingJSON = `{
+		"@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager.Tracing",
+		"random_sampling": {"value": 100},
+		"overall_sampling": {"value": 100},
+		"spawn_upstream_span": true
+	}`
+
 	tests := map[string]struct {
 		proxyConfig        map[string]interface{}
 		serviceProxyConfig map[string]interface{}
 		protocol           string
 		wantPresent        bool
 		wantValue          uint32
+		wantTracing        bool
 	}{
 		"defaults to proxy config when no service override": {
 			proxyConfig: map[string]interface{}{
@@ -752,6 +760,14 @@ func Test_makeMeshGatewayPeerFilterChain_maxRequestHeadersKb(t *testing.T) {
 			protocol:    "grpc",
 			wantPresent: true,
 			wantValue:   512,
+		},
+		"applies listener tracing config": {
+			proxyConfig: map[string]interface{}{
+				"envoy_listener_tracing_json": listenerTracingJSON,
+			},
+			serviceProxyConfig: map[string]interface{}{},
+			protocol:           "http",
+			wantTracing:        true,
 		},
 	}
 
@@ -839,6 +855,12 @@ func Test_makeMeshGatewayPeerFilterChain_maxRequestHeadersKb(t *testing.T) {
 				require.Equal(t, tc.wantValue, httpConnMgr.MaxRequestHeadersKb.GetValue())
 			} else {
 				require.Nil(t, httpConnMgr.MaxRequestHeadersKb, "expected MaxRequestHeadersKb to be nil but it was set")
+			}
+			if tc.wantTracing {
+				require.NotNil(t, httpConnMgr.Tracing)
+				require.Equal(t, float64(100), httpConnMgr.Tracing.RandomSampling.GetValue())
+				require.Equal(t, float64(100), httpConnMgr.Tracing.OverallSampling.GetValue())
+				require.True(t, httpConnMgr.Tracing.SpawnUpstreamSpan.GetValue())
 			}
 		})
 	}
