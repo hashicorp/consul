@@ -45,7 +45,7 @@ import (
 //     will actually cause the proxies to update. Testing this proved difficult.
 func TestAccessLogs(t *testing.T) {
 	if semver.IsValid(utils.TargetVersion) && semver.Compare(utils.TargetVersion, "v1.15") < 0 {
-		t.Skip()
+		t.Skipf("access logs require Consul >= 1.15, got target version %s", utils.TargetVersion)
 	}
 
 	cluster, _, _ := topology.NewCluster(t, &topology.ClusterConfig{
