@@ -23,8 +23,30 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+      # Fallback for backport PRs: honor pr/no-ent-sync on the original PR in case the label was not propagated before merge.
+      - name: Check original PR for ENT sync opt-out
+        id: optout
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          SKIP=false
+          if [[ "$HEAD_REF" == backport/* ]]; then
+            ORIGINAL_PR=$(printf '%s' "$PR_BODY" | grep -oE 'auto-generated from #[0-9]+' | head -1 | grep -oE '[0-9]+' || true)
+            if [[ -n "$ORIGINAL_PR" ]]; then
+              LABELS=$(gh api "repos/${REPO}/issues/${ORIGINAL_PR}" --jq '.labels[].name')
+              if grep -qx 'pr/no-ent-sync' <<< "$LABELS"; then
+                echo "Original PR #${ORIGINAL_PR} has pr/no-ent-sync; skipping ENT sync"
+                SKIP=true
+              fi
+            fi
+          fi
+          echo "skip=$SKIP" >> $GITHUB_OUTPUT
       - name: Fetch active releases
         id: active
+        if: steps.optout.outputs.skip != 'true'
         run: |
           if [[ "$BRANCH" == "main" ]]; then
             IS_ACTIVE=1
