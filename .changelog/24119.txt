@@ -1,0 +1,3 @@
+```release-note:enhancement
+gateway: Apply `envoy_listener_tracing_json` from proxy defaults to API Gateway HTTP listeners and Mesh Gateway HTTP filter chains for exported services, allowing configured sampling rates and upstream span creation to take effect.
+```

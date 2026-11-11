@@ -7,12 +7,74 @@ import (
 	"testing"
 
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/types"
 )
+
+func TestMakeAPIGatewayListeners_ListenerTracing(t *testing.T) {
+	const listenerTracingJSON = `{
+		"@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager.Tracing",
+		"random_sampling": {"value": 100},
+		"overall_sampling": {"value": 100},
+		"spawn_upstream_span": true
+	}`
+
+	routeRef := structs.ResourceReference{Kind: structs.HTTPRoute, Name: "http-route"}
+	route := &structs.HTTPRouteConfigEntry{
+		Kind: structs.HTTPRoute,
+		Name: routeRef.Name,
+		Parents: []structs.ResourceReference{{
+			Kind: structs.APIGateway,
+			Name: "api-gateway",
+		}},
+		Rules: []structs.HTTPRouteRule{{
+			Services: []structs.HTTPService{{Name: "backend"}},
+		}},
+	}
+	snap := proxycfg.TestConfigSnapshotAPIGateway(t, "default", func(ns *structs.NodeService) {
+		ns.Proxy.Config = map[string]interface{}{
+			"envoy_listener_tracing_json": listenerTracingJSON,
+		}
+	}, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+		entry.Listeners = []structs.APIGatewayListener{{
+			Name:     "http-listener",
+			Protocol: structs.ListenerProtocolHTTP,
+			Port:     8080,
+		}}
+		bound.Listeners = []structs.BoundAPIGatewayListener{{
+			Name:   "http-listener",
+			Routes: []structs.ResourceReference{routeRef},
+		}}
+	}, []structs.BoundRoute{route}, nil, nil)
+
+	generator := &ResourceGenerator{Logger: hclog.NewNullLogger()}
+	resources, err := generator.makeAPIGatewayListeners("0.0.0.0", snap)
+	require.NoError(t, err)
+
+	var listener *envoy_listener_v3.Listener
+	for _, resource := range resources {
+		candidate, ok := resource.(*envoy_listener_v3.Listener)
+		if ok && candidate.Address.GetSocketAddress().GetPortValue() == 8080 {
+			listener = candidate
+			break
+		}
+	}
+	require.NotNil(t, listener, "expected API Gateway HTTP listener")
+	require.NotEmpty(t, listener.FilterChains)
+
+	var hcm envoy_http_v3.HttpConnectionManager
+	err = listener.FilterChains[0].Filters[0].GetTypedConfig().UnmarshalTo(&hcm)
+	require.NoError(t, err)
+	require.NotNil(t, hcm.Tracing)
+	require.Equal(t, float64(100), hcm.Tracing.RandomSampling.GetValue())
+	require.Equal(t, float64(100), hcm.Tracing.OverallSampling.GetValue())
+	require.True(t, hcm.Tracing.SpawnUpstreamSpan.GetValue())
+}
 
 func TestMakeInlineOverrideFilterChains_FileSystemCertificates(t *testing.T) {
 	// This test verifies the fix for the bug where multiple file-system-certificate
