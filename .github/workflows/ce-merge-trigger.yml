@@ -13,8 +13,8 @@ on:
 
 jobs:
   check-conditions:
-    # run this only on merge events in CE repo
-    if: ${{ github.event.pull_request.merged && github.repository == 'hashicorp/consul' }}
+    # run this only on merge events in CE repo; apply the `pr/no-ent-sync` label to opt out of the ENT sync PR
+    if: ${{ github.event.pull_request.merged && github.repository == 'hashicorp/consul' && !contains(github.event.pull_request.labels.*.name, 'pr/no-ent-sync') }}
     runs-on: ubuntu-latest
     outputs:
       active: ${{ steps.active.outputs.active }}
