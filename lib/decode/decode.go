@@ -61,6 +61,15 @@ func HookTranslateKeys(_, to reflect.Type, data interface{}) (interface{}, error
 			continue
 		}
 
+		if _, exists := source[canonKey]; !exists {
+			for sourceKey := range source {
+				if strings.EqualFold(sourceKey, canonKey) {
+					canonKey = sourceKey
+					break
+				}
+			}
+		}
+
 		// if there is a value for the canonical key then keep it
 		if canonValue, ok := source[canonKey]; ok {
 			// Assign the value for the case where canonKey == k
