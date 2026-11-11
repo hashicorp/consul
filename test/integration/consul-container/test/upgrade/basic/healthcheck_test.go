@@ -27,7 +27,7 @@ func TestTargetServersWithLatestGAClients(t *testing.T) {
 	fromVersion, err := version.NewVersion(utils.LatestVersion)
 	require.NoError(t, err)
 	if fromVersion.LessThan(utils.Version_1_14) {
-		t.Skip("TODO: why are we skipping this?")
+		t.Skipf("latest GA version %s is older than 1.14", utils.LatestVersion)
 	}
 
 	const (

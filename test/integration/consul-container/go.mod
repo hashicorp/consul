@@ -20,6 +20,7 @@ require (
 	github.com/hashicorp/hcl v1.0.1-vault-7
 	github.com/hashicorp/serf v0.11.0
 	github.com/itchyny/gojq v0.12.12
+	github.com/miekg/dns v1.1.73
 	github.com/mitchellh/copystructure v1.2.0
 	github.com/mitchellh/reflectwalk v1.0.2
 	github.com/moby/moby/api v1.54.1
@@ -83,7 +84,6 @@ require (
 	github.com/magiconair/properties v1.8.10 // indirect
 	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
-	github.com/miekg/dns v1.1.73 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/go-archive v0.3.0 // indirect
