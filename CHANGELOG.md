@@ -996,30 +996,6 @@ BUG FIXES:
 * ui: Fix broken documentation links [[GH-23578](https://github.com/hashicorp/consul/issues/23578)]
 * xds: Fixed XDS package to generate correct endpoints and cluster configurations for API Gateways when peered, and updated the API Gateway update handler to propogate mesh gateway config to its upstreams. [[GH-23454](https://github.com/hashicorp/consul/issues/23454)]
 
-## 1.9.8 (May 24, 2026)
-
-SECURITY:
-
-* Upgrade to use `x/net` 0.55.0.
-This resolves [GO-2026-4918](https://pkg.go.dev/vuln/GO-2026-4918) [[GH-5308](https://github.com/hashicorp/consul-k8s/issues/5308)]
-
-BUG FIXES:
-
-* connect-init: fix incorrect FIPS Consul version check that caused misleading WARN messages in the `consul-connect-inject-init` init container logs even when a fully FIPS-compliant setup was used. The original check queried `/v1/agent/version` with a non-pointer map, so the response was never decoded and both FIPS warnings fired on every pod startup. The fix decodes the endpoint response correctly and checks the returned `FIPS` value. [[GH-5252](https://github.com/hashicorp/consul-k8s/issues/5252)]
-
-
-## 1.8.13 (May 24, 2026)
-
-SECURITY:
-
-* Upgrade to use `x/net` 0.55.0.
-This resolves [GO-2026-4918](https://pkg.go.dev/vuln/GO-2026-4918) [[GH-5308](https://github.com/hashicorp/consul-k8s/issues/5308)]
-
-BUG FIXES:
-
-* connect-init: fix incorrect FIPS Consul version check that caused misleading WARN messages in the `consul-connect-inject-init` init container logs even when a fully FIPS-compliant setup was used. The original check queried `/v1/agent/version` with a non-pointer map, so the response was never decoded and both FIPS warnings fired on every pod startup. The fix decodes the endpoint response correctly and checks the returned `FIPS` value. [[GH-5252](https://github.com/hashicorp/consul-k8s/issues/5252)]
-
-
 ## 1.22.7 (April 21, 2026)
 
 SECURITY:
