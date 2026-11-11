@@ -1,0 +1,3 @@
+```release-note:improvement
+ci: Re-enable the Compatibility Integration Tests and fix the consul-container test library for the upgraded runners (testcontainers v0.42, Docker 28): agents now advertise their bridge network IP explicitly, container logs are captured again, and the troubleshoot and gateway health tests tolerate slow startup.
+```

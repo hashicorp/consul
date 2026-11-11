@@ -10,8 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/stretchr/testify/require"
 
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
@@ -39,16 +37,23 @@ func TestTroubleshootProxy(t *testing.T) {
 
 	t.Run("upstream exists and is healthy", func(t *testing.T) {
 		require.Eventually(t, func() bool {
+			// Envoy's admin API may not be up yet, so treat errors as "not ready" and retry.
 			output, err := clientSidecar.Exec(context.Background(),
 				[]string{"consul", "troubleshoot", "upstreams",
 					"-envoy-admin-endpoint", fmt.Sprintf("localhost:%v", clientAdminPort)})
-			require.NoError(t, err)
-			upstreamExists := assert.Contains(t, output, libservice.StaticServerServiceName)
+			if err != nil {
+				t.Log(err)
+				return false
+			}
+			upstreamExists := strings.Contains(output, libservice.StaticServerServiceName)
 
 			output, err = clientSidecar.Exec(context.Background(), []string{"consul", "troubleshoot", "proxy",
 				"-envoy-admin-endpoint", fmt.Sprintf("localhost:%v", clientAdminPort),
 				"-upstream-envoy-id", libservice.StaticServerServiceName})
-			require.NoError(t, err)
+			if err != nil {
+				t.Log(err)
+				return false
+			}
 			certsValid := strings.Contains(output, "Certificates are valid")
 			noRejectedConfig := strings.Contains(output, "Envoy has 0 rejected configurations")
 			noConnFailure := strings.Contains(output, "Envoy has detected 0 connection failure(s)")
@@ -66,7 +71,10 @@ func TestTroubleshootProxy(t *testing.T) {
 			output, err := clientSidecar.Exec(context.Background(), []string{"consul", "troubleshoot", "proxy",
 				"-envoy-admin-endpoint", fmt.Sprintf("localhost:%v", clientAdminPort),
 				"-upstream-envoy-id", libservice.StaticServerServiceName})
-			require.NoError(t, err)
+			if err != nil {
+				t.Log(err)
+				return false
+			}
 
 			certsValid := strings.Contains(output, "Certificates are valid")
 			noRejectedConfig := strings.Contains(output, "Envoy has 0 rejected configurations")
