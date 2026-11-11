@@ -1,0 +1,11 @@
+diff --git a/dist/commonjs/index.js b/dist/commonjs/index.js
+index eb1c915f43b2debf5faa7ac3a73c262a161c7a4f..dd8045c6659ac8b8d89172e36eba107a034ab8a6 100644
+--- a/dist/commonjs/index.js
++++ b/dist/commonjs/index.js
+@@ -1547,4 +1547,6 @@ Object.defineProperty(exports, "unescape", { enumerable: true, get: function ()
+ exports.minimatch.Minimatch = Minimatch;
+ exports.minimatch.escape = escape_js_1.escape;
+ exports.minimatch.unescape = unescape_js_1.unescape;
++// ember-cli and ember-qunit-nice-errors call the required module directly; v11 only exports named `minimatch`.
++module.exports = Object.assign(minimatch, exports);
+ //# sourceMappingURL=index.js.map

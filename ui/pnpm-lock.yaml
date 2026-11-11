@@ -42,10 +42,8 @@ overrides:
   flatted@<=3.4.1: ^3.4.2
   minimatch@>=3.0.0 <3.1.4: ^3.1.4
   minimatch@>=5.0.0 <5.1.8: ^5.1.8
-  minimatch@>=7.0.0 <7.4.8: ^7.4.8
-  minimatch@>=8.0.0 <8.0.6: ^8.0.6
-  minimatch@>=9.0.0 <9.0.7: ^9.0.7
-  glob@>=10.0.0 <14.0.2: ^14.0.2
+  minimatch@>=7.0.0 <11.0.1: ^11.0.1
+  glob@>=9.0.0 <14.0.2: ^14.0.2
   webpack@>=5.49.0 <=5.104.0: ^5.104.1
   diff@>=5.0.0 <5.2.2: ^5.2.2
   diff@>=6.0.0 <8.0.3: ^8.0.3
@@ -80,6 +78,9 @@ patchedDependencies:
   js-yaml@4.3.2:
     hash: 6b54952aa3f509cb42ade844ea9fd31217552fb5cc9f293bb92fbdb6c9675ab2
     path: patches/js-yaml@4.3.2.patch
+  minimatch@11.0.4:
+    hash: 2eb3762ccc2b81b277e0c7a33f2fb0ed5acf986529a9a45319378b627facaf2b
+    path: patches/minimatch@11.0.4.patch
 
 importers:
 
@@ -4719,11 +4720,6 @@ packages:
     engines: {node: '>=12'}
     deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
-  glob@9.3.5:
-    resolution: {integrity: sha512-e1LleDykUz2Iu+MTYdkSsuWX8lvAjAcs0Xef0lNIu0S2wOAzuTxCJtcd9S3cijlwYF18EsU3rzb8jPVobxDh9Q==}
-    engines: {node: '>=16 || 14 >=14.17'}
-    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
-
   global-modules@1.0.0:
     resolution: {integrity: sha512-sKzpEkf11GpOFuw0Zzjzmt4B4UZwjOcG757PPvrfhxcLFbq0wpsgpOqxpxtxFiCG4DtG93M6XRVbF2oGdev7bg==}
     engines: {node: '>=0.10.0'}
@@ -5455,9 +5451,6 @@ packages:
   lower-case@2.0.2:
     resolution: {integrity: sha512-7fm3l3NAF9WfN6W3JOmf5drwpVqX78JtoGJ3A6W0a6ZnldM41w2fV5D490psKFTpMds8TJse/eHLFFsNHHjHgg==}
 
-  lru-cache@10.4.3:
-    resolution: {integrity: sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ==}
-
   lru-cache@11.5.3:
     resolution: {integrity: sha512-U4N8FgzmWxc8k1VH8Kr6lQg18U7Fjvby6wXHVRX/ZZ7IwWbRMgrRbP0Wrb5q5NVinryp4SQampHKdvtecItxUg==}
     engines: {node: 20 || >=22}
@@ -5711,27 +5704,11 @@ packages:
     resolution: {integrity: sha512-7o1wEA2RyMP7Iu7GNba9vc0RWWGACJOCZBJX2GJWip0ikV+wcOsgVuY9uE8CPiyQhkGFSlhuSkZPavN7u1c2Fw==}
     engines: {node: '>=10'}
 
-  minimatch@7.4.9:
-    resolution: {integrity: sha512-Brg/fp/iAVDOQoHxkuN5bEYhyQlZhxddI78yWsCbeEwTHXQjlNLtiJDUsp1GIptVqMI7/gkJMz4vVAc01mpoBw==}
-    engines: {node: '>=10'}
-
-  minimatch@8.0.7:
-    resolution: {integrity: sha512-V+1uQNdzybxa14e/p00HZnQNNcTjnRJjDxg2V8wtkjFctq4M7hXFws4oekyTP0Jebeq7QYtpFyOeBAjc88zvYg==}
-    engines: {node: '>=16 || 14 >=14.17'}
-
   minimist@1.2.8:
     resolution: {integrity: sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==}
 
   minipass@2.9.0:
     resolution: {integrity: sha512-wxfUjg9WebH+CUDX/CdbRlh5SmfZiy/hpkxaRI16Y9W56Pa75sWgd/rvFilSgrauD9NyFymP/+JFV3KwzIsJeg==}
-
-  minipass@4.2.8:
-    resolution: {integrity: sha512-fNzuVyifolSLFL4NzpF+wEF4qrgqaaKX0haXPQEdQ7NKAN+WecoKMHV09YcuL/DHxrUsYQOK3MiuDf7Ip2OXfQ==}
-    engines: {node: '>=8'}
-
-  minipass@7.1.2:
-    resolution: {integrity: sha512-qOOzS1cBTWYF4BH8fVePDBOO9iptMnGUEZwNc/cMWnTV2nVLZ7VoNWEPHkYczZA0pdoA7dl6e7FL659nX9S2aw==}
-    engines: {node: '>=16 || 14 >=14.17'}
 
   minipass@7.1.3:
     resolution: {integrity: sha512-tEBHqDnIoM/1rXME1zgka9g6Q2lcoCkxHLuc7ODJ5BxbP5d4c2Z5cGgtXAku59200Cx7diuHTOYfSBD8n6mm8A==}
@@ -6124,10 +6101,6 @@ packages:
   path-root@0.1.1:
     resolution: {integrity: sha512-QLcPegTHF11axjfojBIoDygmS2E3Lf+8+jI6wOVmNVenrKSo3mFdSGiIgdSHenczw3wPtlVMQaFVwGmM7BJdtg==}
     engines: {node: '>=0.10.0'}
-
-  path-scurry@1.11.1:
-    resolution: {integrity: sha512-Xa4Nw17FS9ApQFJ9umLiJS4orGjm7ZzwUrwamcGQuHSzDyth9boKDaycYdDcZDuqYATXw4HFXgaqWTctW/v1HA==}
-    engines: {node: '>=16 || 14 >=14.18'}
 
   path-scurry@3.0.0:
     resolution: {integrity: sha512-1pTbQqH1wIwMi/eleQ5leFTTCkzFsPcgXNjwOA8YGGW/W4/kHT3dssE7Z6NH+zuqNLOzOB0uaD61yl7cAcVhgg==}
@@ -8927,7 +8900,7 @@ snapshots:
       ember-cli-string-utils: 1.1.0
       ember-cli-version-checker: 5.1.2
       git-repo-info: 2.1.1
-      glob: 9.3.5
+      glob: 14.0.3
       npm-git-info: 1.0.3
       semver: 7.7.3
       silent-error: 1.1.1
@@ -10399,7 +10372,7 @@ snapshots:
   babel-plugin-module-resolver@5.0.2:
     dependencies:
       find-babel-config: 2.1.2
-      glob: 9.3.5
+      glob: 14.0.3
       pkg-up: 3.1.0
       reselect: 4.1.8
       resolve: 1.22.10
@@ -12134,7 +12107,7 @@ snapshots:
       lodash: 4.18.1
       markdown-it: 14.3.3
       markdown-it-terminal: 0.4.0(markdown-it@14.3.3)
-      minimatch: 7.4.9
+      minimatch: 11.0.4(patch_hash=2eb3762ccc2b81b277e0c7a33f2fb0ed5acf986529a9a45319378b627facaf2b)
       morgan: 1.12.1
       nopt: 3.0.6
       npm-package-arg: 10.1.0
@@ -12521,7 +12494,7 @@ snapshots:
       ember-cli-babel: 8.2.0(@babel/core@7.29.7)
       ember-cli-htmlbars: 6.3.0
       ember-source: 5.12.0(@glimmer/component@1.1.2(@babel/core@7.29.7))(@glint/template@1.5.2)(rsvp@4.8.5)(webpack@5.105.4)
-      minimatch: 8.0.7
+      minimatch: 11.0.4(patch_hash=2eb3762ccc2b81b277e0c7a33f2fb0ed5acf986529a9a45319378b627facaf2b)
       recast: 0.23.11
     transitivePeerDependencies:
       - supports-color
@@ -13711,7 +13684,7 @@ snapshots:
 
   glob@14.0.3:
     dependencies:
-      minimatch: 11.0.4
+      minimatch: 11.0.4(patch_hash=2eb3762ccc2b81b277e0c7a33f2fb0ed5acf986529a9a45319378b627facaf2b)
       minipass: 7.1.3
       path-scurry: 3.0.0
 
@@ -13739,13 +13712,6 @@ snapshots:
       inherits: 2.0.4
       minimatch: 5.1.9
       once: 1.4.0
-
-  glob@9.3.5:
-    dependencies:
-      fs.realpath: 1.0.0
-      minimatch: 8.0.7
-      minipass: 4.2.8
-      path-scurry: 1.11.1
 
   global-modules@1.0.0:
     dependencies:
@@ -14542,8 +14508,6 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
-  lru-cache@10.4.3: {}
-
   lru-cache@11.5.3: {}
 
   lru-cache@5.1.1:
@@ -14848,7 +14812,7 @@ snapshots:
       tapable: 2.2.1
       webpack: 5.105.4
 
-  minimatch@11.0.4:
+  minimatch@11.0.4(patch_hash=2eb3762ccc2b81b277e0c7a33f2fb0ed5acf986529a9a45319378b627facaf2b):
     dependencies:
       '@isaacs/nonrecursive-glob-match': 1.0.3
       brace-expansion: 5.0.12(patch_hash=1f560509a524f992368e82e77f7b0a0cb5ff21dfafbb8e112a0691a4e3807868)
@@ -14861,24 +14825,12 @@ snapshots:
     dependencies:
       brace-expansion: 5.0.12(patch_hash=1f560509a524f992368e82e77f7b0a0cb5ff21dfafbb8e112a0691a4e3807868)
 
-  minimatch@7.4.9:
-    dependencies:
-      brace-expansion: 5.0.12(patch_hash=1f560509a524f992368e82e77f7b0a0cb5ff21dfafbb8e112a0691a4e3807868)
-
-  minimatch@8.0.7:
-    dependencies:
-      brace-expansion: 5.0.12(patch_hash=1f560509a524f992368e82e77f7b0a0cb5ff21dfafbb8e112a0691a4e3807868)
-
   minimist@1.2.8: {}
 
   minipass@2.9.0:
     dependencies:
       safe-buffer: 5.2.1
       yallist: 3.1.1
-
-  minipass@4.2.8: {}
-
-  minipass@7.1.2: {}
 
   minipass@7.1.3: {}
 
@@ -15245,11 +15197,6 @@ snapshots:
   path-root@0.1.1:
     dependencies:
       path-root-regex: 0.1.2
-
-  path-scurry@1.11.1:
-    dependencies:
-      lru-cache: 10.4.3
-      minipass: 7.1.2
 
   path-scurry@3.0.0:
     dependencies:
