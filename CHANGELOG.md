@@ -996,6 +996,7 @@ BUG FIXES:
 * ui: Fix broken documentation links [[GH-23578](https://github.com/hashicorp/consul/issues/23578)]
 * xds: Fixed XDS package to generate correct endpoints and cluster configurations for API Gateways when peered, and updated the API Gateway update handler to propogate mesh gateway config to its upstreams. [[GH-23454](https://github.com/hashicorp/consul/issues/23454)]
 
+
 ## 1.22.7 (April 21, 2026)
 
 SECURITY:
