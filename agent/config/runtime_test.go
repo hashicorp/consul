@@ -474,12 +474,22 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`-enable-script-checks`,
 			`-data-dir=` + dataDir,
 		},
+		expectedErr: remoteScriptCheckSecurityError,
+	})
+	run(t, testCase{
+		desc: "-enable-script-checks with allow_write_http_from",
+		args: []string{
+			`-enable-script-checks`,
+			`-data-dir=` + dataDir,
+		},
+		hcl:  []string{`http_config { allow_write_http_from = ["127.0.0.0/8"] }`},
+		json: []string{`{"http_config":{"allow_write_http_from":["127.0.0.0/8"]}}`},
 		expected: func(rt *RuntimeConfig) {
 			rt.EnableLocalScriptChecks = true
 			rt.EnableRemoteScriptChecks = true
+			rt.AllowWriteHTTPFrom = []*net.IPNet{parseCIDR(t, "127.0.0.0/8")}
 			rt.DataDir = dataDir
 		},
-		expectedWarnings: []string{remoteScriptCheckSecurityWarning},
 	})
 	run(t, testCase{
 		desc: "-encrypt",

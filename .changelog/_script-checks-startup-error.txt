@@ -1,0 +1,3 @@
+```release-note:improvement
+agent: The agent now refuses to start when `enable_script_checks` is true while ACLs are disabled and `allow_write_http_from` is unset, preventing unauthenticated remote command execution. Use `enable_local_script_checks`, enable ACLs, or set `allow_write_http_from`
+```

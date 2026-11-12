@@ -1682,8 +1682,7 @@ func (b *builder) validate(rt RuntimeConfig) error {
 	}
 
 	if err := validateRemoteScriptsChecks(rt); err != nil {
-		// TODO: make this an error in a future version
-		b.warn("%s", err.Error())
+		return err
 	}
 
 	err := b.validateEnterpriseConfig(rt)
@@ -2859,14 +2858,14 @@ func UIPathBuilder(UIContentString string) string {
 	return "/ui/"
 }
 
-const remoteScriptCheckSecurityWarning = "using enable-script-checks without ACLs and without allow_write_http_from is DANGEROUS, use enable-local-script-checks instead, see https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations/"
+const remoteScriptCheckSecurityError = "using enable-script-checks without ACLs and without allow_write_http_from is DANGEROUS and is not allowed; use enable-local-script-checks instead, enable ACLs, or set allow_write_http_from, see https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations/"
 
 // validateRemoteScriptsChecks returns an error if EnableRemoteScriptChecks is
 // enabled without other security features, which mitigate the risk of executing
 // remote scripts.
 func validateRemoteScriptsChecks(conf RuntimeConfig) error {
 	if conf.EnableRemoteScriptChecks && !conf.ACLsEnabled && len(conf.AllowWriteHTTPFrom) == 0 {
-		return errors.New(remoteScriptCheckSecurityWarning)
+		return errors.New(remoteScriptCheckSecurityError)
 	}
 	return nil
 }

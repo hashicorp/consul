@@ -4164,8 +4164,9 @@ func TestAgent_SecurityChecks(t *testing.T) {
 	data := make([]byte, 0, 8192)
 	buf := &syncBuffer{b: bytes.NewBuffer(data)}
 	a.LogOutput = buf
-	assert.NoError(t, a.Start(t))
-	assert.Contains(t, buf.String(), "using enable-script-checks without ACLs and without allow_write_http_from is DANGEROUS")
+	err := a.Start(t)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "using enable-script-checks without ACLs and without allow_write_http_from is DANGEROUS")
 }
 
 type syncBuffer struct {
