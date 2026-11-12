@@ -300,6 +300,8 @@ export function requestMadeWithoutProperties(assert, method, url, properties) {
 // Fixtures / api-double setup (the `Given ...` steps)
 // ---------------------------------------------------------------------------
 
+// The app reads test settings from document.cookie (app/utils/get-environment.js)
+// and the api-double reads its own cookie jar, so set both, like the yadda `set`.
 const setCookie = function (key, value) {
   document.cookie = `${key}=${value}`;
   api.server.setCookie(key, value);
@@ -310,6 +312,10 @@ const setCookie = function (key, value) {
  * (`Given $number $model models [with the value "..."|from yaml]`). Creating
  * datacenters with a value also makes the first one the local datacenter, as
  * the yadda step did.
+ *
+ * `model` is the api-double type name (`dc`, `service`, `node`, `kv`, `token`,
+ * ...). Unlike the yadda `model` term, aliases such as `datacenters` or `nodes`
+ * are not mapped.
  */
 export function createModels(model, count, value) {
   if (model === 'dc' && typeof value !== 'undefined') {
@@ -361,7 +367,7 @@ export function enablePartitions() {
 
 /** `Given the default ACL policy is "$policy"` */
 export function setDefaultACLPolicy(policy) {
-  api.server.setCookie('CONSUL_ACL_POLICY', policy);
+  setCookie('CONSUL_ACL_POLICY', policy);
 }
 
 /** `Given a "$value" metrics provider` */
@@ -374,22 +380,19 @@ export function setMetricsProvider(value) {
 export function setPermissions(data) {
   Object.entries(data).forEach(([resource, actions]) => {
     Object.entries(actions).forEach(([action, value]) => {
-      api.server.setCookie(
-        `CONSUL_RESOURCE_${resource.toUpperCase()}_${action.toUpperCase()}`,
-        value
-      );
+      setCookie(`CONSUL_RESOURCE_${resource.toUpperCase()}_${action.toUpperCase()}`, value);
     });
   });
 }
 
 /** `Given a network latency of $number` */
 export function setLatency(ms) {
-  api.server.setCookie('CONSUL_LATENCY', ms);
+  setCookie('CONSUL_LATENCY', ms);
 }
 
 /** `Given an API prefix of "$prefix"` */
 export function setApiPrefix(prefix) {
-  api.server.setCookie('CONSUL_API_PREFIX', prefix);
+  setCookie('CONSUL_API_PREFIX', prefix);
 }
 
 /** `Given I'm using a legacy token` */
