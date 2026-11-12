@@ -88,6 +88,9 @@ func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 			continue
 		}
 
+		upstreamCfg := s.getAndModifyUpstreamConfigForListener(uid, upstream, chain)
+		injectHostRewriteToRoutes(upstreamCfg.HostRewrite, virtualHost.Routes...)
+
 		route := &envoy_route_v3.RouteConfiguration{
 			Name:         uid.EnvoyID(),
 			VirtualHosts: []*envoy_route_v3.VirtualHost{virtualHost},
@@ -1308,6 +1311,24 @@ func injectHeaderManipToRoute(dest *structs.ServiceRouteDestination, r *envoy_ro
 		)
 	}
 	return nil
+}
+
+// injectHostRewriteToRoutes sets a literal Host rewrite on every forwarding
+// route that does not already rewrite the Host. Envoy rejects "host" in
+// request_headers_to_add, so the route action is the only place to set it.
+func injectHostRewriteToRoutes(host string, routes ...*envoy_route_v3.Route) {
+	if host == "" {
+		return
+	}
+	for _, r := range routes {
+		action := r.GetRoute()
+		if action == nil || action.HostRewriteSpecifier != nil {
+			continue
+		}
+		action.HostRewriteSpecifier = &envoy_route_v3.RouteAction_HostRewriteLiteral{
+			HostRewriteLiteral: host,
+		}
+	}
 }
 
 func injectHeaderManipToVirtualHost(dest *structs.IngressService, vh *envoy_route_v3.VirtualHost) error {

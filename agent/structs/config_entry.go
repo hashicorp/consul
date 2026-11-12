@@ -1066,6 +1066,10 @@ type UpstreamConfig struct {
 	// BalanceOutboundConnections indicates how the proxy should attempt to distribute
 	// connections across worker threads. Only used by envoy proxies.
 	BalanceOutboundConnections string `json:",omitempty" alias:"balance_outbound_connections"`
+
+	// HostRewrite replaces the Host header of requests sent to this upstream.
+	// Only applies to http, http2 and grpc upstreams.
+	HostRewrite string `json:",omitempty" alias:"host_rewrite"`
 }
 
 func (cfg UpstreamConfig) Clone() UpstreamConfig {
@@ -1112,6 +1116,9 @@ func (cfg UpstreamConfig) MergeInto(dst map[string]interface{}) {
 	}
 	if cfg.BalanceOutboundConnections != "" {
 		dst["balance_outbound_connections"] = cfg.BalanceOutboundConnections
+	}
+	if cfg.HostRewrite != "" {
+		dst["host_rewrite"] = cfg.HostRewrite
 	}
 }
 
@@ -1184,6 +1191,10 @@ func (cfg UpstreamConfig) validate(named bool) error {
 
 	if !isValidConnectionBalance(cfg.BalanceOutboundConnections) {
 		validationErr = multierror.Append(validationErr, fmt.Errorf("invalid value for balance_outbound_connections: %v", cfg.BalanceOutboundConnections))
+	}
+
+	if cfg.HostRewrite != "" && cfg.Protocol != "" && !IsProtocolHTTPLike(cfg.Protocol) {
+		validationErr = multierror.Append(validationErr, fmt.Errorf("host_rewrite is only valid for http, http2 and grpc protocols, got %q", cfg.Protocol))
 	}
 
 	return validationErr

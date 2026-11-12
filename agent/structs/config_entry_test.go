@@ -3624,6 +3624,23 @@ func TestServiceConfigEntry(t *testing.T) {
 			},
 			validateErr: "invalid value for balance_outbound_connections",
 		},
+		"validate: host rewrite on tcp upstream": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "http",
+				UpstreamConfig: &UpstreamConfiguration{
+					Overrides: []*UpstreamConfig{
+						{
+							Name:        "upstream",
+							Protocol:    "tcp",
+							HostRewrite: "internal.example.com",
+						},
+					},
+				},
+			},
+			validateErr: "host_rewrite is only valid for http, http2 and grpc protocols",
+		},
 		"validate: invalid extension": {
 			entry: &ServiceConfigEntry{
 				Kind:     ServiceDefaults,
@@ -3725,6 +3742,7 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 		{
 			name: "kitchen sink",
 			source: UpstreamConfig{
+				HostRewrite:                "internal.example.com",
 				BalanceOutboundConnections: "exact_balance",
 				EnvoyListenerJSON:          "foo",
 				EnvoyClusterJSON:           "bar",
@@ -3746,6 +3764,7 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 			},
 			destination: make(map[string]interface{}),
 			want: map[string]interface{}{
+				"host_rewrite":                 "internal.example.com",
 				"balance_outbound_connections": "exact_balance",
 				"envoy_listener_json":          "foo",
 				"envoy_cluster_json":           "bar",
@@ -3929,6 +3948,18 @@ func TestParseUpstreamConfig(t *testing.T) {
 			want: UpstreamConfig{
 				ConnectTimeoutMs: 5000,
 				Protocol:         "http",
+			},
+		},
+		{
+			name: "host rewrite",
+			input: map[string]interface{}{
+				"protocol":     "http",
+				"host_rewrite": "internal.example.com",
+			},
+			want: UpstreamConfig{
+				ConnectTimeoutMs: 5000,
+				Protocol:         "http",
+				HostRewrite:      "internal.example.com",
 			},
 		},
 		{

@@ -195,6 +195,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				filterName:          filterName,
 				protocol:            cfg.Protocol,
 				useRDS:              useRDS,
+				hostRewrite:         cfg.HostRewrite,
 				fetchTimeoutRDS:     cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
 				tracing:             tracing,
 				maxRequestHeadersKb: proxyCfg.MaxRequestHeadersKB,
@@ -280,6 +281,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				routeName:           uid.EnvoyID(),
 				protocol:            cfg.Protocol,
 				useRDS:              useRDS,
+				hostRewrite:         cfg.HostRewrite,
 				fetchTimeoutRDS:     cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
 				tracing:             tracing,
 				maxRequestHeadersKb: proxyCfg.MaxRequestHeadersKB,
@@ -338,6 +340,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				filterName:          filterName,
 				protocol:            cfg.Protocol,
 				useRDS:              useRDS,
+				hostRewrite:         cfg.HostRewrite,
 				fetchTimeoutRDS:     cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
 				tracing:             tracing,
 				maxRequestHeadersKb: proxyCfg.MaxRequestHeadersKB,
@@ -2627,6 +2630,7 @@ type filterChainOpts struct {
 	forwardClientPolicy  envoy_http_v3.HttpConnectionManager_ForwardClientCertDetails
 	tracing              *envoy_http_v3.HttpConnectionManager_Tracing
 	maxRequestHeadersKb  *uint32
+	hostRewrite          string
 }
 
 func (s *ResourceGenerator) makeUpstreamFilterChain(opts filterChainOpts) (*envoy_listener_v3.FilterChain, error) {
@@ -2647,6 +2651,7 @@ func (s *ResourceGenerator) makeUpstreamFilterChain(opts filterChainOpts) (*envo
 		accessLogs:           opts.accessLogs,
 		logger:               s.Logger,
 		maxRequestHeadersKb:  opts.maxRequestHeadersKb,
+		hostRewrite:          opts.hostRewrite,
 	})
 	if err != nil {
 		return nil, err
@@ -2807,6 +2812,7 @@ type listenerFilterOpts struct {
 	maxRequestHeadersKb          *uint32
 	suppressEnvoyHeaders         bool
 	serverHeaderName             string
+	hostRewrite                  string
 }
 
 func makeListenerFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) {
@@ -3027,6 +3033,8 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 		if opts.stripForwardClientCertHeader {
 			stripForwardClientCertHeaderFromRoute(route)
 		}
+
+		injectHostRewriteToRoutes(opts.hostRewrite, route)
 
 		cfg.RouteSpecifier = &envoy_http_v3.HttpConnectionManager_RouteConfig{
 			RouteConfig: &envoy_route_v3.RouteConfiguration{

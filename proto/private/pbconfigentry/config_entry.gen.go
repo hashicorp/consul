@@ -3315,6 +3315,7 @@ func UpstreamConfigToStructs(s *UpstreamConfig, t *structs.UpstreamConfig) {
 		MeshGatewayConfigToStructs(s.MeshGateway, &t.MeshGateway)
 	}
 	t.BalanceOutboundConnections = s.BalanceOutboundConnections
+	t.HostRewrite = s.HostRewrite
 }
 func UpstreamConfigFromStructs(t *structs.UpstreamConfig, s *UpstreamConfig) {
 	if s == nil {
@@ -3343,6 +3344,7 @@ func UpstreamConfigFromStructs(t *structs.UpstreamConfig, s *UpstreamConfig) {
 		s.MeshGateway = &x
 	}
 	s.BalanceOutboundConnections = t.BalanceOutboundConnections
+	s.HostRewrite = t.HostRewrite
 }
 func UpstreamConfigurationToStructs(s *UpstreamConfiguration, t *structs.UpstreamConfiguration) {
 	if s == nil {
