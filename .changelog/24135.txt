@@ -1,0 +1,3 @@
+```release-note:security
+Migrate from `github.com/go-jose/go-jose/v3` to `github.com/go-jose/go-jose/v4` v4.1.6 to address [GHSA-mgcc-cww5-fp2q](https://github.com/advisories/GHSA-mgcc-cww5-fp2q), [GHSA-vvm8-gf78-28g4](https://github.com/advisories/GHSA-vvm8-gf78-28g4) and [GHSA-4w3g-jfj2-cw2q](https://github.com/advisories/GHSA-4w3g-jfj2-cw2q).
+```

@@ -9,7 +9,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-jose/go-jose/v3/jwt"
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-hclog"
 	authv1 "k8s.io/api/authentication/v1"
@@ -33,6 +34,16 @@ func init() {
 		}
 		return v, nil
 	})
+}
+
+// serviceAccountJWTSigningAlgs allows every JWS signing algorithm. Tokens are
+// only parsed here; the TokenReview API performs the actual signature validation.
+var serviceAccountJWTSigningAlgs = []jose.SignatureAlgorithm{
+	jose.HS256, jose.HS384, jose.HS512,
+	jose.RS256, jose.RS384, jose.RS512,
+	jose.PS256, jose.PS384, jose.PS512,
+	jose.ES256, jose.ES384, jose.ES512,
+	jose.EdDSA,
 }
 
 const (
@@ -94,7 +105,7 @@ func NewValidator(method *structs.ACLAuthMethod) (*Validator, error) {
 	if config.ServiceAccountJWT == "" {
 		return nil, fmt.Errorf("Config.ServiceAccountJWT is required")
 	}
-	if _, err := jwt.ParseSigned(config.ServiceAccountJWT); err != nil {
+	if _, err := jwt.ParseSigned(config.ServiceAccountJWT, serviceAccountJWTSigningAlgs); err != nil {
 		return nil, fmt.Errorf("Config.ServiceAccountJWT is not a valid JWT: %v", err)
 	}
 
@@ -131,7 +142,7 @@ func (v *Validator) Name() string { return v.name }
 func (v *Validator) Stop() {}
 
 func (v *Validator) ValidateLogin(ctx context.Context, loginToken string) (*authmethod.Identity, error) {
-	if _, err := jwt.ParseSigned(loginToken); err != nil {
+	if _, err := jwt.ParseSigned(loginToken, serviceAccountJWTSigningAlgs); err != nil {
 		return nil, fmt.Errorf("failed to parse and validate JWT: %v", err)
 	}
 
