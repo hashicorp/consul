@@ -1,0 +1,3 @@
+```release-note:bug
+streaming: Fix a deadlock between a server restoring its state from a raft snapshot and a streaming `Subscribe` call that could stop the server from applying raft logs and leave streaming subscriptions on that server silent, so clients kept serving a frozen view and a stale `X-Consul-Index` without any error.
+```

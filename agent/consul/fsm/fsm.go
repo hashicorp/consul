@@ -286,28 +286,32 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 	if err := restore.Commit(); err != nil {
 		return err
 	}
+	var stateOld *state.Store
 	storageRestoration.Commit()
 
 	// External code might be calling State(), so we need to synchronize
 	// here to make sure we swap in the new state store atomically.
-	c.stateLock.Lock()
-	stateOld := c.state
-	c.state = stateNew
+	swapState := func() {
+		c.stateLock.Lock()
+		defer c.stateLock.Unlock()
+		stateOld = c.state
+		c.state = stateNew
+	}
 
 	// Tell the EventPublisher to cycle anything watching these topics. Replacement
 	// of the state store means that indexes could have gone backwards and data changed.
 	//
-	// This needs to happen while holding the state lock to ensure its not racey. If we
-	// did this outside of the locked section closer to where we abandon the old store
-	// then there would be a possibility for new streams to be opened that would get
-	// a snapshot from the cache sourced from old data but would be receiving events
-	// for new data. To prevent that inconsistency we refresh the topics while holding
-	// the lock which ensures that any subscriptions to topics for FSM generated events
+	// The swap must be atomic with the refresh: otherwise a new stream could get a
+	// snapshot from the cache sourced from old data but then receive events for new
+	// data. The publisher runs swapState while holding its own lock, which keeps the
+	// lock order the same as Subscribe (publisher lock, then state lock via State()
+	// in the snapshot handlers). Taking the state lock first and then calling into
+	// the publisher deadlocks against a concurrent Subscribe.
 	if c.deps.Publisher != nil {
-		c.deps.Publisher.RefreshAllTopics()
+		c.deps.Publisher.RefreshAllTopicsWith(swapState)
+	} else {
+		swapState()
 	}
-	c.stateLock.Unlock()
-
 	// Signal that the old state store has been abandoned. This is required
 	// because we don't operate on it any more, we just throw it away, so
 	// blocking queries won't see any changes and need to be woken up.
