@@ -795,10 +795,14 @@ func (s *HTTPHandlers) AgentForceLeave(resp http.ResponseWriter, req *http.Reque
 
 	addr := strings.TrimPrefix(req.URL.Path, "/v1/agent/force-leave/")
 	if wan {
-		return nil, s.agent.ForceLeaveWAN(addr, prune, entMeta)
+		err = s.agent.ForceLeaveWAN(addr, prune, entMeta)
 	} else {
-		return nil, s.agent.ForceLeave(addr, prune, entMeta)
+		err = s.agent.ForceLeave(addr, prune, entMeta)
 	}
+	if errors.Is(err, consul.ErrNodeNotFound) {
+		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: err.Error()}
+	}
+	return nil, err
 }
 
 // syncChanges is a helper function which wraps a blocking call to sync
