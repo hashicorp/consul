@@ -11,6 +11,7 @@ import { click } from '@ember/test-helpers';
 import {
   setupAcceptanceTest,
   nspaceScenario,
+  createModels,
   api,
   visit,
   page,
@@ -19,10 +20,13 @@ import {
   assertVisibleCount,
 } from 'consul-ui/tests/helpers/acceptance';
 
-// The api-double marks the first service as peered, and the breadcrumb link
-// back to the list currently keeps that peer segment (/:billing/dc-1/services)
-// where the old back link dropped it. Accept the optional peer segment.
-const listURL = (nspace) => new RegExp(`^${nspaceURL(nspace, '')}(/:[^/]+)?/dc-1/services$`);
+// The api-double marks the first service as peered (`billing`).
+//
+// FIXME: the breadcrumb back to the list keeps the clicked service's peer
+// segment, although app/services/breadcrumbs.js means to avoid inheriting peer
+// segments. Once that is fixed this should be `/dc-1/services`, as in the
+// original feature.
+const listURL = (nspace) => nspaceURL(nspace, '/:billing/dc-1/services');
 
 module('Acceptance | dc / services / navigation: Services Navigation', function (hooks) {
   setupAcceptanceTest(hooks);
@@ -30,7 +34,7 @@ module('Acceptance | dc / services / navigation: Services Navigation', function 
   nspaceScenario(
     'Scenario: Clicking a service in the listing and back again',
     async function (assert, nspace) {
-      api.server.createList('dc', 1, 'dc-1');
+      createModels('dc', 1, 'dc-1');
       api.server.createList('service', 1);
 
       await visit('services', { dc: 'dc-1' }, { nspace });
@@ -43,17 +47,14 @@ module('Acceptance | dc / services / navigation: Services Navigation', function 
 
       await click('[data-test-breadcrumb-item]:first-child a');
 
-      assert.ok(
-        listURL(nspace).test(currentURL()),
-        `Expected the services list, got ${currentURL()}`
-      );
+      assert.equal(currentURL(), listURL(nspace));
     }
   );
 
   nspaceScenario(
     'Scenario: Clicking a peered service in the listing and back again',
     async function (assert, nspace) {
-      api.server.createList('dc', 1, 'dc-1');
+      createModels('dc', 1, 'dc-1');
       api.server.createList('service', 1);
 
       await visit('services', { dc: 'dc-1' }, { nspace });
@@ -67,10 +68,7 @@ module('Acceptance | dc / services / navigation: Services Navigation', function 
 
       await click('[data-test-breadcrumb-item]:first-child a');
 
-      assert.ok(
-        listURL(nspace).test(currentURL()),
-        `Expected the services list, got ${currentURL()}`
-      );
+      assert.equal(currentURL(), listURL(nspace));
     }
   );
 });

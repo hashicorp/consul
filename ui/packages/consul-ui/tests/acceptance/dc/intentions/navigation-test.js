@@ -11,6 +11,7 @@ import { click } from '@ember/test-helpers';
 import {
   setupAcceptanceTest,
   nspaceScenario,
+  createModels,
   api,
   visit,
   page,
@@ -34,7 +35,7 @@ module('Acceptance | dc / intentions / navigation: Intentions Navigation', funct
   nspaceScenario(
     'Scenario: Clicking an intention in the listing and back again',
     async function (assert, nspace) {
-      api.server.createList('dc', 1, 'dc-1');
+      createModels('dc', 1, 'dc-1');
       api.server.createList('intention', 3, INTENTIONS);
 
       await visit('intentions', { dc: 'dc-1' }, { nspace });
@@ -57,12 +58,13 @@ module('Acceptance | dc / intentions / navigation: Intentions Navigation', funct
   nspaceScenario(
     'Scenario: Clicking the create button and back again',
     async function (assert, nspace) {
-      api.server.createList('dc', 1, 'dc-1');
+      createModels('dc', 1, 'dc-1');
       api.server.createList('intention', 3, INTENTIONS);
 
       await visit('intentions', { dc: 'dc-1' }, { nspace });
 
       assert.equal(currentURL(), nspaceURL(nspace, '/dc-1/intentions'));
+      assert.equal(document.title, 'Intentions - Consul');
       assertVisibleCount(assert, page().intentionList.intentions, 3, 'intentions');
 
       await pages.intentions.create();
