@@ -124,6 +124,7 @@ func (s *HTTPHandlers) preparedQueryExecute(id string, resp http.ResponseWriter,
 	defer setMeta(resp, &reply.QueryMeta)
 
 	if args.UseCache {
+		s.boundCacheBlockingWait(&args.QueryOptions)
 		raw, m, err := s.agent.cache.Get(req.Context(), cachetype.PreparedQueryName, &args)
 		if err != nil {
 			// Don't return error if StaleIfError is set and we are within it and had

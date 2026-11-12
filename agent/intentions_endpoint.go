@@ -165,6 +165,7 @@ func (s *HTTPHandlers) IntentionMatch(resp http.ResponseWriter, req *http.Reques
 	defer setMeta(resp, &out.QueryMeta)
 
 	if s.agent.config.HTTPUseCache && args.UseCache {
+		s.boundCacheBlockingWait(&args.QueryOptions)
 		raw, m, err := s.agent.cache.Get(req.Context(), cachetype.IntentionMatchName, args)
 		if err != nil {
 			return nil, err

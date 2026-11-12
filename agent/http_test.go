@@ -2129,3 +2129,31 @@ func TestWithRemoteAddrHandler_InvalidAddr(t *testing.T) {
 
 	assert.True(t, nextHandlerCalled, "expected next handler to be called")
 }
+
+func TestHTTPHandlers_boundCacheBlockingWait(t *testing.T) {
+	a := NewTestAgent(t, `
+		default_query_time = "30s"
+		max_query_time = "60s"
+	`)
+	defer a.Shutdown()
+
+	withJitter := func(d time.Duration) time.Duration { return d + d/structs.JitterFraction }
+
+	tests := []struct {
+		name     string
+		opts     structs.QueryOptions
+		min, max time.Duration
+	}{
+		{name: "non-blocking is untouched", opts: structs.QueryOptions{MaxQueryTime: 5 * time.Minute}, min: 5 * time.Minute, max: 5 * time.Minute},
+		{name: "no wait uses default", opts: structs.QueryOptions{MinQueryIndex: 1}, min: 30 * time.Second, max: withJitter(30 * time.Second)},
+		{name: "explicit wait is kept", opts: structs.QueryOptions{MinQueryIndex: 1, MaxQueryTime: 10 * time.Second}, min: 10 * time.Second, max: withJitter(10 * time.Second)},
+		{name: "wait is capped", opts: structs.QueryOptions{MinQueryIndex: 1, MaxQueryTime: time.Hour}, min: 60 * time.Second, max: withJitter(60 * time.Second)},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			a.srv.boundCacheBlockingWait(&tc.opts)
+			require.GreaterOrEqual(t, tc.opts.MaxQueryTime, tc.min)
+			require.LessOrEqual(t, tc.opts.MaxQueryTime, tc.max)
+		})
+	}
+}
