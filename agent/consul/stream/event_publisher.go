@@ -144,10 +144,27 @@ func (e *EventPublisher) RegisterHandler(topic Topic, handler SnapshotFunc, supp
 	return nil
 }
 
+// RefreshAllTopics evicts every cached snapshot and force-closes every
+// subscription, so that clients resubscribe and get a fresh snapshot.
 func (e *EventPublisher) RefreshAllTopics() {
+	e.RefreshAllTopicsWith(nil)
+}
+
+// RefreshAllTopicsWith is RefreshAllTopics, but runs fn (if not nil) while
+// holding the publisher lock, before the snapshot cache is evicted. This makes
+// fn atomic with the refresh: no Subscribe can build a snapshot between the two.
+//
+// fn may acquire locks that snapshot handlers also acquire, because Subscribe
+// takes the publisher lock first and then calls the handlers. Callers must not
+// hold such a lock themselves while calling this method, or they will deadlock
+// against a concurrent Subscribe.
+func (e *EventPublisher) RefreshAllTopicsWith(fn func()) {
 	topics := make(map[Topic]struct{})
 
 	e.lock.Lock()
+	if fn != nil {
+		fn()
+	}
 	for topic := range e.snapshotHandlers {
 		topics[topic] = struct{}{}
 		e.forceEvictByTopicLocked(topic)
