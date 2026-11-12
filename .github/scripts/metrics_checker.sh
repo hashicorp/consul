@@ -18,7 +18,7 @@ metrics_in_pr_title=$(echo "${PR_TITLE-""}" | grep -i "metric" || true)
 
 # if there have been code changes to any metric or mention of metrics in the pull request body
 if [ "$metrics_modified" ] || [ "$metrics_in_pr_body" ] || [ "$metrics_in_pr_title" ]; then
-  
+
   REASON=""
   if [ -n "$metrics_modified" ]; then
     REASON+="PR diff seems to modify metrics behavior / "
