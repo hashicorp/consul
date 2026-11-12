@@ -1,0 +1,3 @@
+```release-note:bug
+dns: Fixed a bug where `enable_truncate` set the TC flag on a TCP response in which no answers were dropped, causing resolvers such as Unbound to return SERVFAIL for large SRV pools.
+```
