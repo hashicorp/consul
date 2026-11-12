@@ -4,6 +4,7 @@
 package agent
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -122,4 +123,53 @@ func TestPublishClientFeatureGates(t *testing.T) {
 		Features:  []structs.FeatureGateInfo{{Name: gate.String(), EffectiveEnabled: false}},
 	})
 	require.True(t, store.Enabled(gate), "an equal-index response must not replace committed state")
+}
+
+func TestRefreshClientFeatureGates_UnavailableMethod(t *testing.T) {
+	delegate := &delegateMock{}
+	// Stale attempt + leader retry both miss the method on an old cluster.
+	delegate.On("RPC", "Operator.FeatureGateGet", mock.Anything, mock.Anything).
+		Return(fmt.Errorf("rpc error making call: rpc: can't find method Operator.FeatureGateGet")).Twice()
+	t.Cleanup(func() { delegate.AssertExpectations(t) })
+	a := &Agent{
+		config:   &config.RuntimeConfig{Datacenter: "dc1"},
+		tokens:   new(token.Store),
+		delegate: delegate,
+	}
+	initializeFeatureGateHTTPTestAgent(t, a)
+	store := &featuregate.Store{}
+
+	index, err := a.refreshClientFeatureGates(store, 0, true)
+	require.Error(t, err)
+	require.True(t, isFeatureGateUnavailable(err))
+	require.Equal(t, uint64(0), index)
+	require.Equal(t, uint64(0), store.Current().StatusIndex, "defaults must stay fail-closed")
+}
+
+func TestRefreshClientFeatureGates_StaleFollowerThenLeader(t *testing.T) {
+	calls := 0
+	delegate := &delegateMock{}
+	delegate.On("RPC", "Operator.FeatureGateGet", mock.Anything, mock.Anything).
+		Return(fmt.Errorf("rpc error making call: rpc: can't find method Operator.FeatureGateGet")).Once()
+	delegate.On("RPC", "Operator.FeatureGateGet", mock.Anything, mock.Anything).
+		Run(func(args mock.Arguments) {
+			calls++
+			req := args.Get(1).(*structs.FeatureGateQueryRequest)
+			require.False(t, req.AllowStale, "retry must force the leader")
+			*args.Get(2).(*structs.FeatureGateQueryResponse) = *featureGateReply(7, true, 0)
+		}).Return(nil).Once()
+	t.Cleanup(func() { delegate.AssertExpectations(t) })
+	a := &Agent{
+		config:   &config.RuntimeConfig{Datacenter: "dc1"},
+		tokens:   new(token.Store),
+		delegate: delegate,
+	}
+	initializeFeatureGateHTTPTestAgent(t, a)
+	store := &featuregate.Store{}
+
+	index, err := a.refreshClientFeatureGates(store, 0, true)
+	require.NoError(t, err)
+	require.Equal(t, 1, calls)
+	require.Equal(t, uint64(7), index)
+	require.True(t, store.Enabled(featuregate.LocalizedDNS))
 }
