@@ -19,15 +19,13 @@ import {
 module('Acceptance | api-prefix', function (hooks) {
   setupAcceptanceTest(hooks);
 
-  nspaceScenario(
-    'Scenario: Requests use the configured API prefix',
-    async function (assert, nspace) {
-      createModels('dc', 1, 'dc1');
-      setApiPrefix('/prefixed-api');
+  nspaceScenario('Scenario: Requests use the configured API prefix', async function (assert) {
+    createModels('dc', 1, 'dc1');
+    setApiPrefix('/prefixed-api');
 
-      await visit('index', {}, { nspace });
+    // The original `I visit the index page` step never applied the namespace.
+    await visit('index');
 
-      requestMade(assert, 'GET', '/prefixed-api/v1/catalog/datacenters');
-    }
-  );
+    requestMade(assert, 'GET', '/prefixed-api/v1/catalog/datacenters');
+  });
 });

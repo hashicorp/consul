@@ -12,7 +12,7 @@ import { click } from '@ember/test-helpers';
 import {
   setupAcceptanceTest,
   nspaceScenario,
-  api,
+  createModels,
   visit,
   page,
   pages,
@@ -28,7 +28,7 @@ module('Acceptance | page-navigation', function (hooks) {
 
   // The yadda Background created one datacenter, dc1, for every scenario.
   hooks.beforeEach(function () {
-    api.server.createList('dc', 1, 'dc1');
+    createModels('dc', 1, 'dc1');
   });
 
   nspaceScenario('Scenario: Visiting the index page', async function (assert, nspace) {
@@ -92,23 +92,54 @@ module('Acceptance | page-navigation', function (hooks) {
     }
   );
 
-  // The scenarios below were `@ignore`d (FIXME) in the original feature and are
-  // kept as skipped tests so the coverage gap stays visible.
+  // The scenarios below were `@ignore`d (FIXME) in the original feature. They
+  // are kept as skipped tests with their original steps so the coverage gap
+  // stays visible and they can be un-skipped later.
+  const KV_SESSION = '/v1/session/info/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=dc1&ns=@namespace';
+
   nspaceScenario(
     'Scenario: Clicking a kv in the kvs listing and back again',
-    async function () {},
+    async function (assert, nspace) {
+      await visit('kvs', { dc: 'dc1' }, { nspace });
+
+      await page().kvs.objectAt(0).kv();
+      assert.strictEqual(currentURL(), nspaceURL(nspace, '/dc1/kv/0-key-value/edit'));
+      requestMade(assert, 'GET', nspaceEndpoint(KV_SESSION, nspace));
+
+      await click('[data-test-breadcrumb-item]:first-child a');
+      assert.strictEqual(currentURL(), nspaceURL(nspace, '/dc1/kv'));
+    },
     { ignore: true }
   );
 
   nspaceScenario(
     'Scenario: The kv detail page calls the correct API endpoints',
-    async function () {},
+    async function (assert, nspace) {
+      await visit('kv', { dc: 'dc1', kv: 'keyname' }, { nspace });
+
+      assert.strictEqual(currentURL(), nspaceURL(nspace, '/dc1/kv/keyname/edit'));
+      requestsIncluded(
+        assert,
+        'GET',
+        ['/v1/catalog/datacenters', '/v1/kv/keyname?dc=dc1&ns=@namespace', KV_SESSION].map((url) =>
+          nspaceEndpoint(url, nspace)
+        )
+      );
+    },
     { ignore: true }
   );
 
   nspaceScenario(
     'Scenario: Clicking a kv in the kvs listing and cancelling',
-    async function () {},
+    async function (assert, nspace) {
+      await visit('kvs', { dc: 'dc1' }, { nspace });
+
+      await page().kvs.objectAt(0).kv();
+      assert.strictEqual(currentURL(), nspaceURL(nspace, '/dc1/kv/0-key-value/edit'));
+
+      await click('[type=reset]');
+      assert.strictEqual(currentURL(), nspaceURL(nspace, '/dc1/kv'));
+    },
     { ignore: true }
   );
 

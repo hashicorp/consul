@@ -143,6 +143,10 @@ let currentPage;
  * Visit a registered page object (see tests/pages.js), applying the namespace
  * prefix the same way the yadda `visit` step does. Returns the page object so
  * you can chain `.submit()` etc.
+ *
+ * Like the yadda `I visit` steps, this clears the api-double request history
+ * first, so request assertions only see requests made since the last visit.
+ * Calling `pages.X.visit()` or `@ember/test-helpers`' `visit` directly does not.
  */
 export function visit(name, params = {}, { nspace } = {}) {
   const page = pages[name];

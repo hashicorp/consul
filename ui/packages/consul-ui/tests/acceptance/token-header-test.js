@@ -43,7 +43,7 @@ module('Acceptance | token-header', function (hooks) {
 
   ['token', ''].forEach((token) => {
     nspaceScenario(
-      `Scenario: Set the token to '${token}' and then navigate to the service page`,
+      `Scenario: Set the token to ${token || "''"} and then navigate to the service page`,
       async function (assert, nspace) {
         createModels('dc', 1, 'dc1');
         respondWith('/v1/acl/tokens', { status: 403 });
