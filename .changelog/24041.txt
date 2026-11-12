@@ -1,0 +1,3 @@
+```release-note:bug
+agent: Blocking queries are no longer reset by `http_config.write_timeout` on long-lived HTTP/2 connections. The write deadline is now set per blocking-query request based on `max_query_time`, instead of relying on the global per-connection `write_timeout`.
+```
