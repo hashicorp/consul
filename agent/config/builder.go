@@ -842,6 +842,11 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			if err := entry.Validate(); err != nil {
 				return RuntimeConfig{}, fmt.Errorf("config_entries.bootstrap[%d]: %w", i, err)
 			}
+			if warnEntry, ok := entry.(structs.WarningConfigEntry); ok {
+				for _, w := range warnEntry.Warnings() {
+					b.warn("config_entries.bootstrap[%d]: %s", i, w)
+				}
+			}
 			configEntries = append(configEntries, entry)
 		}
 	}
@@ -2957,7 +2962,7 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 			} else {
 				// Automatic curve injection: keep behaviour same as connect mesh
 				if err, isLessThanTLS13 := dst.TLSMinVersion.LessThan(types.TLSv1_3); err == nil && !isLessThanTLS13 {
-					dst.ECDHCurves = types.DefaultConsulAgentPQCECDHCurves
+					dst.ECDHCurves = append([]types.TLSECDHCurve(nil), types.DefaultConsulAgentPQCECDHCurves...)
 				}
 			}
 		} else {
