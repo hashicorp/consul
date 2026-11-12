@@ -57,6 +57,9 @@ func TestTlsCertCreateCommand_InvalidArgs(t *testing.T) {
 			"-node requires -server"},
 		"cli+node": {[]string{"-cli", "-node", "foo"},
 			"-node requires -server"},
+
+		"invalid additional-ipaddress": {[]string{"-client", "-additional-ipaddress", "not-an-ip"},
+			`Invalid -additional-ipaddress: "not-an-ip" is not a valid IP address`},
 	}
 
 	for name, tc := range cases {
