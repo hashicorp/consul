@@ -93,9 +93,12 @@ api-double, [tests/pages.js](tests/pages.js) / `tests/pages/`, `tests/lib/page-o
    `pnpm test` only exercises CE.
 4. ✅ **Fix the regressions** below, so later batches don't copy the weakened navigation pattern.
 5. ✅ **`@ignore` scenarios.** The 8 empty `Then ok` placeholders and the 19 orphaned
-   `-steps.js` stubs were deleted. The remaining 8 `@ignore` scenarios have real bodies; decide per
-   scenario when migrating its feature: fix it and un-ignore it, port it as a `skip` with the
-   reason in a comment, or delete it with the reason in the PR description.
+   `-steps.js` stubs were deleted. The remaining 13 ignored scenarios have real bodies: 6
+   scenario-level `@ignore` tags, plus the feature-level `@ignore` on
+   `dc/acls/policies/as-many/add-new` (6 scenarios) and `dc/intentions/permissions/warn` (1).
+   When migrating their feature, fix and un-ignore them where possible. Otherwise port each as
+   a skipped test (`{ ignore: true }`) that keeps the original steps in its body, with the
+   reason in a comment, so it can be un-skipped later (see `dc/acls/policies/index-test.js`).
 
 ## How to use this document
 
@@ -128,7 +131,7 @@ manually in the running UI if needed.
 | Metric | Count |
 | --- | --- |
 | Feature files remaining (yadda) | 102 |
-| Scenarios remaining (yadda) | 245 (8 are `@ignore`, each with a real body) |
+| Scenarios remaining (yadda) | 245 (13 are `@ignore`, each with a real body: 6 scenario-level tags plus 2 feature-level tags covering 7 scenarios) |
 | Feature files fully migrated | 27 |
 | Scenarios migrated | 46 from the 27 features, plus 1 (3 `Where:` rows) from `page-navigation.feature` |
 
