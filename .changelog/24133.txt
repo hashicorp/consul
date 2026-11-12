@@ -1,0 +1,3 @@
+```release-note:bug
+config: Honor case-insensitive canonical keys over deprecated aliases when decoding configuration.
+```
