@@ -85,11 +85,12 @@ api-double, [tests/pages.js](tests/pages.js) / `tests/pages/`, `tests/lib/page-o
    it after every batch so dropped scenarios, `Where:` rows or tags are caught. Note that the
    test environment defaults to namespaces **off** (`config/environment.js`), so a plain
    `pnpm test` only exercises CE.
-4. **Fix the known regressions** above, so later batches don't copy the weakened navigation
+4. **Fix the known regressions** below, so later batches don't copy the weakened navigation
    pattern.
-5. **Decide on `@ignore` scenarios.** Delete the 8 `Then ok` placeholders (⏭️) instead of
-   porting them. For the other 8 ignored scenarios, either fix them or delete them with a
-   reason; porting them as permanent `skip`s keeps dead code.
+5. **Decide on `@ignore` scenarios.** Delete the 8 `Then ok` placeholders instead of porting
+   them. The other 13 ignored scenarios have real bodies: 6 scenario-level `@ignore` tags, plus
+   the feature-level `@ignore` on `dc/acls/policies/as-many/add-new` (6 scenarios) and
+   `dc/intentions/permissions/warn` (1). Decide on each when its feature is migrated.
 
 ## How to use this document
 
@@ -124,7 +125,7 @@ manually in the running UI if needed.
 | Metric | Count |
 | --- | --- |
 | Feature files remaining (yadda) | 102 |
-| Scenarios remaining (yadda) | 253 (16 are `@ignore`, of which 8 are `Then ok` placeholders) |
+| Scenarios remaining (yadda) | 253 (21 are `@ignore`: 14 scenario-level tags, 8 of them `Then ok` placeholders, plus 2 feature-level tags covering 7 scenarios) |
 | Feature files fully migrated | 27 |
 | Scenarios migrated | 46 from the 27 features, plus 1 (3 `Where:` rows) from `page-navigation.feature` |
 
@@ -140,8 +141,8 @@ the partial `page-navigation-create-test.js`) and 9 are native-only tests that n
 ## Known regressions in completed migrations (fix before building on them)
 
 Audited by comparing each native test with the original `.feature` removed in #23741 and #23911.
-The #23741 batch (intentions/create, components, settings, dc/*) is faithful. The #23911 batch is
-not:
+The #23741 batch (intentions/create, components, settings, dc/*) is faithful, although #23911 later
+rewrote its `components/text-input` port. The #23911 batch is not:
 
 1. **ENT namespace coverage dropped.** These scenarios had no namespace tag (so they ran once per
    namespace under ENT) but the ports pass `notNamespaceable: true`, with no explanation:
@@ -157,8 +158,15 @@ not:
    `currentURL().includes(...)`, which is nearly vacuous (e.g. `includes('/dc-1/services')`), and
    the "I see N models" counts were dropped. `dc/services/instances/navigation-test.js` also drops
    the proxy fixture and all four namespaced `GET /v1/catalog/connect/...` and
-   `GET /v1/health/service/...-proxy` request assertions.
-3. **Dropped `@ignore` scenario.** `dc/acls/policies/index` lost its ignored scenario instead of
+   `GET /v1/health/service/...-proxy` request assertions. `dc/intentions/navigation` "Clicking
+   the create button and back again" drops its title assertion.
+3. **Other weakened ports.**
+   - `components/text-input` lists the KVs and clicks create instead of visiting the KV create
+     page, so it never asserts `/dc-1/kv/create`.
+   - `dc/nodes/sessions/list` drops the "lock sessions tab is selected" check from 3 of its 4
+     scenarios, checks only fragments of the original empty-state sentences (the ACLs-disabled
+     scenario only checks that a phrase is absent) and renames two scenarios.
+4. **Dropped `@ignore` scenario.** `dc/acls/policies/index` lost its ignored scenario instead of
    keeping it as a skip. Harmless, but the scenario count no longer matches.
 
 ## Completed
@@ -178,7 +186,7 @@ not:
 | `dc/list-blocking.feature` | Listing pages live-update via blocking queries when Consul changes externally. Second scenario carried a FIXME `@ignore`, preserved as a skipped test. | 2 | [tests/acceptance/dc/list-blocking-test.js](tests/acceptance/dc/list-blocking-test.js) |
 | `dc/routing-config.feature` | View a routing config (no 404, correct title) and its source pill. | 2 | [tests/acceptance/dc/routing-config-test.js](tests/acceptance/dc/routing-config-test.js) |
 | `dc/acls/auth-methods/index.feature` | Auth-methods list renders and is searchable (3 search terms). | 2 | [tests/acceptance/dc/acls/auth-methods/index-test.js](tests/acceptance/dc/acls/auth-methods/index-test.js) |
-| `dc/acls/policies/index.feature` | Policies list renders and is searchable. The original `@ignore` scenario (global-management policy can't be deleted) was dropped rather than kept as a skip. | 2 | [tests/acceptance/dc/acls/policies/index-test.js](tests/acceptance/dc/acls/policies/index-test.js) |
+| `dc/acls/policies/index.feature` | Policies list renders and is searchable. The original `@ignore` scenario (global-management policy can't be deleted) was dropped rather than kept as a skip. | 3 (1 dropped) | [tests/acceptance/dc/acls/policies/index-test.js](tests/acceptance/dc/acls/policies/index-test.js) |
 | `dc/acls/roles/index.feature` | Roles list renders and is searchable (description, policy name, service identity). | 2 | [tests/acceptance/dc/acls/roles/index-test.js](tests/acceptance/dc/acls/roles/index-test.js) |
 | `dc/acls/tokens/index.feature` | Token list: view, no-write access, search (description/policy/role/SI), legacy notice. | 5 | [tests/acceptance/dc/acls/tokens/index-test.js](tests/acceptance/dc/acls/tokens/index-test.js) |
 | `dc/acls/auth-methods/navigation.feature` | Navigate into an auth-method from the list and back via breadcrumb. ⚠️ Original was namespaceable; the port added `notNamespaceable` (see *Known regressions*). | 1 | [tests/acceptance/dc/acls/auth-methods/navigation-test.js](tests/acceptance/dc/acls/auth-methods/navigation-test.js) |
