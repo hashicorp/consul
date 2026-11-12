@@ -103,7 +103,14 @@ func (a *Authenticator) verifyVanillaJWT(ctx context.Context, loginToken string)
 			return nil, fmt.Errorf("failed to unmarshal claims: %v", err)
 		}
 	case authStaticKeys:
-		parsedJWT, err := jwt.ParseSigned(loginToken, staticKeySigningAlgs)
+		algs := staticKeySigningAlgs
+		if len(a.config.JWTSupportedAlgs) > 0 {
+			algs = make([]jose.SignatureAlgorithm, 0, len(a.config.JWTSupportedAlgs))
+			for _, alg := range a.config.JWTSupportedAlgs {
+				algs = append(algs, jose.SignatureAlgorithm(alg))
+			}
+		}
+		parsedJWT, err := jwt.ParseSigned(loginToken, algs)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing token: %v", err)
 		}
