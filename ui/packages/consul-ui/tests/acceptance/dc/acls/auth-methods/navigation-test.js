@@ -11,6 +11,7 @@ import { click } from '@ember/test-helpers';
 import {
   setupAcceptanceTest,
   nspaceScenario,
+  createModels,
   api,
   visit,
   page,
@@ -27,7 +28,7 @@ module(
     nspaceScenario(
       'Scenario: Clicking an auth-method in the listing and back again',
       async function (assert, nspace) {
-        api.server.createList('dc', 1, 'dc-1');
+        createModels('dc', 1, 'dc-1');
         api.server.createList('authMethod', 3);
 
         await visit('authMethods', { dc: 'dc-1' }, { nspace });

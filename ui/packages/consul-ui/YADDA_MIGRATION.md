@@ -149,27 +149,34 @@ Audited by comparing each native test with the original `.feature` removed in #2
 The #23741 batch (intentions/create, components, settings, dc/*) was faithful, although #23911
 later rewrote its `components/text-input` port. The #23911 batch was not, and has been corrected:
 
-1. **ENT namespace coverage restored.** 12 ports had `notNamespaceable: true` although the
-   original scenario had no namespace tag (all `*/navigation` tests, `components/text-input`,
+1. **ENT namespace coverage restored.** 15 scenarios in 11 files had `notNamespaceable: true`
+   although the original scenario had no namespace tag (all `*/navigation` tests, `components/text-input`,
    the sessions "ACLs disabled" scenario and the 3 `page-navigation` create rows). They run for
    every namespace again (about 60 more Enterprise tests); all pass.
 2. **Assertions restored.** Exact URL checks (`assert.equal(currentURL(), nspaceURL(...))`)
    replace `includes(...)`, the "I see N models" counts are back, and
    `dc/services/instances/navigation-test.js` has its proxy/instance fixtures and namespaced
    `GET /v1/catalog/connect/...` / `GET /v1/health/service/...-proxy` request checks again.
-3. **Dropped `@ignore` scenario.** `dc/acls/policies/index` lost its ignored scenario. This is
-   consistent with the rule to delete, not port, ignored placeholders (see Phase 0), so it stays
-   dropped.
+   `dc/intentions/navigation` "Clicking the create button and back again" asserts the title
+   again. The `dc-1` navigation ports create the datacenter with `createModels`, which sets it
+   as the local datacenter like the yadda step, and `dc/nodes/navigation` uses the original
+   node fixture again.
+3. **Other weakened ports fixed.** `components/text-input` visits the KV create page and asserts
+   `/dc-1/kv/create` again, as the #23741 port did. `dc/nodes/sessions/list` checks the selected
+   tab and the full empty-state sentences in every scenario and has its original titles back.
+4. **Dropped `@ignore` scenario restored.** `dc/acls/policies/index` keeps its ignored scenario
+   as a skipped test with the original steps in its body, so it can be un-skipped later.
 
 **Behaviour changes the exact assertions exposed** (these are product questions, not test
 problems; the tests document the current behaviour):
 
 - The breadcrumb link back to a list keeps the peer route segment: opening the first (peered)
   service or node and going back lands on `/:billing/dc-1/services` / `/:billing/dc-1/nodes`,
-  where the old `[data-test-back] a` link went to `/dc-1/services`. The nodes test clicks an
-  unpeered node; the services tests accept an optional peer segment. This happens in CE as well
+  where the old `[data-test-back] a` link went to `/dc-1/services`. This happens in CE as well
   as ENT. `app/services/breadcrumbs.js` says it intends to avoid inheriting peer segments, so
-  this is likely a bug worth a separate fix.
+  this is likely a bug worth a separate fix. The nodes and services tests click the first
+  (peered) item, as the originals did, and assert today's URL exactly with a `FIXME`, so fixing
+  the bug makes them fail until they are updated to the original `/dc-1/...` URLs.
 - Going "back" from a service instance now returns to that service's *instances* tab (the old
   back link landed on the topology tab).
 
@@ -190,7 +197,7 @@ problems; the tests document the current behaviour):
 | `dc/list-blocking.feature` | Listing pages live-update via blocking queries when Consul changes externally. Second scenario carried a FIXME `@ignore`, preserved as a skipped test. | 2 | [tests/acceptance/dc/list-blocking-test.js](tests/acceptance/dc/list-blocking-test.js) |
 | `dc/routing-config.feature` | View a routing config (no 404, correct title) and its source pill. | 2 | [tests/acceptance/dc/routing-config-test.js](tests/acceptance/dc/routing-config-test.js) |
 | `dc/acls/auth-methods/index.feature` | Auth-methods list renders and is searchable (3 search terms). | 2 | [tests/acceptance/dc/acls/auth-methods/index-test.js](tests/acceptance/dc/acls/auth-methods/index-test.js) |
-| `dc/acls/policies/index.feature` | Policies list renders and is searchable. The original `@ignore` scenario (global-management policy can't be deleted) was dropped rather than kept as a skip. | 3 (1 dropped) | [tests/acceptance/dc/acls/policies/index-test.js](tests/acceptance/dc/acls/policies/index-test.js) |
+| `dc/acls/policies/index.feature` | Policies list renders and is searchable. The original `@ignore` scenario (global-management policy can't be deleted) is kept as a skipped test with its steps. | 3 | [tests/acceptance/dc/acls/policies/index-test.js](tests/acceptance/dc/acls/policies/index-test.js) |
 | `dc/acls/roles/index.feature` | Roles list renders and is searchable (description, policy name, service identity). | 2 | [tests/acceptance/dc/acls/roles/index-test.js](tests/acceptance/dc/acls/roles/index-test.js) |
 | `dc/acls/tokens/index.feature` | Token list: view, no-write access, search (description/policy/role/SI), legacy notice. | 5 | [tests/acceptance/dc/acls/tokens/index-test.js](tests/acceptance/dc/acls/tokens/index-test.js) |
 | `dc/acls/auth-methods/navigation.feature` | Navigate into an auth-method from the list and back via breadcrumb. | 1 | [tests/acceptance/dc/acls/auth-methods/navigation-test.js](tests/acceptance/dc/acls/auth-methods/navigation-test.js) |

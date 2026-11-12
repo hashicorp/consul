@@ -9,6 +9,7 @@ import { module } from 'qunit';
 import {
   setupAcceptanceTest,
   nspaceScenario,
+  createModels,
   api,
   visit,
   page,
@@ -54,7 +55,7 @@ module(
     nspaceScenario(
       'Scenario: Clicking an instance in the listing and back again',
       async function (assert, nspace) {
-        api.server.createList('dc', 1, 'dc-1');
+        createModels('dc', 1, 'dc-1');
         api.server.createList('proxy', 1, PROXY);
         api.server.createList('instance', 3, INSTANCES);
 

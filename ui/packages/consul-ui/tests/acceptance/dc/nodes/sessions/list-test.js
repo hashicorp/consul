@@ -26,6 +26,14 @@ const visitSessions = async (nspace) => {
   await click('[data-test-tab="tab_lock-sessions"] button');
 };
 
+const assertSessionsTabSelected = (assert) =>
+  assert.dom('[data-test-tab="tab_lock-sessions"] button').hasAttribute('aria-selected', 'true');
+
+const EMPTY_TEXT =
+  'Consul provides a session mechanism which can be used to build distributed locks. ' +
+  'Sessions act as a binding layer between Nodes, Health Checks, and Key/Value data. ' +
+  'There are currently no Lock Sessions present';
+
 const cellText = (selector) =>
   [...document.querySelectorAll(`.consul-lock-session-table ${selector}`)].map((el) =>
     el.textContent.trim()
@@ -34,7 +42,7 @@ const cellText = (selector) =>
 module('Acceptance | dc / nodes / sessions / list', function (hooks) {
   setupAcceptanceTest(hooks);
 
-  nspaceScenario('Scenario: Given 2 sessions with string TTLs', async function (assert, nspace) {
+  nspaceScenario('Scenario: Given 2 session with string TTLs', async function (assert, nspace) {
     api.server.createList('dc', 1, 'dc1');
     api.server.createList('node', 1, { ID: 'node-0' });
     api.server.createList('session', 2, [{ TTL: '30s' }, { TTL: '60m' }]);
@@ -42,7 +50,7 @@ module('Acceptance | dc / nodes / sessions / list', function (hooks) {
     await visitSessions(nspace);
 
     assert.equal(currentURL(), nspaceURL(nspace, '/dc1/nodes/node-0/lock-sessions'));
-    assert.dom('[data-test-tab="tab_lock-sessions"] button').hasAttribute('aria-selected', 'true');
+    assertSessionsTabSelected(assert);
     assert.deepEqual(
       cellText('[data-test-session-ttl]'),
       ['30s', '60m'],
@@ -51,7 +59,7 @@ module('Acceptance | dc / nodes / sessions / list', function (hooks) {
   });
 
   nspaceScenario(
-    'Scenario: Given 3 sessions with LockDelay in nanoseconds',
+    'Scenario: Given 3 session with LockDelay in nanoseconds',
     async function (assert, nspace) {
       api.server.createList('dc', 1, 'dc1');
       api.server.createList('node', 1, { ID: 'node-0' });
@@ -63,6 +71,7 @@ module('Acceptance | dc / nodes / sessions / list', function (hooks) {
 
       await visitSessions(nspace);
 
+      assertSessionsTabSelected(assert);
       assert.deepEqual(
         cellText('[data-test-session-delay]'),
         ['120µs', '18ms', '15s'],
@@ -78,10 +87,11 @@ module('Acceptance | dc / nodes / sessions / list', function (hooks) {
 
     await visitSessions(nspace);
 
+    assertSessionsTabSelected(assert);
     assert
       .dom('.empty-state p')
       .includesText(
-        'you may not have key:read or session:read permissions',
+        `${EMPTY_TEXT}, or you may not have key:read or session:read permissions.`,
         'the empty state mentions the ACL permissions when ACLs are enabled'
       );
     assert
@@ -101,6 +111,8 @@ module('Acceptance | dc / nodes / sessions / list', function (hooks) {
 
     await visitSessions(nspace);
 
+    assertSessionsTabSelected(assert);
+    assert.dom('.empty-state p').includesText(`${EMPTY_TEXT}.`, 'the empty state is shown');
     assert
       .dom('.empty-state p')
       .doesNotIncludeText(

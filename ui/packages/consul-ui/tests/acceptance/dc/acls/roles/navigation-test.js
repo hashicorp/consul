@@ -11,6 +11,7 @@ import { click } from '@ember/test-helpers';
 import {
   setupAcceptanceTest,
   nspaceScenario,
+  createModels,
   api,
   visit,
   page,
@@ -25,7 +26,7 @@ module('Acceptance | dc / roles / navigation: Roles Navigation', function (hooks
   nspaceScenario(
     'Scenario: Clicking a role in the listing and back again',
     async function (assert, nspace) {
-      api.server.createList('dc', 1, 'dc-1');
+      createModels('dc', 1, 'dc-1');
       api.server.createList('role', 3);
 
       await visit('roles', { dc: 'dc-1' }, { nspace });

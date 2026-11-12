@@ -11,6 +11,7 @@ import { click } from '@ember/test-helpers';
 import {
   setupAcceptanceTest,
   nspaceScenario,
+  createModels,
   api,
   visit,
   page,
@@ -25,7 +26,7 @@ module('Acceptance | dc / policies / navigation: Policies Navigation', function 
   nspaceScenario(
     'Scenario: Clicking a policy in the listing and back again',
     async function (assert, nspace) {
-      api.server.createList('dc', 1, 'dc-1');
+      createModels('dc', 1, 'dc-1');
       api.server.createList('policy', 3);
 
       await visit('policies', { dc: 'dc-1' }, { nspace });
