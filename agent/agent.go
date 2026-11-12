@@ -1746,7 +1746,26 @@ func (a *Agent) RPC(ctx context.Context, method string, args interface{}, reply 
 
 // Leave is used to prepare the agent for a graceful shutdown
 func (a *Agent) Leave() error {
-	return a.delegate.Leave()
+	// Block anti-entropy sync during graceful leave to prevent local state changes
+	// (such as health check transitions or maintenance flags) from triggering a
+	// Catalog.Register that could race with node deregistration on the servers.
+	if a.sync != nil {
+		a.PauseSync()
+	}
+	if a.State != nil {
+		a.State.PauseSync()
+	}
+
+	if err := a.delegate.Leave(); err != nil {
+		if a.State != nil {
+			a.State.ResumeSync()
+		}
+		if a.sync != nil {
+			a.ResumeSync()
+		}
+		return err
+	}
+	return nil
 }
 
 // ShutdownAgent is used to hard stop the agent. Should be preceded by
