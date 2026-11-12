@@ -24,7 +24,7 @@ Consul provides several key features:
   connections for inbound and outbound connections with Transparent Proxy.
 
 * **API Gateway** - Consul API Gateway manages access to services within Consul Service Mesh, 
-  allow users to define traffic and authorization policies to services deployed within the mesh.  
+  allows users to define traffic and authorization policies to services deployed within the mesh.  
 
 * **Service Discovery** - Consul makes it simple for services to register
   themselves and to discover other services via a DNS or HTTP interface.
