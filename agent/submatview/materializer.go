@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
@@ -221,6 +222,13 @@ func isNonTemporaryOrConsecutiveFailure(err error, failures int) bool {
 		Temporary() bool
 	})
 	return !ok || !temp.Temporary() || failures > 0
+}
+
+// isTerminalError reports whether the materializer should stop retrying and exit.
+// This matches agent/cache handling of ACL not found and
+// agent/submatview.LocalMaterializer behavior.
+func isTerminalError(err error) bool {
+	return acl.IsErrNotFound(err)
 }
 
 func defaultWaiter() *retry.Waiter {
