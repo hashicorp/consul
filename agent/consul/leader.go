@@ -324,6 +324,8 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 
 	s.startDeferredDeletion(ctx)
 
+	s.startMeshPQCMetrics(ctx)
+
 	if err := s.startConnectLeader(ctx); err != nil {
 		return err
 	}
@@ -365,6 +367,8 @@ func (s *Server) revokeLeadership() {
 	s.revokeEnterpriseLeadership()
 
 	s.stopDeferredDeletion()
+
+	s.stopMeshPQCMetrics()
 
 	s.stopFederationStateAntiEntropy()
 

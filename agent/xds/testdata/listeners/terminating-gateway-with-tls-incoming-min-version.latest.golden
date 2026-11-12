@@ -51,8 +51,10 @@
                 "tlsParams": {
                   "ecdhCurves": [
                     "X25519MLKEM768",
-                    "X25519"
+                    "X25519",
+                    "P-256"
                   ],
+                  "tlsMaximumProtocolVersion": "TLSv1_3",
                   "tlsMinimumProtocolVersion": "TLSv1_3"
                 },
                 "validationContextSdsSecretConfig": {
@@ -108,8 +110,10 @@
                 "tlsParams": {
                   "ecdhCurves": [
                     "X25519MLKEM768",
-                    "X25519"
+                    "X25519",
+                    "P-256"
                   ],
+                  "tlsMaximumProtocolVersion": "TLSv1_3",
                   "tlsMinimumProtocolVersion": "TLSv1_3"
                 },
                 "validationContextSdsSecretConfig": {
@@ -165,8 +169,10 @@
                 "tlsParams": {
                   "ecdhCurves": [
                     "X25519MLKEM768",
-                    "X25519"
+                    "X25519",
+                    "P-256"
                   ],
+                  "tlsMaximumProtocolVersion": "TLSv1_3",
                   "tlsMinimumProtocolVersion": "TLSv1_3"
                 },
                 "validationContextSdsSecretConfig": {
@@ -222,8 +228,10 @@
                 "tlsParams": {
                   "ecdhCurves": [
                     "X25519MLKEM768",
-                    "X25519"
+                    "X25519",
+                    "P-256"
                   ],
+                  "tlsMaximumProtocolVersion": "TLSv1_3",
                   "tlsMinimumProtocolVersion": "TLSv1_3"
                 },
                 "validationContextSdsSecretConfig": {
