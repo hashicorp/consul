@@ -203,6 +203,70 @@ type resultOrError struct {
 	Err    error
 }
 
+func TestStore_StopStopsMaterializers(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	store := NewStore(hclog.New(nil))
+	go store.Run(ctx)
+
+	mat := &blockingMaterializer{
+		started: make(chan struct{}),
+		stopped: make(chan struct{}),
+	}
+	req := &blockingRequest{mat: mat, timeout: 10 * time.Millisecond}
+
+	_, err := store.Get(context.Background(), req)
+	require.NoError(t, err)
+
+	select {
+	case <-mat.started:
+	case <-time.After(100 * time.Millisecond):
+		t.Fatal("expected materializer to start")
+	}
+
+	store.Stop()
+
+	select {
+	case <-mat.stopped:
+	case <-time.After(100 * time.Millisecond):
+		t.Fatal("expected Store.Stop to stop materializer")
+	}
+}
+
+type blockingRequest struct {
+	mat     Materializer
+	timeout time.Duration
+}
+
+func (r *blockingRequest) CacheInfo() cache.RequestInfo {
+	return cache.RequestInfo{
+		Key:        "key",
+		Token:      "abcd",
+		Datacenter: "dc1",
+		Timeout:    r.timeout,
+	}
+}
+
+func (r *blockingRequest) NewMaterializer() (Materializer, error) { return r.mat, nil }
+func (r *blockingRequest) Type() string                           { return fmt.Sprintf("%T", r) }
+
+type blockingMaterializer struct {
+	started chan struct{}
+	stopped chan struct{}
+}
+
+func (m *blockingMaterializer) Run(ctx context.Context) {
+	close(m.started)
+	<-ctx.Done()
+	close(m.stopped)
+}
+
+func (m *blockingMaterializer) Query(ctx context.Context, minIndex uint64) (Result, error) {
+	<-ctx.Done()
+	return Result{}, ctx.Err()
+}
+
 type fakeRPCRequest struct {
 	index   uint64
 	timeout time.Duration
