@@ -101,12 +101,3 @@ Feature: page-navigation
     | Item      | Model      | URL                                                      | Back    |
     | kv        | kvs        | /dc1/kv/0-key-value/edit                                 | /dc1/kv |
     -----------------------------------------------------------------------------------------------
-@ignore
-  Scenario: Clicking items in the listings, without depending on the salt ^
-    Then ok
-@ignore
-  Scenario: Clicking create in the [Model] listing — migrated to page-navigation-create-test.js
-    Then ok
-@ignore
-  Scenario: Using I click on should change the currentPage ^
-    Then ok

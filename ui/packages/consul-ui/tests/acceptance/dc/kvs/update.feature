@@ -112,9 +112,3 @@ Feature: dc / kvs / update: KV Update
     Then the url should be /datacenter/kv/key/edit
     And "[data-notification]" has the "hds-toast" class
     And "[data-notification]" has the "hds-alert--color-critical" class
-@ignore
-  Scenario: KV's with spaces are saved correctly
-    Then ok
-@ignore
-  Scenario: KV's with returns are saved correctly
-    Then ok
