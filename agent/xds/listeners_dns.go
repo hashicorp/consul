@@ -13,7 +13,7 @@ import (
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_dns_table_v3 "github.com/envoyproxy/go-control-plane/envoy/data/dns/v3"
 	envoy_dns_filter_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/udp/dns_filter/v3"
-	envoy_cares_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/network/dns_resolver/cares/v3"
+	envoy_getaddrinfo_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/network/dns_resolver/getaddrinfo/v3"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -51,8 +51,8 @@ const (
 	// address does not specify one.
 	egressDNSDefaultRecursorPort = 53
 
-	// caresDNSResolverName is the Envoy extension name for the c-ares resolver.
-	caresDNSResolverName = "envoy.network.dns_resolver.cares"
+	// getAddrInfoDNSResolverName is the Envoy extension name for the getaddrinfo resolver.
+	getAddrInfoDNSResolverName = "envoy.network.dns_resolver.getaddrinfo"
 
 	// loopbackListenerAddress is the address used by the local DNS listeners.
 	loopbackListenerAddress = "127.0.0.1"
@@ -300,7 +300,7 @@ func listenerNameForVirtualDNS(bindAddr string) string {
 
 // makeEgressDNSListener builds the egress recursor DNS UDP listener for a connect
 // proxy. It contains a dns_filter configured with a client context that forwards
-// non-Consul queries to the configured upstream recursors via Envoy's c-ares DNS
+// non-Consul queries to the configured upstream recursors via Envoy's getaddrinfo DNS
 // resolver, binding on 127.0.0.1:8654.
 //
 // Like the inline DNS listener, it is part of the LDS resources for the proxy, so
@@ -315,10 +315,9 @@ func (s *ResourceGenerator) makeEgressDNSListener(recursors []string) (proto.Mes
 		return nil, nil
 	}
 
-	caresCfg := &envoy_cares_v3.CaresDnsResolverConfig{
-		Resolvers: resolvers,
-	}
-	caresAny, err := anypb.New(caresCfg)
+	// getaddrinfo uses the system resolver configuration; it takes no resolver
+	// list, so the recursors only gate whether the listener is emitted.
+	resolverAny, err := anypb.New(&envoy_getaddrinfo_v3.GetAddrInfoDnsResolverConfig{})
 	if err != nil {
 		return nil, err
 	}
@@ -337,8 +336,8 @@ func (s *ResourceGenerator) makeEgressDNSListener(recursors []string) (proto.Mes
 			ResolverTimeout:   durationpb.New(2 * time.Second),
 			MaxPendingLookups: 256,
 			TypedDnsResolverConfig: &envoy_core_v3.TypedExtensionConfig{
-				Name:        caresDNSResolverName,
-				TypedConfig: caresAny,
+				Name:        getAddrInfoDNSResolverName,
+				TypedConfig: resolverAny,
 			},
 		},
 	}
