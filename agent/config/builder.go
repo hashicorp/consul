@@ -102,6 +102,10 @@ type LoadOpts struct {
 	sources []Source
 }
 
+// minStreamingIdleTimeout keeps a misconfigured value from resubscribing quiet
+// streams, and so reloading their snapshots, in a tight loop.
+const minStreamingIdleTimeout = 30 * time.Second
+
 // Load will build the configuration including the config source injected
 // after all other defaults but before any user supplied configuration and the overrides
 // source injected as the final source in the configuration parsing chain.
@@ -1217,6 +1221,12 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	}
 
 	rt.UseStreamingBackend = boolValWithDefault(c.UseStreamingBackend, true)
+	rt.StreamingIdleTimeout = b.durationVal("streaming_idle_timeout", c.StreamingIdleTimeout)
+	if rt.StreamingIdleTimeout < 0 || (rt.StreamingIdleTimeout > 0 && rt.StreamingIdleTimeout < minStreamingIdleTimeout) {
+		b.err = multierror.Append(b.err, fmt.Errorf(
+			"streaming_idle_timeout: duration '%s' must be 0 (disabled) or at least %s",
+			rt.StreamingIdleTimeout, minStreamingIdleTimeout))
+	}
 
 	if rt.Cache.EntryFetchMaxBurst <= 0 {
 		return RuntimeConfig{}, fmt.Errorf("cache.entry_fetch_max_burst must be strictly positive, was: %v", rt.Cache.EntryFetchMaxBurst)

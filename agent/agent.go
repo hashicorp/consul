@@ -505,8 +505,9 @@ func New(bd BaseDeps) (*Agent, error) {
 			CacheName: cachetype.HealthServicesName,
 			ViewStore: bd.ViewStore,
 			MaterializerDeps: rpcclient.MaterializerDeps{
-				Conn:   conn,
-				Logger: bd.Logger.Named("rpcclient.health"),
+				Conn:        conn,
+				Logger:      bd.Logger.Named("rpcclient.health"),
+				IdleTimeout: a.config.StreamingIdleTimeout,
 			},
 			UseStreamingBackend: a.config.UseStreamingBackend,
 			QueryOptionDefaults: config.ApplyDefaultQueryOptions(a.config),
@@ -525,8 +526,9 @@ func New(bd BaseDeps) (*Agent, error) {
 			CacheName: cachetype.ConfigEntryName,
 			ViewStore: bd.ViewStore,
 			MaterializerDeps: rpcclient.MaterializerDeps{
-				Conn:   conn,
-				Logger: bd.Logger.Named("rpcclient.configentry"),
+				Conn:        conn,
+				Logger:      bd.Logger.Named("rpcclient.configentry"),
+				IdleTimeout: a.config.StreamingIdleTimeout,
 			},
 			QueryOptionDefaults: config.ApplyDefaultQueryOptions(a.config),
 		},
