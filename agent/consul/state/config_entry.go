@@ -2320,3 +2320,23 @@ func convertTargetsToTestSpiffeIDs(chain *structs.CompiledDiscoveryChain) map[st
 	}
 	return out
 }
+
+// ConfigEntriesByKindAllPartitions returns all config entries of the given
+// kind in every admin partition and namespace.
+func (s *Store) ConfigEntriesByKindAllPartitions(ws memdb.WatchSet, kind string) (uint64, []structs.ConfigEntry, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	idx := maxIndexWatchTxn(tx, ws, tableConfigEntries)
+	iter, err := getAllConfigEntriesByKindWithTxn(tx, kind)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed config entry lookup: %s", err)
+	}
+	ws.Add(iter.WatchCh())
+
+	var results []structs.ConfigEntry
+	for v := iter.Next(); v != nil; v = iter.Next() {
+		results = append(results, v.(structs.ConfigEntry))
+	}
+	return idx, results, nil
+}

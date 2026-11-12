@@ -344,6 +344,7 @@ func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.G
 		xds.StatsGauges,
 		usagemetrics.Gauges,
 		consul.ReplicationGauges,
+		consul.ConfigEntryGauges,
 		certExpirationGauges(cfg.Datacenter, cfg.PartitionOrDefault(), cfg.NodeName, tlsCertRole(isServer)),
 		Gauges,
 		raftGauges,
