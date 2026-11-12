@@ -46,6 +46,14 @@ func IsErrNotFound(err error) bool {
 	return err != nil && strings.Contains(err.Error(), errNotFound)
 }
 
+// MaxConsecutiveNotFoundTolerance bounds how many consecutive "ACL not found"
+// results a long-lived watch or subscription should tolerate before treating
+// a token as genuinely gone. A server that is momentarily behind on Raft
+// replication can transiently report a valid token as missing; consumers
+// holding long-lived subscriptions (e.g. agent/proxycfg, agent/submatview)
+// share this constant so their tolerance policies can't silently drift apart.
+const MaxConsecutiveNotFoundTolerance = 3
+
 // IsErrRootDenied checks if the given error message is comparable to
 // ErrRootDenied.
 func IsErrRootDenied(err error) bool {
