@@ -95,12 +95,13 @@ api-double, [tests/pages.js](tests/pages.js) / `tests/pages/`, `tests/lib/page-o
    `pnpm test` only exercises CE.
 4. ✅ **Fix the regressions** below, so later batches don't copy the weakened navigation pattern.
 5. ✅ **`@ignore` scenarios.** The 8 empty `Then ok` placeholders and the 19 orphaned
-   `-steps.js` stubs were deleted. The remaining 13 ignored scenarios have real bodies: 6
+   `-steps.js` stubs were deleted. The remaining 10 ignored scenarios have real bodies: 3
    scenario-level `@ignore` tags, plus the feature-level `@ignore` on
    `dc/acls/policies/as-many/add-new` (6 scenarios) and `dc/intentions/permissions/warn` (1).
    When migrating their feature, fix and un-ignore them where possible. Otherwise port each as
    a skipped test (`{ ignore: true }`) that keeps the original steps in its body, with the
-   reason in a comment, so it can be un-skipped later (see `dc/acls/policies/index-test.js`).
+   reason in a comment, so it can be un-skipped later (see `dc/acls/policies/index-test.js` and
+   `page-navigation-test.js`).
 
 ## How to use this document
 
@@ -133,11 +134,11 @@ manually in the running UI if needed.
 | Metric | Count |
 | --- | --- |
 | Feature files remaining (yadda) | 90 |
-| Scenarios remaining (yadda) | 222 (5 are `@ignore`, each with a real body) |
+| Scenarios remaining (yadda) | 222 (10 are `@ignore`, each with a real body: 3 scenario-level tags plus 2 feature-level tags covering 7 scenarios) |
 | Feature files fully migrated | 39 |
 | Scenarios migrated | 70 (46 from the first 27 features, 24 from the last 12) |
 
-Scenario counts are not test counts. 24 remaining features use `Where:` tables (one test per
+Scenario counts are not test counts. 20 remaining features use `Where:` tables (one test per
 row), and under `CONSUL_NSPACES_ENABLED=1` each namespaceable scenario runs 4 times.
 
 `tests/acceptance` contains 48 native `*-test.js` files: 39 come from migrated features and 9 are native-only tests that never had a
@@ -221,7 +222,7 @@ problems; the tests document the current behaviour):
 | `login.feature` | Logging in via an ACL token and via SSO. The SSO scenario stays `@onlyNamespaceable`. | 2 | [tests/acceptance/login-test.js](tests/acceptance/login-test.js) |
 | `login-errors.feature` | Login 500-error handling (non-legacy-token case). | 1 | [tests/acceptance/login-errors-test.js](tests/acceptance/login-errors-test.js) |
 | `navigation-links.feature` | Main-navigation link visibility (e.g. no KV read access, empty-state login button). | 2 | [tests/acceptance/navigation-links-test.js](tests/acceptance/navigation-links-test.js) |
-| `page-navigation.feature` | Navigation across pages: index forwarding, main-navigation links, node and policies endpoint checks, and the create flows from the intentions/tokens/policies listings. The three `@ignore` kv scenarios are kept as skipped tests; the empty placeholders were deleted. | 7 | [tests/acceptance/page-navigation-test.js](tests/acceptance/page-navigation-test.js) |
+| `page-navigation.feature` | Navigation across pages: index forwarding, main-navigation links, node and policies endpoint checks, and the create flows from the intentions/tokens/policies listings. The three `@ignore` kv scenarios are kept as skipped tests with their original steps; the empty placeholders were deleted. | 7 | [tests/acceptance/page-navigation-test.js](tests/acceptance/page-navigation-test.js) |
 | `startup.feature` | App boots when loading index.html into a browser. `@notNamespaceable`, as before. | 1 | [tests/acceptance/startup-test.js](tests/acceptance/startup-test.js) |
 | `submit-blank.feature` | Blank create forms keep the submit button disabled. | 1 | [tests/acceptance/submit-blank-test.js](tests/acceptance/submit-blank-test.js) |
 | `token-header.feature` | API requests send the Consul token header after a token is set. `@notNamespaceable`, as before. | 2 | [tests/acceptance/token-header-test.js](tests/acceptance/token-header-test.js) |
