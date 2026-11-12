@@ -2691,6 +2691,66 @@ func TestDNS_trimTCPResponse_TrimLimitWithNS(t *testing.T) {
 	require.Len(t, resp.Ns, 0)
 }
 
+// A response over the TCP limit only because of its extra section (e.g. node
+// meta TXT records) keeps all its answers, so it must not be reported as
+// trimmed (which sets the TC bit with enable_truncate).
+func TestDNS_trimTCPResponse_ExtraOnlyOverLimitIsNotTrimmed(t *testing.T) {
+	const numAnswers = 205
+	nodeMeta := []string{
+		"consul-network-segment=",
+		"consul-version=1.18.8",
+		"role=compute",
+		"zone=house",
+	}
+
+	req, resp := &dns.Msg{}, &dns.Msg{}
+	// Without compression the full message is deterministically over the limit.
+	resp.Compress = false
+	for i := 0; i < numAnswers; i++ {
+		target := fmt.Sprintf("%08x.addr.eu-west-2.consul.", 0x0aa80000+i)
+		resp.Answer = append(resp.Answer, &dns.SRV{
+			Hdr: dns.RR_Header{
+				Name:   "nomad-client.service.consul.",
+				Rrtype: dns.TypeSRV,
+				Class:  dns.ClassINET,
+			},
+			Priority: 1,
+			Weight:   1,
+			Port:     4646,
+			Target:   target,
+		})
+		resp.Extra = append(resp.Extra, &dns.A{
+			Hdr: dns.RR_Header{
+				Name:   target,
+				Rrtype: dns.TypeA,
+				Class:  dns.ClassINET,
+			},
+			A: net.ParseIP(fmt.Sprintf("10.168.%d.%d", i/200, i%200)),
+		})
+		for _, kv := range nodeMeta {
+			resp.Extra = append(resp.Extra, &dns.TXT{
+				Hdr: dns.RR_Header{
+					Name:   target,
+					Rrtype: dns.TypeTXT,
+					Class:  dns.ClassINET,
+				},
+				Txt: []string{kv},
+			})
+		}
+	}
+	req.Question = append(req.Question, dns.Question{Qtype: dns.TypeSRV})
+
+	// Ensure the size loop is exercised.
+	require.Greater(t, resp.Len(), 65523)
+
+	trimmed := trimTCPResponse(req, resp)
+
+	require.False(t, trimmed, "no answer was dropped")
+	require.Len(t, resp.Answer, numAnswers)
+	require.Len(t, resp.Extra, numAnswers)
+	require.LessOrEqual(t, resp.Len(), 65523)
+}
+
 func loadRuntimeConfig(t *testing.T, hcl string) *config.RuntimeConfig {
 	t.Helper()
 	result, err := config.Load(config.LoadOpts{HCL: []string{hcl}})
