@@ -260,11 +260,13 @@ const (
 var (
 	// DefaultPQCECDHCurves is the curve list injected automatically for Envoy when
 	// TLSMinVersion >= TLSv1_3 is set and the operator has not provided an explicit curve list.
-	DefaultPQCECDHCurves = []string{string(CurveX25519MLKEM768), string(CurveX25519)}
+	// The order is the preference order. P-256 is kept as a classical fallback so
+	// that peers which only offer P-256 keep working after an upgrade.
+	DefaultPQCECDHCurves = []string{string(CurveX25519MLKEM768), string(CurveX25519), string(CurveP256)}
 
 	// DefaultConsulAgentPQCECDHCurves is the curve list injected automatically for Consul Agent
 	// when TLSMinVersion >= TLSv1_3 is set and the operator has not provided an explicit curve list.
-	DefaultConsulAgentPQCECDHCurves = []TLSECDHCurve{CurveX25519MLKEM768, CurveX25519}
+	DefaultConsulAgentPQCECDHCurves = []TLSECDHCurve{CurveX25519MLKEM768, CurveX25519, CurveP256}
 
 	consulAgentTLSECDHCurves = map[TLSECDHCurve]struct{}{
 		CurveX25519MLKEM768: {},
