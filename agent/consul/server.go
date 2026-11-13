@@ -668,6 +668,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to create ACL resolver: %v", err)
 	}
+	s.registerACLResolverLifecycle(flat.Lifecycle)
 
 	// Initialize the RPC layer.
 	if err := s.setupRPC(); err != nil {
