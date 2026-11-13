@@ -41,6 +41,33 @@ jobs:
           repository: hashicorp/consul-enterprise
           event-type: ent-backport
           client-payload: ${{ toJson(github.event) }}
+  # backport-assistant does not copy labels, so carry the ENT sync opt-out over to the CE backport PRs.
+  propagate-no-ent-sync:
+    needs: backport
+    if: always() && github.event.pull_request.merged && contains(github.event.pull_request.labels.*.name, 'pr/no-ent-sync')
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Add pr/no-ent-sync to backport PRs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          SOURCE_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          backport_prs=$(gh pr list -R "$REPO" --state open --limit 1000 --json number,headRefName,body |
+            jq -r --arg prefix "backport/${SOURCE_BRANCH}/" --arg marker "auto-generated from #${PR_NUMBER} " \
+              '.[] | select((.headRefName | startswith($prefix)) and (.body | contains($marker))) | .number')
+          if [[ -z "$backport_prs" ]]; then
+            echo "No open backport PRs found for #${PR_NUMBER}"
+            exit 0
+          fi
+          for pr in $backport_prs; do
+            echo "Adding pr/no-ent-sync to #${pr}"
+            gh pr edit "$pr" -R "$REPO" --add-label "pr/no-ent-sync"
+          done
   handle-failure:
     needs:
       - backport
