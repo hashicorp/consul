@@ -4,6 +4,7 @@
 package fsm
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -20,8 +21,12 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
+	"github.com/hashicorp/consul/lifecycle"
 	"github.com/hashicorp/consul/logging"
 )
+
+// StateStoreComponent is the lifecycle component name of the FSM state store.
+const StateStoreComponent lifecycle.ComponentName = "server/state-store"
 
 // command is a command method on the FSM.
 type command func(buf []byte, index uint64) interface{}
@@ -64,6 +69,14 @@ type FSM struct {
 	stateLock sync.RWMutex
 	state     *state.Store
 
+	// stateStore reports the state store lifecycle (Booting, Serving,
+	// Restoring). snapshotGate is open while the state store is Serving; every
+	// streaming snapshot holds a lease on it while it reads the state, and
+	// Restore waits for those leases before it replaces the state. Both are
+	// no-ops when no lifecycle Exchange was provided.
+	stateStore   *lifecycle.Handle
+	snapshotGate lifecycle.Gate
+
 	publisher *stream.EventPublisher
 }
 
@@ -93,6 +106,9 @@ type Deps struct {
 
 	Publisher *stream.EventPublisher
 
+	// Lifecycle, when set, tracks the state store lifecycle and makes streaming
+	// snapshots wait out a Restore instead of racing it. Optional.
+	Lifecycle *lifecycle.Exchange
 	// StorageBackend is the storage backend used by the resource service, it
 	// manages its own state and has methods for handling Raft logs, snapshotting,
 	// and restoring snapshots.
@@ -147,10 +163,51 @@ func NewFromDeps(deps Deps) *FSM {
 
 	fsm.chunker = raftchunking.NewChunkingFSM(fsm, nil)
 
+	fsm.registerLifecycle()
+
 	// register the streaming snapshot handlers if an event publisher was provided.
 	fsm.registerStreamSnapshotHandlers()
 
 	return fsm
+}
+
+// registerLifecycle registers the state store as a lifecycle component. The
+// empty store created above is a valid, serving state store, so the component
+// starts serving right away; a Restore moves it to Restoring and back.
+func (c *FSM) registerLifecycle() {
+	if c.deps.Lifecycle == nil {
+		return
+	}
+	h, err := c.deps.Lifecycle.Register(lifecycle.Restorable(StateStoreComponent))
+	if err != nil {
+		// Never fail FSM construction over observability; run ungated.
+		c.logger.Warn("failed to register state store lifecycle component, snapshots will not be gated", "error", err)
+		return
+	}
+	if err := h.Transition(lifecycle.StateServing, lifecycle.WithReason("state store created")); err != nil {
+		c.logger.Warn("failed to mark state store serving", "error", err)
+		return
+	}
+	c.stateStore = h
+	c.snapshotGate = c.deps.Lifecycle.Require(StateStoreComponent, lifecycle.PhaseReady)
+}
+
+// registerHandler registers a streaming snapshot handler that holds a lease on
+// the state store for the duration of the read. While a Restore is in progress
+// the handler fails fast with a *lifecycle.NotReadyError instead of reading a
+// state store that is about to be replaced; the subscriber sees a retryable
+// error. Acquire never blocks, so this is safe even though the publisher calls
+// handlers while holding its own lock.
+func (c *FSM) registerHandler(topic stream.Topic, fn stream.SnapshotFunc, supportsWildcard bool) error {
+	gated := func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+		lease, err := c.snapshotGate.Acquire(context.Background(), lifecycle.FailFast)
+		if err != nil {
+			return 0, err
+		}
+		defer lease.Release()
+		return fn(req, buf)
+	}
+	return c.deps.Publisher.RegisterHandler(topic, gated, supportsWildcard)
 }
 
 func (c *FSM) ChunkingFSM() raft.FSM {
@@ -288,6 +345,17 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 	}
 	storageRestoration.Commit()
 
+	// Refuse new streaming snapshots and wait for the ones in flight. This runs
+	// before any lock below is taken: a snapshot in flight may be inside the
+	// publisher's lock waiting on State(), which must still be possible.
+	finishRestore, err := c.stateStore.BeginTransition(context.Background(), lifecycle.StateRestoring,
+		lifecycle.WithReason("restoring state from snapshot"))
+	if err != nil {
+		// Never fail a raft restore over lifecycle tracking.
+		c.logger.Warn("failed to begin state store lifecycle transition", "error", err)
+		finishRestore = func(lifecycle.StateName, ...lifecycle.TransitionOption) error { return nil }
+	}
+
 	// External code might be calling State(), so we need to synchronize
 	// here to make sure we swap in the new state store atomically.
 	c.stateLock.Lock()
@@ -307,6 +375,13 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 		c.deps.Publisher.RefreshAllTopics()
 	}
 	c.stateLock.Unlock()
+
+	// The new state store is in place and existing streams were told to
+	// resubscribe: let snapshots read it. Doing this before Abandon keeps the
+	// window in which a resubscribing client is refused as short as possible.
+	if err := finishRestore(lifecycle.StateServing, lifecycle.WithReason("restore complete")); err != nil {
+		c.logger.Warn("failed to finish state store lifecycle transition", "error", err)
+	}
 
 	// Signal that the old state store has been abandoned. This is required
 	// because we don't operate on it any more, we just throw it away, so
@@ -353,102 +428,102 @@ func (c *FSM) registerStreamSnapshotHandlers() {
 		return
 	}
 
-	err := c.deps.Publisher.RegisterHandler(state.EventTopicServiceHealth, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	err := c.registerHandler(state.EventTopicServiceHealth, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().ServiceHealthSnapshot(req, buf)
 	}, false)
 	panicIfErr(err)
 
-	err = c.deps.Publisher.RegisterHandler(state.EventTopicServiceHealthConnect, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	err = c.registerHandler(state.EventTopicServiceHealthConnect, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().ServiceHealthSnapshot(req, buf)
 	}, false)
 	panicIfErr(err)
 
-	err = c.deps.Publisher.RegisterHandler(state.EventTopicCARoots, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	err = c.registerHandler(state.EventTopicCARoots, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().CARootsSnapshot(req, buf)
 	}, false)
 	panicIfErr(err)
 
-	err = c.deps.Publisher.RegisterHandler(state.EventTopicMeshConfig, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	err = c.registerHandler(state.EventTopicMeshConfig, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().MeshConfigSnapshot(req, buf)
 	}, true)
 	panicIfErr(err)
 
-	err = c.deps.Publisher.RegisterHandler(state.EventTopicServiceResolver, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	err = c.registerHandler(state.EventTopicServiceResolver, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().ServiceResolverSnapshot(req, buf)
 	}, true)
 	panicIfErr(err)
 
-	err = c.deps.Publisher.RegisterHandler(state.EventTopicIngressGateway, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	err = c.registerHandler(state.EventTopicIngressGateway, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().IngressGatewaySnapshot(req, buf)
 	}, true)
 	panicIfErr(err)
 
-	err = c.deps.Publisher.RegisterHandler(state.EventTopicServiceIntentions, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	err = c.registerHandler(state.EventTopicServiceIntentions, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().ServiceIntentionsSnapshot(req, buf)
 	}, true)
 	panicIfErr(err)
 
-	err = c.deps.Publisher.RegisterHandler(state.EventTopicServiceList, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	err = c.registerHandler(state.EventTopicServiceList, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().ServiceListSnapshot(req, buf)
 	}, true)
 	panicIfErr(err)
 
-	err = c.deps.Publisher.RegisterHandler(state.EventTopicServiceDefaults, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	err = c.registerHandler(state.EventTopicServiceDefaults, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().ServiceDefaultsSnapshot(req, buf)
 	}, true)
 	panicIfErr(err)
 
-	err = c.deps.Publisher.RegisterHandler(state.EventTopicAPIGateway, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	err = c.registerHandler(state.EventTopicAPIGateway, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().APIGatewaySnapshot(req, buf)
 	}, true)
 	panicIfErr(err)
 
-	err = c.deps.Publisher.RegisterHandler(state.EventTopicFileSystemCertificate, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	err = c.registerHandler(state.EventTopicFileSystemCertificate, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().FileSystemCertificateSnapshot(req, buf)
 	}, true)
 	panicIfErr(err)
 
-	err = c.deps.Publisher.RegisterHandler(state.EventTopicInlineCertificate, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	err = c.registerHandler(state.EventTopicInlineCertificate, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().InlineCertificateSnapshot(req, buf)
 	}, true)
 	panicIfErr(err)
 
-	err = c.deps.Publisher.RegisterHandler(state.EventTopicHTTPRoute, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	err = c.registerHandler(state.EventTopicHTTPRoute, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().HTTPRouteSnapshot(req, buf)
 	}, true)
 	panicIfErr(err)
 
-	err = c.deps.Publisher.RegisterHandler(state.EventTopicTCPRoute, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	err = c.registerHandler(state.EventTopicTCPRoute, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().TCPRouteSnapshot(req, buf)
 	}, true)
 	panicIfErr(err)
 
-	err = c.deps.Publisher.RegisterHandler(state.EventTopicBoundAPIGateway, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	err = c.registerHandler(state.EventTopicBoundAPIGateway, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().BoundAPIGatewaySnapshot(req, buf)
 	}, true)
 	panicIfErr(err)
 
-	err = c.deps.Publisher.RegisterHandler(state.EventTopicIPRateLimit, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	err = c.registerHandler(state.EventTopicIPRateLimit, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().IPRateLimiterSnapshot(req, buf)
 	}, true)
 	panicIfErr(err)
 
-	err = c.deps.Publisher.RegisterHandler(state.EventTopicGlobalRateLimit, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	err = c.registerHandler(state.EventTopicGlobalRateLimit, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().GlobalRateLimiterSnapshot(req, buf)
 	}, true)
 	panicIfErr(err)
 
-	err = c.deps.Publisher.RegisterHandler(state.EventTopicSamenessGroup, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	err = c.registerHandler(state.EventTopicSamenessGroup, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().SamenessGroupSnapshot(req, buf)
 	}, true)
 	panicIfErr(err)
 
-	err = c.deps.Publisher.RegisterHandler(state.EventTopicJWTProvider, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	err = c.registerHandler(state.EventTopicJWTProvider, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().JWTProviderSnapshot(req, buf)
 	}, true)
 	panicIfErr(err)
 
-	err = c.deps.Publisher.RegisterHandler(state.EventTopicExportedServices, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	err = c.registerHandler(state.EventTopicExportedServices, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().ExportedServicesSnapshot(req, buf)
 	}, true)
 	panicIfErr(err)

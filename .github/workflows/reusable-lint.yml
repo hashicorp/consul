@@ -36,6 +36,7 @@ jobs:
         - "sdk"
         - "envoyextensions"
         - "troubleshoot"
+        - "lifecycle"
         - "test/integration/consul-container"
         - "test-integ"
         - "testing/deployer"

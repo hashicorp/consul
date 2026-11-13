@@ -564,6 +564,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 			return state.NewStateStoreWithEventPublisher(gc, flat.EventPublisher)
 		},
 		Publisher:      flat.EventPublisher,
+		Lifecycle:      flat.Lifecycle,
 		StorageBackend: s.raftStorageBackend,
 	})
 

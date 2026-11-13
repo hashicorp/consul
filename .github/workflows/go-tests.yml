@@ -401,6 +401,27 @@ jobs:
       consul-license: ${{secrets.CONSUL_LICENSE}}
       datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
+  go-test-lifecycle:
+    needs:
+    - setup
+    - get-go-version
+    - dev-build
+    uses: ./.github/workflows/reusable-unit.yml
+    with:
+      directory: lifecycle
+      runs-on: ${{ needs.setup.outputs.compute-large }}
+      repository-name: ${{ github.repository }}
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev hashicorpmetrics' || 'hashicorpmetrics' }}"
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
+      upload-coverage: true
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+      consul-license: ${{secrets.CONSUL_LICENSE}}
+      datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
+
   go-test-api-backwards-compatibility:
     name: go-test-api-${{ needs.get-go-version.outputs.go-version-previous }}
     needs:
@@ -511,6 +532,7 @@ jobs:
     - go-test-ce
     - go-test-envoyextensions
     - go-test-troubleshoot
+    - go-test-lifecycle
     - go-test-api
     - go-test-sdk
     if: ${{ !cancelled() && needs.go-test-ce.result != 'skipped' && !github.event.pull_request.draft }}
@@ -631,6 +653,7 @@ jobs:
     - go-test-race
     - go-test-envoyextensions
     - go-test-troubleshoot
+    - go-test-lifecycle
     - go-test-api-backwards-compatibility
     - go-test-api
     - go-test-sdk-backwards-compatibility
