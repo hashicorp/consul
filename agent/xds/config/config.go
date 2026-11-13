@@ -4,6 +4,7 @@
 package config
 
 import (
+	"strconv"
 	"strings"
 	"time"
 
@@ -130,6 +131,19 @@ type ProxyConfig struct {
 	// sent from downstream clients to upstream services. If not set, uses Envoy's default.
 	MaxRequestHeadersKB *uint32 `json:",omitempty" mapstructure:"max_request_headers_kb"`
 
+	// DisableXFCCSourceMetadata stops the public listener of an HTTP service from adding the
+	// header_to_metadata filter that copies the caller's identity out of the
+	// x-forwarded-client-cert header into the consul.* dynamic metadata (trust-domain,
+	// partition, namespace, datacenter, service). The XFCC header is still built and
+	// forwarded, so RBAC for peered callers is unaffected. Extensions and access logs that
+	// read consul.* metadata see no values while this is set.
+	//
+	// It is decoded as a string and read through XFCCSourceMetadataDisabled so that a
+	// mistyped value cannot fail the decode of the whole proxy config, which would drop the
+	// service back to the tcp protocol. Anything strconv.ParseBool does not accept counts as
+	// false.
+	DisableXFCCSourceMetadata string `mapstructure:"envoy_disable_xfcc_source_metadata"`
+
 	// SuppressEnvoyHeaders controls whether Envoy rewrites the "server" response
 	// header to "envoy" on all HTTP responses. When set to true, the
 	// HttpConnectionManager ServerHeaderTransformation is set to PASS_THROUGH,
@@ -150,6 +164,12 @@ type ProxyConfig struct {
 	// "server: <value>". Ignored when SuppressEnvoyHeaders is true.
 	// Applies to API Gateway HTTP listeners only. Defaults to "" (no override).
 	EnvoyServerHeaderName string `mapstructure:"envoy_server_header_name"`
+}
+
+// XFCCSourceMetadataDisabled reports whether the consul.* source metadata filter is turned off.
+func (c *ProxyConfig) XFCCSourceMetadataDisabled() bool {
+	v, err := strconv.ParseBool(strings.TrimSpace(c.DisableXFCCSourceMetadata))
+	return err == nil && v
 }
 
 // ParseProxyConfig returns the ProxyConfig parsed from the an opaque map. If an

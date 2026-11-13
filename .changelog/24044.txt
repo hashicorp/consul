@@ -1,0 +1,3 @@
+```release-note:improvement
+xds: Add the opt-in proxy config option `envoy_disable_xfcc_source_metadata`. When set to `true` for an HTTP service, the sidecar public listener no longer adds the `header_to_metadata` filter that runs regexes over the `x-forwarded-client-cert` header to fill the `consul.*` source metadata, which lowers sidecar CPU per request. The XFCC header is still built and forwarded, so peered intentions are unaffected. Do not set it on services that use extensions or access logs reading `consul.*` metadata. A value that is not a boolean is ignored. To override a `true` from proxy-defaults on one service, use the string `"false"`; a boolean `false` is treated as unset by the config merge.
+```

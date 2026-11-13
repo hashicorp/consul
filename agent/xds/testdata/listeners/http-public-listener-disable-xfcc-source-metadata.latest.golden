@@ -1,0 +1,166 @@
+{
+  "nonce": "00000001",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "address": {
+        "socketAddress": {
+          "address": "127.0.0.1",
+          "portValue": 9191
+        }
+      },
+      "filterChains": [
+        {
+          "filters": [
+            {
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "statPrefix": "upstream.db.default.default.dc1"
+              }
+            }
+          ]
+        }
+      ],
+      "name": "db:127.0.0.1:9191",
+      "trafficDirection": "OUTBOUND"
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "address": {
+        "socketAddress": {
+          "address": "127.10.10.10",
+          "portValue": 8181
+        }
+      },
+      "filterChains": [
+        {
+          "filters": [
+            {
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                "cluster": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
+                "statPrefix": "upstream.prepared_query_geo-cache"
+              }
+            }
+          ]
+        }
+      ],
+      "name": "prepared_query:geo-cache:127.10.10.10:8181",
+      "trafficDirection": "OUTBOUND"
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "address": {
+        "socketAddress": {
+          "address": "0.0.0.0",
+          "portValue": 9999
+        }
+      },
+      "filterChains": [
+        {
+          "filters": [
+            {
+              "name": "envoy.filters.network.http_connection_manager",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+                "forwardClientCertDetails": "APPEND_FORWARD",
+                "httpFilters": [
+                  {
+                    "name": "envoy.filters.http.rbac",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
+                      "rules": {}
+                    }
+                  },
+                  {
+                    "name": "envoy.filters.http.router",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
+                    }
+                  }
+                ],
+                "normalizePath": true,
+                "routeConfig": {
+                  "name": "public_listener",
+                  "virtualHosts": [
+                    {
+                      "domains": [
+                        "*"
+                      ],
+                      "name": "public_listener",
+                      "routes": [
+                        {
+                          "match": {
+                            "prefix": "/"
+                          },
+                          "requestHeadersToRemove": [
+                            "x-forwarded-client-cert"
+                          ],
+                          "route": {
+                            "cluster": "local_app"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "setCurrentClientCertDetails": {
+                  "cert": true,
+                  "chain": true,
+                  "dns": true,
+                  "subject": true,
+                  "uri": true
+                },
+                "statPrefix": "public_listener",
+                "tracing": {
+                  "randomSampling": {}
+                },
+                "upgradeConfigs": [
+                  {
+                    "upgradeType": "websocket"
+                  }
+                ]
+              }
+            }
+          ],
+          "transportSocket": {
+            "name": "tls",
+            "typedConfig": {
+              "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
+              "commonTlsContext": {
+                "alpnProtocols": [
+                  "http/1.1"
+                ],
+                "tlsCertificateSdsSecretConfigs": [
+                  {
+                    "name": "connect-leaf",
+                    "sdsConfig": {
+                      "ads": {},
+                      "resourceApiVersion": "V3"
+                    }
+                  }
+                ],
+                "tlsParams": {},
+                "validationContextSdsSecretConfig": {
+                  "name": "connect-root",
+                  "sdsConfig": {
+                    "ads": {},
+                    "resourceApiVersion": "V3"
+                  }
+                }
+              },
+              "requireClientCertificate": true
+            }
+          }
+        }
+      ],
+      "name": "public_listener:0.0.0.0:9999",
+      "trafficDirection": "INBOUND"
+    }
+  ],
+  "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
+  "versionInfo": "00000001"
+}
