@@ -45,7 +45,10 @@
               >
                 <Hds::Icon @name="tag" @isInline={{true}} />
               </RT.Toggle>
-              <RT.Bubble @placement="top">
+              <RT.Bubble
+                @placement="top"
+                class="consul-service-instance-table__tags-tooltip-bubble"
+              >
                 <div class="consul-service-instance-table__tags-tooltip">
                   <Hds::Text::Body
                     @tag="p"

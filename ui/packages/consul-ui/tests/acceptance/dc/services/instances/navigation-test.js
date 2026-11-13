@@ -52,6 +52,13 @@ module(
           `Expected instance detail URL, got ${currentURL()}`
         );
 
+        const headerRect = document.querySelector('.app-view > header').getBoundingClientRect();
+        const tabsRect = document.querySelector('.hds-tabs').getBoundingClientRect();
+        assert.ok(
+          headerRect.bottom <= tabsRect.top,
+          'instance header encloses floated metadata above tabs without overlapping'
+        );
+
         // Click the first breadcrumb item (Services) to go back to services list
         await click('[data-test-breadcrumb-item]:first-child a');
 
