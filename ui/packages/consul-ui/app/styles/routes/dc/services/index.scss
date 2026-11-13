@@ -12,6 +12,9 @@ html[data-route^='dc.services.show'] .app-view .actions .external-dashboard {
   right: 0;
 }
 /* instance detail dl text*/
+html[data-route^='dc.services.instance'] .app-view > header {
+  display: flow-root;
+}
 html[data-route^='dc.services.instance'] .app-view > header dl {
   float: left;
   margin-top: 19px;

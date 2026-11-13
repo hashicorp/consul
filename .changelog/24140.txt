@@ -1,0 +1,3 @@
+```release-note:bug
+ui: show full service and instance tags without truncation and fix instance header float layout
+```
