@@ -1,0 +1,7 @@
+```release-note:bug
+streaming: Fix a deadlock between a server restoring its state from a raft snapshot and a streaming `Subscribe` call. The deadlock could stop the server from applying raft logs and leave streaming subscriptions on it silent, so clients kept serving a frozen view and a stale `X-Consul-Index` without any error. Streaming snapshots now wait for a restore to finish, and subscribers see a retryable `Unavailable` error while it runs.
+```
+
+```release-note:feature
+lifecycle: Add the `github.com/hashicorp/consul/lifecycle` module, a process-local registry of component lifecycles, and use it to track the server state store (`server/state-store`). Lifecycle changes are logged and reported with the new `consul.lifecycle.*` metrics.
+```

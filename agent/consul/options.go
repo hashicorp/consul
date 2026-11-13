@@ -17,12 +17,16 @@ import (
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/lifecycle"
 	"github.com/hashicorp/consul/tlsutil"
 )
 
 type Deps struct {
-	LeafCertManager  *leafcert.Manager
-	EventPublisher   *stream.EventPublisher
+	LeafCertManager *leafcert.Manager
+	EventPublisher  *stream.EventPublisher
+	// Lifecycle is the process-wide registry of component lifecycles. It may be
+	// nil, in which case lifecycle tracking and gating are disabled.
+	Lifecycle        *lifecycle.Exchange
 	Logger           hclog.InterceptLogger
 	TLSConfigurator  *tlsutil.Configurator
 	Tokens           *token.Store

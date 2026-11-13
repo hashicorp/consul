@@ -20,9 +20,12 @@ import (
 	"github.com/hashicorp/consul/acl"
 	resolver "github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/consul/stream"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lifecycle"
 	"github.com/hashicorp/consul/proto-public/pbconnectca"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -95,6 +98,42 @@ func TestWatchRoots_Success(t *testing.T) {
 	require.Equal(t, rootB.ID, roots.ActiveRootId)
 	require.Len(t, roots.Roots, 1)
 	require.Equal(t, rootB.ID, roots.Roots[0].Id)
+}
+
+func TestWatchRoots_StateStoreNotReady(t *testing.T) {
+	// A snapshot handler that is refused because the state store is being
+	// restored must surface as a retryable Unavailable, not Internal.
+	fsm, publisher := testutils.SetupFSMAndPublisher(t, testutils.FakeFSMConfig{
+		Register: func(_ *testutils.FakeFSM, publisher *stream.EventPublisher) {
+			require.NoError(t, publisher.RegisterHandler(state.EventTopicCARoots, func(stream.SubscribeRequest, stream.SnapshotAppender) (uint64, error) {
+				return 0, &lifecycle.NotReadyError{Component: "server/state-store", State: lifecycle.StateRestoring, Phase: lifecycle.PhaseTransitioning, Requirement: "phase in [ready]"}
+			}, false))
+		},
+	})
+	require.NoError(t, fsm.GetStore().CASetConfig(1, &structs.CAConfiguration{ClusterID: "cluster-id"}))
+
+	aclResolver := &MockACLResolver{}
+	aclResolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
+		Return(testutils.ACLNoPermissions(t), nil)
+
+	ctx, err := external.ContextWithQueryOptions(context.Background(), structs.QueryOptions{Token: testACLToken})
+	require.NoError(t, err)
+
+	server := NewServer(Config{
+		Publisher:      publisher,
+		GetStore:       func() StateStore { return fsm.GetStore() },
+		Logger:         testutil.Logger(t),
+		ACLResolver:    aclResolver,
+		ConnectEnabled: true,
+	})
+
+	client := testClient(t, server)
+	stream, err := client.WatchRoots(ctx, &pbconnectca.WatchRootsRequest{})
+	require.NoError(t, err)
+	rspCh := handleRootsStream(t, stream)
+
+	err = mustGetError(t, rspCh)
+	require.Equal(t, codes.Unavailable.String(), status.Code(err).String())
 }
 
 func TestWatchRoots_InvalidACLToken(t *testing.T) {

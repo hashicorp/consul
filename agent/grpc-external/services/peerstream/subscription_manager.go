@@ -27,6 +27,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lifecycle"
 	"github.com/hashicorp/consul/proto/private/pbcommon"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/proto/private/pbpeerstream"
@@ -345,6 +346,15 @@ func (m *subscriptionManager) notifyRootCAUpdatesForPartition(
 		idx, err = m.subscribeCARoots(ctx, idx, updateCh, partition)
 		if errors.Is(err, stream.ErrSubForceClosed) {
 			m.logger.Trace("subscription force-closed due to an ACL change or snapshot restore, will attempt resume")
+		} else if lifecycle.IsNotReady(err) {
+			// The state store is being restored. Retrying immediately would spin
+			// until it finishes, so wait briefly.
+			m.logger.Trace("state store not ready for CA roots subscription, will retry", "error", err.Error())
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(notReadyRetryWait):
+			}
 		} else if !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
 			m.logger.Warn("failed to subscribe to CA roots, will attempt resume", "error", err.Error())
 		} else {
@@ -360,6 +370,10 @@ func (m *subscriptionManager) notifyRootCAUpdatesForPartition(
 }
 
 const subCARoot = "roots"
+
+// notReadyRetryWait is how long to wait before retrying a subscription that was
+// refused because the state store is being restored.
+const notReadyRetryWait = 250 * time.Millisecond
 
 // subscribeCARoots subscribes to state.EventTopicCARoots for changes to CA roots.
 // Upon receiving an event it will send the payload in updateCh.
