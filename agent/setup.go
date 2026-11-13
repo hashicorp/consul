@@ -269,6 +269,9 @@ func (bd BaseDeps) Close() {
 	bd.AutoConfig.Stop()
 	bd.LeafCertManager.Stop()
 	bd.MetricsConfig.Cancel()
+	// Stops the lifecycle observer goroutine. Components that are still shutting
+	// down keep working; they just stop being observed.
+	bd.Lifecycle.Close()
 
 	for _, fn := range []func(){bd.deregisterBalancer, bd.deregisterResolver, bd.stopHostCollector} {
 		if fn != nil {
