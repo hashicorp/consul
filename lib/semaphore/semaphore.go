@@ -92,6 +92,15 @@ func (s *Dynamic) Release() {
 		panic("semaphore: bad release")
 	}
 
+	// If the semaphore has been shrunk below the number of currently acquired
+	// slots (via SetSize), reclaim this slot instead of handing it to a waiter.
+	// Waking a waiter here would let it acquire while the outstanding count is
+	// still above the configured size, exceeding the capacity limit.
+	if s.cur > s.size {
+		s.cur--
+		return
+	}
+
 	next := s.waiters.Front()
 
 	// If there are no waiters, just decrement and we're done
