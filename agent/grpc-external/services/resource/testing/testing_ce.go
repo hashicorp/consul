@@ -10,9 +10,9 @@ import (
 )
 
 func FillEntMeta(entMeta *acl.EnterpriseMeta) {
-	// nothing to to in CE.
+	// nothing to do in CE.
 }
 
 func FillAuthorizerContext(authzContext *acl.AuthorizerContext) {
-	// nothing to to in CE.
+	// nothing to do in CE.
 }
