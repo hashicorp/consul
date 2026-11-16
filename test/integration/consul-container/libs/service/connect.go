@@ -40,12 +40,12 @@ func (g ConnectContainer) Exec(ctx context.Context, cmd []string) (string, error
 	if err != nil {
 		return "", fmt.Errorf("exec with error %s", err)
 	}
-	if exitCode != 0 {
-		return "", fmt.Errorf("exec with exit code %d", exitCode)
-	}
 	buf, err := io.ReadAll(reader)
 	if err != nil {
 		return "", fmt.Errorf("error reading from exec output: %w", err)
+	}
+	if exitCode != 0 {
+		return "", fmt.Errorf("exec with exit code %d: %s", exitCode, buf)
 	}
 	return string(buf), nil
 }
@@ -89,10 +89,11 @@ func (g ConnectContainer) Restart() error {
 	}
 
 	if utils.FollowLog {
+		// Consumers must be registered before the producer starts; it snapshots them.
+		g.container.FollowOutput(&LogConsumer{})
 		if err := g.container.StartLogProducer(g.ctx); err != nil {
 			return fmt.Errorf("starting log producer: %w", err)
 		}
-		g.container.FollowOutput(&LogConsumer{})
 		deferClean.Add(func() {
 			_ = g.container.StopLogProducer()
 		})

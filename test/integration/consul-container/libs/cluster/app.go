@@ -71,18 +71,19 @@ func LaunchContainerOnNode(
 		_ = container.Terminate(ctx)
 	})
 
-	ip, err := container.ContainerIP(ctx)
+	ip, err := containerNetworkIP(ctx, pod, podPrimaryNetwork)
 	if err != nil {
 		return nil, fmt.Errorf("fetching container IP: %w", err)
 	}
 
 	if utils.FollowLog {
-		if err := container.StartLogProducer(ctx); err != nil {
-			return nil, fmt.Errorf("starting log producer: %w", err)
-		}
+		// Consumers must be registered before the producer starts; it snapshots them.
 		container.FollowOutput(&LogConsumer{
 			Prefix: req.Name,
 		})
+		if err := container.StartLogProducer(ctx); err != nil {
+			return nil, fmt.Errorf("starting log producer: %w", err)
+		}
 		deferClean.Add(func() {
 			_ = container.StopLogProducer()
 		})

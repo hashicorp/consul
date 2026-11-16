@@ -77,8 +77,12 @@ jobs:
           # further multiplied in envoy-integration tests by the other dimensions in the matrix
           # to determine the total number of runners used.
           TEST_SPLITS: 4
-          JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
+          # Split the inputs into chunks of length/$runnercount items. Avoid the
+          # undocumented _nwise helper, which jq 1.8 removed.
+          JQ_SLICER: '[ inputs ] | (length / $runnercount | floor | if . < 1 then 1 else . end) as $size | [ range(0; length; $size) as $i | .[$i:$i + $size] ]'
         run: |
+          # Fail the step instead of writing an empty matrix when jq fails mid-pipeline.
+          set -o pipefail
           NUM_DIRS=$(find ./test/integration/connect/envoy -mindepth 1 -maxdepth 1 -type d | wc -l)
 
           if [ "$NUM_DIRS" -lt "$TEST_SPLITS" ]; then

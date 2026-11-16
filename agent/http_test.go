@@ -1588,6 +1588,29 @@ func TestParseConsistency_Invalid(t *testing.T) {
 	}
 }
 
+func TestParseConsistency_InvalidMaxStaleContentType(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, `
+		http_config {
+			response_headers = {
+				"Content-Type" = "text/html"
+			}
+		}
+	`)
+	defer a.Shutdown()
+
+	resp := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?max_stale=%3Cscript%3E", nil)
+	a.srv.handler().ServeHTTP(resp, req)
+
+	require.Equal(t, http.StatusBadRequest, resp.Code)
+	require.Equal(t, plainContentType, resp.Result().Header.Get("Content-Type"))
+}
+
 // Test ACL token is resolved in correct order
 func TestACLResolution(t *testing.T) {
 	if testing.Short() {
