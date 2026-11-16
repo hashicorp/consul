@@ -43,6 +43,11 @@ type EventPublisher struct {
 
 	snapshotHandlers SnapshotHandlers
 
+	// snapshotGuard, when set, runs around every snapshot handler except the
+	// ones in unguardedTopics. See SetSnapshotGuard.
+	snapshotGuard   SnapshotGuard
+	unguardedTopics map[Topic]struct{}
+
 	// wildcards contains map keys used to access the buffer for a topic's wildcard
 	// subject — it is used to track which topics support wildcard subscriptions.
 	wildcards map[Topic]topicSubject
@@ -109,10 +114,57 @@ func NewEventPublisher(snapCacheTTL time.Duration) *EventPublisher {
 			byToken: make(map[string]map[*SubscribeRequest]*Subscription),
 		},
 		snapshotHandlers: make(map[Topic]SnapshotFunc),
+		unguardedTopics:  make(map[Topic]struct{}),
 		wildcards:        make(map[Topic]topicSubject),
 	}
 
 	return e
+}
+
+// SnapshotGuard is called before a snapshot handler runs. It returns a function
+// that is called when the handler is done, or an error that is returned to the
+// subscriber instead of a snapshot.
+//
+// A guard is called while the publisher's lock is held, so it must not block
+// and must not call back into the publisher.
+type SnapshotGuard func() (release func(), err error)
+
+// SetSnapshotGuard sets a guard that runs around every snapshot handler,
+// including handlers registered later, unless the handler was registered with
+// RegisterUnguardedHandler. It exists so that a snapshot is never built from a
+// state store that is being replaced (see FSM.Restore): putting it here means a
+// handler cannot forget to opt in. A snapshot that fails because the guard
+// returned an error is not cached.
+func (e *EventPublisher) SetSnapshotGuard(guard SnapshotGuard) {
+	e.lock.Lock()
+	defer e.lock.Unlock()
+	e.snapshotGuard = guard
+}
+
+// guardedLocked wraps the handler for the topic with the snapshot guard, if
+// any. e.lock must be held.
+func (e *EventPublisher) guardedLocked(topic Topic, handler SnapshotFunc) SnapshotFunc {
+	guard := e.snapshotGuard
+	if guard == nil {
+		return handler
+	}
+	if _, ok := e.unguardedTopics[topic]; ok {
+		return handler
+	}
+	return func(req SubscribeRequest, buf SnapshotAppender) (uint64, error) {
+		release, err := guard()
+		if err != nil {
+			return 0, err
+		}
+		defer release()
+		return handler(req, buf)
+	}
+}
+
+// RegisterUnguardedHandler is RegisterHandler for a handler that does not read
+// the state the snapshot guard protects, so the guard is not applied to it.
+func (e *EventPublisher) RegisterUnguardedHandler(topic Topic, handler SnapshotFunc, supportsWildcard bool) error {
+	return e.registerHandler(topic, handler, supportsWildcard, true)
 }
 
 // RegisterHandler will register a new snapshot handler function. The expectation is
@@ -121,6 +173,10 @@ func NewEventPublisher(snapCacheTTL time.Duration) *EventPublisher {
 // subject (by requesting SubjectWildcard) but this must be supported by the handler
 // function.
 func (e *EventPublisher) RegisterHandler(topic Topic, handler SnapshotFunc, supportsWildcard bool) error {
+	return e.registerHandler(topic, handler, supportsWildcard, false)
+}
+
+func (e *EventPublisher) registerHandler(topic Topic, handler SnapshotFunc, supportsWildcard, unguarded bool) error {
 	if topic.String() == "" {
 		return fmt.Errorf("the topic cannnot be empty")
 	}
@@ -133,6 +189,9 @@ func (e *EventPublisher) RegisterHandler(topic Topic, handler SnapshotFunc, supp
 	}
 
 	e.snapshotHandlers[topic] = handler
+	if unguarded {
+		e.unguardedTopics[topic] = struct{}{}
+	}
 
 	if supportsWildcard {
 		e.wildcards[topic] = topicSubject{
@@ -344,7 +403,7 @@ func (e *EventPublisher) Subscribe(req *SubscribeRequest) (*Subscription, error)
 	snapFromCache := e.getCachedSnapshotLocked(req)
 	if snapFromCache == nil {
 		snap := newEventSnapshot()
-		snap.appendAndSplice(*req, handler, topicHead)
+		snap.appendAndSplice(*req, e.guardedLocked(req.Topic, handler), topicHead)
 		e.setCachedSnapshotLocked(req, snap)
 		snapFromCache = snap
 	}

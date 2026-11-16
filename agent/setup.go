@@ -35,7 +35,6 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
 	grpcWare "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/agent/leafcert"
-	"github.com/hashicorp/consul/agent/lifecycleadapter"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
@@ -46,6 +45,7 @@ import (
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/hoststats"
+	"github.com/hashicorp/consul/lib/lifecycle"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 )
@@ -254,7 +254,6 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 	d.GetNetRPCInterceptorFunc = middleware.GetNetRPCInterceptor
 
 	d.EventPublisher = stream.NewEventPublisher(10 * time.Second)
-	d.Lifecycle = lifecycleadapter.NewExchange(d.Logger)
 
 	d.XDSStreamLimiter = limiter.NewSessionLimiter()
 
@@ -269,9 +268,6 @@ func (bd BaseDeps) Close() {
 	bd.AutoConfig.Stop()
 	bd.LeafCertManager.Stop()
 	bd.MetricsConfig.Cancel()
-	// Stops the lifecycle observer goroutine. Components that are still shutting
-	// down keep working; they just stop being observed.
-	bd.Lifecycle.Close()
 
 	for _, fn := range []func(){bd.deregisterBalancer, bd.deregisterResolver, bd.stopHostCollector} {
 		if fn != nil {
@@ -348,7 +344,7 @@ func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.G
 		grpcWare.StatsGauges,
 		xds.StatsGauges,
 		usagemetrics.Gauges,
-		lifecycleadapter.Gauges,
+		lifecycle.Gauges,
 		consul.ReplicationGauges,
 		consul.ConfigEntryGauges,
 		certExpirationGauges(cfg.Datacenter, cfg.PartitionOrDefault(), cfg.NodeName, tlsCertRole(isServer)),
@@ -437,7 +433,7 @@ func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.G
 		grpcWare.StatsCounters,
 		local.StateCounters,
 		xds.StatsCounters,
-		lifecycleadapter.Counters,
+		lifecycle.Counters,
 		raftCounters,
 		rate.Counters,
 	}

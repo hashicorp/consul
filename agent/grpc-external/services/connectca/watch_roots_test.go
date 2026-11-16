@@ -25,7 +25,7 @@ import (
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lifecycle"
+	"github.com/hashicorp/consul/lib/lifecycle"
 	"github.com/hashicorp/consul/proto-public/pbconnectca"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -106,7 +106,7 @@ func TestWatchRoots_StateStoreNotReady(t *testing.T) {
 	fsm, publisher := testutils.SetupFSMAndPublisher(t, testutils.FakeFSMConfig{
 		Register: func(_ *testutils.FakeFSM, publisher *stream.EventPublisher) {
 			require.NoError(t, publisher.RegisterHandler(state.EventTopicCARoots, func(stream.SubscribeRequest, stream.SnapshotAppender) (uint64, error) {
-				return 0, &lifecycle.NotReadyError{Component: "server/state-store", State: lifecycle.StateRestoring, Phase: lifecycle.PhaseTransitioning, Requirement: "phase in [ready]"}
+				return 0, &lifecycle.NotReadyError{Component: "server/state-store", State: "Restoring", Phase: lifecycle.PhaseTransitioning}
 			}, false))
 		},
 	})

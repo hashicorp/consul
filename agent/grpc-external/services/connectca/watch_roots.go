@@ -20,7 +20,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lifecycle"
+	"github.com/hashicorp/consul/lib/lifecycle"
 	"github.com/hashicorp/consul/proto-public/pbconnectca"
 )
 

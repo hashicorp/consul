@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2024, 2026
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package fsm
@@ -19,11 +19,10 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
-	"github.com/hashicorp/consul/lifecycle"
-	"github.com/hashicorp/consul/lifecycle/lifecycletest"
+	"github.com/hashicorp/consul/lib/lifecycle"
 )
 
-func newLifecycleFSM(t *testing.T, ex *lifecycle.Exchange) (*FSM, *stream.EventPublisher) {
+func newPublisherFSM(t *testing.T) (*FSM, *stream.EventPublisher) {
 	t.Helper()
 	handle := &testRaftHandle{}
 	storageBackend := newStorageBackend(t, handle)
@@ -39,7 +38,6 @@ func newLifecycleFSM(t *testing.T, ex *lifecycle.Exchange) (*FSM, *stream.EventP
 		NewStateStore:  func() *state.Store { return state.NewStateStore(nil) },
 		StorageBackend: storageBackend,
 		Publisher:      publisher,
-		Lifecycle:      ex,
 	})
 	return fsm, publisher
 }
@@ -61,16 +59,14 @@ func webRequest() *stream.SubscribeRequest {
 	}
 }
 
-func TestFSM_Lifecycle_ServesFromConstructionAndTracksRestore(t *testing.T) {
-	rec := &lifecycletest.Recorder{}
-	ex := lifecycle.NewExchange(lifecycle.WithObserver(rec))
-	t.Cleanup(ex.Close)
-	fsm, pub := newLifecycleFSM(t, ex)
+func TestFSM_StateStoreLifecycle_ServesFromConstructionAndTracksRestore(t *testing.T) {
+	fsm, pub := newPublisherFSM(t)
 
 	// A fresh server with no snapshot must serve subscriptions straight away.
-	st, ok := ex.Status(StateStoreComponent)
-	require.True(t, ok)
-	require.Equal(t, lifecycle.StateServing, st.State)
+	st := fsm.stateStore.Status()
+	require.Equal(t, StateStoreComponent, st.Component)
+	require.Equal(t, lifecycle.PhaseReady, st.Phase)
+	require.Equal(t, "Serving", st.State)
 	require.Equal(t, uint64(1), st.Generation)
 
 	sub, err := pub.Subscribe(webRequest())
@@ -81,30 +77,25 @@ func TestFSM_Lifecycle_ServesFromConstructionAndTracksRestore(t *testing.T) {
 
 	require.NoError(t, fsm.Restore(io.NopCloser(bytes.NewReader(persistedSnapshot(t, fsm)))))
 
-	st, _ = ex.Status(StateStoreComponent)
-	require.Equal(t, lifecycle.StateServing, st.State)
+	st = fsm.stateStore.Status()
+	require.Equal(t, lifecycle.PhaseReady, st.Phase)
 	require.Equal(t, uint64(2), st.Generation, "a restore replaces the state: new generation")
-	lifecycletest.AssertTransitions(t, rec, StateStoreComponent,
-		lifecycle.StateBooting, lifecycle.StateServing, lifecycle.StateRestoring, lifecycle.StateServing)
-	lifecycletest.AssertDrained(t, ex, StateStoreComponent)
+	require.Equal(t, "restore complete", st.Reason)
 }
 
-func TestFSM_Lifecycle_SnapshotsFailFastWhileRestoringAndRestoreWaitsForInFlight(t *testing.T) {
-	ex := lifecycle.NewExchange()
-	t.Cleanup(ex.Close)
-	fsm, pub := newLifecycleFSM(t, ex)
+func TestFSM_StateStoreLifecycle_SnapshotsFailFastWhileRestoringAndRestoreWaitsForInFlight(t *testing.T) {
+	fsm, pub := newPublisherFSM(t)
 	data := persistedSnapshot(t, fsm)
 
 	// A snapshot that is mid-read holds a lease on the state store.
-	inFlight, err := ex.Require(StateStoreComponent, lifecycle.PhaseReady).Acquire(context.Background(), lifecycle.FailFast)
+	inFlight, err := fsm.stateStore.Acquire()
 	require.NoError(t, err)
 
 	restored := make(chan error, 1)
 	go func() { restored <- fsm.Restore(io.NopCloser(bytes.NewReader(data))) }()
 
 	require.Eventually(t, func() bool {
-		st, _ := ex.Status(StateStoreComponent)
-		return st.State == lifecycle.StateRestoring
+		return fsm.stateStore.Status().Phase == lifecycle.PhaseTransitioning
 	}, 2*time.Second, time.Millisecond)
 
 	select {
@@ -121,7 +112,7 @@ func TestFSM_Lifecycle_SnapshotsFailFastWhileRestoringAndRestoreWaitsForInFlight
 	require.True(t, lifecycle.IsNotReady(err), "got %v", err)
 	sub.Unsubscribe()
 
-	inFlight.Release()
+	inFlight()
 	select {
 	case err := <-restored:
 		require.NoError(t, err)
@@ -129,7 +120,7 @@ func TestFSM_Lifecycle_SnapshotsFailFastWhileRestoringAndRestoreWaitsForInFlight
 		t.Fatal("Restore did not finish after the in-flight snapshot finished")
 	}
 
-	// The failed attempt must not be cached: the next subscriber gets a snapshot.
+	// The refused attempt must not be cached: the next subscriber gets a snapshot.
 	sub, err = pub.Subscribe(webRequest())
 	require.NoError(t, err)
 	defer sub.Unsubscribe()
@@ -149,9 +140,12 @@ func TestFSM_Lifecycle_SnapshotsFailFastWhileRestoringAndRestoreWaitsForInFlight
 // Subscribe takes the publisher lock and then reads the state through State();
 // Restore takes the state lock and then the publisher lock. That is the lock
 // order inversion behind silent streaming stalls after a snapshot install.
-func restoreAgainstSubscribers(t *testing.T, ex *lifecycle.Exchange, restores int, stall time.Duration) (wedged bool, stacks string) {
+func restoreAgainstSubscribers(t *testing.T, guarded bool, restores int, stall time.Duration) (wedged bool, stacks string) {
 	t.Helper()
-	fsm, pub := newLifecycleFSM(t, ex)
+	fsm, pub := newPublisherFSM(t)
+	if !guarded {
+		pub.SetSnapshotGuard(nil)
+	}
 	data := persistedSnapshot(t, fsm)
 
 	stop := make(chan struct{})
@@ -209,15 +203,12 @@ func restoreAgainstSubscribers(t *testing.T, ex *lifecycle.Exchange, restores in
 	}
 }
 
-// TestFSM_Restore_DoesNotDeadlockWithSubscribe guards the fix for Restore and
-// Subscribe deadlocking: with the lifecycle gate, Restore waits for in-flight
-// snapshot reads before it takes any lock, so the two can never wait on each
-// other whatever order their locks are taken in.
+// TestFSM_Restore_DoesNotDeadlockWithSubscribe guards against Restore and
+// Subscribe deadlocking: Restore waits for in-flight snapshot reads before it
+// takes any lock, so the two can never wait on each other, whatever order
+// their locks are taken in.
 func TestFSM_Restore_DoesNotDeadlockWithSubscribe(t *testing.T) {
-	ex := lifecycle.NewExchange()
-	t.Cleanup(ex.Close)
-
-	wedged, stacks := restoreAgainstSubscribers(t, ex, 300, 15*time.Second)
+	wedged, stacks := restoreAgainstSubscribers(t, true, 300, 15*time.Second)
 	if wedged {
 		t.Fatalf("FSM.Restore wedged against concurrent Subscribe calls\n%s", stacks)
 	}
