@@ -11,11 +11,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-jose/go-jose/v3/jwt"
+	"github.com/go-jose/go-jose/v4/jwt"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul-awsauth/iamauthtest"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/consul/authmethod/kubeauth"
 	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"

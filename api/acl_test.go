@@ -4,6 +4,7 @@
 package api
 
 import (
+	"encoding/base64"
 	"testing"
 	"time"
 
@@ -752,5 +753,9 @@ SxTJANJHqf4BiFtVjN7LZXi3HUIRAsceEbd0TfW5be9SQ0tbDyyGYt/bXtBLGTIh
 		"CACert":            pemData,
 		"ServiceAccountJWT": `eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImp0aSI6ImQxYTZiYzE5LWZiODItNDI5ZC05NmUxLTg1YTFjYjEyNGQ3MCIsImlhdCI6MTYxMTcxNTQ5NiwiZXhwIjoxNjExNzE5MDk2fQ.rrVS5h1Yw20eI41RsTl2YAqzKKikKNg3qMkDmspTPQs`,
 	}
+	header := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"RS256"}`))
+	payload := base64.RawURLEncoding.EncodeToString([]byte(`{"sub":"test"}`))
+	signature := base64.RawURLEncoding.EncodeToString([]byte("signature"))
+	result["ServiceAccountJWT"] = header + "." + payload + "." + signature
 	return
 }
