@@ -567,6 +567,11 @@ func NewAPIGatewayController(fsm *fsm.FSM, publisher state.EventPublisher, updat
 		},
 	).Subscribe(
 		&stream.SubscribeRequest{
+			Topic:   state.EventTopicFileSystemCertificate,
+			Subject: stream.SubjectWildcard,
+		},
+	).Subscribe(
+		&stream.SubscribeRequest{
 			Topic:   state.EventTopicJWTProvider,
 			Subject: stream.SubjectWildcard,
 		})
@@ -1230,7 +1235,7 @@ func requestLogger(logger hclog.Logger, request controller.Request) hclog.Logger
 // certificateRequestLogger returns a logger that adds some certificate-specific fields to the given logger
 func certificateRequestLogger(logger hclog.Logger, request controller.Request) hclog.Logger {
 	meta := request.Meta
-	return logger.With("inline-certificate", request.Name, "namespace", meta.NamespaceOrDefault(), "partition", meta.PartitionOrDefault())
+	return logger.With("certificate", request.Name, "kind", request.Kind, "namespace", meta.NamespaceOrDefault(), "partition", meta.PartitionOrDefault())
 }
 
 // gatewayRequestLogger returns a logger that adds some gateway-specific fields to the given logger
