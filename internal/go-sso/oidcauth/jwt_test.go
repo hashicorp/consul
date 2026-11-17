@@ -17,9 +17,11 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/go-jose/go-jose/v4/jwt"
-	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
-	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/go-hclog"
+
+	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
 )
 
 func setupForJWT(t *testing.T, authType int, f func(c *Config)) (*Authenticator, string) {

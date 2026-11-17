@@ -7,12 +7,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-metrics"
 	"github.com/mitchellh/hashstructure"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -216,7 +218,31 @@ func (s *HTTPHandlers) AgentMetrics(resp http.ResponseWriter, req *http.Request)
 		handler.ServeHTTP(resp, req)
 		return nil, nil
 	}
-	return s.agent.baseDeps.MetricsConfig.Handler.DisplayMetrics(resp, req)
+	summary, err := s.agent.baseDeps.MetricsConfig.Handler.DisplayMetrics(resp, req)
+	if err != nil {
+		return nil, err
+	}
+
+	if summary, ok := summary.(metrics.MetricsSummary); ok {
+		gauges := summary.Gauges[:0]
+		for _, gauge := range summary.Gauges {
+			value := float64(gauge.Value)
+			if !math.IsNaN(value) && !math.IsInf(value, 0) {
+				gauges = append(gauges, gauge)
+			}
+		}
+		summary.Gauges = gauges
+
+		precisionGauges := summary.PrecisionGauges[:0]
+		for _, gauge := range summary.PrecisionGauges {
+			if !math.IsNaN(gauge.Value) && !math.IsInf(gauge.Value, 0) {
+				precisionGauges = append(precisionGauges, gauge)
+			}
+		}
+		summary.PrecisionGauges = precisionGauges
+		return summary, nil
+	}
+	return summary, nil
 }
 
 func (s *HTTPHandlers) AgentMetricsStream(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -1654,6 +1680,7 @@ func (s *HTTPHandlers) AgentConnectCARoots(resp http.ResponseWriter, req *http.R
 	// issue the request directly via RPC instead.
 	var reply *structs.IndexedCARoots
 	if s.agent.config.HTTPUseCache {
+		s.boundCacheBlockingWait(&args.QueryOptions)
 		raw, m, err := s.agent.cache.Get(req.Context(), cachetype.ConnectCARootName, &args)
 		if err != nil {
 			return nil, err
