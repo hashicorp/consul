@@ -186,11 +186,11 @@ func TestTxnNodeWriteLockIndexes_WithNodeID(t *testing.T) {
 	}, txnNodeWriteLockIndexes(ops))
 }
 
-// requireBlockedUntilUnlocked holds the node's write lock, starts call, and
-// verifies that call only completes after the lock is released.
-func requireBlockedUntilUnlocked(t *testing.T, s *Server, node string, call func() error) {
+// requireBlockedUntilUnlocked holds the given node write-lock stripes, starts
+// call, and verifies that call only completes after the locks are released.
+func requireBlockedUntilUnlocked(t *testing.T, s *Server, indexes []int, call func() error) {
 	t.Helper()
-	unlock := s.nodeWriteLocks.lock([]int{nodeWriteLockIndex("default", "", node)})
+	unlock := s.nodeWriteLocks.lock(indexes)
 
 	errCh := make(chan error, 1)
 	go func() { errCh <- call() }()
@@ -224,7 +224,7 @@ func TestCatalog_Register_WaitsForNodeWriteLock(t *testing.T) {
 	codec := rpcClient(t, s)
 	defer codec.Close()
 
-	requireBlockedUntilUnlocked(t, s, "lock-node", func() error {
+	requireBlockedUntilUnlocked(t, s, []int{nodeWriteLockIndex("default", "", "lock-node")}, func() error {
 		args := structs.RegisterRequest{
 			Datacenter: "dc1",
 			Node:       "lock-node",
@@ -238,6 +238,77 @@ func TestCatalog_Register_WaitsForNodeWriteLock(t *testing.T) {
 		}
 		var out struct{}
 		return msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out)
+	})
+}
+
+func TestCatalog_Register_WaitsForNodeWriteLockByID(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	dir, s := testServer(t)
+	defer os.RemoveAll(dir)
+	defer s.Shutdown()
+	testrpc.WaitForLeader(t, s.RPC, "dc1")
+	codec := rpcClient(t, s)
+	defer codec.Close()
+
+	// Hold only the stripe for the node ID. The register names a fresh node,
+	// so if it still blocks, the ID stripe is what holds it: without the ID
+	// stripe a write for the same ID under a new name would slip past the
+	// name stripes and rename the node out from under the authorization
+	// lookups.
+	id := "01234567-89ab-cdef-0123-456789abcdef"
+	requireBlockedUntilUnlocked(t, s, []int{nodeWriteLockIndexForID("default", "", id)}, func() error {
+		args := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "new",
+			ID:         types.NodeID(id),
+			Address:    "127.0.0.1",
+		}
+		var out struct{}
+		return msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out)
+	})
+}
+
+func TestTxn_Apply_NodeSet_WaitsForNodeWriteLockByID(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	dir, s := testServer(t)
+	defer os.RemoveAll(dir)
+	defer s.Shutdown()
+	testrpc.WaitForLeader(t, s.RPC, "dc1")
+	codec := rpcClient(t, s)
+	defer codec.Close()
+
+	// Same as the register case above, but through a Txn NodeSet: holding
+	// only the ID stripe must block the transaction until it is released.
+	id := "01234567-89ab-cdef-0123-456789abcdef"
+	requireBlockedUntilUnlocked(t, s, []int{nodeWriteLockIndexForID("default", "", id)}, func() error {
+		args := structs.TxnRequest{
+			Datacenter: "dc1",
+			Ops: structs.TxnOps{{
+				Node: &structs.TxnNodeOp{
+					Verb: api.NodeSet,
+					Node: structs.Node{
+						ID:   types.NodeID(id),
+						Node: "new",
+					},
+				},
+			}},
+		}
+		var reply structs.TxnResponse
+		if err := msgpackrpc.CallWithCodec(codec, "Txn.Apply", &args, &reply); err != nil {
+			return err
+		}
+		if len(reply.Errors) > 0 {
+			return fmt.Errorf("txn errors: %v", reply.Errors)
+		}
+		return nil
 	})
 }
 
@@ -261,7 +332,7 @@ func TestTxn_Apply_WaitsForNodeWriteLock(t *testing.T) {
 		Address:    "127.0.0.1",
 	}, &out))
 
-	requireBlockedUntilUnlocked(t, s, "lock-node", func() error {
+	requireBlockedUntilUnlocked(t, s, []int{nodeWriteLockIndex("default", "", "lock-node")}, func() error {
 		args := structs.TxnRequest{
 			Datacenter: "dc1",
 			Ops: structs.TxnOps{{
@@ -313,7 +384,7 @@ func TestCatalog_Deregister_WaitsForNodeWriteLock(t *testing.T) {
 		}},
 	}, &out))
 
-	requireBlockedUntilUnlocked(t, s, "lock-node", func() error {
+	requireBlockedUntilUnlocked(t, s, []int{nodeWriteLockIndex("default", "", "lock-node")}, func() error {
 		args := structs.DeregisterRequest{
 			Datacenter: "dc1",
 			Node:       "lock-node",
