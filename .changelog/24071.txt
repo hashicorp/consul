@@ -1,0 +1,3 @@
+```release-note:security
+agent: Explicitly set the `Content-Type` header to `text/plain` on the invalid `max_stale` error response to mitigate XSS.
+```

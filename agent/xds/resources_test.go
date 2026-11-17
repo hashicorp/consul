@@ -821,6 +821,16 @@ func getMeshGatewayPeeringGoldenTestCases() []goldenTestCase {
 			},
 		},
 		{
+			name: "mesh-gateway-with-exported-peered-services-http-tracing",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotPeeredMeshGateway(t, "default-services-http", func(ns *structs.NodeService) {
+					ns.Proxy.Config = map[string]interface{}{
+						"envoy_listener_tracing_json": gatewayListenerTracingJSON,
+					}
+				}, nil)
+			},
+		},
+		{
 			name: "mesh-gateway-with-exported-peered-services-http-with-router",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotPeeredMeshGateway(t, "chain-and-l7-stuff", nil, nil)
@@ -882,6 +892,13 @@ func getMeshGatewayPeeringGoldenTestCases() []goldenTestCase {
 		},
 	}
 }
+
+const gatewayListenerTracingJSON = `{
+	"@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager.Tracing",
+	"random_sampling": {"value": 100},
+	"overall_sampling": {"value": 100},
+	"spawn_upstream_span": true
+}`
 
 func getTrafficControlPeeringGoldenTestCases(enterprise bool) []goldenTestCase {
 	cases := []goldenTestCase{
@@ -1647,6 +1664,41 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 								},
 							},
 						},
+					},
+				}, nil, nil)
+			},
+		},
+		{
+			name: "api-gateway-http-listener-with-tracing",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", func(ns *structs.NodeService) {
+					ns.Proxy.Config = map[string]interface{}{
+						"envoy_listener_tracing_json": gatewayListenerTracingJSON,
+					}
+				}, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+					entry.Listeners = []structs.APIGatewayListener{{
+						Name:     "listener",
+						Protocol: structs.ListenerProtocolHTTP,
+						Port:     8080,
+					}}
+					bound.Listeners = []structs.BoundAPIGatewayListener{{
+						Name: "listener",
+						Routes: []structs.ResourceReference{{
+							Name: "http-route",
+							Kind: structs.HTTPRoute,
+						}},
+					}}
+				}, []structs.BoundRoute{
+					&structs.HTTPRouteConfigEntry{
+						Name: "http-route",
+						Kind: structs.HTTPRoute,
+						Parents: []structs.ResourceReference{{
+							Kind: structs.APIGateway,
+							Name: "api-gateway",
+						}},
+						Rules: []structs.HTTPRouteRule{{
+							Services: []structs.HTTPService{{Name: "http-service"}},
+						}},
 					},
 				}, nil, nil)
 			},

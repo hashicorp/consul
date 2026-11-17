@@ -1058,6 +1058,25 @@ func (s *HTTPHandlers) blockingQueryWriteDeadline(req *http.Request) time.Time {
 		bound = wt
 	}
 	return time.Now().Add(bound)
+// boundCacheBlockingWait applies the default and maximum query time to a
+// blocking request that is served by the agent cache.
+//
+// Requests forwarded over RPC get this treatment from the servers, but
+// cache.Get only honors QueryOptions.MaxQueryTime. Without a ?wait param it
+// would block until the data changes, which can outlive http_config.write_timeout
+// and cause the stream to be reset (e.g. the connect_roots watch of the built-in
+// proxy).
+func (s *HTTPHandlers) boundCacheBlockingWait(q *structs.QueryOptions) {
+	if q.MinQueryIndex == 0 {
+		return
+	}
+	cfg := s.agent.config
+	if q.MaxQueryTime > cfg.MaxQueryTime {
+		q.MaxQueryTime = cfg.MaxQueryTime
+	} else if q.MaxQueryTime <= 0 {
+		q.MaxQueryTime = cfg.DefaultQueryTime
+	}
+	q.MaxQueryTime += lib.RandomStagger(q.MaxQueryTime / structs.JitterFraction)
 }
 
 // parseCacheControl parses the CacheControl HTTP header value. So far we only
@@ -1144,6 +1163,7 @@ func (s *HTTPHandlers) parseConsistency(resp http.ResponseWriter, req *http.Requ
 	if maxStale := query.Get("max_stale"); maxStale != "" {
 		dur, err := time.ParseDuration(maxStale)
 		if err != nil {
+			resp.Header().Set(contentTypeHeader, plainContentType)
 			resp.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(resp, "Invalid max_stale value %q", maxStale)
 			return true

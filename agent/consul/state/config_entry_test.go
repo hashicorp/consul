@@ -3920,3 +3920,20 @@ func TestStore_ValidateJWTProviderIsReferenced(t *testing.T) {
 	// successfully delete the provider after deleting the intention
 	require.NoError(t, s.DeleteConfigEntry(0, structs.JWTProvider, provider.Name, nil))
 }
+
+func TestStore_ConfigEntriesByKindAllPartitions(t *testing.T) {
+	s := testConfigStateStore(t)
+
+	require.NoError(t, s.EnsureConfigEntry(1, &structs.MeshConfigEntry{}))
+	require.NoError(t, s.EnsureConfigEntry(2, &structs.ServiceConfigEntry{Kind: structs.ServiceDefaults, Name: "web"}))
+
+	idx, entries, err := s.ConfigEntriesByKindAllPartitions(nil, structs.MeshConfig)
+	require.NoError(t, err)
+	require.Equal(t, uint64(2), idx)
+	require.Len(t, entries, 1)
+	require.Equal(t, structs.MeshConfig, entries[0].GetKind())
+
+	_, entries, err = s.ConfigEntriesByKindAllPartitions(nil, structs.IngressGateway)
+	require.NoError(t, err)
+	require.Empty(t, entries)
+}
