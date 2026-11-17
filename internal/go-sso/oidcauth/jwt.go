@@ -16,10 +16,18 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/go-jose/go-jose/v3/jwt"
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
 )
 
 const claimDefaultLeeway = 150
+
+var staticKeySigAlgs = []jose.SignatureAlgorithm{
+	jose.RS256, jose.RS384, jose.RS512,
+	jose.PS256, jose.PS384, jose.PS512,
+	jose.ES256, jose.ES384, jose.ES512,
+	jose.EdDSA,
+}
 
 // ClaimsFromJWT is unrelated to the OIDC authorization code workflow. This
 // allows for a JWT to be directly validated and decoded into a set of claims.
@@ -92,7 +100,7 @@ func (a *Authenticator) verifyVanillaJWT(ctx context.Context, loginToken string)
 			return nil, fmt.Errorf("failed to unmarshal claims: %v", err)
 		}
 	case authStaticKeys:
-		parsedJWT, err := jwt.ParseSigned(loginToken)
+		parsedJWT, err := jwt.ParseSigned(loginToken, staticKeySigAlgs)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing token: %v", err)
 		}
