@@ -1058,6 +1058,8 @@ func (s *HTTPHandlers) blockingQueryWriteDeadline(req *http.Request) time.Time {
 		bound = wt
 	}
 	return time.Now().Add(bound)
+}
+
 // boundCacheBlockingWait applies the default and maximum query time to a
 // blocking request that is served by the agent cache.
 //
