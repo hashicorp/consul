@@ -612,7 +612,9 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		return nil, err
 	}
 
-	initLeaderMetrics()
+	if s.config.CertificateTelemetryEnabled {
+		initLeaderMetrics()
+	}
 
 	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRateLimit, config.RPCMaxBurst))
 
