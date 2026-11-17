@@ -1654,6 +1654,7 @@ func (s *HTTPHandlers) AgentConnectCARoots(resp http.ResponseWriter, req *http.R
 	// issue the request directly via RPC instead.
 	var reply *structs.IndexedCARoots
 	if s.agent.config.HTTPUseCache {
+		s.boundCacheBlockingWait(&args.QueryOptions)
 		raw, m, err := s.agent.cache.Get(req.Context(), cachetype.ConnectCARootName, &args)
 		if err != nil {
 			return nil, err
