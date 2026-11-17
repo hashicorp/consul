@@ -1047,6 +1047,13 @@ func parseWait(resp http.ResponseWriter, req *http.Request, b QueryOptionsCompat
 // deadline for blocking queries so that a long-lived, reused HTTP/2 connection
 // is not torn down mid-watch by the global per-connection write timeout.
 func (s *HTTPHandlers) blockingQueryWriteDeadline(req *http.Request) time.Time {
+	// The bound starts from max_query_time rather than default_query_time on
+	// purpose. Not every blocking endpoint honors default_query_time when no
+	// wait is given: /v1/agent/connect/ca/leaf (leafcert.DefaultQueryTimeout)
+	// and /v1/event/list (maxQueryTime in agent.go) block for a hard-coded 10m,
+	// which the default max_query_time (10m) covers. If those hard-coded
+	// timeouts are ever raised, this bound must be updated to cover them too,
+	// otherwise those requests will be reset by write_timeout again.
 	maxQueryTime := s.agent.config.MaxQueryTime
 	if wait := req.URL.Query().Get("wait"); wait != "" {
 		if d, err := time.ParseDuration(wait); err == nil && d > 0 && d < maxQueryTime {
