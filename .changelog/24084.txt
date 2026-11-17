@@ -1,0 +1,3 @@
+```release-note:bug
+agent: Apply `default_query_time` and `max_query_time` to cache-backed blocking queries so they no longer outlive `http_config.write_timeout`. This fixes the periodic `connect_roots` watch error in the built-in `consul connect proxy`.
+```
