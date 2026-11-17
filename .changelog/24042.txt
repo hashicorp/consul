@@ -1,3 +1,3 @@
 ```release-note:bug
-agent: Blocking queries are no longer reset by `http_config.write_timeout` on long-lived HTTP/2 connections. The write deadline is now set per blocking-query request based on `max_query_time`, instead of relying on the global per-connection `write_timeout`.
+agent: Blocking queries whose `wait` exceeds `http_config.write_timeout` are no longer reset with `EOF` or an HTTP/2 `INTERNAL_ERROR` stream error. The write deadline for blocking-query requests is now based on the requested `wait` (capped at `max_query_time`) plus jitter and `rpc_hold_timeout`, and is never shorter than `write_timeout`. Non-blocking requests still use `write_timeout`.
 ```
