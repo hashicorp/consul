@@ -1,0 +1,3 @@
+```release-note:bug
+api: fix deregistering services and checks whose ID contains "/" or ".."
+```
