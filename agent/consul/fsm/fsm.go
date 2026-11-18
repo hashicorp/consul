@@ -286,32 +286,34 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 	if err := restore.Commit(); err != nil {
 		return err
 	}
-	var stateOld *state.Store
 	storageRestoration.Commit()
 
 	// External code might be calling State(), so we need to synchronize
 	// here to make sure we swap in the new state store atomically.
-	swapState := func() {
-		c.stateLock.Lock()
-		defer c.stateLock.Unlock()
-		stateOld = c.state
-		c.state = stateNew
-	}
+	c.stateLock.Lock()
+	stateOld := c.state
+	c.state = stateNew
+	c.stateLock.Unlock()
 
 	// Tell the EventPublisher to cycle anything watching these topics. Replacement
 	// of the state store means that indexes could have gone backwards and data changed.
 	//
-	// The swap must be atomic with the refresh: otherwise a new stream could get a
-	// snapshot from the cache sourced from old data but then receive events for new
-	// data. The publisher runs swapState while holding its own lock, which keeps the
-	// lock order the same as Subscribe (publisher lock, then state lock via State()
-	// in the snapshot handlers). Taking the state lock first and then calling into
-	// the publisher deadlocks against a concurrent Subscribe.
+	// The state lock is released before calling into the publisher. Subscribe holds
+	// the publisher lock while its snapshot handlers take the state lock through
+	// State(), so waiting for the publisher lock while holding the state lock
+	// deadlocks against a concurrent Subscribe.
+	//
+	// Swapping first and refreshing second is still consistent: Subscribe builds
+	// and caches its snapshot while holding the publisher lock, so RefreshAllTopics
+	// (which needs that lock) always runs after any snapshot built from the old
+	// store. It then evicts the snapshot cache and force-closes every subscription,
+	// so none can outlive the restore with data from the old store. A subscription
+	// that slips in between the swap and the refresh reads the new store and is at
+	// worst closed once more, and the client resubscribes.
 	if c.deps.Publisher != nil {
-		c.deps.Publisher.RefreshAllTopicsWith(swapState)
-	} else {
-		swapState()
+		c.deps.Publisher.RefreshAllTopics()
 	}
+
 	// Signal that the old state store has been abandoned. This is required
 	// because we don't operate on it any more, we just throw it away, so
 	// blocking queries won't see any changes and need to be woken up.
