@@ -1,0 +1,3 @@
+```release-note:bug
+http: return 404 instead of 500 when force-leaving a node that is not a cluster member
+```

@@ -2630,6 +2630,25 @@ func TestAgent_ForceLeave_ACLDeny(t *testing.T) {
 	})
 }
 
+func TestAgent_ForceLeave_UnknownNode(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Force-leaving a node that is not a cluster member is a client
+	// error, not a server error: the caller named something that does
+	// not exist, so the endpoint must answer 404 (see #21878).
+	req, _ := http.NewRequest("PUT", "/v1/agent/force-leave/nonexistent-node", nil)
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusNotFound, resp.Code)
+}
+
 func TestAgent_ForceLeavePrune(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
