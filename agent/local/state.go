@@ -172,6 +172,11 @@ type rpc interface {
 type State struct {
 	sync.RWMutex
 
+	// syncLock prevents catalog writes from invalidating an in-flight full
+	// sync snapshot. Acquire it before the state lock when both are needed.
+	// Local updates can still proceed while a full sync reads the catalog.
+	syncLock sync.Mutex
+
 	// Delegate the RPC interface to the consul server or agent.
 	//
 	// It is set after both the state and the consul server/agent have
@@ -1024,6 +1029,9 @@ func (l *State) Stats() map[string]string {
 // updateSyncState queries the server for all the services and checks in the catalog
 // registered to this node, and updates the local entries as InSync or Deleted.
 func (l *State) updateSyncState() error {
+	l.syncLock.Lock()
+	defer l.syncLock.Unlock()
+
 	// Get all checks and services from the master
 	req := structs.NodeSpecificRequest{
 		Datacenter: l.config.Datacenter,
@@ -1243,6 +1251,9 @@ func (l *State) SyncFull() error {
 // SyncChanges pushes checks, services and node info data which has been
 // marked out of sync or deleted to the server.
 func (l *State) SyncChanges() error {
+	l.syncLock.Lock()
+	defer l.syncLock.Unlock()
+
 	l.Lock()
 	defer l.Unlock()
 

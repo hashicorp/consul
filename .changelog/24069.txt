@@ -1,0 +1,3 @@
+```release-note:bug
+checks: Prevent concurrent full and partial agent syncs from leaving recovered TTL checks critical in the catalog until a later full sync
+```
