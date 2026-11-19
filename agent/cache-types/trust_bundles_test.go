@@ -92,7 +92,7 @@ func TestTrustBundles_PeeringDisabled(t *testing.T) {
 	// Expect the proper call.
 	// This also returns the canned response above.
 	client.On("TrustBundleListByService", mock.Anything, mock.Anything, mock.Anything).
-		Return(resp, grpcstatus.Error(codes.FailedPrecondition, "peering must be enabled to use this endpoint"))
+		Return(resp, grpcstatus.Error(codes.FailedPrecondition, "peering is disabled"))
 
 	// Fetch and assert against the result.
 	result, err := typ.Fetch(
