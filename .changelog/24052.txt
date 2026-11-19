@@ -1,0 +1,3 @@
+```release-note:bug-fix
+peerstream: stop materialized views and cancel subscriptions when a peer stream closes, preventing leaked watchers and submatview goroutines
+```

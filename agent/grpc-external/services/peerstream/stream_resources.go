@@ -363,7 +363,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 
 	remoteSubTracker := newResourceSubscriptionTracker()
 	mgr := newSubscriptionManager(
-		streamReq.Stream.Context(),
+		handleStreamCtx,
 		logger,
 		s.Config,
 		trustDomain,
@@ -371,7 +371,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 		s.GetStore,
 		remoteSubTracker,
 	)
-	subCh := mgr.subscribe(streamReq.Stream.Context(), streamReq.LocalID, streamReq.PeerName, streamReq.Partition)
+	subCh := mgr.subscribe(handleStreamCtx, streamReq.LocalID, streamReq.PeerName, streamReq.Partition)
 
 	// We need a mutex to protect against simultaneous sends to the client.
 	var sendMutex sync.Mutex
