@@ -4,9 +4,6 @@
 package api
 
 import (
-	"bytes"
-	"fmt"
-	"io"
 	"net/http"
 )
 
@@ -234,23 +231,18 @@ func (c *Client) txn(txn TxnOps, q *QueryOptions) (bool, *TxnResponse, *QueryMet
 		return false, nil, nil, err
 	}
 	defer closeResponseBody(resp)
+	if err := requireHttpCodes(resp, http.StatusOK, http.StatusConflict); err != nil {
+		return false, nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
 
-	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusConflict {
-		var txnResp TxnResponse
-		if err := decodeBody(resp, &txnResp); err != nil {
-			return false, nil, nil, err
-		}
-
-		return resp.StatusCode == http.StatusOK, &txnResp, qm, nil
+	var txnResp TxnResponse
+	if err := decodeBody(resp, &txnResp); err != nil {
+		return false, nil, nil, err
 	}
 
-	var buf bytes.Buffer
-	if _, err := io.Copy(&buf, resp.Body); err != nil {
-		return false, nil, nil, fmt.Errorf("Failed to read response: %v", err)
-	}
-	return false, nil, nil, fmt.Errorf("Failed request: %s", buf.String())
+	return resp.StatusCode == http.StatusOK, &txnResp, qm, nil
 }

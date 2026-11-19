@@ -146,12 +146,15 @@ func (s *Session) Renew(id string, q *WriteOptions) (*SessionEntry, *WriteMeta, 
 	}
 	defer closeResponseBody(resp)
 
+	found, resp, err := requireNotFoundOrOK(resp)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	wm := &WriteMeta{RequestTime: rtt}
 
-	if resp.StatusCode == 404 {
+	if !found {
 		return nil, wm, nil
-	} else if resp.StatusCode != 200 {
-		return nil, nil, fmt.Errorf("Unexpected response code: %d", resp.StatusCode)
 	}
 
 	var entries []*SessionEntry
