@@ -1,0 +1,3 @@
+```release-note:bug
+prepared query: Fixed an issue where a failed RPC to the last failover datacenter could return a partially decoded list of nodes, causing client agents to panic when answering the query over DNS.
+```
