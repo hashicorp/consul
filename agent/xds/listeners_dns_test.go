@@ -10,7 +10,7 @@ import (
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_dns_filter_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/udp/dns_filter/v3"
-	envoy_cares_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/network/dns_resolver/cares/v3"
+	envoy_getaddrinfo_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/network/dns_resolver/getaddrinfo/v3"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 
@@ -157,7 +157,7 @@ func TestMakeEgressDNSListener(t *testing.T) {
 	// UDP listener config must be present for a udp_listener filter.
 	require.NotNil(t, l.GetUdpListenerConfig())
 
-	// A single dns_filter listener filter carrying the c-ares client config.
+	// A single dns_filter listener filter carrying the getaddrinfo client config.
 	require.Len(t, l.GetListenerFilters(), 1)
 	lf := l.GetListenerFilters()[0]
 	require.Equal(t, dnsFilterName, lf.GetName())
@@ -168,20 +168,10 @@ func TestMakeEgressDNSListener(t *testing.T) {
 
 	client := dnsCfg.GetClientConfig()
 	require.NotNil(t, client)
-	require.Equal(t, caresDNSResolverName, client.GetTypedDnsResolverConfig().GetName())
+	require.Equal(t, getAddrInfoDNSResolverName, client.GetTypedDnsResolverConfig().GetName())
 
-	var cares envoy_cares_v3.CaresDnsResolverConfig
-	require.NoError(t, client.GetTypedDnsResolverConfig().GetTypedConfig().UnmarshalTo(&cares))
-	require.Len(t, cares.GetResolvers(), 2)
-
-	got := make(map[string]uint32)
-	for _, r := range cares.GetResolvers() {
-		rsa := r.GetSocketAddress()
-		require.Equal(t, envoy_core_v3.SocketAddress_UDP, rsa.GetProtocol())
-		got[rsa.GetAddress()] = rsa.GetPortValue()
-	}
-	require.Equal(t, uint32(53), got["8.8.8.8"])
-	require.Equal(t, uint32(5353), got["1.1.1.1"])
+	var resolver envoy_getaddrinfo_v3.GetAddrInfoDnsResolverConfig
+	require.NoError(t, client.GetTypedDnsResolverConfig().GetTypedConfig().UnmarshalTo(&resolver))
 }
 
 func TestVirtualFQDNForUpstream(t *testing.T) {
