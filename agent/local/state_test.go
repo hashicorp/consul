@@ -2613,6 +2613,43 @@ func TestState_SyncChanges_DuplicateAddServiceOnlySyncsOnce(t *testing.T) {
 	require.Len(t, rpc.calls, 4)
 }
 
+func TestState_SyncChanges_ServicePortsDefaultChange(t *testing.T) {
+	state := local.NewState(local.Config{}, hclog.New(nil), new(token.Store))
+	rpc := &fakeRPC{}
+	state.Delegate = rpc
+	state.TriggerSyncChanges = func() {}
+
+	srv := &structs.NodeService{
+		Kind:    structs.ServiceKindTypical,
+		ID:      "redis",
+		Service: "redis",
+		Ports: structs.ServicePorts{
+			{Name: "metrics", Port: 9121, Default: true},
+			{Name: "server", Port: 6379},
+		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+	}
+	require.NoError(t, state.AddServiceWithChecks(srv, nil, "", false))
+	require.NoError(t, state.SyncChanges())
+	// 2 rpc calls, one node register, one service register
+	require.Len(t, rpc.calls, 2)
+
+	// changing only the default port must sync the service again
+	updated := *srv
+	updated.Ports = structs.ServicePorts{
+		{Name: "metrics", Port: 9121},
+		{Name: "server", Port: 6379, Default: true},
+	}
+	require.NoError(t, state.AddServiceWithChecks(&updated, nil, "", false))
+	require.NoError(t, state.SyncChanges())
+	require.Len(t, rpc.calls, 3)
+
+	req, ok := rpc.calls[2].args.(*structs.RegisterRequest)
+	require.True(t, ok)
+	require.Equal(t, "Catalog.Register", rpc.calls[2].method)
+	require.Equal(t, updated.Ports, req.Service.Ports)
+}
+
 type fakeRPC struct {
 	calls []callRPC
 }
