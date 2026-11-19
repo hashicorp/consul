@@ -1,0 +1,3 @@
+```release-note:bug
+Peering: under wildcard exported-services, discovery chains for services with no local instances are no longer announced to peers as dead-end failover targets, and chains are properly retracted (DELETE) when the service disappears from the exported-service-list or the chain config entry is removed.
+```
