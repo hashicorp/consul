@@ -1,0 +1,3 @@
+```release-note:bug
+connect: Fix the Vault CA provider's AWS IAM auth method ignoring `header_value`, which caused Vault logins to fail with `missing header "X-Vault-AWS-IAM-Server-ID"`.
+```
