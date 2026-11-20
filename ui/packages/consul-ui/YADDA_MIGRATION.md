@@ -70,16 +70,22 @@ api-double, [tests/pages.js](tests/pages.js) / `tests/pages/`, `tests/lib/page-o
 
 ## Phase 0: do before migrating further
 
-1. **Namespace templating.** ~32 features use `@namespace` / `@!namespace` placeholders that
-   `tests/dictionary.js` rewrites (differently for CE and ENT) in its `yaml`, `endpoint`,
-   `json` and `url` terms. The harness only has `nspaceURL`. Add a shared helper that ports
-   this logic exactly, with unit tests for each CE/ENT/nspace case, so tests cannot pass while
-   asserting the wrong `ns=` query string or payload.
-2. **Harness gaps.** `tests/helpers/acceptance.js` has far fewer helpers than the
-   `tests/steps/{doubles,interactions,assertions}` vocabulary (model-count doubles,
-   `settings`/`ui_config`/`permissions`/ACL setup, form filling, "see text/object" and
-   `pause until` assertions, etc.). Add them once, in a single PR, preserving the strength of the
-   original assertions, rather than re-implementing them per test.
+1. ✅ **Namespace templating.** ~32 features use `@namespace` / `@!namespace` placeholders that
+   `tests/dictionary.js` rewrites (differently for CE and ENT). Ported to
+   [tests/helpers/nspace-template.js](tests/helpers/nspace-template.js) as `nspaceJSON`,
+   `nspaceYAML` and `nspaceEndpoint` (also re-exported from the harness), with unit tests in
+   `tests/unit/helpers/nspace-template-test.js` for each CE/ENT/namespace case. Use them for any
+   endpoint or fixture that contains a placeholder, so a test cannot pass while asserting the
+   wrong `ns=` query string or payload.
+2. ✅ **Harness gaps.** [tests/helpers/acceptance.js](tests/helpers/acceptance.js) now also has the
+   fixture setup (`createModels`, `respondWith`, `setSettings`, `setUiConfig`, `setPermissions`,
+   `disableACLs`, `enableSSO`, `enablePartitions`, `setDefaultACLPolicy`, `setMetricsProvider`,
+   `setLocalDatacenter`, `setLatency`, `setApiPrefix`, `useLegacyToken`), the remaining request
+   assertions (`requestsIncluded`, `requestMadeWithNoBody`, `requestMadeWithoutProperties`) and
+   page-object queries (`find`, `assertVisibleCount`, `assertProperties`). Still missing and to be
+   added by the batch that first needs them: form filling (`fillIn` incl. code editors), the
+   `I see the text/element` DOM assertions, `pauseUntil`, OIDC provider stubbing and
+   sort-order assertions. Add them to the harness, not inside individual tests.
 3. **Baseline.** Before the first batch, record the sorted test-title list (and pass/skip
    counts) from `ember test` under both `CONSUL_NSPACES_ENABLED=0` and `=1`. Compare against
    it after every batch so dropped scenarios, `Where:` rows or tags are caught. Note that the
