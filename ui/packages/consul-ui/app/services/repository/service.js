@@ -22,7 +22,7 @@ export default class ServiceService extends RepositoryService {
 
   @dataSource('/:partition/:ns/:dc/services/:peer/:peerId')
   async findAllImportedServices(params, configuration) {
-    // remember peer.id so that we can add it to to the service later on to setup relationship
+    // remember peer.id so that we can add it to the service later on to setup relationship
     const { peerId } = params;
 
     // don't send peerId with query

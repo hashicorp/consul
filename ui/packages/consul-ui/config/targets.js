@@ -21,7 +21,7 @@
 ///
 
 // async/await support came before the below specified versions for Chrome,
-// Firefox and Edge. Async/await is is the newest ES6 feature we are not
+// Firefox and Edge. Async/await is the newest ES6 feature we are not
 // transpiling. Safari's template literal support is a little problematic during
 // v12 in that it has a GC bug for tagged template literals. We don't currently
 // rely on this functionality so the bug wouldn't effect us, but in order to use
