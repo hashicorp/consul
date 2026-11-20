@@ -4,6 +4,7 @@
 package fsm
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -20,8 +21,12 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
+	"github.com/hashicorp/consul/lib/lifecycle"
 	"github.com/hashicorp/consul/logging"
 )
+
+// StateStoreComponent is the lifecycle component name of the FSM state store.
+const StateStoreComponent = "server/state-store"
 
 // command is a command method on the FSM.
 type command func(buf []byte, index uint64) interface{}
@@ -63,6 +68,11 @@ type FSM struct {
 	// Raft side, so doesn't need to lock this.
 	stateLock sync.RWMutex
 	state     *state.Store
+
+	// stateStore tracks the state store lifecycle. Streaming snapshots hold a
+	// lease on it while they read the state (through the publisher's snapshot
+	// guard), and Restore waits for those leases before it replaces the state.
+	stateStore *lifecycle.Component
 
 	publisher *stream.EventPublisher
 }
@@ -147,7 +157,16 @@ func NewFromDeps(deps Deps) *FSM {
 
 	fsm.chunker = raftchunking.NewChunkingFSM(fsm, nil)
 
+	// The empty state store created above is a valid, serving state store.
+	fsm.stateStore = lifecycle.NewComponent(StateStoreComponent, lifecycle.WithLogger(fsm.logger))
+	fsm.stateStore.Ready("Serving", "state store created")
+
 	// register the streaming snapshot handlers if an event publisher was provided.
+	if deps.Publisher != nil {
+		// Every snapshot handler reads the state store; none can be built while
+		// Restore is replacing it.
+		deps.Publisher.SetSnapshotGuard(fsm.stateStore.Acquire)
+	}
 	fsm.registerStreamSnapshotHandlers()
 
 	return fsm
@@ -288,6 +307,16 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 	}
 	storageRestoration.Commit()
 
+	// Refuse new streaming snapshots and wait for the ones in flight. This runs
+	// before any lock below is taken: a snapshot in flight may hold the
+	// publisher's lock while it waits on State(), and must be able to finish.
+	finishRestore, err := c.stateStore.BeginTransition(context.Background(), "Restoring", "restoring state from snapshot")
+	if err != nil {
+		// Never fail a raft restore over lifecycle tracking.
+		c.logger.Warn("failed to begin state store lifecycle transition", "error", err)
+		finishRestore = func(string, string) {}
+	}
+
 	// External code might be calling State(), so we need to synchronize
 	// here to make sure we swap in the new state store atomically.
 	c.stateLock.Lock()
@@ -307,6 +336,11 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 		c.deps.Publisher.RefreshAllTopics()
 	}
 	c.stateLock.Unlock()
+
+	// The new state store is in place and existing streams were told to
+	// resubscribe: let snapshots read it. Doing this before Abandon keeps the
+	// window in which a resubscribing client is refused as short as possible.
+	finishRestore("Serving", "restore complete")
 
 	// Signal that the old state store has been abandoned. This is required
 	// because we don't operate on it any more, we just throw it away, so

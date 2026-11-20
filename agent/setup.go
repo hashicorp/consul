@@ -45,6 +45,7 @@ import (
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/hoststats"
+	"github.com/hashicorp/consul/lib/lifecycle"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 )
@@ -343,6 +344,7 @@ func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.G
 		grpcWare.StatsGauges,
 		xds.StatsGauges,
 		usagemetrics.Gauges,
+		lifecycle.Gauges,
 		consul.ReplicationGauges,
 		consul.ConfigEntryGauges,
 		certExpirationGauges(cfg.Datacenter, cfg.PartitionOrDefault(), cfg.NodeName, tlsCertRole(isServer)),
@@ -431,6 +433,7 @@ func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.G
 		grpcWare.StatsCounters,
 		local.StateCounters,
 		xds.StatsCounters,
+		lifecycle.Counters,
 		raftCounters,
 		rate.Counters,
 	}

@@ -1,0 +1,3 @@
+```release-note:bug
+streaming: Fix a deadlock between a server restoring its state from a raft snapshot and a streaming `Subscribe` call. The deadlock could stop the server from applying raft logs and leave streaming subscriptions on it silent, so clients kept serving a frozen view and a stale `X-Consul-Index` without any error. Streaming snapshots now wait for a restore to finish, and subscribers see a retryable `Unavailable` error while it runs. The state store lifecycle is logged and reported with the new `consul.lifecycle.phase`, `consul.lifecycle.transition` and `consul.lifecycle.drain_timeout` metrics.
+```
