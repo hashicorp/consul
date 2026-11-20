@@ -106,7 +106,13 @@ func TestAgent_local_proxycfg(t *testing.T) {
 			return
 		case <-timer:
 			timerFired = true
-			finalTimer = time.After(1 * time.Second)
+			// Before our streak-tolerance change, a single ACL-not-found would
+			// immediately close the state (TerminalError), and the manager would
+			// re-open a fresh watch with zero backoff. Now that the first few
+			// not-founds are tolerated, the existing watch retries with
+			// exponential backoff (up to ~4s after 4 failures). Allow enough
+			// time for the backoff to expire and the snapshot to arrive.
+			finalTimer = time.After(10 * time.Second)
 
 			// This simulates the eventual consistency of a token
 			// showing up on a server after it's creation by
