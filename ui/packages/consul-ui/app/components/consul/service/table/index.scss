@@ -52,6 +52,10 @@
     }
   }
 
+  .hds-rich-tooltip__bubble.consul-service-table__tags-tooltip-bubble {
+    max-width: min(480px, calc(100vw - 32px));
+  }
+
   .consul-service-table__tags-tooltip {
     display: flex;
     flex-direction: column;
@@ -66,6 +70,20 @@
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
+
+    .hds-tag__text {
+      min-width: 0;
+      max-width: none;
+    }
+
+    .hds-tag__text-container {
+      display: block;
+      overflow: visible;
+      -webkit-line-clamp: unset;
+      line-clamp: unset;
+      word-break: normal;
+      overflow-wrap: anywhere;
+    }
   }
 
   .consul-service-table__mesh {

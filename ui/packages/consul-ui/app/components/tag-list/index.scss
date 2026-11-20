@@ -7,12 +7,26 @@
   padding: 24px;
 
   /* Tags wrap across multiple lines within the card. Per the Figma design the
-     row gap is 12px and the column gap is 8px. Each pill is a standard
-     Hds::Tag, which supplies its own border / radius / typography. */
+     row gap is 12px and the column gap is 8px. Override Hds::Tag's 166px
+     single-line truncation so full tag values are always visible. */
   .tag-list__tags {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 12px 8px;
+
+    .hds-tag__text {
+      min-width: 0;
+      max-width: none;
+    }
+
+    .hds-tag__text-container {
+      display: block;
+      overflow: visible;
+      -webkit-line-clamp: unset;
+      line-clamp: unset;
+      word-break: normal;
+      overflow-wrap: anywhere;
+    }
   }
 }
