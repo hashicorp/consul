@@ -20,7 +20,7 @@
 
 import { test, skip } from 'qunit';
 import { setupApplicationTest } from 'ember-qunit';
-import { settled, getContext } from '@ember/test-helpers';
+import { settled, getContext, click } from '@ember/test-helpers';
 
 import { env } from 'consul-ui/env';
 import api from 'consul-ui/tests/helpers/api';
@@ -167,6 +167,22 @@ export function nspaceURL(nspace, url) {
     return `/~${nspace}${url}`;
   }
   return url;
+}
+
+/**
+ * Click the nearest ancestor breadcrumb, i.e. the "back" link (what the old
+ * `[data-test-back] a` pointed at).
+ */
+export function clickParentBreadcrumb() {
+  const links = [
+    ...document.querySelectorAll(
+      '[data-test-breadcrumb-item]:not([data-test-breadcrumb-current]) a'
+    ),
+  ];
+  if (links.length === 0) {
+    throw new Error('No ancestor breadcrumb link found');
+  }
+  return click(links[links.length - 1]);
 }
 
 /** The most recently visited page object (for `.submit()`, `.fillIn()`, ...). */
