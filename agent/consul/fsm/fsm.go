@@ -293,20 +293,26 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 	c.stateLock.Lock()
 	stateOld := c.state
 	c.state = stateNew
+	c.stateLock.Unlock()
 
 	// Tell the EventPublisher to cycle anything watching these topics. Replacement
 	// of the state store means that indexes could have gone backwards and data changed.
 	//
-	// This needs to happen while holding the state lock to ensure its not racey. If we
-	// did this outside of the locked section closer to where we abandon the old store
-	// then there would be a possibility for new streams to be opened that would get
-	// a snapshot from the cache sourced from old data but would be receiving events
-	// for new data. To prevent that inconsistency we refresh the topics while holding
-	// the lock which ensures that any subscriptions to topics for FSM generated events
+	// The state lock is released before calling into the publisher. Subscribe holds
+	// the publisher lock while its snapshot handlers take the state lock through
+	// State(), so waiting for the publisher lock while holding the state lock
+	// deadlocks against a concurrent Subscribe.
+	//
+	// Swapping first and refreshing second is still consistent: Subscribe builds
+	// and caches its snapshot while holding the publisher lock, so RefreshAllTopics
+	// (which needs that lock) always runs after any snapshot built from the old
+	// store. It then evicts the snapshot cache and force-closes every subscription,
+	// so none can outlive the restore with data from the old store. A subscription
+	// that slips in between the swap and the refresh reads the new store and is at
+	// worst closed once more, and the client resubscribes.
 	if c.deps.Publisher != nil {
 		c.deps.Publisher.RefreshAllTopics()
 	}
-	c.stateLock.Unlock()
 
 	// Signal that the old state store has been abandoned. This is required
 	// because we don't operate on it any more, we just throw it away, so
