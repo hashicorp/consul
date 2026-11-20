@@ -11,6 +11,7 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/hashicorp/consul/api v1.35.0
 	github.com/hashicorp/consul/envoyextensions v0.11.1
+	github.com/hashicorp/consul/proto-public v0.9.0
 	github.com/hashicorp/consul/sdk v0.19.0
 	github.com/hashicorp/consul/testing/deployer v0.0.0-20230811171106-4a0afb5d1373
 	github.com/hashicorp/go-cleanhttp v0.5.2
@@ -20,6 +21,7 @@ require (
 	github.com/hashicorp/hcl v1.0.1-vault-7
 	github.com/hashicorp/serf v0.11.0
 	github.com/itchyny/gojq v0.12.12
+	github.com/miekg/dns v1.1.73
 	github.com/mitchellh/copystructure v1.2.0
 	github.com/mitchellh/reflectwalk v1.0.2
 	github.com/moby/moby/api v1.54.1
@@ -66,7 +68,6 @@ require (
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/consul-server-connection-manager v0.1.12 // indirect
-	github.com/hashicorp/consul/proto-public v0.9.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-hclog v1.6.3 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
@@ -83,7 +84,6 @@ require (
 	github.com/magiconair/properties v1.8.10 // indirect
 	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
-	github.com/miekg/dns v1.1.73 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/go-archive v0.3.0 // indirect
