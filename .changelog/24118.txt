@@ -1,0 +1,3 @@
+```release-note:improvement
+streaming: Add the `streaming_idle_timeout` agent setting (disabled by default). When set, a client agent re-establishes a streaming subscription that has stopped delivering events without an error, instead of serving a frozen view and a stale `X-Consul-Index` until the ACL token is rotated or the agent is restarted. A warning and the `consul.streaming.idle_resubscribe` counter report each resubscribe.
+```
