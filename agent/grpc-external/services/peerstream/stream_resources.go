@@ -346,6 +346,11 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 	handleStreamCtx, cancel := context.WithCancel(streamReq.Stream.Context())
 	defer cancel()
 
+	// handlerDone is closed when this function returns. Unlike handleStreamCtx, it is not closed when the
+	// stream's own context ends, which happens at the same time as Recv failing when the connection drops.
+	handlerDone := make(chan struct{})
+	defer close(handlerDone)
+
 	status, err := s.Tracker.Connected(streamReq.LocalID)
 	if err != nil {
 		return fmt.Errorf("failed to register stream: %v", err)
@@ -523,6 +528,11 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 	// waits for it instead of calling Recv concurrently.
 	receiver := &streamReceiver{done: make(chan struct{})}
 	s.receivers.Store(streamReq.Stream, receiver)
+
+	// Hand-offs to the main loop wait on handlerDone rather than handleStreamCtx. When the connection
+	// drops, gRPC cancels the stream context at the same time as Recv fails; selecting on the context
+	// here could drop the error, leaving the main loop waiting (and the stream reported as connected)
+	// until the heartbeat timeout.
 	go func() {
 		defer close(receiver.done)
 		draining := false
@@ -533,7 +543,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 				if !draining {
 					select {
 					case recvErrCh <- err:
-					case <-handleStreamCtx.Done():
+					case <-handlerDone:
 					}
 				}
 				return
@@ -544,7 +554,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 			logTraceRecv(logger, msg)
 			select {
 			case recvCh <- msg:
-			case <-handleStreamCtx.Done():
+			case <-handlerDone:
 				draining = true
 			}
 		}

@@ -311,3 +311,31 @@ func TestServer_DrainStream_WithoutReceiver(t *testing.T) {
 		require.Contains(t, logs.String(), "connection reset")
 	})
 }
+
+// When a connection drops, gRPC fails Recv and cancels the stream's context at the same time. The handler must
+// still observe the receive error and return, rather than waiting for the incoming heartbeat timeout while the
+// stream is reported as connected.
+func TestHandleStream_ReturnsWhenStreamContextEnds(t *testing.T) {
+	srv, p := setupShutdownTest(t, nil)
+
+	// Repeat so that both outcomes of the race between the receive error and the context cancellation are
+	// exercised.
+	for i := 0; i < 50; i++ {
+		ctx, cancel := context.WithCancel(context.Background())
+		stream := &shutdownTestStream{ctx: ctx, in: make(chan *pbpeerstream.ReplicationMessage, 16)}
+		req := HandleStreamRequest{LocalID: p.ID, PeerName: p.Name, Stream: stream}
+		errCh := startHandleStream(t, srv, req)
+
+		cancel()
+		select {
+		case err := <-errCh:
+			require.ErrorIs(t, err, context.Canceled)
+		case <-time.After(5 * time.Second):
+			t.Fatalf("iteration %d: HandleStream did not return after the stream context ended", i)
+		}
+
+		status, ok := srv.StreamStatus(p.ID)
+		require.True(t, ok)
+		require.False(t, status.Connected)
+	}
+}
