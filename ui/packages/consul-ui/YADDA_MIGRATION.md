@@ -82,10 +82,12 @@ api-double, [tests/pages.js](tests/pages.js) / `tests/pages/`, `tests/lib/page-o
    `disableACLs`, `enableSSO`, `enablePartitions`, `setDefaultACLPolicy`, `setMetricsProvider`,
    `setLocalDatacenter`, `setLatency`, `setApiPrefix`, `useLegacyToken`), the remaining request
    assertions (`requestsIncluded`, `requestMadeWithNoBody`, `requestMadeWithoutProperties`) and
-   page-object queries (`find`, `assertVisibleCount`, `assertProperties`). Still missing and to be
-   added by the batch that first needs them: form filling (`fillIn` incl. code editors), the
-   `I see the text/element` DOM assertions, `pauseUntil`, OIDC provider stubbing and
-   sort-order assertions. Add them to the harness, not inside individual tests.
+   page-object queries (`find`, `assertVisibleCount`, `assertProperties`), `fillInForm` (plain
+   inputs), `stubOIDCProvider` and `clickParentBreadcrumb`. `visit` clears the request history, as
+   the yadda `I visit` steps did. Still missing and to be added by the batch that first needs
+   them: filling code editors, a wait-until helper (the yadda `pause until` steps) and sort-order
+   assertions. Prefer plain `assert.dom(...)` for DOM assertions (pass `document.documentElement`
+   to assert on `<html>`). Add shared helpers to the harness, not inside individual tests.
 3. **Baseline.** Before the first batch, record the sorted test-title list (and pass/skip
    counts) from `ember test` under both `CONSUL_NSPACES_ENABLED=0` and `=1`. Compare against
    it after every batch so dropped scenarios, `Where:` rows or tags are caught. Note that the
@@ -93,12 +95,13 @@ api-double, [tests/pages.js](tests/pages.js) / `tests/pages/`, `tests/lib/page-o
    `pnpm test` only exercises CE.
 4. ✅ **Fix the regressions** below, so later batches don't copy the weakened navigation pattern.
 5. ✅ **`@ignore` scenarios.** The 8 empty `Then ok` placeholders and the 19 orphaned
-   `-steps.js` stubs were deleted. The remaining 13 ignored scenarios have real bodies: 6
+   `-steps.js` stubs were deleted. The remaining 10 ignored scenarios have real bodies: 3
    scenario-level `@ignore` tags, plus the feature-level `@ignore` on
    `dc/acls/policies/as-many/add-new` (6 scenarios) and `dc/intentions/permissions/warn` (1).
    When migrating their feature, fix and un-ignore them where possible. Otherwise port each as
    a skipped test (`{ ignore: true }`) that keeps the original steps in its body, with the
-   reason in a comment, so it can be un-skipped later (see `dc/acls/policies/index-test.js`).
+   reason in a comment, so it can be un-skipped later (see `dc/acls/policies/index-test.js` and
+   `page-navigation-test.js`).
 
 ## How to use this document
 
@@ -130,16 +133,15 @@ manually in the running UI if needed.
 
 | Metric | Count |
 | --- | --- |
-| Feature files remaining (yadda) | 102 |
-| Scenarios remaining (yadda) | 245 (13 are `@ignore`, each with a real body: 6 scenario-level tags plus 2 feature-level tags covering 7 scenarios) |
-| Feature files fully migrated | 27 |
-| Scenarios migrated | 46 from the 27 features, plus 1 (3 `Where:` rows) from `page-navigation.feature` |
+| Feature files remaining (yadda) | 90 |
+| Scenarios remaining (yadda) | 222 (10 are `@ignore`, each with a real body: 3 scenario-level tags plus 2 feature-level tags covering 7 scenarios) |
+| Feature files fully migrated | 39 |
+| Scenarios migrated | 70 (46 from the first 27 features, 24 from the last 12) |
 
-Scenario counts are not test counts. 24 remaining features use `Where:` tables (one test per
+Scenario counts are not test counts. 20 remaining features use `Where:` tables (one test per
 row), and under `CONSUL_NSPACES_ENABLED=1` each namespaceable scenario runs 4 times.
 
-`tests/acceptance` contains 37 native `*-test.js` files: 28 come from migrated features (27 full +
-the partial `page-navigation-create-test.js`) and 9 are native-only tests that never had a
+`tests/acceptance` contains 48 native `*-test.js` files: 39 come from migrated features and 9 are native-only tests that never had a
 `.feature` (`breadcrumbs/*`, `components/tab-error`, `components/tab-nav-focus`,
 `dc/nodes/sessions/filter-sort`, `hcp-login`, `unavailable`). Counts are from disk; re-verify with
 `find tests -name '*.feature' | wc -l`.
@@ -212,16 +214,25 @@ problems; the tests document the current behaviour):
 | `dc/nodes/show/health-checks.feature` | Node serf health check passing/failing display. Also adds a regression scenario for the "Check type" sort (Service to Node / Node to Service ordering must match the option labels). | 2 (+1 new) | [tests/acceptance/dc/nodes/show/health-checks-test.js](tests/acceptance/dc/nodes/show/health-checks-test.js) |
 | `dc/nodes/sessions/list.feature` | Node lock-sessions HDS table: string TTLs, nanosecond LockDelay rendering, and ACL enabled/disabled empty states. | 4 | [tests/acceptance/dc/nodes/sessions/list-test.js](tests/acceptance/dc/nodes/sessions/list-test.js) |
 | `dc/nodes/sessions/invalidate.feature` | Invalidate a lock session via the HDS confirmation Modal (success + forced-500 error toast). | 2 | [tests/acceptance/dc/nodes/sessions/invalidate-test.js](tests/acceptance/dc/nodes/sessions/invalidate-test.js) |
+| `api-prefix.feature` | UI honours a configured API path prefix when making requests. | 1 | [tests/acceptance/api-prefix-test.js](tests/acceptance/api-prefix-test.js) |
+| `dc/acls/access.feature` | ACLs access page behaviour when ACLs are disabled. | 1 | [tests/acceptance/dc/acls/access-test.js](tests/acceptance/dc/acls/access-test.js) |
+| `dc/acls/index.feature` | ACL index page forwards/redirects to the correct sub-page. `@notNamespaceable`, as before. | 1 | [tests/acceptance/dc/acls/index-test.js](tests/acceptance/dc/acls/index-test.js) |
+| `deleting.feature` | Generic delete flow: confirmation dialog plus success/error notifications. | 3 | [tests/acceptance/deleting-test.js](tests/acceptance/deleting-test.js) |
+| `index-forwarding.feature` | Index page forwards straight through when there is only one datacenter. `@notNamespaceable`, as before. | 1 | [tests/acceptance/index-forwarding-test.js](tests/acceptance/index-forwarding-test.js) |
+| `login.feature` | Logging in via an ACL token and via SSO. The SSO scenario stays `@onlyNamespaceable`. | 2 | [tests/acceptance/login-test.js](tests/acceptance/login-test.js) |
+| `login-errors.feature` | Login 500-error handling (non-legacy-token case). | 1 | [tests/acceptance/login-errors-test.js](tests/acceptance/login-errors-test.js) |
+| `navigation-links.feature` | Main-navigation link visibility (e.g. no KV read access, empty-state login button). | 2 | [tests/acceptance/navigation-links-test.js](tests/acceptance/navigation-links-test.js) |
+| `page-navigation.feature` | Navigation across pages: index forwarding, main-navigation links, node and policies endpoint checks, and the create flows from the intentions/tokens/policies listings. The three `@ignore` kv scenarios are kept as skipped tests with their original steps; the empty placeholders were deleted. | 7 | [tests/acceptance/page-navigation-test.js](tests/acceptance/page-navigation-test.js) |
+| `startup.feature` | App boots when loading index.html into a browser. `@notNamespaceable`, as before. | 1 | [tests/acceptance/startup-test.js](tests/acceptance/startup-test.js) |
+| `submit-blank.feature` | Blank create forms keep the submit button disabled. | 1 | [tests/acceptance/submit-blank-test.js](tests/acceptance/submit-blank-test.js) |
+| `token-header.feature` | API requests send the Consul token header after a token is set. `@notNamespaceable`, as before. | 2 | [tests/acceptance/token-header-test.js](tests/acceptance/token-header-test.js) |
 
 ## Remaining features
 
 | Feature file | Description | Scenarios | Status | Native test |
 | --- | --- | --- | --- | --- |
-| [api-prefix.feature](tests/acceptance/api-prefix.feature) | UI honours a configured API path prefix when making requests. | 1 | ☐ Not migrated |  |
-| [dc/acls/access.feature](tests/acceptance/dc/acls/access.feature) | ACLs access page behaviour when ACLs are disabled. | 1 | ☐ Not migrated |  |
 | ~~`dc/acls/auth-methods/navigation.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [navigation-test.js](tests/acceptance/dc/acls/auth-methods/navigation-test.js) |
 | [dc/acls/auth-methods/sorting.feature](tests/acceptance/dc/acls/auth-methods/sorting.feature) | Sorting the auth-methods list. | 1 | ☐ Not migrated |  |
-| [dc/acls/index.feature](tests/acceptance/dc/acls/index.feature) | ACL index page forwards/redirects to the correct sub-page. | 1 | ☐ Not migrated |  |
 | [dc/acls/policies/as-many/add-existing.feature](tests/acceptance/dc/acls/policies/as-many/add-existing.feature) | Attach an existing policy as a child of a token/role. | 1 | ☐ Not migrated |  |
 | [dc/acls/policies/as-many/add-new.feature](tests/acceptance/dc/acls/policies/as-many/add-new.feature) | Add a new policy, service identity or node identity to a token/role, incl. error and code-editor cases. | 6 | ☐ Not migrated |  |
 | [dc/acls/policies/as-many/list.feature](tests/acceptance/dc/acls/policies/as-many/list.feature) | List the policies attached to a token/role. | 1 | ☐ Not migrated |  |
@@ -321,12 +332,3 @@ problems; the tests document the current behaviour):
 | [dc/services/show/topology/stats.feature](tests/acceptance/dc/services/show/topology/stats.feature) | Topology metric stats enabled/disabled incl. ingress-gateway cases. | 4 | ☐ Not migrated |  |
 | [dc/services/show/upstreams.feature](tests/acceptance/dc/services/show/upstreams.feature) | Upstreams tab visibility and list. | 3 | ☐ Not migrated |  |
 | [dc/services/sorting.feature](tests/acceptance/dc/services/sorting.feature) | Sorting the services list. | 1 | ☐ Not migrated |  |
-| [deleting.feature](tests/acceptance/deleting.feature) | Generic delete flow: confirmation dialog plus success/error notifications. | 3 | ☐ Not migrated |  |
-| [index-forwarding.feature](tests/acceptance/index-forwarding.feature) | Index page forwards straight through when there is only one datacenter. | 1 | ☐ Not migrated |  |
-| [login-errors.feature](tests/acceptance/login-errors.feature) | Login 500-error handling (non-legacy-token case). | 1 | ☐ Not migrated |  |
-| [login.feature](tests/acceptance/login.feature) | Logging in via an ACL token and via SSO. | 2 | ☐ Not migrated |  |
-| [navigation-links.feature](tests/acceptance/navigation-links.feature) | Main-navigation link visibility (e.g. no KV read access, empty-state login button). | 2 | ☐ Not migrated |  |
-| [page-navigation.feature](tests/acceptance/page-navigation.feature) | Navigation across pages. 4 active scenarios still need porting (index page, nav links, node and policies endpoint checks); 3 are `@ignore` scenarios with real bodies. The create flow is ported. | 7 | 🔄 In progress | [page-navigation-create-test.js](tests/acceptance/page-navigation-create-test.js) |
-| [startup.feature](tests/acceptance/startup.feature) | App boots when loading index.html into a browser. | 1 | ☐ Not migrated |  |
-| [submit-blank.feature](tests/acceptance/submit-blank.feature) | Blank create forms keep the submit button disabled. | 1 | ☐ Not migrated |  |
-| [token-header.feature](tests/acceptance/token-header.feature) | API requests send the Consul token header after a token is set. | 2 | ☐ Not migrated |  |
