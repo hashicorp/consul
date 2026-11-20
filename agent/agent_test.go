@@ -44,6 +44,7 @@ import (
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 
+	"github.com/hashicorp/consul/agent/ae"
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/checks"
@@ -51,6 +52,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/leafcert"
+	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -200,6 +202,65 @@ func TestAgent_StartStop(t *testing.T) {
 	default:
 		t.Fatalf("should be closed")
 	}
+}
+
+type mockLeaveDelegate struct {
+	delegate
+	err error
+}
+
+func (m *mockLeaveDelegate) Leave() error {
+	return m.err
+}
+
+func TestAgent_Leave_PausesAntiEntropy(t *testing.T) {
+	state := local.NewState(local.Config{}, hclog.New(nil), new(token.Store))
+	shutdownCh := make(chan struct{})
+	defer close(shutdownCh)
+	syncer := ae.NewStateSyncer(state, time.Hour, shutdownCh, nil)
+
+	mockDel := &mockLeaveDelegate{}
+	a := &Agent{
+		sync:     syncer,
+		State:    state,
+		delegate: mockDel,
+	}
+
+	require.False(t, a.sync.Paused())
+	require.False(t, a.State.Paused())
+
+	require.NoError(t, a.Leave())
+
+	// Anti-entropy syncer and local state must remain paused after Leave
+	require.True(t, a.sync.Paused())
+	require.True(t, a.State.Paused())
+}
+
+func TestAgent_Leave_ResumeOnError(t *testing.T) {
+	state := local.NewState(local.Config{}, hclog.New(nil), new(token.Store))
+	shutdownCh := make(chan struct{})
+	defer close(shutdownCh)
+	syncer := ae.NewStateSyncer(state, time.Hour, shutdownCh, nil)
+
+	mockDel := &mockLeaveDelegate{err: errors.New("simulated leave error")}
+	a := &Agent{
+		sync:     syncer,
+		State:    state,
+		delegate: mockDel,
+	}
+
+	err := a.Leave()
+	require.Error(t, err)
+
+	// Anti-entropy syncer and local state should be unpaused after error
+	require.False(t, a.sync.Paused())
+	require.False(t, a.State.Paused())
+
+	// When delegate succeeds on subsequent attempt, both remain paused
+	mockDel.err = nil
+	require.NoError(t, a.Leave())
+	require.True(t, a.sync.Paused())
+	require.True(t, a.State.Paused())
 }
 
 func TestAgent_RPCPing(t *testing.T) {

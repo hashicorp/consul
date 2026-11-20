@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"sync"
 	"testing"
 	"time"
 
@@ -2629,5 +2630,186 @@ func (f *fakeRPC) RPC(ctx context.Context, method string, args interface{}, repl
 }
 
 func (f *fakeRPC) ResolveTokenAndDefaultMeta(string, *acl.EnterpriseMeta, *acl.AuthorizerContext) (resolver.Result, error) {
+	return resolver.Result{}, nil
+}
+
+func TestState_PauseSync(t *testing.T) {
+	state := local.NewState(local.Config{}, hclog.New(nil), new(token.Store))
+	rpc := &fakeRPC{}
+	state.Delegate = rpc
+	state.TriggerSyncChanges = func() {}
+
+	srv := &structs.NodeService{
+		Kind:           structs.ServiceKindTypical,
+		ID:             "the-service-id",
+		Service:        "web",
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+	}
+	checks := []*structs.HealthCheck{
+		{Node: "this-node", CheckID: "the-id-1", Name: "check-healthy-1"},
+	}
+	tok := "the-token"
+	err := state.AddServiceWithChecks(srv, checks, tok, false)
+	require.NoError(t, err)
+
+	require.False(t, state.Paused())
+
+	state.PauseSync()
+	require.True(t, state.Paused())
+
+	// When paused, SyncChanges is a no-op
+	require.NoError(t, state.SyncChanges())
+	require.Empty(t, rpc.calls)
+
+	// When paused, SyncFull is also a no-op
+	require.NoError(t, state.SyncFull())
+	require.Empty(t, rpc.calls)
+
+	// Nested pause
+	state.PauseSync()
+	require.True(t, state.Paused())
+	state.ResumeSync()
+	require.True(t, state.Paused())
+
+	// Unpausing allows sync to proceed
+	state.ResumeSync()
+	require.False(t, state.Paused())
+
+	require.NoError(t, state.SyncChanges())
+	require.NotEmpty(t, rpc.calls)
+
+	rpc.calls = nil
+	require.NoError(t, state.SyncFull())
+	require.NotEmpty(t, rpc.calls)
+}
+
+func TestState_PauseSync_Concurrent(t *testing.T) {
+	state := local.NewState(local.Config{}, hclog.New(nil), new(token.Store))
+	var wg sync.WaitGroup
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			state.PauseSync()
+		}()
+	}
+	wg.Wait()
+	require.True(t, state.Paused())
+
+	for i := 0; i < 9; i++ {
+		state.ResumeSync()
+		require.True(t, state.Paused())
+	}
+	state.ResumeSync()
+	require.False(t, state.Paused())
+}
+
+func TestState_PauseSync_WaitsForInFlightSync(t *testing.T) {
+	state := local.NewState(local.Config{}, hclog.New(nil), new(token.Store))
+	rpc := &blockingFakeRPC{
+		syncStarted: make(chan struct{}),
+		unblockSync: make(chan struct{}),
+	}
+	state.Delegate = rpc
+	state.TriggerSyncChanges = func() {}
+
+	srv := &structs.NodeService{
+		Kind:           structs.ServiceKindTypical,
+		ID:             "blocking-service",
+		Service:        "web",
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+	}
+	require.NoError(t, state.AddServiceWithChecks(srv, nil, "token", false))
+
+	syncDone := make(chan struct{})
+	go func() {
+		defer close(syncDone)
+		_ = state.SyncChanges()
+	}()
+
+	<-rpc.syncStarted
+
+	// PauseSync should wait for the in-flight sync to complete
+	pauseDone := make(chan struct{})
+	go func() {
+		defer close(pauseDone)
+		state.PauseSync()
+	}()
+
+	select {
+	case <-pauseDone:
+		t.Fatal("PauseSync returned before in-flight SyncChanges finished")
+	case <-time.After(50 * time.Millisecond):
+	}
+
+	close(rpc.unblockSync)
+	<-syncDone
+	<-pauseDone
+
+	require.True(t, state.Paused())
+	state.ResumeSync()
+}
+
+func TestState_PauseSync_WaitsForInFlightSyncFull(t *testing.T) {
+	state := local.NewState(local.Config{}, hclog.New(nil), new(token.Store))
+	rpc := &blockingFakeRPC{
+		syncStarted: make(chan struct{}),
+		unblockSync: make(chan struct{}),
+	}
+	state.Delegate = rpc
+	state.TriggerSyncChanges = func() {}
+
+	srv := &structs.NodeService{
+		Kind:           structs.ServiceKindTypical,
+		ID:             "blocking-service-full",
+		Service:        "web",
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+	}
+	require.NoError(t, state.AddServiceWithChecks(srv, nil, "token", false))
+
+	syncDone := make(chan struct{})
+	go func() {
+		defer close(syncDone)
+		_ = state.SyncFull()
+	}()
+
+	<-rpc.syncStarted
+
+	// PauseSync must wait for the in-flight SyncFull to complete
+	pauseDone := make(chan struct{})
+	go func() {
+		defer close(pauseDone)
+		state.PauseSync()
+	}()
+
+	select {
+	case <-pauseDone:
+		t.Fatal("PauseSync returned before in-flight SyncFull finished")
+	case <-time.After(50 * time.Millisecond):
+	}
+
+	close(rpc.unblockSync)
+	<-syncDone
+	<-pauseDone
+
+	require.True(t, state.Paused())
+	state.ResumeSync()
+}
+
+type blockingFakeRPC struct {
+	syncStarted chan struct{}
+	unblockSync chan struct{}
+	once        sync.Once
+}
+
+func (b *blockingFakeRPC) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
+	b.once.Do(func() {
+		close(b.syncStarted)
+		<-b.unblockSync
+	})
+	return nil
+}
+
+func (b *blockingFakeRPC) ResolveTokenAndDefaultMeta(string, *acl.EnterpriseMeta, *acl.AuthorizerContext) (resolver.Result, error) {
 	return resolver.Result{}, nil
 }
