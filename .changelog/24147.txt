@@ -1,0 +1,3 @@
+```release-note:bug
+catalog: Fixed the `consul-version` node metadata keeping the version from before an upgrade when the agent cannot update its own node info.
+```

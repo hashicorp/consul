@@ -4,6 +4,7 @@
 package consul
 
 import (
+	"maps"
 	"reflect"
 	"strconv"
 	"strings"
@@ -81,6 +82,14 @@ func (r V1ConsulRegistrator) HandleAliveMember(member serf.Member, nodeEntMeta *
 		return err
 	}
 	if node != nil && node.Address == member.Addr.String() {
+		// Check if the node's Consul version is stale, e.g. after an upgrade.
+		// Nodes without the key are left alone.
+		if v, ok := node.Meta[structs.MetaConsulVersion]; ok {
+			if build, err := metadata.Build(&member); err == nil && v != build.String() {
+				goto AFTER_CHECK
+			}
+		}
+
 		// Check if the associated service is available
 		if service != nil {
 			match := false
@@ -146,7 +155,12 @@ AFTER_CHECK:
 	}
 	if node != nil {
 		req.TaggedAddresses = node.TaggedAddresses
-		req.NodeMeta = node.Meta
+		// Keep the existing node meta, but refresh the Consul version. Copy
+		// the map, since node.Meta is owned by the state store.
+		meta := make(map[string]string, len(node.Meta)+1)
+		maps.Copy(meta, node.Meta)
+		meta[structs.MetaConsulVersion] = buildVersion.String()
+		req.NodeMeta = meta
 	}
 
 	_, err = r.RaftApplyFunc(structs.RegisterRequestType, &req)
