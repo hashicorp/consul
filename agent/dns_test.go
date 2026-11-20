@@ -160,7 +160,6 @@ func dnsTXT(src string, txt []string) *dns.TXT {
 	}
 }
 
-// Copied to agent/dns/recursor_test.go
 func TestDNS_RecursorAddr(t *testing.T) {
 	addr, err := recursorAddr("8.8.8.8")
 	if err != nil {
