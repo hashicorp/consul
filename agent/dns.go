@@ -1403,11 +1403,10 @@ func trimTCPResponse(req, resp *dns.Msg) (trimmed bool) {
 		index = make(map[string]dns.RR, len(resp.Extra))
 		indexRRs(resp.Extra, index)
 	}
-	truncated := false
+	numAnswers := len(resp.Answer)
 
 	// This enforces the given limit on 64k, the max limit for DNS messages
 	for len(resp.Answer) > 1 && resp.Len() > maxSize {
-		truncated = true
 		// first try to remove the NS section may be it will truncate enough
 		if len(resp.Ns) != 0 {
 			resp.Ns = []dns.RR{}
@@ -1424,7 +1423,9 @@ func trimTCPResponse(req, resp *dns.Msg) (trimmed bool) {
 		}
 	}
 
-	return truncated
+	// Trimmed only if answers were dropped: the loop may run just because of
+	// the extra section, which syncExtra shrinks while keeping every answer.
+	return len(resp.Answer) < numAnswers
 }
 
 // trimUDPResponse makes sure a UDP response is not longer than allowed by RFC
