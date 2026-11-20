@@ -11,6 +11,9 @@ regex based, template engine. For example:
       Datacenter="dc1"
       Service=(hash
         Name="Hello-Service"
+        Meta=(hash
+          dashboard="G7Z29GzMGz"
+        )
       )
     )
   }}
@@ -18,6 +21,8 @@ regex based, template engine. For example:
 </figure>
 
 ```
+
+Currently supported variables include `Datacenter`, `Service.Name`, `Service.Namespace`, `Service.Partition`, and `Service.Meta.<key>`.
 
 Additionally the variables passed into the template are automatically URL
 encoded as our primary usecase for this is for creating dynamic links/URLs. If
