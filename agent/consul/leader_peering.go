@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"slices"
 	"strings"
 	"time"
 
@@ -320,8 +321,7 @@ func (s *Server) establishStream(ctx context.Context,
 		return fmt.Errorf("expected PeerID to be non empty; the wrong end of peering is being dialed")
 	}
 
-	tlsOption, err := peer.TLSDialOption()
-	if err != nil {
+	if _, err := peer.TLSDialOption(); err != nil {
 		return fmt.Errorf("failed to build TLS dial option from peering: %w", err)
 	}
 
@@ -344,6 +344,10 @@ func (s *Server) establishStream(ctx context.Context,
 	nextServerAddr := make(chan string)
 	go s.watchAddresses(streamCtx, peer.ID, nextServerAddr)
 
+	// dialPeer and dialSecret are refreshed from the state store before every dial attempt and are
+	// only accessed from the retry loop goroutine below.
+	dialPeer, dialSecret := peer, secret
+
 	// Establish a stream-specific retry so that retrying stream/conn errors isn't dependent on state store changes.
 	go retryLoopBackoffPeering(streamCtx, logger, func() error {
 		// Try a new address on each iteration by advancing the ring buffer on errors.
@@ -351,6 +355,16 @@ func (s *Server) establishStream(ctx context.Context,
 		if !stillOpen {
 			// If the channel was closed that means the context was canceled, so we return.
 			return streamCtx.Err()
+		}
+
+		// The syncer does not restart this loop while the stream is connected, so data written in the
+		// meantime (e.g. the peer's new CA roots after a Connect CA rotation, or a new stream secret)
+		// would otherwise never be used when re-dialing.
+		dialPeer, dialSecret = refreshPeeringForDial(s.fsm.State(), logger, dialPeer, dialSecret)
+
+		tlsOption, err := dialPeer.TLSDialOption()
+		if err != nil {
+			return fmt.Errorf("failed to build TLS dial option from peering: %w", err)
 		}
 
 		opts := []grpc.DialOption{
@@ -384,8 +398,8 @@ func (s *Server) establishStream(ctx context.Context,
 		initialReq := &pbpeerstream.ReplicationMessage{
 			Payload: &pbpeerstream.ReplicationMessage_Open_{
 				Open: &pbpeerstream.ReplicationMessage_Open{
-					PeerID:         peer.PeerID,
-					StreamSecretID: secret.GetStream().GetActiveSecretID(),
+					PeerID:         dialPeer.PeerID,
+					StreamSecretID: dialSecret.GetStream().GetActiveSecretID(),
 					Remote: &pbpeering.RemoteInfo{
 						Partition:  peer.Partition,
 						Datacenter: s.config.Datacenter,
@@ -400,7 +414,7 @@ func (s *Server) establishStream(ctx context.Context,
 
 		streamReq := peerstream.HandleStreamRequest{
 			LocalID:   peer.ID,
-			RemoteID:  peer.PeerID,
+			RemoteID:  dialPeer.PeerID,
 			PeerName:  peer.Name,
 			Partition: peer.Partition,
 			Stream:    stream,
@@ -437,6 +451,40 @@ func (s *Server) establishStream(ctx context.Context,
 	}, peeringRetryTimeout)
 
 	return nil
+}
+
+// refreshPeeringForDial returns the latest stored peering and stream secret to use for the next dial attempt.
+// If the peering or its secret can't be read, or no longer holds usable values (for example while the peering is
+// being deleted), the previously used values are returned so the retry loop behaves as it did before.
+func refreshPeeringForDial(store *state.Store, logger hclog.Logger, prev *pbpeering.Peering, prevSecret *pbpeering.PeeringSecrets) (*pbpeering.Peering, *pbpeering.PeeringSecrets) {
+	peer, secret := prev, prevSecret
+
+	_, latest, err := store.PeeringReadByID(nil, prev.ID)
+	switch {
+	case err != nil:
+		logger.Warn("failed to read peering before dialing, using previous peering data", "error", err)
+	case latest == nil || latest.PeerID == "":
+		// The peering was removed or is not dialable; keep the previous values.
+	case !slices.Equal(latest.PeerCAPems, prev.PeerCAPems) || latest.PeerServerName != prev.PeerServerName:
+		if _, err := latest.TLSDialOption(); err != nil {
+			logger.Warn("stored peering has invalid TLS data, using previous peering data", "error", err)
+			break
+		}
+		logger.Debug("using updated peer CA roots and server name for dialing")
+		peer = latest
+	default:
+		peer = latest
+	}
+
+	latestSecret, err := store.PeeringSecretsRead(nil, prev.ID)
+	switch {
+	case err != nil:
+		logger.Warn("failed to read peering secret before dialing, using previous secret", "error", err)
+	case latestSecret.GetStream().GetActiveSecretID() != "":
+		secret = latestSecret
+	}
+
+	return peer, secret
 }
 
 // watchAddresses sends an up-to-date address to nextServerAddr.
@@ -707,11 +755,7 @@ func peeringRetryTimeout(failedAttempts uint, loopErr error) time.Duration {
 		// we're on, starting at 1 now that we're past our maxFastConnRetries.
 		// For example if fastConnRetryTimeout == 8ms and maxFastConnRetries == 5, then at 6 failed retries
 		// we'll do 8ms * 2^1 = 16ms, then 8ms * 2^2 = 32ms, etc.
-		ms := fastConnRetryTimeout * (1 << (failedAttempts - maxFastConnRetries))
-		if ms > maxFastRetryBackoff {
-			return maxFastRetryBackoff
-		}
-		return ms
+		return exponentialBackoff(fastConnRetryTimeout, failedAttempts-maxFastConnRetries, maxFastRetryBackoff)
 	}
 
 	// if the message sent is too large probably should not retry at all
@@ -720,10 +764,24 @@ func peeringRetryTimeout(failedAttempts uint, loopErr error) time.Duration {
 	}
 
 	// Else we go with the default backoff from retryLoopBackoff.
-	if (1 << failedAttempts) < maxRetryBackoffPeering {
-		return (1 << failedAttempts) * time.Second
+	return exponentialBackoff(time.Second, failedAttempts, time.Duration(maxRetryBackoffPeering)*time.Second)
+}
+
+// exponentialBackoff retu rns base * 2^exp, capped at max. It doubles step by step instead of shifting
+// so that a large exp (failedAttempts is never reset while a peering keeps failing) can't overflow
+// into a zero or negative backoff.
+func exponentialBackoff(base time.Duration, exp uint, max time.Duration) time.Duration {
+	backoff := base
+	for i := uint(0); i < exp; i++ {
+		if backoff >= max/2 {
+			return max
+		}
+		backoff *= 2
 	}
-	return time.Duration(maxRetryBackoffPeering) * time.Second
+	if backoff > max {
+		return max
+	}
+	return backoff
 }
 
 // isErrCode returns true if err is a gRPC error with given error code.
