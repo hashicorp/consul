@@ -1,0 +1,3 @@
+```release-note:improvement
+dns: SRV lookups no longer compile two regular expressions for every node metadata TXT record, which makes them noticeably cheaper for services with many instances.
+```
