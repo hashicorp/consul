@@ -339,3 +339,28 @@ func TestHandleStream_ReturnsWhenStreamContextEnds(t *testing.T) {
 		require.False(t, status.Connected)
 	}
 }
+
+// A second stream for a peering that already has an active stream is rejected. The rejected stream never became
+// the active one, so it must not mark the active stream as disconnected.
+func TestHandleStream_RejectedDuplicateKeepsActiveStreamConnected(t *testing.T) {
+	srv, p := setupShutdownTest(t, nil)
+
+	active := newShutdownTestStream(t)
+	errCh := startHandleStream(t, srv, HandleStreamRequest{LocalID: p.ID, PeerName: p.Name, Stream: active})
+
+	duplicate := newShutdownTestStream(t)
+	err := srv.HandleStream(HandleStreamRequest{LocalID: p.ID, PeerName: p.Name, Stream: duplicate})
+	require.ErrorContains(t, err, "there is an active stream")
+
+	status, ok := srv.StreamStatus(p.ID)
+	require.True(t, ok)
+	require.True(t, status.Connected)
+	require.Empty(t, status.DisconnectErrorMessage)
+
+	// The active stream still ends normally and updates the status.
+	close(active.in)
+	require.Error(t, waitHandleStream(t, errCh))
+	status, _ = srv.StreamStatus(p.ID)
+	require.False(t, status.Connected)
+	require.NotEmpty(t, status.DisconnectErrorMessage)
+}
