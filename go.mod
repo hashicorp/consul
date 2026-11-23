@@ -5,6 +5,7 @@ go 1.26.10
 replace (
 	github.com/hashicorp/consul/api => ./api
 	github.com/hashicorp/consul/envoyextensions => ./envoyextensions
+	github.com/hashicorp/consul/lifecycle => ./lifecycle
 	github.com/hashicorp/consul/proto-public => ./proto-public
 	github.com/hashicorp/consul/sdk => ./sdk
 	github.com/hashicorp/consul/troubleshoot => ./troubleshoot
@@ -50,6 +51,7 @@ require (
 	github.com/hashicorp/consul-net-rpc v0.0.0-20260422052036-0160352460d6
 	github.com/hashicorp/consul/api v1.35.0
 	github.com/hashicorp/consul/envoyextensions v0.11.1
+	github.com/hashicorp/consul/lifecycle v0.0.0
 	github.com/hashicorp/consul/proto-public v0.9.0
 	github.com/hashicorp/consul/sdk v0.19.0
 	github.com/hashicorp/consul/troubleshoot v0.10.1
