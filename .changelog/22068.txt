@@ -1,3 +1,0 @@
-```release-note:bug
-agent: fix UDP health checks hanging forever when the peer does not answer, which left the service stuck on its last reported status.
-```
