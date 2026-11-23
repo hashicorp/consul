@@ -380,7 +380,10 @@ func TestTracker_DisconnectedIfCurrent(t *testing.T) {
 	})
 
 	t.Run("a rejected duplicate gets no generation", func(t *testing.T) {
+		tracker := NewTracker(0)
 		_, _, err := tracker.ConnectedWithGeneration(aPeerID)
+		require.NoError(t, err)
+		_, _, err = tracker.ConnectedWithGeneration(aPeerID)
 		require.ErrorContains(t, err, "there is an active stream")
 		status, _ := tracker.StreamStatus(aPeerID)
 		require.True(t, status.Connected)
