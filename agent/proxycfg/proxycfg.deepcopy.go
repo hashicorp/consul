@@ -374,84 +374,7 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 		copy(cp.TLSConfig.CipherSuites, o.TLSConfig.CipherSuites)
 	}
 	if o.GatewayConfig != nil {
-		cp.GatewayConfig = new(structs.APIGatewayConfigEntry)
-		*cp.GatewayConfig = *o.GatewayConfig
-		if o.GatewayConfig.TLS.SDS != nil {
-			cp.GatewayConfig.TLS.SDS = new(structs.GatewayTLSSDSConfig)
-			*cp.GatewayConfig.TLS.SDS = *o.GatewayConfig.TLS.SDS
-		}
-		if o.GatewayConfig.TLS.CipherSuites != nil {
-			cp.GatewayConfig.TLS.CipherSuites = make([]types.TLSCipherSuite, len(o.GatewayConfig.TLS.CipherSuites))
-			copy(cp.GatewayConfig.TLS.CipherSuites, o.GatewayConfig.TLS.CipherSuites)
-		}
-		if o.GatewayConfig.Listeners != nil {
-			cp.GatewayConfig.Listeners = make([]structs.APIGatewayListener, len(o.GatewayConfig.Listeners))
-			copy(cp.GatewayConfig.Listeners, o.GatewayConfig.Listeners)
-			for i4 := range o.GatewayConfig.Listeners {
-				{
-					retV := o.GatewayConfig.Listeners[i4].DeepCopy()
-					cp.GatewayConfig.Listeners[i4] = *retV
-				}
-			}
-		}
-		if o.GatewayConfig.Defaults != nil {
-			cp.GatewayConfig.Defaults = new(structs.UpstreamLimits)
-			*cp.GatewayConfig.Defaults = *o.GatewayConfig.Defaults
-			if o.GatewayConfig.Defaults.MaxConnections != nil {
-				cp.GatewayConfig.Defaults.MaxConnections = new(int)
-				*cp.GatewayConfig.Defaults.MaxConnections = *o.GatewayConfig.Defaults.MaxConnections
-			}
-			if o.GatewayConfig.Defaults.MaxPendingRequests != nil {
-				cp.GatewayConfig.Defaults.MaxPendingRequests = new(int)
-				*cp.GatewayConfig.Defaults.MaxPendingRequests = *o.GatewayConfig.Defaults.MaxPendingRequests
-			}
-			if o.GatewayConfig.Defaults.MaxConcurrentRequests != nil {
-				cp.GatewayConfig.Defaults.MaxConcurrentRequests = new(int)
-				*cp.GatewayConfig.Defaults.MaxConcurrentRequests = *o.GatewayConfig.Defaults.MaxConcurrentRequests
-			}
-			if o.GatewayConfig.Defaults.PassiveHealthCheck != nil {
-				cp.GatewayConfig.Defaults.PassiveHealthCheck = new(structs.PassiveHealthCheck)
-				*cp.GatewayConfig.Defaults.PassiveHealthCheck = *o.GatewayConfig.Defaults.PassiveHealthCheck
-				if o.GatewayConfig.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx != nil {
-					cp.GatewayConfig.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx = new(uint32)
-					*cp.GatewayConfig.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx = *o.GatewayConfig.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx
-				}
-				if o.GatewayConfig.Defaults.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure != nil {
-					cp.GatewayConfig.Defaults.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure = new(uint32)
-					*cp.GatewayConfig.Defaults.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure = *o.GatewayConfig.Defaults.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure
-				}
-				if o.GatewayConfig.Defaults.PassiveHealthCheck.Consecutive5xx != nil {
-					cp.GatewayConfig.Defaults.PassiveHealthCheck.Consecutive5xx = new(uint32)
-					*cp.GatewayConfig.Defaults.PassiveHealthCheck.Consecutive5xx = *o.GatewayConfig.Defaults.PassiveHealthCheck.Consecutive5xx
-				}
-				if o.GatewayConfig.Defaults.PassiveHealthCheck.ConsecutiveGatewayFailure != nil {
-					cp.GatewayConfig.Defaults.PassiveHealthCheck.ConsecutiveGatewayFailure = new(uint32)
-					*cp.GatewayConfig.Defaults.PassiveHealthCheck.ConsecutiveGatewayFailure = *o.GatewayConfig.Defaults.PassiveHealthCheck.ConsecutiveGatewayFailure
-				}
-				if o.GatewayConfig.Defaults.PassiveHealthCheck.MaxEjectionPercent != nil {
-					cp.GatewayConfig.Defaults.PassiveHealthCheck.MaxEjectionPercent = new(uint32)
-					*cp.GatewayConfig.Defaults.PassiveHealthCheck.MaxEjectionPercent = *o.GatewayConfig.Defaults.PassiveHealthCheck.MaxEjectionPercent
-				}
-				if o.GatewayConfig.Defaults.PassiveHealthCheck.BaseEjectionTime != nil {
-					cp.GatewayConfig.Defaults.PassiveHealthCheck.BaseEjectionTime = new(time.Duration)
-					*cp.GatewayConfig.Defaults.PassiveHealthCheck.BaseEjectionTime = *o.GatewayConfig.Defaults.PassiveHealthCheck.BaseEjectionTime
-				}
-			}
-		}
-		if o.GatewayConfig.ExtAuthz != nil {
-			cp.GatewayConfig.ExtAuthz = new(structs.APIGatewayExtAuthz)
-			*cp.GatewayConfig.ExtAuthz = *o.GatewayConfig.ExtAuthz
-		}
-		{
-			retV := o.GatewayConfig.Status.DeepCopy()
-			cp.GatewayConfig.Status = *retV
-		}
-		if o.GatewayConfig.Meta != nil {
-			cp.GatewayConfig.Meta = make(map[string]string, len(o.GatewayConfig.Meta))
-			for k4, v4 := range o.GatewayConfig.Meta {
-				cp.GatewayConfig.Meta[k4] = v4
-			}
-		}
+		cp.GatewayConfig = o.GatewayConfig.DeepCopy()
 	}
 	if o.BoundGatewayConfig != nil {
 		cp.BoundGatewayConfig = o.BoundGatewayConfig.DeepCopy()
@@ -497,6 +420,13 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 	cp.TCPRoutes = o.TCPRoutes.DeepCopy()
 	cp.InlineCertificates = o.InlineCertificates.DeepCopy()
 	cp.FileSystemCertificates = o.FileSystemCertificates.DeepCopy()
+	cp.ClientCACertificates = o.ClientCACertificates.DeepCopy()
+	if o.ClientCAWatchRefs != nil {
+		cp.ClientCAWatchRefs = make(map[string]structs.ResourceReference, len(o.ClientCAWatchRefs))
+		for k2, v2 := range o.ClientCAWatchRefs {
+			cp.ClientCAWatchRefs[k2] = v2
+		}
+	}
 	if o.LeafCertDNSSANs != nil {
 		cp.LeafCertDNSSANs = make([]string, len(o.LeafCertDNSSANs))
 		copy(cp.LeafCertDNSSANs, o.LeafCertDNSSANs)

@@ -11,6 +11,11 @@ func APIGatewayToStructs(s *APIGateway, t *structs.APIGatewayConfigEntry) {
 	if s.TLS != nil {
 		GatewayTLSConfigToStructs(s.TLS, &t.TLS)
 	}
+	if s.FrontendTLS != nil {
+		var x structs.APIGatewayFrontendTLSConfig
+		APIGatewayFrontendTLSConfigToStructs(s.FrontendTLS, &x)
+		t.FrontendTLS = &x
+	}
 	{
 		t.Listeners = make([]structs.APIGatewayListener, len(s.Listeners))
 		for i := range s.Listeners {
@@ -40,6 +45,11 @@ func APIGatewayFromStructs(t *structs.APIGatewayConfigEntry, s *APIGateway) {
 		GatewayTLSConfigFromStructs(&t.TLS, &x)
 		s.TLS = &x
 	}
+	if t.FrontendTLS != nil {
+		var x APIGatewayFrontendTLSConfig
+		APIGatewayFrontendTLSConfigFromStructs(t.FrontendTLS, &x)
+		s.FrontendTLS = &x
+	}
 	{
 		s.Listeners = make([]*APIGatewayListener, len(t.Listeners))
 		for i := range t.Listeners {
@@ -63,6 +73,96 @@ func APIGatewayFromStructs(t *structs.APIGatewayConfigEntry, s *APIGateway) {
 	}
 	s.Meta = t.Meta
 	s.Hash = t.Hash
+}
+func APIGatewayFrontendTLSConfigToStructs(s *APIGatewayFrontendTLSConfig, t *structs.APIGatewayFrontendTLSConfig) {
+	if s == nil {
+		return
+	}
+	if s.Default != nil {
+		var x structs.APIGatewayFrontendTLSValidation
+		APIGatewayFrontendTLSValidationToStructs(s.Default, &x)
+		t.Default = &x
+	}
+	{
+		t.PerPort = make([]structs.APIGatewayFrontendTLSPortConfig, len(s.PerPort))
+		for i := range s.PerPort {
+			if s.PerPort[i] != nil {
+				APIGatewayFrontendTLSPortConfigToStructs(s.PerPort[i], &t.PerPort[i])
+			}
+		}
+	}
+}
+func APIGatewayFrontendTLSConfigFromStructs(t *structs.APIGatewayFrontendTLSConfig, s *APIGatewayFrontendTLSConfig) {
+	if s == nil {
+		return
+	}
+	if t.Default != nil {
+		var x APIGatewayFrontendTLSValidation
+		APIGatewayFrontendTLSValidationFromStructs(t.Default, &x)
+		s.Default = &x
+	}
+	{
+		s.PerPort = make([]*APIGatewayFrontendTLSPortConfig, len(t.PerPort))
+		for i := range t.PerPort {
+			{
+				var x APIGatewayFrontendTLSPortConfig
+				APIGatewayFrontendTLSPortConfigFromStructs(&t.PerPort[i], &x)
+				s.PerPort[i] = &x
+			}
+		}
+	}
+}
+func APIGatewayFrontendTLSPortConfigToStructs(s *APIGatewayFrontendTLSPortConfig, t *structs.APIGatewayFrontendTLSPortConfig) {
+	if s == nil {
+		return
+	}
+	t.Port = int(s.Port)
+	if s.Validation != nil {
+		var x structs.APIGatewayFrontendTLSValidation
+		APIGatewayFrontendTLSValidationToStructs(s.Validation, &x)
+		t.Validation = &x
+	}
+}
+func APIGatewayFrontendTLSPortConfigFromStructs(t *structs.APIGatewayFrontendTLSPortConfig, s *APIGatewayFrontendTLSPortConfig) {
+	if s == nil {
+		return
+	}
+	s.Port = int32(t.Port)
+	if t.Validation != nil {
+		var x APIGatewayFrontendTLSValidation
+		APIGatewayFrontendTLSValidationFromStructs(t.Validation, &x)
+		s.Validation = &x
+	}
+}
+func APIGatewayFrontendTLSValidationToStructs(s *APIGatewayFrontendTLSValidation, t *structs.APIGatewayFrontendTLSValidation) {
+	if s == nil {
+		return
+	}
+	t.Mode = frontendValidationModeToStructs(s.Mode)
+	{
+		t.CACertificateRefs = make([]structs.ResourceReference, len(s.CACertificateRefs))
+		for i := range s.CACertificateRefs {
+			if s.CACertificateRefs[i] != nil {
+				ResourceReferenceToStructs(s.CACertificateRefs[i], &t.CACertificateRefs[i])
+			}
+		}
+	}
+}
+func APIGatewayFrontendTLSValidationFromStructs(t *structs.APIGatewayFrontendTLSValidation, s *APIGatewayFrontendTLSValidation) {
+	if s == nil {
+		return
+	}
+	s.Mode = frontendValidationModeFromStructs(t.Mode)
+	{
+		s.CACertificateRefs = make([]*ResourceReference, len(t.CACertificateRefs))
+		for i := range t.CACertificateRefs {
+			{
+				var x ResourceReference
+				ResourceReferenceFromStructs(&t.CACertificateRefs[i], &x)
+				s.CACertificateRefs[i] = &x
+			}
+		}
+	}
 }
 func APIGatewayListenerToStructs(s *APIGatewayListener, t *structs.APIGatewayListener) {
 	if s == nil {

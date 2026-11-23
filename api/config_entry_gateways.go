@@ -284,6 +284,10 @@ type APIGatewayConfigEntry struct {
 	// TLS settings may override these defaults.
 	TLS GatewayTLSConfig
 
+	// FrontendTLS configures client-certificate validation for TLS-terminating
+	// listeners. Per-port settings replace the default for the matching port.
+	FrontendTLS *APIGatewayFrontendTLSConfig `json:",omitempty" alias:"frontend_tls"`
+
 	Meta map[string]string `json:",omitempty"`
 
 	// Listeners is the set of listener configuration to which an API Gateway
@@ -320,6 +324,42 @@ type APIGatewayConfigEntry struct {
 	// Namespace is the namespace the config entry is associated with.
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
+}
+
+type APIGatewayFrontendValidationMode string
+
+const (
+	APIGatewayFrontendValidationAllowValidOnly        APIGatewayFrontendValidationMode = "AllowValidOnly"
+	APIGatewayFrontendValidationAllowInsecureFallback APIGatewayFrontendValidationMode = "AllowInsecureFallback"
+	// APIGatewayFrontendValidationDenyAll disables listeners when a configured policy cannot be resolved.
+	APIGatewayFrontendValidationDenyAll APIGatewayFrontendValidationMode = "DenyAll"
+)
+
+type APIGatewayFrontendTLSConfig struct {
+	Default *APIGatewayFrontendTLSValidation  `json:",omitempty"`
+	PerPort []APIGatewayFrontendTLSPortConfig `json:",omitempty" alias:"per_port"`
+}
+
+type APIGatewayFrontendTLSPortConfig struct {
+	Port       int
+	Validation *APIGatewayFrontendTLSValidation `json:",omitempty"`
+}
+
+type APIGatewayFrontendTLSValidation struct {
+	Mode              APIGatewayFrontendValidationMode
+	CACertificateRefs []ResourceReference `json:",omitempty" alias:"ca_certificate_refs"`
+}
+
+func (c *APIGatewayFrontendTLSConfig) ValidationForPort(port int) *APIGatewayFrontendTLSValidation {
+	if c == nil {
+		return nil
+	}
+	for _, override := range c.PerPort {
+		if override.Port == port {
+			return override.Validation
+		}
+	}
+	return c.Default
 }
 
 func (g *APIGatewayConfigEntry) GetKind() string            { return g.Kind }

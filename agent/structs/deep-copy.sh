@@ -10,6 +10,7 @@ cd $PACKAGE_DIR
 deep-copy \
   -pointer-receiver \
   -o ./structs.deepcopy.go \
+  -type APIGatewayConfigEntry \
   -type APIGatewayListener \
   -type BoundAPIGatewayListener \
   -type CARoot \

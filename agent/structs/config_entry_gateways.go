@@ -807,6 +807,10 @@ type APIGatewayConfigEntry struct {
 	// TLS settings may override these defaults.
 	TLS GatewayTLSConfig
 
+	// FrontendTLS configures client-certificate validation for TLS-terminating
+	// listeners. Per-port settings replace the default for the matching port.
+	FrontendTLS *APIGatewayFrontendTLSConfig `json:",omitempty" alias:"frontend_tls"`
+
 	// Listeners is the set of listener configuration to which an API Gateway
 	// might bind.
 	Listeners []APIGatewayListener
@@ -875,6 +879,28 @@ func (e *APIGatewayConfigEntry) ListenerIsReady(name string) bool {
 }
 
 func (e *APIGatewayConfigEntry) Normalize() error {
+	if e.FrontendTLS != nil {
+		normalizeValidation := func(validation *APIGatewayFrontendTLSValidation) {
+			if validation == nil {
+				return
+			}
+			if validation.Mode == "" {
+				validation.Mode = APIGatewayFrontendValidationAllowValidOnly
+			}
+			for i := range validation.CACertificateRefs {
+				ref := &validation.CACertificateRefs[i]
+				if ref.Kind == "" {
+					ref.Kind = FileSystemCertificate
+				}
+				ref.Merge(e.GetEnterpriseMeta())
+				ref.Normalize()
+			}
+		}
+		normalizeValidation(e.FrontendTLS.Default)
+		for i := range e.FrontendTLS.PerPort {
+			normalizeValidation(e.FrontendTLS.PerPort[i].Validation)
+		}
+	}
 	for i, listener := range e.Listeners {
 		protocol := strings.ToLower(string(listener.Protocol))
 		listener.Protocol = APIGatewayListenerProtocol(protocol)
@@ -899,11 +925,101 @@ func (e *APIGatewayConfigEntry) Normalize() error {
 	return nil
 }
 
+type APIGatewayFrontendValidationMode string
+
+const (
+	APIGatewayFrontendValidationAllowValidOnly        APIGatewayFrontendValidationMode = "AllowValidOnly"
+	APIGatewayFrontendValidationAllowInsecureFallback APIGatewayFrontendValidationMode = "AllowInsecureFallback"
+	APIGatewayFrontendValidationDenyAll               APIGatewayFrontendValidationMode = "DenyAll"
+)
+
+type APIGatewayFrontendTLSConfig struct {
+	Default *APIGatewayFrontendTLSValidation  `json:",omitempty"`
+	PerPort []APIGatewayFrontendTLSPortConfig `json:",omitempty" alias:"per_port"`
+}
+
+type APIGatewayFrontendTLSPortConfig struct {
+	Port       int
+	Validation *APIGatewayFrontendTLSValidation `json:",omitempty"`
+}
+
+type APIGatewayFrontendTLSValidation struct {
+	Mode              APIGatewayFrontendValidationMode
+	CACertificateRefs []ResourceReference `json:",omitempty" alias:"ca_certificate_refs"`
+}
+
+func (c *APIGatewayFrontendTLSConfig) ValidationForPort(port int) *APIGatewayFrontendTLSValidation {
+	if c == nil {
+		return nil
+	}
+	for _, override := range c.PerPort {
+		if override.Port == port {
+			return override.Validation
+		}
+	}
+	return c.Default
+}
+
+func (e *APIGatewayConfigEntry) validateFrontendTLS() error {
+	if e.FrontendTLS == nil {
+		return nil
+	}
+
+	validate := func(validation *APIGatewayFrontendTLSValidation) error {
+		if validation == nil {
+			return nil
+		}
+		switch validation.Mode {
+		case APIGatewayFrontendValidationAllowValidOnly, APIGatewayFrontendValidationAllowInsecureFallback:
+		case APIGatewayFrontendValidationDenyAll:
+			if len(validation.CACertificateRefs) != 0 {
+				return fmt.Errorf("DenyAll frontend TLS validation cannot reference CA certificates")
+			}
+			return nil
+		default:
+			return fmt.Errorf("unsupported frontend TLS validation mode %q", validation.Mode)
+		}
+		if len(validation.CACertificateRefs) != 1 {
+			return fmt.Errorf("frontend TLS validation must reference exactly one CA certificate")
+		}
+		for _, ref := range validation.CACertificateRefs {
+			if ref.Kind != FileSystemCertificate {
+				return fmt.Errorf("unsupported frontend CA certificate kind %q", ref.Kind)
+			}
+			if ref.Name == "" {
+				return fmt.Errorf("frontend CA certificate reference must have a name")
+			}
+		}
+		return nil
+	}
+
+	if err := validate(e.FrontendTLS.Default); err != nil {
+		return err
+	}
+	ports := make(map[int]struct{}, len(e.FrontendTLS.PerPort))
+	for _, override := range e.FrontendTLS.PerPort {
+		if override.Port <= 0 || override.Port > 65535 {
+			return fmt.Errorf("frontend TLS port %d not in the range 1-65535", override.Port)
+		}
+		if _, ok := ports[override.Port]; ok {
+			return fmt.Errorf("frontend TLS port %d is configured more than once", override.Port)
+		}
+		ports[override.Port] = struct{}{}
+		if err := validate(override.Validation); err != nil {
+			return fmt.Errorf("frontend TLS port %d: %w", override.Port, err)
+		}
+	}
+	return nil
+}
+
 func (e *APIGatewayConfigEntry) Validate() error {
 	if err := validateConfigEntryMeta(e.Meta); err != nil {
 		return err
 	}
 	if err := validateGatewayTLSConfig(e.TLS, false, "gateway"); err != nil {
+		return err
+	}
+	if err := e.validateFrontendTLS(); err != nil {
 		return err
 	}
 

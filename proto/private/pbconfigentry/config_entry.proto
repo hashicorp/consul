@@ -871,6 +871,39 @@ message APIGateway {
   UpstreamLimits Defaults = 6;
   // mog: func-to=gwExtAuthzToStructs func-from=gwExtAuthzFromStructs
   APIGatewayExtAuthz ExtAuthz = 7;
+  APIGatewayFrontendTLSConfig FrontendTLS = 8;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.APIGatewayFrontendTLSConfig
+// output=config_entry.gen.go
+// name=Structs
+message APIGatewayFrontendTLSConfig {
+  APIGatewayFrontendTLSValidation Default = 1;
+  repeated APIGatewayFrontendTLSPortConfig PerPort = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.APIGatewayFrontendTLSPortConfig
+// output=config_entry.gen.go
+// name=Structs
+message APIGatewayFrontendTLSPortConfig {
+  // mog: func-to=int func-from=int32
+  int32 Port = 1;
+  APIGatewayFrontendTLSValidation Validation = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.APIGatewayFrontendTLSValidation
+// output=config_entry.gen.go
+// name=Structs
+message APIGatewayFrontendTLSValidation {
+  // mog: func-to=frontendValidationModeToStructs func-from=frontendValidationModeFromStructs
+  string Mode = 1;
+  repeated ResourceReference CACertificateRefs = 2;
 }
 
 message APIGatewayExtAuthz {

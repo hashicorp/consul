@@ -6,6 +6,7 @@ package xds
 import (
 	"errors"
 	"fmt"
+	"net/url"
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
@@ -144,7 +145,34 @@ func (s *ResourceGenerator) secretsFromSnapshotAPIGateway(cfgSnap *proxycfg.Conf
 		return true
 	})
 
+	cfgSnap.APIGateway.ClientCACertificates.ForEachKey(func(ref structs.ResourceReference) bool {
+		ca, ok := cfgSnap.APIGateway.ClientCACertificates.Get(ref)
+		if !ok || ca == nil || ca.Certificate == "" {
+			return true
+		}
+		resources = append(resources, &envoy_tls_v3.Secret{
+			Name: apiGatewayClientCASecretName(ref),
+			Type: &envoy_tls_v3.Secret_ValidationContext{
+				ValidationContext: &envoy_tls_v3.CertificateValidationContext{
+					TrustedCa: &envoy_core_v3.DataSource{
+						Specifier: &envoy_core_v3.DataSource_Filename{Filename: ca.Certificate},
+					},
+				},
+			},
+		})
+		return true
+	})
+
 	return resources
+}
+
+func apiGatewayClientCASecretName(ref structs.ResourceReference) string {
+	return fmt.Sprintf(
+		"gateway-client-ca/%s/%s/%s",
+		url.PathEscape(ref.PartitionOrDefault()),
+		url.PathEscape(ref.NamespaceOrDefault()),
+		url.PathEscape(ref.Name),
+	)
 }
 
 // terminatingGatewayLeafSecretName returns the SDS name for a linked service's

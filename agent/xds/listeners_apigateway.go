@@ -63,6 +63,10 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 		}
 
 		isAPIGatewayWithTLS := len(boundListener.Certificates) > 0 || hasSDSCert(effectiveTLSCfg.SDS) || len(routeSDSOverrides) > 0
+		var frontendValidation *structs.APIGatewayFrontendTLSValidation
+		if cfgSnap.APIGateway.GatewayConfig != nil && cfgSnap.APIGateway.GatewayConfig.FrontendTLS != nil {
+			frontendValidation = cfgSnap.APIGateway.GatewayConfig.FrontendTLS.ValidationForPort(listenerCfg.Port)
+		}
 
 		tlsContext, err := makeDownstreamTLSContextFromSnapshotAPIListenerConfig(cfgSnap, listenerCfg)
 		if err != nil {
@@ -136,7 +140,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 				}
 
 				// construct SNI filter chains
-				l.FilterChains, err = s.makeInlineOverrideFilterChains(
+				l.FilterChains, err = s.makeInlineOverrideFilterChainsWithFrontendValidation(
 					cfgSnap,
 					*effectiveTLSCfg,
 					routeSDSOverrides,
@@ -155,6 +159,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 						serverHeaderName:     proxyConfig.EnvoyServerHeaderName,
 					},
 					certs,
+					frontendValidation,
 				)
 				if err != nil {
 					return nil, err
@@ -264,7 +269,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 			sniFilterChains := []*envoy_listener_v3.FilterChain{}
 
 			if isAPIGatewayWithTLS {
-				sniFilterChains, err = s.makeInlineOverrideFilterChains(cfgSnap, *effectiveTLSCfg, routeSDSOverrides, listenerKey.Protocol, filterOpts, certs)
+				sniFilterChains, err = s.makeInlineOverrideFilterChainsWithFrontendValidation(cfgSnap, *effectiveTLSCfg, routeSDSOverrides, listenerKey.Protocol, filterOpts, certs, frontendValidation)
 				if err != nil {
 					return nil, err
 				}
@@ -484,6 +489,9 @@ func getReadyListeners(cfgSnap *proxycfg.ConfigSnapshot) map[string]readyListene
 		if !cfgSnap.APIGateway.GatewayConfig.ListenerIsReady(boundListener.Name) {
 			continue
 		}
+		if !apiGatewayFrontendValidationReady(cfgSnap, boundListener.Port) {
+			continue
+		}
 
 		// Build a structs.APIGatewayListener view from the BoundAPIGatewayListener so
 		// that downstream callers (ConsolidateHTTPRoutes, GatewayAuthFilterBuilder, etc.)
@@ -563,6 +571,12 @@ func makeDownstreamTLSContextFromSnapshotAPIListenerConfig(
 		downstreamContext = &envoy_tls_v3.DownstreamTlsContext{
 			CommonTlsContext:         tlsContext,
 			RequireClientCertificate: &wrapperspb.BoolValue{Value: false},
+		}
+		if cfgSnap.APIGateway.GatewayConfig != nil && cfgSnap.APIGateway.GatewayConfig.FrontendTLS != nil {
+			validation := cfgSnap.APIGateway.GatewayConfig.FrontendTLS.ValidationForPort(listenerCfg.Port)
+			if err := applyAPIGatewayFrontendValidation(downstreamContext, validation); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -666,14 +680,79 @@ func hasCatchAllFilterChain(chains []*envoy_listener_v3.FilterChain) bool {
 	return false
 }
 
+func apiGatewayFrontendValidationReady(cfgSnap *proxycfg.ConfigSnapshot, port int) bool {
+	policy := cfgSnap.APIGateway.GatewayConfig.FrontendTLS.ValidationForPort(port)
+	if policy == nil {
+		return true
+	}
+	if policy.Mode != structs.APIGatewayFrontendValidationAllowValidOnly || len(policy.CACertificateRefs) != 1 {
+		return false
+	}
+	ca, ok := cfgSnap.APIGateway.ClientCACertificates.Get(policy.CACertificateRefs[0])
+	return ok && ca != nil && ca.Certificate != "" && ca.PrivateKey == ""
+}
+
+func applyAPIGatewayFrontendValidation(
+	downstreamContext *envoy_tls_v3.DownstreamTlsContext,
+	validation *structs.APIGatewayFrontendTLSValidation,
+) error {
+	if validation == nil {
+		return nil
+	}
+	if validation.Mode == structs.APIGatewayFrontendValidationAllowInsecureFallback {
+		return fmt.Errorf("frontend TLS validation mode %q is not safely supported", validation.Mode)
+	}
+	if validation.Mode != structs.APIGatewayFrontendValidationAllowValidOnly {
+		return fmt.Errorf("unsupported frontend TLS validation mode %q", validation.Mode)
+	}
+	if len(validation.CACertificateRefs) != 1 {
+		return fmt.Errorf("frontend TLS validation requires exactly one CA certificate reference")
+	}
+	if downstreamContext.CommonTlsContext == nil {
+		return fmt.Errorf("frontend TLS validation requires TLS termination")
+	}
+
+	ref := validation.CACertificateRefs[0]
+	downstreamContext.RequireClientCertificate = wrapperspb.Bool(true)
+	// A resumed session can bypass validation against the current CA bundle.
+	downstreamContext.SessionTicketKeysType = &envoy_tls_v3.DownstreamTlsContext_DisableStatelessSessionResumption{
+		DisableStatelessSessionResumption: true,
+	}
+	downstreamContext.DisableStatefulSessionResumption = true
+	downstreamContext.CommonTlsContext.ValidationContextType = &envoy_tls_v3.CommonTlsContext_ValidationContextSdsSecretConfig{
+		ValidationContextSdsSecretConfig: makeADSSecretConfig(apiGatewayClientCASecretName(ref), nil),
+	}
+	return nil
+}
+
 // when we have multiple certificates on a single listener, we need
 // to duplicate the filter chains with multiple TLS contexts
-func (s *ResourceGenerator) makeInlineOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
+func (s *ResourceGenerator) makeInlineOverrideFilterChains(
+	cfgSnap *proxycfg.ConfigSnapshot,
 	tlsCfg structs.GatewayTLSConfig,
 	serviceSDSOverrides []apiGatewayServiceSDSOverride,
 	protocol string,
 	filterOpts listenerFilterOpts,
 	certs []structs.ConfigEntry,
+) ([]*envoy_listener_v3.FilterChain, error) {
+	return s.makeInlineOverrideFilterChainsWithFrontendValidation(
+		cfgSnap,
+		tlsCfg,
+		serviceSDSOverrides,
+		protocol,
+		filterOpts,
+		certs,
+		nil,
+	)
+}
+
+func (s *ResourceGenerator) makeInlineOverrideFilterChainsWithFrontendValidation(cfgSnap *proxycfg.ConfigSnapshot,
+	tlsCfg structs.GatewayTLSConfig,
+	serviceSDSOverrides []apiGatewayServiceSDSOverride,
+	protocol string,
+	filterOpts listenerFilterOpts,
+	certs []structs.ConfigEntry,
+	frontendValidation *structs.APIGatewayFrontendTLSValidation,
 ) ([]*envoy_listener_v3.FilterChain, error) {
 	var chains []*envoy_listener_v3.FilterChain
 
@@ -686,10 +765,16 @@ func (s *ResourceGenerator) makeInlineOverrideFilterChains(cfgSnap *proxycfg.Con
 
 		// Configure alpn protocols on TLSContext
 		tlsContext.AlpnProtocols = getAlpnProtocols(protocol)
-		transportSocket, err := makeDownstreamTLSTransportSocket(&envoy_tls_v3.DownstreamTlsContext{
+		downstreamContext := &envoy_tls_v3.DownstreamTlsContext{
 			CommonTlsContext:         tlsContext,
 			RequireClientCertificate: &wrapperspb.BoolValue{Value: false},
-		})
+		}
+		if frontendValidation != nil {
+			if err := applyAPIGatewayFrontendValidation(downstreamContext, frontendValidation); err != nil {
+				return err
+			}
+		}
+		transportSocket, err := makeDownstreamTLSTransportSocket(downstreamContext)
 		if err != nil {
 			return err
 		}

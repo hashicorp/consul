@@ -308,6 +308,14 @@ func tlsVersionFromStructs(t types.TLSVersion) string {
 	return t.String()
 }
 
+func frontendValidationModeToStructs(s string) structs.APIGatewayFrontendValidationMode {
+	return structs.APIGatewayFrontendValidationMode(s)
+}
+
+func frontendValidationModeFromStructs(mode structs.APIGatewayFrontendValidationMode) string {
+	return string(mode)
+}
+
 func cipherSuitesToStructs(cs []string) []types.TLSCipherSuite {
 	cipherSuites := make([]types.TLSCipherSuite, len(cs))
 	for idx, suite := range cs {

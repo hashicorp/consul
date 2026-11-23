@@ -70,6 +70,8 @@ func (h *handlerAPIGateway) initialize(ctx context.Context) (ConfigSnapshot, err
 	snap.APIGateway.TCPRoutes = watch.NewMap[structs.ResourceReference, *structs.TCPRouteConfigEntry]()
 	snap.APIGateway.InlineCertificates = watch.NewMap[structs.ResourceReference, *structs.InlineCertificateConfigEntry]()
 	snap.APIGateway.FileSystemCertificates = watch.NewMap[structs.ResourceReference, *structs.FileSystemCertificateConfigEntry]()
+	snap.APIGateway.ClientCACertificates = watch.NewMap[structs.ResourceReference, *structs.FileSystemCertificateConfigEntry]()
+	snap.APIGateway.ClientCAWatchRefs = make(map[string]structs.ResourceReference)
 
 	snap.APIGateway.Upstreams = make(listenerRouteUpstreams)
 	snap.APIGateway.UpstreamsSet = make(routeUpstreamSet)
@@ -162,6 +164,12 @@ func (h *handlerAPIGateway) handleUpdate(ctx context.Context, u UpdateEvent, sna
 		}
 
 	default:
+		if strings.HasPrefix(u.CorrelationID, clientCACertificateConfigWatchID) {
+			if err := h.handleClientCACertConfigUpdate(u, snap); err != nil {
+				return err
+			}
+			break
+		}
 		if err := (*handlerUpstreams)(h).handleUpdateUpstreams(ctx, u, snap); err != nil {
 			return err
 		}
@@ -372,6 +380,9 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 		snap.APIGateway.GatewayConfig = gwConf
 		snap.APIGateway.TLSConfig = gwConf.TLS
 		snap.APIGateway.GatewayConfigLoaded = true
+		if err := h.reconcileClientCAWatches(ctx, snap, gwConf); err != nil {
+			return err
+		}
 
 		// Watch the corresponding bound-api-gateway config entry
 		return h.subscribeToConfigEntry(ctx, structs.BoundAPIGateway, h.service, h.proxyID.EnterpriseMeta, boundGatewayConfigWatchID)
@@ -379,6 +390,73 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 	default:
 		return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
 	}
+}
+
+func (h *handlerAPIGateway) reconcileClientCAWatches(ctx context.Context, snap *ConfigSnapshot, gateway *structs.APIGatewayConfigEntry) error {
+	seen := make(map[structs.ResourceReference]struct{})
+	addValidation := func(validation *structs.APIGatewayFrontendTLSValidation) error {
+		if validation == nil {
+			return nil
+		}
+		for _, ref := range validation.CACertificateRefs {
+			seen[ref] = struct{}{}
+			if snap.APIGateway.ClientCACertificates.IsWatched(ref) {
+				continue
+			}
+			watchID := clientCACertificateConfigWatchID + ref.String()
+			watchCtx, cancel := context.WithCancel(ctx)
+			snap.APIGateway.ClientCACertificates.InitWatch(ref, cancel)
+			snap.APIGateway.ClientCAWatchRefs[watchID] = ref
+			if err := h.subscribeToConfigEntry(watchCtx, ref.Kind, ref.Name, ref.EnterpriseMeta, watchID); err != nil {
+				snap.APIGateway.ClientCACertificates.CancelWatch(ref)
+				delete(snap.APIGateway.ClientCAWatchRefs, watchID)
+				return err
+			}
+		}
+		return nil
+	}
+
+	if gateway.FrontendTLS != nil {
+		if err := addValidation(gateway.FrontendTLS.Default); err != nil {
+			return err
+		}
+		for _, override := range gateway.FrontendTLS.PerPort {
+			if err := addValidation(override.Validation); err != nil {
+				return err
+			}
+		}
+	}
+
+	snap.APIGateway.ClientCACertificates.ForEachKey(func(ref structs.ResourceReference) bool {
+		if _, ok := seen[ref]; ok {
+			return true
+		}
+		snap.APIGateway.ClientCACertificates.CancelWatch(ref)
+		delete(snap.APIGateway.ClientCAWatchRefs, clientCACertificateConfigWatchID+ref.String())
+		return true
+	})
+	return nil
+}
+
+func (h *handlerAPIGateway) handleClientCACertConfigUpdate(u UpdateEvent, snap *ConfigSnapshot) error {
+	ref, ok := snap.APIGateway.ClientCAWatchRefs[u.CorrelationID]
+	if !ok {
+		return fmt.Errorf("unknown client CA watch %q", u.CorrelationID)
+	}
+	resp, ok := u.Result.(*structs.ConfigEntryResponse)
+	if !ok {
+		return fmt.Errorf("invalid type for response: %T", u.Result)
+	}
+	if resp == nil || resp.Entry == nil {
+		snap.APIGateway.ClientCACertificates.Clear(ref)
+		return nil
+	}
+	cfg, ok := resp.Entry.(*structs.FileSystemCertificateConfigEntry)
+	if !ok || cfg == nil {
+		return fmt.Errorf("invalid type for client CA config entry: %T", resp.Entry)
+	}
+	snap.APIGateway.ClientCACertificates.Set(ref, cfg)
+	return nil
 }
 
 func (h *handlerAPIGateway) handleFileSystemCertConfigUpdate(_ context.Context, u UpdateEvent, snap *ConfigSnapshot) error {

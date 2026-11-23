@@ -114,6 +114,17 @@ func (m Map[K, V]) Set(key K, val V) bool {
 	return false
 }
 
+// Clear removes the current value while preserving the live watch. It is used
+// when a watched resource is deleted and may subsequently be recreated.
+func (m Map[K, V]) Clear(key K) bool {
+	if entry, ok := m.M[key]; ok {
+		entry.Val = nil
+		m.M[key] = entry
+		return true
+	}
+	return false
+}
+
 // Get returns the underlying value for a key.
 // If an entry has been set, returns (V, true).
 // Otherwise, returns the zero value (V, false).

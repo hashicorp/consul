@@ -776,6 +776,8 @@ type configSnapshotAPIGateway struct {
 
 	InlineCertificates     watch.Map[structs.ResourceReference, *structs.InlineCertificateConfigEntry]
 	FileSystemCertificates watch.Map[structs.ResourceReference, *structs.FileSystemCertificateConfigEntry]
+	ClientCACertificates   watch.Map[structs.ResourceReference, *structs.FileSystemCertificateConfigEntry]
+	ClientCAWatchRefs      map[string]structs.ResourceReference
 
 	// LeafCertWatchCancel is a CancelFunc to use when refreshing this gateway's
 	// leaf cert watch with different parameters.
