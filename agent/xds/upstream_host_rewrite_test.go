@@ -43,6 +43,9 @@ func TestUpstreamHostRewrite_InlineRoute(t *testing.T) {
 		"host_rewrite unset": {
 			config: map[string]interface{}{"protocol": "http"},
 		},
+		"host_rewrite with newline is ignored": {
+			config: map[string]interface{}{"protocol": "http", "host_rewrite": testRewrittenHost + "\n"},
+		},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -65,24 +68,97 @@ func TestUpstreamHostRewrite_InlineRouteIgnoredForTCP(t *testing.T) {
 }
 
 func TestUpstreamHostRewrite_RDSRoutes(t *testing.T) {
-	snap := proxycfg.TestConfigSnapshotDiscoveryChain(t, "chain-and-router", false,
-		setDBUpstreamConfig(map[string]interface{}{"host_rewrite": testRewrittenHost}), nil)
+	cases := map[string]struct {
+		hostRewrite string
+		wantHost    string
+	}{
+		"host_rewrite set": {
+			hostRewrite: testRewrittenHost,
+			wantHost:    testRewrittenHost,
+		},
+		"host_rewrite with newline is ignored": {
+			hostRewrite: testRewrittenHost + "\r\n",
+		},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			snap := proxycfg.TestConfigSnapshotDiscoveryChain(t, "chain-and-router", false,
+				setDBUpstreamConfig(map[string]interface{}{"host_rewrite": tc.hostRewrite}), nil)
 
-	g := NewResourceGenerator(testutil.Logger(t), nil, false)
-	resources, err := g.routesFromSnapshot(snap)
-	require.NoError(t, err)
+			g := NewResourceGenerator(testutil.Logger(t), nil, false)
+			resources, err := g.routesFromSnapshot(snap)
+			require.NoError(t, err)
 
-	var routes []*envoy_route_v3.Route
-	for _, res := range resources {
-		rc := res.(*envoy_route_v3.RouteConfiguration)
-		if rc.Name == "db" {
-			routes = rc.VirtualHosts[0].Routes
+			var routes []*envoy_route_v3.Route
+			for _, res := range resources {
+				rc := res.(*envoy_route_v3.RouteConfiguration)
+				if rc.Name == "db" {
+					routes = rc.VirtualHosts[0].Routes
+				}
+			}
+			require.NotEmpty(t, routes)
+			for _, r := range routes {
+				require.Equal(t, tc.wantHost, r.GetRoute().GetHostRewriteLiteral(), "route %s", r.Match)
+			}
+		})
+	}
+}
+
+func TestUpstreamHostRewrite_PeeredExplicitUpstream(t *testing.T) {
+	snap := proxycfg.TestConfigSnapshotPeeringWithHTTP2(t, func(ns *structs.NodeService) {
+		ns.Proxy.Upstreams[0].Config = map[string]interface{}{"host_rewrite": testRewrittenHost}
+	})
+
+	l := findListener(t, listenersForTest(t, snap), "payments?peer=cloud:127.0.0.1:9090")
+	route := inlineRoute(t, l.FilterChains[0])
+	require.Equal(t, testRewrittenHost, route.GetRoute().GetHostRewriteLiteral())
+}
+
+func TestUpstreamHostRewrite_PeeredTransparentUpstream(t *testing.T) {
+	snap := proxycfg.TestConfigSnapshotPeeringTProxy(t)
+
+	// Make the implicit peered "db" upstream speak http and give it a host_rewrite.
+	dbUID := proxycfg.NewUpstreamIDFromPeeredServiceName(structs.PeeredServiceName{
+		ServiceName: structs.NewServiceName("db", nil),
+		Peer:        "peer-a",
+	})
+	endpoints, ok := snap.ConnectProxy.PeerUpstreamEndpoints.Get(dbUID)
+	require.True(t, ok)
+	for _, ep := range endpoints {
+		ep.Service.Connect.PeerMeta.Protocol = "http"
+	}
+	snap.ConnectProxy.UpstreamConfig[dbUID] = &structs.Upstream{
+		DestinationName: "db",
+		DestinationPeer: "peer-a",
+		Config:          map[string]interface{}{"host_rewrite": testRewrittenHost},
+	}
+
+	l := findListener(t, listenersForTest(t, snap), "outbound_listener:127.0.0.1:15001")
+	var dbChain *envoy_listener_v3.FilterChain
+	for _, fc := range l.FilterChains {
+		for _, r := range fc.GetFilterChainMatch().GetPrefixRanges() {
+			if r.AddressPrefix == "240.0.0.2" {
+				dbChain = fc
+			}
 		}
 	}
-	require.NotEmpty(t, routes)
-	for _, r := range routes {
-		require.Equal(t, testRewrittenHost, r.GetRoute().GetHostRewriteLiteral(), "route %s", r.Match)
-	}
+	require.NotNil(t, dbChain, "filter chain for peered db upstream not found")
+	route := inlineRoute(t, dbChain)
+	require.Equal(t, testRewrittenHost, route.GetRoute().GetHostRewriteLiteral())
+}
+
+func TestUpstreamHostRewrite_PreparedQueryUpstream(t *testing.T) {
+	snap := proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+		for i := range ns.Proxy.Upstreams {
+			if ns.Proxy.Upstreams[i].DestinationType == structs.UpstreamDestTypePreparedQuery {
+				ns.Proxy.Upstreams[i].Config = map[string]interface{}{"protocol": "http", "host_rewrite": testRewrittenHost}
+			}
+		}
+	}, nil)
+
+	l := findListener(t, listenersForTest(t, snap), "prepared_query:geo-cache:127.10.10.10:8181")
+	route := inlineRoute(t, l.FilterChains[0])
+	require.Equal(t, testRewrittenHost, route.GetRoute().GetHostRewriteLiteral())
 }
 
 func TestInjectHostRewriteToRoutes_KeepsExistingRewrite(t *testing.T) {
@@ -116,8 +192,22 @@ func dbInlineRoute(t *testing.T, snap *proxycfg.ConfigSnapshot) *envoy_route_v3.
 	listeners := listenersForTest(t, snap)
 
 	l := findListener(t, listeners, "db:127.0.0.1:9191")
+	return inlineRoute(t, l.FilterChains[0])
+}
+
+// inlineRoute returns the first route of the inline route config in the
+// filter chain's HTTP connection manager.
+func inlineRoute(t *testing.T, fc *envoy_listener_v3.FilterChain) *envoy_route_v3.Route {
+	t.Helper()
+	var hcmFilter *envoy_listener_v3.Filter
+	for _, f := range fc.Filters {
+		if f.Name == "envoy.filters.network.http_connection_manager" {
+			hcmFilter = f
+		}
+	}
+	require.NotNil(t, hcmFilter, "filter chain has no http_connection_manager")
 	hcm := &envoy_http_v3.HttpConnectionManager{}
-	require.NoError(t, l.FilterChains[0].Filters[0].GetTypedConfig().UnmarshalTo(hcm))
+	require.NoError(t, hcmFilter.GetTypedConfig().UnmarshalTo(hcm))
 	return hcm.GetRouteConfig().VirtualHosts[0].Routes[0]
 }
 

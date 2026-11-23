@@ -1197,7 +1197,21 @@ func (cfg UpstreamConfig) validate(named bool) error {
 		validationErr = multierror.Append(validationErr, fmt.Errorf("host_rewrite is only valid for http, http2 and grpc protocols, got %q", cfg.Protocol))
 	}
 
+	if err := ValidateHostRewrite(cfg.HostRewrite); err != nil {
+		validationErr = multierror.Append(validationErr, err)
+	}
+
 	return validationErr
+}
+
+// ValidateHostRewrite returns an error if host cannot be used as a Host header
+// value. Envoy rejects the whole route configuration when the value contains
+// CR, LF or NUL.
+func ValidateHostRewrite(host string) error {
+	if strings.ContainsAny(host, "\x00\r\n") {
+		return fmt.Errorf("invalid value for host_rewrite %q: must not contain CR, LF or NUL characters", host)
+	}
+	return nil
 }
 
 func ParseUpstreamConfigNoDefaults(m map[string]interface{}) (UpstreamConfig, error) {

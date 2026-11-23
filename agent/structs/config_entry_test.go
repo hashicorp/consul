@@ -3641,6 +3641,22 @@ func TestServiceConfigEntry(t *testing.T) {
 			},
 			validateErr: "host_rewrite is only valid for http, http2 and grpc protocols",
 		},
+		"validate: host rewrite with newline": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "http",
+				UpstreamConfig: &UpstreamConfiguration{
+					Overrides: []*UpstreamConfig{
+						{
+							Name:        "upstream",
+							HostRewrite: "internal.example.com\r\n",
+						},
+					},
+				},
+			},
+			validateErr: "must not contain CR, LF or NUL characters",
+		},
 		"validate: invalid extension": {
 			entry: &ServiceConfigEntry{
 				Kind:     ServiceDefaults,

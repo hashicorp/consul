@@ -154,6 +154,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		chain = discoveryChainForPortQualifiedUpstream(cfgSnap, uid, upstreamCfg, chain)
 
 		cfg := s.getAndModifyUpstreamConfigForListener(uid, upstreamCfg, chain)
+		cfg.HostRewrite = s.hostRewriteForUpstream(uid, cfg)
 
 		// If escape hatch is present, create a listener from it and move on to the next
 		if cfg.EnvoyListenerJSON != "" {
@@ -452,6 +453,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			s.Logger.Warn("failed to fetch upstream peering metadata for listener", "uid", uid)
 		}
 		cfg := s.getAndModifyUpstreamConfigForPeeredListener(uid, upstreamCfg, peerMeta)
+		cfg.HostRewrite = s.hostRewriteForUpstream(uid, cfg)
 
 		// If escape hatch is present, create a listener from it and move on to the next
 		if cfg.EnvoyListenerJSON != "" {
@@ -492,6 +494,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				useRDS:              false,
 				statPrefix:          "upstream_peered.",
 				maxRequestHeadersKb: proxyCfg.MaxRequestHeadersKB,
+				hostRewrite:         cfg.HostRewrite,
 			})
 			if err != nil {
 				return nil, err
@@ -535,6 +538,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			statPrefix:          "upstream_peered.",
 			tracing:             tracing,
 			maxRequestHeadersKb: proxyCfg.MaxRequestHeadersKB,
+			hostRewrite:         cfg.HostRewrite,
 		}
 
 		if err := s.appendEntPeeredUpstreamMultiportFilterChains(
@@ -686,6 +690,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			// default config if there is an error so it's safe to continue.
 			s.Logger.Warn("failed to parse", "upstream", uid, "error", err)
 		}
+		cfg.HostRewrite = s.hostRewriteForUpstream(uid, cfg)
 
 		// If escape hatch is present, create a listener from it and move on to the next
 		if cfg.EnvoyListenerJSON != "" {
@@ -719,6 +724,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			protocol:            cfg.Protocol,
 			tracing:             tracing,
 			maxRequestHeadersKb: proxyCfg.MaxRequestHeadersKB,
+			hostRewrite:         cfg.HostRewrite,
 		})
 		if err != nil {
 			return nil, err
@@ -2739,6 +2745,25 @@ func (s *ResourceGenerator) getAndModifyUpstreamConfigForListener(
 	cfg.Protocol = protocol
 
 	return cfg
+}
+
+// hostRewriteForUpstream returns the upstream's host_rewrite if it can be
+// applied to its listener. Otherwise it logs why the setting is ignored and
+// returns an empty string.
+func (s *ResourceGenerator) hostRewriteForUpstream(uid proxycfg.UpstreamID, cfg structs.UpstreamConfig) string {
+	if cfg.HostRewrite == "" {
+		return ""
+	}
+	if err := structs.ValidateHostRewrite(cfg.HostRewrite); err != nil {
+		s.Logger.Warn("ignoring host_rewrite", "upstream", uid, "error", err)
+		return ""
+	}
+	if !structs.IsProtocolHTTPLike(cfg.Protocol) {
+		s.Logger.Warn("ignoring host_rewrite because upstream protocol is not http, http2 or grpc",
+			"upstream", uid, "protocol", cfg.Protocol)
+		return ""
+	}
+	return cfg.HostRewrite
 }
 
 func (s *ResourceGenerator) getAndModifyUpstreamConfigForPeeredListener(

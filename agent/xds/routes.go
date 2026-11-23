@@ -88,8 +88,7 @@ func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 			continue
 		}
 
-		upstreamCfg := s.getAndModifyUpstreamConfigForListener(uid, upstream, chain)
-		injectHostRewriteToRoutes(upstreamCfg.HostRewrite, virtualHost.Routes...)
+		injectHostRewriteToRoutes(hostRewriteForRDS(upstream), virtualHost.Routes...)
 
 		route := &envoy_route_v3.RouteConfiguration{
 			Name:         uid.EnvoyID(),
@@ -1311,6 +1310,20 @@ func injectHeaderManipToRoute(dest *structs.ServiceRouteDestination, r *envoy_ro
 		)
 	}
 	return nil
+}
+
+// hostRewriteForRDS returns the upstream's host_rewrite for RDS routes, or an
+// empty string if it is unset or invalid. It does not log: listener generation
+// parses the same config and already warns about problems with it.
+func hostRewriteForRDS(upstream *structs.Upstream) string {
+	if upstream == nil {
+		return ""
+	}
+	cfg, _ := structs.ParseUpstreamConfigNoDefaults(upstream.Config)
+	if structs.ValidateHostRewrite(cfg.HostRewrite) != nil {
+		return ""
+	}
+	return cfg.HostRewrite
 }
 
 // injectHostRewriteToRoutes sets a literal Host rewrite on every forwarding
