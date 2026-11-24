@@ -23,6 +23,10 @@ type Tracker struct {
 
 	// timeNow is a shim for testing.
 	timeNow func() time.Time
+
+	// lastGeneration is incremented each time a stream is marked as connected. Each connected stream gets a
+	// unique generation so that a stream that has already been replaced can't change its successor's status.
+	lastGeneration uint64
 }
 
 func NewTracker(heartbeatTimeout time.Duration) *Tracker {
@@ -66,25 +70,33 @@ func (t *Tracker) registerLocked(id string, initAsConnected bool) (*MutableStatu
 // Connected registers a stream for a given peer, and marks it as connected.
 // It also enforces that there is only one active stream for a peer.
 func (t *Tracker) Connected(id string) (*MutableStatus, error) {
+	status, _, err := t.ConnectedWithGeneration(id)
+	return status, err
+}
+
+// ConnectedWithGeneration is like Connected, but also returns the generation assigned to the newly connected
+// stream. Pass it to DisconnectedGracefullyIfCurrent or DisconnectedDueToErrorIfCurrent when the stream ends.
+func (t *Tracker) ConnectedWithGeneration(id string) (*MutableStatus, uint64, error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	return t.connectedLocked(id)
 }
 
-func (t *Tracker) connectedLocked(id string) (*MutableStatus, error) {
+func (t *Tracker) connectedLocked(id string) (*MutableStatus, uint64, error) {
 	status, newlyRegistered, err := t.registerLocked(id, true)
 	if err != nil {
-		return nil, err
-	} else if newlyRegistered {
-		return status, nil
+		return nil, 0, err
+	}
+	if !newlyRegistered {
+		if status.IsConnected() {
+			return nil, 0, fmt.Errorf("there is an active stream for the given PeerID %q", id)
+		}
+		status.TrackConnected()
 	}
 
-	if status.IsConnected() {
-		return nil, fmt.Errorf("there is an active stream for the given PeerID %q", id)
-	}
-	status.TrackConnected()
-
-	return status, nil
+	t.lastGeneration++
+	status.setGeneration(t.lastGeneration)
+	return status, t.lastGeneration, nil
 }
 
 // DisconnectedGracefully marks the peer id's stream status as disconnected gracefully.
@@ -103,6 +115,28 @@ func (t *Tracker) DisconnectedDueToError(id string, error string) {
 	defer t.mu.Unlock()
 
 	if status, ok := t.streams[id]; ok {
+		status.TrackDisconnectedDueToError(error)
+	}
+}
+
+// DisconnectedGracefullyIfCurrent marks the peer id's stream status as disconnected gracefully, but only if the
+// stream with the given generation is still the current one. It is a no-op if another stream has connected since.
+func (t *Tracker) DisconnectedGracefullyIfCurrent(id string, generation uint64) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	if status, ok := t.streams[id]; ok && status.isGeneration(generation) {
+		status.TrackDisconnectedGracefully()
+	}
+}
+
+// DisconnectedDueToErrorIfCurrent marks the peer id's stream status as disconnected due to an error, but only if
+// the stream with the given generation is still the current one. It is a no-op if another stream has connected since.
+func (t *Tracker) DisconnectedDueToErrorIfCurrent(id string, generation uint64, error string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	if status, ok := t.streams[id]; ok && status.isGeneration(generation) {
 		status.TrackDisconnectedDueToError(error)
 	}
 }
@@ -192,6 +226,9 @@ type MutableStatus struct {
 	// doneCh allows for shutting down a stream gracefully by sending a termination message
 	// to the peer before the stream's context is cancelled.
 	doneCh chan struct{}
+
+	// generation identifies the stream that most recently connected. See Tracker.lastGeneration.
+	generation uint64
 
 	Status
 }
@@ -347,6 +384,18 @@ func (s *MutableStatus) TrackDisconnectedDueToError(error string) {
 	s.DisconnectTime = ptr(s.timeNow().UTC())
 	s.DisconnectErrorMessage = error
 	s.mu.Unlock()
+}
+
+func (s *MutableStatus) setGeneration(generation uint64) {
+	s.mu.Lock()
+	s.generation = generation
+	s.mu.Unlock()
+}
+
+func (s *MutableStatus) isGeneration(generation uint64) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.generation == generation
 }
 
 func (s *MutableStatus) IsConnected() bool {

@@ -327,3 +327,65 @@ func TestMutableStatus_TrackDisconnectedDueToError(t *testing.T) {
 	require.Equal(t, disconnectTime, s.DisconnectTime)
 	require.Equal(t, "disconnect err", s.DisconnectErrorMessage)
 }
+
+func TestTracker_DisconnectedIfCurrent(t *testing.T) {
+	tracker := NewTracker(0)
+
+	t.Run("current stream can disconnect", func(t *testing.T) {
+		_, gen, err := tracker.ConnectedWithGeneration(aPeerID)
+		require.NoError(t, err)
+
+		tracker.DisconnectedDueToErrorIfCurrent(aPeerID, gen, "boom")
+		status, ok := tracker.StreamStatus(aPeerID)
+		require.True(t, ok)
+		require.False(t, status.Connected)
+		require.Equal(t, "boom", status.DisconnectErrorMessage)
+	})
+
+	t.Run("replaced stream can't disconnect its successor", func(t *testing.T) {
+		_, oldGen, err := tracker.ConnectedWithGeneration(aPeerID)
+		require.NoError(t, err)
+		tracker.DisconnectedDueToErrorIfCurrent(aPeerID, oldGen, "old stream failed")
+
+		_, newGen, err := tracker.ConnectedWithGeneration(aPeerID)
+		require.NoError(t, err)
+		require.NotEqual(t, oldGen, newGen)
+
+		// The old stream's handler finishes unwinding after the new stream connected.
+		tracker.DisconnectedDueToErrorIfCurrent(aPeerID, oldGen, "old stream failed again")
+		tracker.DisconnectedGracefullyIfCurrent(aPeerID, oldGen)
+
+		status, ok := tracker.StreamStatus(aPeerID)
+		require.True(t, ok)
+		require.True(t, status.Connected)
+		require.Empty(t, status.DisconnectErrorMessage)
+
+		tracker.DisconnectedGracefullyIfCurrent(aPeerID, newGen)
+		status, _ = tracker.StreamStatus(aPeerID)
+		require.False(t, status.Connected)
+	})
+
+	t.Run("generations stay unique after the status is deleted", func(t *testing.T) {
+		_, oldGen, err := tracker.ConnectedWithGeneration(aPeerID)
+		require.NoError(t, err)
+		tracker.DeleteStatus(aPeerID)
+
+		_, newGen, err := tracker.ConnectedWithGeneration(aPeerID)
+		require.NoError(t, err)
+		require.NotEqual(t, oldGen, newGen)
+
+		tracker.DisconnectedDueToErrorIfCurrent(aPeerID, oldGen, "stale")
+		status, _ := tracker.StreamStatus(aPeerID)
+		require.True(t, status.Connected)
+	})
+
+	t.Run("a rejected duplicate gets no generation", func(t *testing.T) {
+		tracker := NewTracker(0)
+		_, _, err := tracker.ConnectedWithGeneration(aPeerID)
+		require.NoError(t, err)
+		_, _, err = tracker.ConnectedWithGeneration(aPeerID)
+		require.ErrorContains(t, err, "there is an active stream")
+		status, _ := tracker.StreamStatus(aPeerID)
+		require.True(t, status.Connected)
+	})
+}
