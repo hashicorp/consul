@@ -9,8 +9,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"math"
 	"net"
 	"os"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -955,6 +959,307 @@ func TestLeader_Peering_DialerReestablishesConnectionOnError(t *testing.T) {
 	})
 }
 
+// TestLeader_Peering_DialerUsesUpdatedPeerCARootsOnReconnect verifies that when the accepting cluster rotates its
+// Connect CA while the peering stream is connected, the dialer uses the new CA roots it received over the stream
+// when it later has to reconnect, rather than the roots it had when its retry loop started.
+func TestLeader_Peering_DialerUsesUpdatedPeerCARootsOnReconnect(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	oldCA := connect.TestCA(t, nil)
+	_, acceptingServer := testServerWithConfig(t, func(c *Config) {
+		c.NodeName = "acceptingServer.dc1"
+		c.Datacenter = "dc1"
+		c.TLSConfig.Domain = "consul"
+		c.GRPCTLSPort = freeport.GetOne(t)
+		c.CAConfig = &structs.CAConfiguration{
+			ClusterID: connect.TestClusterID,
+			Provider:  structs.ConsulCAProvider,
+			Config: map[string]interface{}{
+				"PrivateKey": oldCA.SigningKey,
+				"RootCert":   oldCA.RootCert,
+			},
+		}
+	})
+	testrpc.WaitForLeader(t, acceptingServer.RPC, "dc1")
+
+	// The dialer reaches the accepting server through a proxy so the test can sever the stream's connection
+	// without restarting the accepting server.
+	proxy := newCuttableTCPProxy(t, fmt.Sprintf("127.0.0.1:%d", acceptingServer.config.GRPCTLSPort))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	t.Cleanup(cancel)
+
+	conn, err := grpc.DialContext(ctx, acceptingServer.config.RPCAddr.String(),
+		grpc.WithContextDialer(newServerDialer(acceptingServer.config.RPCAddr.String())),
+		//nolint:staticcheck
+		grpc.WithInsecure(),
+		grpc.WithBlock())
+	require.NoError(t, err)
+	defer conn.Close()
+
+	acceptingClient := pbpeering.NewPeeringServiceClient(conn)
+	resp, err := acceptingClient.GenerateToken(ctx, &pbpeering.GenerateTokenRequest{PeerName: "my-peer-dialing-server"})
+	require.NoError(t, err)
+	tokenJSON, err := base64.StdEncoding.DecodeString(resp.PeeringToken)
+	require.NoError(t, err)
+	var token structs.PeeringToken
+	require.NoError(t, json.Unmarshal(tokenJSON, &token))
+	acceptorSidePeeringID := token.PeerID
+
+	token.ServerAddresses = []string{proxy.Addr()}
+	tokenJSON, err = json.Marshal(&token)
+	require.NoError(t, err)
+
+	_, dialingServer := testServerWithConfig(t, func(c *Config) {
+		c.NodeName = "dialing-server.dc2"
+		c.Datacenter = "dc2"
+		c.PrimaryDatacenter = "dc2"
+		c.PeeringEnabled = true
+	})
+	testrpc.WaitForLeader(t, dialingServer.RPC, "dc2")
+
+	conn, err = grpc.DialContext(ctx, dialingServer.config.RPCAddr.String(),
+		grpc.WithContextDialer(newServerDialer(dialingServer.config.RPCAddr.String())),
+		//nolint:staticcheck
+		grpc.WithInsecure(),
+		grpc.WithBlock())
+	require.NoError(t, err)
+	defer conn.Close()
+
+	dialingClient := pbpeering.NewPeeringServiceClient(conn)
+	_, err = dialingClient.Establish(ctx, &pbpeering.EstablishRequest{
+		PeerName:     "my-peer-s1",
+		PeeringToken: base64.StdEncoding.EncodeToString(tokenJSON),
+	})
+	require.NoError(t, err)
+
+	p, err := dialingClient.PeeringRead(ctx, &pbpeering.PeeringReadRequest{Name: "my-peer-s1"})
+	require.NoError(t, err)
+	dialerSidePeeringID := p.Peering.ID
+
+	connected := func(r require.TestingT, want bool) {
+		status, found := dialingServer.peerStreamServer.StreamStatus(dialerSidePeeringID)
+		require.True(r, found)
+		require.Equal(r, want, status.Connected)
+	}
+	retry.Run(t, func(r *retry.R) { connected(r, true) })
+
+	// Rotate the accepting cluster's CA to an unrelated root without cross-signing, so that certificates issued by
+	// the new root can't be verified with the old one.
+	newCA := connect.TestCA(t, nil)
+	var reply interface{}
+	require.NoError(t, acceptingServer.RPC(context.Background(), "ConnectCA.ConfigurationSet", &structs.CARequest{
+		Datacenter: "dc1",
+		Config: &structs.CAConfiguration{
+			ClusterID:                connect.TestClusterID,
+			Provider:                 structs.ConsulCAProvider,
+			ForceWithoutCrossSigning: true,
+			Config: map[string]interface{}{
+				"PrivateKey": newCA.SigningKey,
+				"RootCert":   newCA.RootCert,
+			},
+		},
+	}, &reply))
+
+	// The stream stays connected, and the dialer receives and stores the new root.
+	retry.Run(t, func(r *retry.R) {
+		_, peering, err := dialingServer.fsm.State().PeeringReadByID(nil, dialerSidePeeringID)
+		require.NoError(r, err)
+		require.NotNil(r, peering)
+		var found bool
+		for _, pem := range peering.PeerCAPems {
+			found = found || strings.TrimSpace(pem) == strings.TrimSpace(newCA.RootCert)
+		}
+		require.True(r, found, "dialer has not stored the new root yet")
+	})
+
+	// Give the dialer's peering syncer time to process the trust bundle write while the stream is still connected.
+	// It skips connected peerings, so the retry loop keeps the roots it started with. Without this wait the syncer
+	// could run after the connection is cut below and restart the loop itself, hiding the bug.
+	time.Sleep(2 * time.Second)
+	connected(t, true)
+
+	// From now on the accepting server presents a certificate issued by the new root. Test servers don't run the
+	// certificate manager, so set it directly.
+	require.NoError(t, acceptingServer.tlsConfigurator.UpdateAutoTLSCert(connect.TestServerLeaf(t, "dc1", newCA)))
+
+	// Sever the stream. The dialer must reconnect using the new root without any failed TLS handshake. Sample the
+	// last dial error frequently: with stale roots the first redial fails with "unknown authority", and the
+	// peering syncer may later restart the loop with fresh data, which would otherwise hide the failure.
+	proxy.Cut()
+	var sawDisconnect, reconnected bool
+	var tlsErr string
+	deadline := time.Now().Add(30 * time.Second)
+	for time.Now().Before(deadline) && !reconnected {
+		status, found := dialingServer.peerStreamServer.StreamStatus(dialerSidePeeringID)
+		require.True(t, found)
+		if strings.Contains(status.LastSendErrorMessage, "certificate signed by unknown authority") {
+			tlsErr = status.LastSendErrorMessage
+		}
+		sawDisconnect = sawDisconnect || !status.Connected
+		reconnected = sawDisconnect && status.Connected
+		time.Sleep(20 * time.Millisecond)
+	}
+	require.True(t, sawDisconnect, "dialer never noticed the severed stream")
+	require.True(t, reconnected, "dialer did not reconnect")
+	require.Empty(t, tlsErr, "dialer redialed with stale CA roots")
+	retry.Run(t, func(r *retry.R) {
+		require.Contains(r, acceptingServer.peerStreamServer.ConnectedStreams(), acceptorSidePeeringID)
+	})
+}
+
+// cuttableTCPProxy forwards TCP connections to a target address and can sever all active connections on demand.
+type cuttableTCPProxy struct {
+	ln     net.Listener
+	target string
+
+	mu    sync.Mutex
+	conns []net.Conn
+}
+
+func newCuttableTCPProxy(t *testing.T, target string) *cuttableTCPProxy {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+
+	p := &cuttableTCPProxy{ln: ln, target: target}
+	go p.serve()
+	t.Cleanup(func() {
+		_ = ln.Close()
+		p.Cut()
+	})
+	return p
+}
+
+func (p *cuttableTCPProxy) Addr() string {
+	return p.ln.Addr().String()
+}
+
+func (p *cuttableTCPProxy) serve() {
+	for {
+		src, err := p.ln.Accept()
+		if err != nil {
+			return
+		}
+		dst, err := net.Dial("tcp", p.target)
+		if err != nil {
+			_ = src.Close()
+			continue
+		}
+		p.mu.Lock()
+		p.conns = append(p.conns, src, dst)
+		p.mu.Unlock()
+
+		go func() {
+			_, _ = io.Copy(dst, src)
+			_ = dst.Close()
+		}()
+		go func() {
+			_, _ = io.Copy(src, dst)
+			_ = src.Close()
+		}()
+	}
+}
+
+// Cut closes all connections currently proxied. New connections are still accepted.
+func (p *cuttableTCPProxy) Cut() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for _, c := range p.conns {
+		_ = c.Close()
+	}
+	p.conns = nil
+}
+
+func TestLeader_Peering_refreshPeeringForDial(t *testing.T) {
+	store := state.NewStateStore(nil)
+	logger := hclog.NewNullLogger()
+
+	caA := connect.TestCA(t, nil)
+	caB := connect.TestCA(t, nil)
+
+	const (
+		peeringID = "9e650110-ac74-4c5a-a6a8-9348b2bed4e9"
+		secretA   = "c1b2a4cd-3f1d-4d49-a3c4-2c1f2d6d4c0a"
+		secretB   = "0f7e4b7a-0a6c-4d1c-9b1e-6a4b7f1e2d3c"
+	)
+
+	writePeering := func(idx uint64, caPEMs []string, serverName, secret string) {
+		req := &pbpeering.PeeringWriteRequest{
+			Peering: &pbpeering.Peering{
+				ID:                  peeringID,
+				Name:                "my-peer",
+				PeerID:              "c4b9f1a2-7d3e-4f5a-8b6c-1d2e3f4a5b6c",
+				PeerCAPems:          caPEMs,
+				PeerServerName:      serverName,
+				PeerServerAddresses: []string{"127.0.0.1:8503"},
+			},
+		}
+		if secret != "" {
+			req.SecretsRequest = &pbpeering.SecretsWriteRequest{
+				PeerID: peeringID,
+				Request: &pbpeering.SecretsWriteRequest_Establish{
+					Establish: &pbpeering.SecretsWriteRequest_EstablishRequest{ActiveStreamSecret: secret},
+				},
+			}
+		}
+		require.NoError(t, store.PeeringWrite(idx, req))
+	}
+	read := func() *pbpeering.Peering {
+		_, p, err := store.PeeringReadByID(nil, peeringID)
+		require.NoError(t, err)
+		require.NotNil(t, p)
+		return p
+	}
+	readSecret := func() *pbpeering.PeeringSecrets {
+		sec, err := store.PeeringSecretsRead(nil, peeringID)
+		require.NoError(t, err)
+		return sec
+	}
+
+	writePeering(100, []string{caA.RootCert}, "server.dc2.peering.a.consul", secretA)
+	prev, prevSecret := read(), readSecret()
+
+	t.Run("unchanged", func(t *testing.T) {
+		p, sec := refreshPeeringForDial(store, logger, prev, prevSecret)
+		require.Equal(t, []string{caA.RootCert}, p.PeerCAPems)
+		require.Equal(t, secretA, sec.GetStream().GetActiveSecretID())
+	})
+
+	t.Run("uses updated CA roots, server name and secret", func(t *testing.T) {
+		writePeering(101, []string{caB.RootCert}, "server.dc2.peering.b.consul", secretB)
+
+		p, sec := refreshPeeringForDial(store, logger, prev, prevSecret)
+		require.Equal(t, []string{caB.RootCert}, p.PeerCAPems)
+		require.Equal(t, "server.dc2.peering.b.consul", p.PeerServerName)
+		require.Equal(t, secretB, sec.GetStream().GetActiveSecretID())
+		_, err := p.TLSDialOption()
+		require.NoError(t, err)
+
+		prev, prevSecret = p, sec
+	})
+
+	t.Run("keeps previous roots when stored roots are invalid", func(t *testing.T) {
+		writePeering(102, []string{"not a PEM"}, "server.dc2.peering.b.consul", "")
+
+		p, _ := refreshPeeringForDial(store, logger, prev, prevSecret)
+		require.Equal(t, []string{caB.RootCert}, p.PeerCAPems)
+	})
+
+	t.Run("keeps previous values when the peering is gone", func(t *testing.T) {
+		marked := read()
+		marked.State = pbpeering.PeeringState_DELETING
+		marked.DeletedAt = timestamppb.Now()
+		require.NoError(t, store.PeeringWrite(103, &pbpeering.PeeringWriteRequest{Peering: marked}))
+		require.NoError(t, store.PeeringDelete(104, state.Query{Value: "my-peer"}))
+
+		p, sec := refreshPeeringForDial(store, logger, prev, prevSecret)
+		require.Equal(t, []string{caB.RootCert}, p.PeerCAPems)
+		require.Equal(t, secretB, sec.GetStream().GetActiveSecretID())
+	})
+}
+
 func insertTestPeeringData(t *testing.T, store *state.Store, peer string, lastIdx uint64) uint64 {
 	lastIdx++
 	require.NoError(t, store.PeeringTrustBundleWrite(lastIdx, &pbpeering.PeeringTrustBundle{
@@ -1623,6 +1928,13 @@ func TestLeader_Peering_peeringRetryTimeout_failedPreconditionErrors(t *testing.
 		// Max.
 		{16, 8192 * time.Millisecond},
 		{17, 8192 * time.Millisecond},
+		// Must stay at the max once the shift would overflow.
+		{45, 8192 * time.Millisecond},
+		{62, 8192 * time.Millisecond},
+		{63, 8192 * time.Millisecond},
+		{64, 8192 * time.Millisecond},
+		{100, 8192 * time.Millisecond},
+		{math.MaxUint, 8192 * time.Millisecond},
 	}
 
 	for _, c := range cases {
@@ -1651,6 +1963,12 @@ func TestLeader_Peering_peeringRetryTimeout_regularErrors(t *testing.T) {
 		{6, 64 * time.Second},
 		{10, 64 * time.Second},
 		{20, 64 * time.Second},
+		// Must stay at the max once the shift would overflow.
+		{62, 64 * time.Second},
+		{63, 64 * time.Second},
+		{64, 64 * time.Second},
+		{100, 64 * time.Second},
+		{math.MaxUint, 64 * time.Second},
 	}
 
 	for _, c := range cases {

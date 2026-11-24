@@ -1,0 +1,3 @@
+```release-note:security
+Upgrade `go.opentelemetry.io/otel` to v1.47.0 to fix a bypass of `AttributeValueLengthLimit` truncation by attribute values made of U+FFFD runes.
+```

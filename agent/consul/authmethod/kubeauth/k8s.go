@@ -26,13 +26,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-var supportedSigAlgs = []jose.SignatureAlgorithm{
-	jose.RS256, jose.RS384, jose.RS512,
-	jose.PS256, jose.PS384, jose.PS512,
-	jose.ES256, jose.ES384, jose.ES512,
-	jose.EdDSA,
-}
-
 func init() {
 	// register this as an available auth method type
 	authmethod.Register("kubernetes", func(logger hclog.Logger, method *structs.ACLAuthMethod) (authmethod.Validator, error) {
@@ -42,6 +35,16 @@ func init() {
 		}
 		return v, nil
 	})
+}
+
+// serviceAccountJWTSigningAlgs allows every JWS signing algorithm. Tokens are
+// only parsed here; the TokenReview API performs the actual signature validation.
+var serviceAccountJWTSigningAlgs = []jose.SignatureAlgorithm{
+	jose.HS256, jose.HS384, jose.HS512,
+	jose.RS256, jose.RS384, jose.RS512,
+	jose.PS256, jose.PS384, jose.PS512,
+	jose.ES256, jose.ES384, jose.ES512,
+	jose.EdDSA,
 }
 
 const (
@@ -103,7 +106,7 @@ func NewValidator(method *structs.ACLAuthMethod) (*Validator, error) {
 	if config.ServiceAccountJWT == "" {
 		return nil, fmt.Errorf("Config.ServiceAccountJWT is required")
 	}
-	if _, err := jwt.ParseSigned(config.ServiceAccountJWT, supportedSigAlgs); err != nil {
+	if _, err := jwt.ParseSigned(config.ServiceAccountJWT, serviceAccountJWTSigningAlgs); err != nil {
 		return nil, fmt.Errorf("Config.ServiceAccountJWT is not a valid JWT: %v", err)
 	}
 
@@ -140,7 +143,7 @@ func (v *Validator) Name() string { return v.name }
 func (v *Validator) Stop() {}
 
 func (v *Validator) ValidateLogin(ctx context.Context, loginToken string) (*authmethod.Identity, error) {
-	if _, err := jwt.ParseSigned(loginToken, supportedSigAlgs); err != nil {
+	if _, err := jwt.ParseSigned(loginToken, serviceAccountJWTSigningAlgs); err != nil {
 		return nil, fmt.Errorf("failed to parse and validate JWT: %v", err)
 	}
 
