@@ -1,0 +1,2 @@
+```release-note:improvement
+xds: Give localized virtual DNS records distinct names for multiport and peered upstreams, so each resolves to the intended VIP.
