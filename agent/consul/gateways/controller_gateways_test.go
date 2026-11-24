@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/go-hclog"
@@ -4149,6 +4150,149 @@ func TestAPIGatewayController(t *testing.T) {
 				Meta: defaultMeta,
 			}},
 		},
+		"trigger-gateway-file-system-certificates": {
+			requests: []controller.Request{{
+				Kind: structs.FileSystemCertificate,
+				Name: "certificate",
+				Meta: defaultMeta,
+			}},
+			initialEntries: []structs.ConfigEntry{
+				&structs.APIGatewayConfigEntry{
+					Kind:           structs.APIGateway,
+					Name:           "gateway",
+					EnterpriseMeta: *defaultMeta,
+					Listeners: []structs.APIGatewayListener{{
+						Name: "http-listener",
+						Port: 80,
+						TLS: structs.APIGatewayTLSConfiguration{
+							Certificates: []structs.ResourceReference{{
+								Kind: structs.FileSystemCertificate,
+								Name: "certificate",
+							}},
+						},
+					}},
+				},
+				&structs.APIGatewayConfigEntry{
+					Kind:           structs.APIGateway,
+					Name:           "gateway-two",
+					EnterpriseMeta: *defaultMeta,
+					Listeners: []structs.APIGatewayListener{{
+						Name: "http-listener",
+						Port: 80,
+						TLS: structs.APIGatewayTLSConfiguration{
+							Certificates: []structs.ResourceReference{{
+								Kind: structs.FileSystemCertificate,
+								Name: "certificate",
+							}},
+						},
+					}},
+				},
+				&structs.FileSystemCertificateConfigEntry{
+					Kind:           structs.FileSystemCertificate,
+					Name:           "certificate",
+					Certificate:    "certs/cert.pem",
+					PrivateKey:     "certs/key.pem",
+					EnterpriseMeta: *defaultMeta,
+				},
+			},
+			finalEntries: []structs.ConfigEntry{
+				&structs.APIGatewayConfigEntry{
+					Kind:           structs.APIGateway,
+					Name:           "gateway",
+					EnterpriseMeta: *defaultMeta,
+					Listeners: []structs.APIGatewayListener{{
+						Name: "http-listener",
+						Port: 80,
+						TLS: structs.APIGatewayTLSConfiguration{
+							Certificates: []structs.ResourceReference{{
+								Kind: structs.FileSystemCertificate,
+								Name: "certificate",
+							}},
+						},
+					}},
+				},
+				&structs.APIGatewayConfigEntry{
+					Kind:           structs.APIGateway,
+					Name:           "gateway-two",
+					EnterpriseMeta: *defaultMeta,
+					Listeners: []structs.APIGatewayListener{{
+						Name: "http-listener",
+						Port: 80,
+						TLS: structs.APIGatewayTLSConfiguration{
+							Certificates: []structs.ResourceReference{{
+								Kind: structs.FileSystemCertificate,
+								Name: "certificate",
+							}},
+						},
+					}},
+				},
+				&structs.FileSystemCertificateConfigEntry{
+					Kind:           structs.FileSystemCertificate,
+					Name:           "certificate",
+					Certificate:    "certs/cert.pem",
+					PrivateKey:     "certs/key.pem",
+					EnterpriseMeta: *defaultMeta,
+				},
+			},
+			enqueued: []controller.Request{{
+				Kind: structs.APIGateway,
+				Name: "gateway",
+				Meta: defaultMeta,
+			}, {
+				Kind: structs.APIGateway,
+				Name: "gateway-two",
+				Meta: defaultMeta,
+			}},
+		},
+		// A delete event carries the deleted entry but the entry is gone from the
+		// store by the time the request is reconciled. Referencing gateways must
+		// still be enqueued so they can report the certificate as missing.
+		"trigger-gateway-file-system-certificate-deleted": {
+			requests: []controller.Request{{
+				Kind: structs.FileSystemCertificate,
+				Name: "certificate",
+				Meta: defaultMeta,
+			}},
+			initialEntries: []structs.ConfigEntry{
+				&structs.APIGatewayConfigEntry{
+					Kind:           structs.APIGateway,
+					Name:           "gateway",
+					EnterpriseMeta: *defaultMeta,
+					Listeners: []structs.APIGatewayListener{{
+						Name: "http-listener",
+						Port: 80,
+						TLS: structs.APIGatewayTLSConfiguration{
+							Certificates: []structs.ResourceReference{{
+								Kind: structs.FileSystemCertificate,
+								Name: "certificate",
+							}},
+						},
+					}},
+				},
+			},
+			finalEntries: []structs.ConfigEntry{
+				&structs.APIGatewayConfigEntry{
+					Kind:           structs.APIGateway,
+					Name:           "gateway",
+					EnterpriseMeta: *defaultMeta,
+					Listeners: []structs.APIGatewayListener{{
+						Name: "http-listener",
+						Port: 80,
+						TLS: structs.APIGatewayTLSConfiguration{
+							Certificates: []structs.ResourceReference{{
+								Kind: structs.FileSystemCertificate,
+								Name: "certificate",
+							}},
+						},
+					}},
+				},
+			},
+			enqueued: []controller.Request{{
+				Kind: structs.APIGateway,
+				Name: "gateway",
+				Meta: defaultMeta,
+			}},
+		},
 	} {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
@@ -4299,6 +4443,258 @@ func TestNewAPIGatewayController(t *testing.T) {
 	}
 
 	require.NotNil(t, NewAPIGatewayController(fsm, publisher, updater, hclog.Default()))
+}
+
+// serializedWriter hands out strictly increasing raft indexes and serializes
+// writes to the state store. The test goroutine and the controller's Updater
+// both write to the same store, and the controller drops events whose index is
+// not greater than the last one it saw, so the two must not interleave.
+type serializedWriter struct {
+	mu    sync.Mutex
+	index uint64
+}
+
+func (w *serializedWriter) write(fn func(idx uint64) error) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.index++
+	return fn(w.index)
+}
+
+// gatewayStatusRecorder keeps a deep copy of the most recent status the
+// controller persisted for each gateway. The reconciler mutates the entry it
+// read from the state store in place before persisting it, so reading the
+// stored entry from the test goroutine would race with the controller. A copy
+// taken inside the Updater callback runs on the controller goroutine and is safe.
+type gatewayStatusRecorder struct {
+	mu       sync.Mutex
+	statuses map[string]structs.Status
+}
+
+func (r *gatewayStatusRecorder) record(entry structs.ControlledConfigEntry) {
+	if gateway, ok := entry.(*structs.APIGatewayConfigEntry); ok {
+		r.mu.Lock()
+		defer r.mu.Unlock()
+		if r.statuses == nil {
+			r.statuses = map[string]structs.Status{}
+		}
+		r.statuses[gateway.Name] = *gateway.Status.DeepCopy()
+	}
+}
+
+func (r *gatewayStatusRecorder) conditions(name string) []structs.Condition {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.statuses[name].Conditions
+}
+
+// requireGatewayConditionsEventually polls the recorded gateway status until
+// every expected condition is present (same type, resource, status, reason and
+// message), and fails with the last observed conditions if that never happens.
+func requireGatewayConditionsEventually(t *testing.T, recorder *gatewayStatusRecorder, name string, expected ...structs.Condition) {
+	t.Helper()
+
+	var observed []structs.Condition
+	matches := func() bool {
+		observed = recorder.conditions(name)
+
+		for _, want := range expected {
+			want := want
+			found := false
+			for _, got := range observed {
+				got := got
+				if got.IsCondition(&want) && got.IsSame(&want) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return false
+			}
+		}
+		return true
+	}
+
+	if !assert.Eventually(t, matches, 5*time.Second, 20*time.Millisecond) {
+		summarize := func(conditions []structs.Condition) string {
+			out := ""
+			for _, c := range conditions {
+				out += fmt.Sprintf("\n  %s=%s reason=%s message=%q resource=%v", c.Type, c.Status, c.Reason, c.Message, c.Resource)
+			}
+			return out
+		}
+		t.Fatalf("gateway %q never reached the expected conditions\nexpected:%s\nlast observed:%s",
+			name, summarize(expected), summarize(observed))
+	}
+}
+
+// TestAPIGatewayController_CertificateReconcile is an end-to-end regression test
+// that runs the real controller returned by NewAPIGatewayController against a
+// real event publisher and state store. It verifies that creating and deleting
+// a certificate that a TLS listener references causes the gateway to be
+// re-reconciled without the gateway itself being re-applied.
+//
+// The inline-certificate subtest is a control: it exercises the identical flow
+// for the certificate kind the controller has always subscribed to.
+func TestAPIGatewayController_CertificateReconcile(t *testing.T) {
+	t.Parallel()
+
+	defaultMeta := acl.DefaultEnterpriseMeta()
+
+	for name, tc := range map[string]struct {
+		kind string
+		cert func(name string) structs.ConfigEntry
+	}{
+		"file-system-certificate": {
+			kind: structs.FileSystemCertificate,
+			cert: func(name string) structs.ConfigEntry {
+				return &structs.FileSystemCertificateConfigEntry{
+					Kind:           structs.FileSystemCertificate,
+					Name:           name,
+					Certificate:    "certs/" + name + ".pem",
+					PrivateKey:     "certs/" + name + "-key.pem",
+					EnterpriseMeta: *defaultMeta,
+				}
+			},
+		},
+		"inline-certificate-control": {
+			kind: structs.InlineCertificate,
+			cert: func(name string) structs.ConfigEntry {
+				return &structs.InlineCertificateConfigEntry{
+					Kind:           structs.InlineCertificate,
+					Name:           name,
+					EnterpriseMeta: *defaultMeta,
+				}
+			},
+		},
+	} {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+
+			publisher := stream.NewEventPublisher(1 * time.Millisecond)
+			go publisher.Run(ctx)
+
+			fsm := fsm.NewFromDeps(fsm.Deps{
+				Logger: hclog.New(nil),
+				NewStateStore: func() *state.Store {
+					return state.NewStateStoreWithEventPublisher(nil, publisher)
+				},
+				Publisher:      publisher,
+				StorageBackend: fsm.NullStorageBackend,
+			})
+			store := fsm.State()
+
+			writer := &serializedWriter{}
+			recorder := &gatewayStatusRecorder{}
+			updater := &Updater{
+				UpdateWithStatus: func(entry structs.ControlledConfigEntry) error {
+					recorder.record(entry)
+					return writer.write(func(idx uint64) error {
+						_, err := store.EnsureConfigEntryWithStatusCAS(idx, entry.GetRaftIndex().ModifyIndex, entry)
+						return err
+					})
+				},
+				Update: func(entry structs.ConfigEntry) error {
+					return writer.write(func(idx uint64) error {
+						_, err := store.EnsureConfigEntryCAS(idx, entry.GetRaftIndex().ModifyIndex, entry)
+						return err
+					})
+				},
+				Delete: func(entry structs.ConfigEntry) error {
+					return writer.write(func(idx uint64) error {
+						_, err := store.DeleteConfigEntryCAS(idx, entry.GetRaftIndex().ModifyIndex, entry)
+						return err
+					})
+				},
+			}
+
+			// Run the real controller exactly as the server does (leader_connect.go).
+			controllerDone := make(chan struct{})
+			go func() {
+				defer close(controllerDone)
+				_ = NewAPIGatewayController(fsm, publisher, updater, hclog.NewNullLogger()).Run(ctx)
+			}()
+			t.Cleanup(func() {
+				cancel()
+				<-controllerDone
+			})
+
+			const gatewayName = "api-gateway"
+			listenerRef := structs.ResourceReference{
+				Kind:           structs.APIGateway,
+				Name:           gatewayName,
+				SectionName:    "https",
+				EnterpriseMeta: *defaultMeta,
+			}
+			notFound := func(certName string) structs.Condition {
+				return invalidCertificate(listenerRef, fmt.Errorf("certificate %q not found", certName))
+			}
+			putCert := func(certName string) {
+				t.Helper()
+				require.NoError(t, writer.write(func(idx uint64) error {
+					return store.EnsureConfigEntry(idx, tc.cert(certName))
+				}))
+			}
+
+			// Both certificates are referenced by the same listener. The listener's
+			// ResolvedRefs condition is a single condition, so when more than one
+			// certificate is missing it reports the last missing one in listener
+			// order (matching the customer report, which shows "second-cert").
+			gateway := &structs.APIGatewayConfigEntry{
+				Kind:           structs.APIGateway,
+				Name:           gatewayName,
+				EnterpriseMeta: *defaultMeta,
+				Listeners: []structs.APIGatewayListener{{
+					Name:     "https",
+					Port:     443,
+					Protocol: structs.ListenerProtocolHTTP,
+					TLS: structs.APIGatewayTLSConfiguration{
+						Certificates: []structs.ResourceReference{
+							{Kind: tc.kind, Name: "first-cert", EnterpriseMeta: *defaultMeta},
+							{Kind: tc.kind, Name: "second-cert", EnterpriseMeta: *defaultMeta},
+						},
+					},
+				}},
+			}
+
+			// Step 1: the gateway is written before any certificate exists.
+			require.NoError(t, writer.write(func(idx uint64) error {
+				return store.EnsureConfigEntry(idx, gateway)
+			}))
+			requireGatewayConditionsEventually(t, recorder, gatewayName,
+				invalidCertificates(),
+				notFound("second-cert"),
+			)
+
+			// Step 2: create second-cert. The gateway must be re-reconciled on its own
+			// and stop reporting second-cert as missing; first-cert is still missing.
+			putCert("second-cert")
+			requireGatewayConditionsEventually(t, recorder, gatewayName,
+				invalidCertificates(),
+				notFound("first-cert"),
+			)
+
+			// Step 3: create first-cert. Nothing is missing any more.
+			putCert("first-cert")
+			requireGatewayConditionsEventually(t, recorder, gatewayName,
+				gatewayAccepted(),
+				resolvedRefs(listenerRef),
+			)
+
+			// Step 4: delete a certificate. The gateway must flip back to invalid.
+			require.NoError(t, writer.write(func(idx uint64) error {
+				return store.DeleteConfigEntry(idx, tc.kind, "first-cert", defaultMeta)
+			}))
+			requireGatewayConditionsEventually(t, recorder, gatewayName,
+				invalidCertificates(),
+				notFound("first-cert"),
+			)
+		})
+	}
 }
 
 type noopController struct {

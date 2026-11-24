@@ -339,6 +339,16 @@ func TestConfigEntrySubscriptions(t *testing.T) {
 			topic: state.EventTopicInlineCertificate,
 			kind:  structs.InlineCertificate,
 		},
+		"Subscribe to File System Certificate Changes": {
+			configEntry: func(name string) structs.ConfigEntry {
+				return &structs.FileSystemCertificateConfigEntry{
+					Kind: structs.FileSystemCertificate,
+					Name: name,
+				}
+			},
+			topic: state.EventTopicFileSystemCertificate,
+			kind:  structs.FileSystemCertificate,
+		},
 		"Subscribe to HTTP Route Changes": {
 			configEntry: func(name string) structs.ConfigEntry {
 				return &structs.HTTPRouteConfigEntry{

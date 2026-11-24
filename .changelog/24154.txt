@@ -1,0 +1,3 @@
+```release-note:bug
+api-gateway: Fix an issue where creating, updating, or deleting a `file-system-certificate` config entry did not cause gateways referencing it to be reconciled, leaving stale `InvalidCertificates`/`InvalidCertificateRef` status until the gateway was re-applied.
+```
