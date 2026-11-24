@@ -22,7 +22,9 @@ import (
 
 const claimDefaultLeeway = 150
 
-var staticKeySigAlgs = []jose.SignatureAlgorithm{
+// staticKeySigningAlgs are the algorithms usable with the RSA, ECDSA and
+// Ed25519 public keys accepted in JWTValidationPubKeys.
+var staticKeySigningAlgs = []jose.SignatureAlgorithm{
 	jose.RS256, jose.RS384, jose.RS512,
 	jose.PS256, jose.PS384, jose.PS512,
 	jose.ES256, jose.ES384, jose.ES512,
@@ -100,7 +102,7 @@ func (a *Authenticator) verifyVanillaJWT(ctx context.Context, loginToken string)
 			return nil, fmt.Errorf("failed to unmarshal claims: %v", err)
 		}
 	case authStaticKeys:
-		parsedJWT, err := jwt.ParseSigned(loginToken, staticKeySigAlgs)
+		parsedJWT, err := jwt.ParseSigned(loginToken, staticKeySigningAlgs)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing token: %v", err)
 		}
