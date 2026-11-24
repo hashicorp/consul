@@ -321,20 +321,30 @@ func (s *Server) DrainStream(req HandleStreamRequest) {
 }
 
 func (s *Server) HandleStream(streamReq HandleStreamRequest) error {
-	if err := s.realHandleStream(streamReq); err != nil {
+	status, generation, err := s.Tracker.ConnectedWithGeneration(streamReq.LocalID)
+	if err != nil {
+		// Another stream is already active for this peer. This stream never became the active one, so it must
+		// not change the active stream's status.
+		return fmt.Errorf("failed to register stream: %v", err)
+	}
+
+	// Only update the status if this stream is still the current one: a stream that is replaced while it shuts
+	// down must not mark its successor as disconnected.
+	if err := s.realHandleStream(streamReq, status); err != nil {
 		// DrainStream is only called after a graceful shutdown.
 		s.receivers.Delete(streamReq.Stream)
-		s.Tracker.DisconnectedDueToError(streamReq.LocalID, err.Error())
+		s.Tracker.DisconnectedDueToErrorIfCurrent(streamReq.LocalID, generation, err.Error())
 		return err
 	}
 	// TODO(peering) Also need to clear subscriptions associated with the peer
-	s.Tracker.DisconnectedGracefully(streamReq.LocalID)
+	s.Tracker.DisconnectedGracefullyIfCurrent(streamReq.LocalID, generation)
 	return nil
 }
 
 // The localID provided is the locally-generated identifier for the peering.
 // The remoteID is an identifier that the remote peer recognizes for the peering.
-func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
+// status is the tracker status of this stream, which HandleStream has already marked as connected.
+func (s *Server) realHandleStream(streamReq HandleStreamRequest, status *MutableStatus) error {
 	// TODO: pass logger down from caller?
 	logger := s.Logger.Named("stream").
 		With("peer_name", streamReq.PeerName).
@@ -346,12 +356,15 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 	handleStreamCtx, cancel := context.WithCancel(streamReq.Stream.Context())
 	defer cancel()
 
-	status, err := s.Tracker.Connected(streamReq.LocalID)
-	if err != nil {
-		return fmt.Errorf("failed to register stream: %v", err)
-	}
+	// handlerDone is closed when this function returns. Unlike handleStreamCtx, it is not closed when the
+	// stream's own context ends, which happens at the same time as Recv failing when the connection drops.
+	handlerDone := make(chan struct{})
+	defer close(handlerDone)
 
-	var trustDomain string
+	var (
+		trustDomain string
+		err         error
+	)
 	if s.ConnectEnabled {
 		// Read the TrustDomain up front - we do not allow users to change the ClusterID
 		// so reading it once at the beginning of the stream is sufficient.
@@ -523,6 +536,11 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 	// waits for it instead of calling Recv concurrently.
 	receiver := &streamReceiver{done: make(chan struct{})}
 	s.receivers.Store(streamReq.Stream, receiver)
+
+	// Hand-offs to the main loop wait on handlerDone rather than handleStreamCtx. When the connection
+	// drops, gRPC cancels the stream context at the same time as Recv fails; selecting on the context
+	// here could drop the error, leaving the main loop waiting (and the stream reported as connected)
+	// until the heartbeat timeout.
 	go func() {
 		defer close(receiver.done)
 		draining := false
@@ -533,7 +551,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 				if !draining {
 					select {
 					case recvErrCh <- err:
-					case <-handleStreamCtx.Done():
+					case <-handlerDone:
 					}
 				}
 				return
@@ -544,7 +562,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 			logTraceRecv(logger, msg)
 			select {
 			case recvCh <- msg:
-			case <-handleStreamCtx.Done():
+			case <-handlerDone:
 				draining = true
 			}
 		}
