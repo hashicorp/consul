@@ -1,0 +1,11 @@
+```release-note:bug
+peering: Fix a bug where a dialing cluster kept using the peer's previous CA roots when reconnecting after the accepting cluster rotated its Connect CA. Reconnects failed with `x509: certificate signed by unknown authority` until the dialing cluster's leader changed.
+```
+
+```release-note:bug
+peering: Fix an overflow in the peering stream retry backoff that removed the delay between reconnect attempts after a peering had been failing for about an hour, causing a tight reconnect loop on the dialing cluster's leader.
+```
+
+```release-note:bug
+peering: Fix a bug where a rejected duplicate peering stream, or a stream that had already been replaced, could mark the active stream as disconnected. The peering then reported `FAILING` and `consul.peering.healthy` dropped to 0 while the stream was still replicating.
+```
