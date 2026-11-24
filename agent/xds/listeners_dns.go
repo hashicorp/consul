@@ -7,6 +7,7 @@ import (
 	"net"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -142,29 +143,39 @@ func makeVirtualDNSDomains(cfgSnap *proxycfg.ConfigSnapshot) []*envoy_dns_table_
 			continue
 		}
 
-		fqdn := virtualFQDNForUpstream(cfgSnap, uid)
-		if fqdn == "" {
-			continue
+		// A port-scoped upstream (DestinationPort set) names a single named port,
+		// so it contributes only that port's entry. Advertising the service-level
+		// VIPs under it would answer a port query with the address of the
+		// service's default port. Otherwise the upstream contributes the
+		// service-level entry ("") plus one entry per named port.
+		portNames := []string{uid.DestinationPort}
+		if uid.DestinationPort == "" {
+			nodes := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[uid][chain.ID()]
+			for _, sp := range servicePortsFromEndpoints(nodes) {
+				portNames = append(portNames, sp.Name)
+			}
 		}
 
-		for _, addr := range virtualIPsForChain(cfgSnap, uid, chain) {
-			addEntry(fqdn, addr)
+		for _, portName := range portNames {
+			fqdn := virtualFQDNForUpstream(cfgSnap, uid, portName)
+			for _, addr := range virtualIPsForChain(cfgSnap, uid, chain, portName) {
+				addEntry(fqdn, addr)
+			}
 		}
 	}
 
 	// Upstreams reached through a peer.
 	cfgSnap.ConnectProxy.PeerUpstreamEndpoints.ForEachKey(func(uid proxycfg.UpstreamID) bool {
-		fqdn := virtualFQDNForUpstream(cfgSnap, uid)
-		if fqdn == "" {
-			return true
-		}
-		if nodes, ok := cfgSnap.ConnectProxy.PeerUpstreamEndpoints.Get(uid); ok {
-			// Upstreams reached through a peer are never terminating gateways, so no
-			// gateway VIP tag applies here.
-			for _, addr := range virtualIPsForNodes(nodes, "") {
-				addEntry(fqdn, addr)
+		if fqdn := virtualFQDNForUpstream(cfgSnap, uid, ""); fqdn != "" {
+			if nodes, ok := cfgSnap.ConnectProxy.PeerUpstreamEndpoints.Get(uid); ok {
+				// Upstreams reached through a peer are never terminating gateways, so no
+				// gateway VIP tag applies here.
+				for _, addr := range virtualIPsForNodes(nodes, "") {
+					addEntry(fqdn, addr)
+				}
 			}
 		}
+
 		return true
 	})
 
@@ -202,25 +213,42 @@ func makeVirtualDNSDomains(cfgSnap *proxycfg.ConfigSnapshot) []*envoy_dns_table_
 // listener stay in lockstep: divergence would either advertise a VIP with no
 // intercepting filter chain (silent bypass) or omit a VIP the tproxy matches.
 //
-// The set is the union of:
+// With an empty portName the set is the union of:
 //   - the chain's auto-assigned virtual IPs, but only
 //     when the chain is in the proxy's own partition (the tproxy listener only
 //     intercepts these for same-partition upstreams); and
 //   - the virtual IP of the upstream service itself, identified by the chain's
 //     primary target, to avoid pulling in addresses of other discovery targets.
-func virtualIPsForChain(cfgSnap *proxycfg.ConfigSnapshot, uid proxycfg.UpstreamID, chain *structs.CompiledDiscoveryChain) []string {
+//
+// With a portName the set is that named port's virtual IP, mirroring
+// appendEntTransparentProxyMultiportFilterChains. The service-level VIP the
+// default port's chain also matches is left out: it is already advertised under
+// the port-less name, and repeating it would give the port name two answers.
+func virtualIPsForChain(cfgSnap *proxycfg.ConfigSnapshot, uid proxycfg.UpstreamID, chain *structs.CompiledDiscoveryChain, portName string) []string {
+	nodes := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[uid][chain.ID()]
 	uniqueAddrs := make(map[string]struct{})
 
-	if chain.Partition == cfgSnap.ProxyID.PartitionOrDefault() {
-		for _, ip := range chain.AutoVirtualIPs {
-			uniqueAddrs[ip] = struct{}{}
+	if portName != "" {
+		tag := structs.TaggedAddressVirtualIPForPort(portName)
+		for _, e := range nodes {
+			if e.Service == nil {
+				continue
+			}
+			if vip := e.Service.TaggedAddresses[tag]; vip.Address != "" {
+				uniqueAddrs[vip.Address] = struct{}{}
+			}
 		}
-	}
+	} else {
+		if chain.Partition == cfgSnap.ProxyID.PartitionOrDefault() {
+			for _, ip := range chain.AutoVirtualIPs {
+				uniqueAddrs[ip] = struct{}{}
+			}
+		}
 
-	nodes := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[uid][chain.ID()]
-	gatewayVIPTag := structs.ServiceGatewayVirtualIPTag(chain.CompoundServiceName())
-	for _, addr := range virtualIPsForNodes(nodes, gatewayVIPTag) {
-		uniqueAddrs[addr] = struct{}{}
+		gatewayVIPTag := structs.ServiceGatewayVirtualIPTag(chain.CompoundServiceName())
+		for _, addr := range virtualIPsForNodes(nodes, gatewayVIPTag) {
+			uniqueAddrs[addr] = struct{}{}
+		}
 	}
 
 	addrs := make([]string, 0, len(uniqueAddrs))
@@ -265,10 +293,15 @@ func virtualIPsForNodes(nodes structs.CheckServiceNodes, gatewayVIPTag string) [
 
 // virtualFQDNForUpstream returns the fully-expanded virtual DNS name for an upstream service.
 //
-// The returned name includes the upstream's namespace, partition and datacenter, matching:
+// The name carries every label that distinguishes one upstream identity from
+// another, so each identity gets its own inline-table key and a single answer:
 //
-//	<Service-Name>.virtual.<Namespace>.ns.<Admin-Partition>.ap.<Datacenter>.dc.consul
-func virtualFQDNForUpstream(cfgSnap *proxycfg.ConfigSnapshot, uid proxycfg.UpstreamID) string {
+//	[<Port>.]<Service-Name>.virtual.[<Peer>.peer.]<Namespace>.ns.<Admin-Partition>.ap.<Datacenter>.dc.consul
+//
+// The <Port> label is present only for a named-port VIP of a multiport service,
+// and <Peer>.peer only for an upstream imported from a peer. Omitting absent
+// labels keeps local, single-port services on the original name shape.
+func virtualFQDNForUpstream(cfgSnap *proxycfg.ConfigSnapshot, uid proxycfg.UpstreamID, portName string) string {
 	if uid.Name == "" {
 		return ""
 	}
@@ -284,13 +317,17 @@ func virtualFQDNForUpstream(cfgSnap *proxycfg.ConfigSnapshot, uid proxycfg.Upstr
 		return ""
 	}
 
-	expanded := uid.Name +
-		".virtual." + uid.NamespaceOrDefault() +
-		".ns." + uid.PartitionOrDefault() +
-		".ap." + dc +
-		".dc.consul"
+	var b strings.Builder
+	if portName != "" {
+		b.WriteString(portName + ".")
+	}
+	b.WriteString(uid.Name + ".virtual.")
+	if uid.Peer != "" {
+		b.WriteString(uid.Peer + ".peer.")
+	}
+	b.WriteString(uid.NamespaceOrDefault() + ".ns." + uid.PartitionOrDefault() + ".ap." + dc + ".dc.consul")
 
-	return expanded
+	return b.String()
 }
 
 // listenerNameForVirtualDNS returns the stable Envoy listener name for the inline DNS listener.

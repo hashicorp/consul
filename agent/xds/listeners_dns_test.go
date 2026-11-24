@@ -57,7 +57,7 @@ func TestMakeVirtualDNSDomains_SkipsCrossPartitionConfiguredVIPs(t *testing.T) {
 	}
 
 	domains := makeVirtualDNSDomains(snap)
-	fqdn := virtualFQDNForUpstream(snap, uid)
+	fqdn := virtualFQDNForUpstream(snap, uid, "")
 
 	for _, d := range domains {
 		require.NotEqual(t, fqdn, d.Name)
@@ -88,7 +88,7 @@ func TestMakeVirtualDNSDomains_SkipsUnknownUpstream(t *testing.T) {
 	delete(snap.ConnectProxy.IntentionUpstreams, uid)
 
 	domains := makeVirtualDNSDomains(snap)
-	fqdn := virtualFQDNForUpstream(snap, uid)
+	fqdn := virtualFQDNForUpstream(snap, uid, "")
 
 	for _, d := range domains {
 		require.NotEqual(t, fqdn, d.Name)
@@ -188,30 +188,78 @@ func TestVirtualFQDNForUpstream(t *testing.T) {
 	snap := &proxycfg.ConfigSnapshot{Datacenter: "dc1"}
 
 	t.Run("empty name returns empty string", func(t *testing.T) {
-		require.Equal(t, "", virtualFQDNForUpstream(snap, proxycfg.UpstreamID{}))
+		require.Equal(t, "", virtualFQDNForUpstream(snap, proxycfg.UpstreamID{}, ""))
 	})
 
 	t.Run("uses upstream datacenter when set", func(t *testing.T) {
 		uid := proxycfg.NewUpstreamIDFromServiceName(structs.NewServiceName("db", nil))
 		uid.Datacenter = "dc2"
 
-		fqdns := virtualFQDNForUpstream(snap, uid)
+		fqdns := virtualFQDNForUpstream(snap, uid, "")
 		require.Equal(t, "db.virtual.default.ns.default.ap.dc2.dc.consul", fqdns)
 	})
 
 	t.Run("falls back to snapshot datacenter", func(t *testing.T) {
 		uid := proxycfg.NewUpstreamIDFromServiceName(structs.NewServiceName("web", nil))
 
-		fqdns := virtualFQDNForUpstream(snap, uid)
+		fqdns := virtualFQDNForUpstream(snap, uid, "")
 		require.Equal(t, "web.virtual.default.ns.default.ap.dc1.dc.consul", fqdns)
 	})
 
 	t.Run("no datacenter keeps expanded form with empty dc segment", func(t *testing.T) {
 		uid := proxycfg.NewUpstreamIDFromServiceName(structs.NewServiceName("cache", nil))
 
-		fqdns := virtualFQDNForUpstream(&proxycfg.ConfigSnapshot{}, uid)
+		fqdns := virtualFQDNForUpstream(&proxycfg.ConfigSnapshot{}, uid, "")
 		require.Equal(t, "", fqdns)
 	})
+
+	t.Run("named port is the leading label", func(t *testing.T) {
+		uid := proxycfg.NewUpstreamIDFromServiceName(structs.NewServiceName("api", nil))
+
+		require.Equal(t, "http.api.virtual.default.ns.default.ap.dc1.dc.consul", virtualFQDNForUpstream(snap, uid, "http"))
+	})
+
+	t.Run("peer label follows virtual", func(t *testing.T) {
+		uid := proxycfg.NewUpstreamIDFromPeeredServiceName(structs.PeeredServiceName{
+			ServiceName: structs.NewServiceName("db", nil),
+			Peer:        "peer-a",
+		})
+
+		require.Equal(t, "db.virtual.peer-a.peer.default.ns.default.ap.dc1.dc.consul", virtualFQDNForUpstream(snap, uid, ""))
+		require.Equal(t, "grpc.db.virtual.peer-a.peer.default.ns.default.ap.dc1.dc.consul", virtualFQDNForUpstream(snap, uid, "grpc"))
+	})
+}
+
+// A local service and a peer-imported service with the same name (e.g. a
+// sameness group with includeLocal and a peer member) must get distinct keys,
+// each with a single address, instead of one merged multi-address record.
+func TestMakeVirtualDNSDomains_LocalAndPeerSameName(t *testing.T) {
+	snap := proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, nil)
+
+	peerUID := proxycfg.NewUpstreamIDFromPeeredServiceName(structs.PeeredServiceName{
+		ServiceName: structs.NewServiceName("google", nil),
+		Peer:        "peer-a",
+	})
+	snap.ConnectProxy.PeerUpstreamEndpoints.InitWatch(peerUID, nil)
+	snap.ConnectProxy.PeerUpstreamEndpoints.Set(peerUID, structs.CheckServiceNodes{{
+		Node: &structs.Node{Node: "node1", Address: "127.0.0.1", PeerName: "peer-a"},
+		Service: &structs.NodeService{
+			ID:       "google-1",
+			Service:  "google",
+			PeerName: "peer-a",
+			TaggedAddresses: map[string]structs.ServiceAddress{
+				structs.TaggedAddressVirtualIP: {Address: "240.0.0.99"},
+			},
+		},
+	}})
+
+	got := make(map[string][]string)
+	for _, d := range makeVirtualDNSDomains(snap) {
+		got[d.Name] = d.GetEndpoint().GetAddressList().GetAddress()
+	}
+
+	require.Equal(t, []string{"240.0.0.1"}, got["google.virtual.default.ns.default.ap.dc1.dc.consul"])
+	require.Equal(t, []string{"240.0.0.99"}, got["google.virtual.peer-a.peer.default.ns.default.ap.dc1.dc.consul"])
 }
 
 func TestMakeRecursorAddresses(t *testing.T) {
@@ -298,72 +346,6 @@ func TestListenersFromSnapshotConnectProxy_LocalizedDNSGating(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestMakeVirtualDNSDomains_Multiport(t *testing.T) {
-	// Two UpstreamIDs for the same service with different named ports (multiport).
-	// virtualFQDNForUpstream intentionally ignores DestinationPort, so both
-	// ports map to the same FQDN. Their VIPs must be unioned under that single entry.
-	snap := proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, nil)
-
-	grpcUID := proxycfg.UpstreamID{
-		Name:            "multi-svc",
-		DestinationPort: "grpc",
-	}
-	grpcUID.Normalize()
-
-	httpUID := proxycfg.UpstreamID{
-		Name:            "multi-svc",
-		DestinationPort: "http",
-	}
-	httpUID.Normalize()
-
-	// Add both ports as separate DiscoveryChain entries (same service, different port keys).
-	// Each has its own VIP set.
-	snap.ConnectProxy.DiscoveryChain[grpcUID] = &structs.CompiledDiscoveryChain{
-		ServiceName:    "multi-svc",
-		Namespace:      "default",
-		Partition:      snap.ProxyID.PartitionOrDefault(),
-		Datacenter:     snap.Datacenter,
-		AutoVirtualIPs: []string{"240.10.10.1"},
-	}
-	snap.ConnectProxy.DiscoveryChain[httpUID] = &structs.CompiledDiscoveryChain{
-		ServiceName:    "multi-svc",
-		Namespace:      "default",
-		Partition:      snap.ProxyID.PartitionOrDefault(),
-		Datacenter:     snap.Datacenter,
-		AutoVirtualIPs: []string{"240.10.10.2"},
-	}
-
-	// Allow both as implicit upstreams so GetUpstream does not skip them.
-	snap.ConnectProxy.IntentionUpstreams[grpcUID] = struct{}{}
-	snap.ConnectProxy.IntentionUpstreams[httpUID] = struct{}{}
-
-	domains := makeVirtualDNSDomains(snap)
-
-	// Build lookup map.
-	got := make(map[string][]string)
-	for _, d := range domains {
-		got[d.Name] = d.GetEndpoint().GetAddressList().GetAddress()
-	}
-
-	// Both ports share the same FQDN (DestinationPort is not part of the DNS name).
-	fqdn := "multi-svc.virtual.default.ns.default.ap.dc1.dc.consul"
-
-	addrs, ok := got[fqdn]
-	require.True(t, ok, "expected FQDN %q in DNS table", fqdn)
-
-	// VIPs from both named ports must be present and sorted.
-	require.Equal(t, []string{"240.10.10.1", "240.10.10.2"}, addrs)
-
-	// Only one entry in the table for the shared FQDN (no duplicate domain).
-	count := 0
-	for _, d := range domains {
-		if d.Name == fqdn {
-			count++
-		}
-	}
-	require.Equal(t, 1, count, "expected exactly one DNS domain entry for multiport service")
 }
 
 func TestListenerNamesForDNS(t *testing.T) {
