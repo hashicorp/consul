@@ -229,6 +229,7 @@
     "HTTPIdleTimeout": "0s",
     "HTTPMaxConnsPerClient": 0,
     "HTTPMaxHeaderBytes": 0,
+    "HTTPMaxRequestBodySize": 0,
     "HTTPPort": 0,
     "HTTPReadHeaderTimeout": "0s",
     "HTTPReadTimeout": "0s",

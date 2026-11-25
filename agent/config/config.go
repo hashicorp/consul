@@ -839,19 +839,22 @@ type RequestLimits struct {
 }
 
 type Limits struct {
-	HTTPMaxConnsPerClient *int          `mapstructure:"http_max_conns_per_client"`
-	HTTPSHandshakeTimeout *string       `mapstructure:"https_handshake_timeout"`
-	GRPCMaxConnsPerClient *int          `mapstructure:"grpc_max_conns_per_client"`
-	RequestLimits         RequestLimits `mapstructure:"request_limits"`
-	RPCClientTimeout      *string       `mapstructure:"rpc_client_timeout"`
-	RPCHandshakeTimeout   *string       `mapstructure:"rpc_handshake_timeout"`
-	RPCMaxBurst           *int          `mapstructure:"rpc_max_burst"`
-	RPCMaxConnsPerClient  *int          `mapstructure:"rpc_max_conns_per_client"`
-	RPCMaxHeaderBytes     *int          `mapstructure:"rpc_max_header_bytes"`
-	RPCRate               *float64      `mapstructure:"rpc_rate"`
-	KVMaxValueSize        *uint64       `mapstructure:"kv_max_value_size"`
-	TxnMaxReqLen          *uint64       `mapstructure:"txn_max_req_len"`
+	HTTPMaxConnsPerClient  *int          `mapstructure:"http_max_conns_per_client"`
+	HTTPMaxRequestBodySize *int64        `mapstructure:"http_max_request_body_size"`
+	HTTPSHandshakeTimeout  *string       `mapstructure:"https_handshake_timeout"`
+	GRPCMaxConnsPerClient  *int          `mapstructure:"grpc_max_conns_per_client"`
+	RequestLimits          RequestLimits `mapstructure:"request_limits"`
+	RPCClientTimeout       *string       `mapstructure:"rpc_client_timeout"`
+	RPCHandshakeTimeout    *string       `mapstructure:"rpc_handshake_timeout"`
+	RPCMaxBurst            *int          `mapstructure:"rpc_max_burst"`
+	RPCMaxConnsPerClient   *int          `mapstructure:"rpc_max_conns_per_client"`
+	RPCMaxHeaderBytes      *int          `mapstructure:"rpc_max_header_bytes"`
+	RPCRate                *float64      `mapstructure:"rpc_rate"`
+	KVMaxValueSize         *uint64       `mapstructure:"kv_max_value_size"`
+	TxnMaxReqLen           *uint64       `mapstructure:"txn_max_req_len"`
 }
+
+const DefaultHTTPMaxRequestBodySize int64 = 512 * 1024
 
 type Segment struct {
 	Advertise   *string `mapstructure:"advertise"`

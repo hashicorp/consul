@@ -71,3 +71,14 @@ func TestTLSECDHCurves_Validation(t *testing.T) {
 	require.ErrorContains(t, ValidateTLSVersionECDHCurvesCompat(TLSv1_0), "ecdh_curves can only be configured when tls_min_version is 'TLSv1_2' or higher")
 	require.ErrorContains(t, ValidateTLSVersionECDHCurvesCompat(TLSv1_1), "ecdh_curves can only be configured when tls_min_version is 'TLSv1_2' or higher")
 }
+
+func TestDefaultPQCECDHCurves(t *testing.T) {
+	// Order is the preference order offered in the TLS handshake. P-256 is kept
+	// as a classical fallback so that peers that only support P-256 (for
+	// example some FIPS-constrained clients) keep working after an upgrade.
+	require.Equal(t, []string{"X25519MLKEM768", "X25519", "P-256"}, DefaultPQCECDHCurves)
+	require.Equal(t, []TLSECDHCurve{CurveX25519MLKEM768, CurveX25519, CurveP256}, DefaultConsulAgentPQCECDHCurves)
+
+	require.NoError(t, ValidateEnvoyECDHCurves(DefaultPQCECDHCurves))
+	require.NoError(t, ValidateConsulAgentECDHCurves(DefaultConsulAgentPQCECDHCurves))
+}
