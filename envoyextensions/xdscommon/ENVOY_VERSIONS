@@ -4,7 +4,7 @@
 # All other lines must be comments beginning with a "#", or a blank line.
 #
 # Every prior "minor" version for a given "major" (x.y) version is implicitly supported unless excluded by
-# `xdscommon.UnsupportedEnvoyVersions`. For example, 1.28.3 implies support for 1.28.0, 1.28.1, and 1.28.2.
+# `xdscommon.UnsupportedEnvoyVersions`. For example, 1.28.3 implies support for 1.28.0, 1.28.1 and 1.28.2.
 #
 # See https://developer.hashicorp.com/docs/connect/proxies/envoy#supported-versions for more information on Consul's Envoy
 # version support.
