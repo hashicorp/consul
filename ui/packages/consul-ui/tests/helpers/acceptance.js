@@ -21,6 +21,7 @@
 import { test, skip } from 'qunit';
 import { setupApplicationTest } from 'ember-qunit';
 import { settled, getContext, click, fillIn } from '@ember/test-helpers';
+import { findOne } from 'ember-cli-page-object/extend';
 
 import { env } from 'consul-ui/env';
 import api from 'consul-ui/tests/helpers/api';
@@ -477,8 +478,34 @@ export function assertVisibleCount(assert, collection, expected, label = 'items'
  */
 export function assertProperties(assert, collection, property, expected, label = 'items') {
   assert.ok(collection.length > 0, `Expected to find ${label}`);
-  for (let i = 0; i < collection.length; i++) {
-    const value = collection.objectAt(i)[property];
+  assertItemProperties(assert, collection.toArray(), property, expected, label);
+}
+
+/**
+ * Like `assertProperties`, but compares the items in the order they appear on
+ * screen, top to bottom (equivalent to
+ * `I see $property on the $component vertically like yaml`, used to check sort
+ * order).
+ */
+export function assertPropertiesVertically(
+  assert,
+  collection,
+  property,
+  expected,
+  label = 'items'
+) {
+  assert.ok(collection.length > 0, `Expected to find ${label}`);
+  const items = collection
+    .toArray()
+    .map((item) => ({ item, top: findOne(item).getBoundingClientRect().top }))
+    .sort((a, b) => a.top - b.top)
+    .map(({ item }) => item);
+  assertItemProperties(assert, items, property, expected, label);
+}
+
+const assertItemProperties = function (assert, items, property, expected, label) {
+  items.forEach((item, i) => {
+    const value = item[property];
     const actual = typeof value === 'undefined' ? null : value;
     const want = typeof expected[i] === 'number' ? expected[i].toString() : expected[i];
     assert.deepEqual(
@@ -488,8 +515,8 @@ export function assertProperties(assert, collection, property, expected, label =
         actual
       )}`
     );
-  }
-}
+  });
+};
 
 // ---------------------------------------------------------------------------
 // Forms and external providers
