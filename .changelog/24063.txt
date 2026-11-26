@@ -1,0 +1,3 @@
+```release-note:breaking-change
+agent: `GET /v1/agent/connect/ca/leaf/:service` now requires `service:write` on the requested service for every request, including requests served from the agent's cached leaf certificate. Requests with no token or a token without that permission now receive HTTP 403 instead of the cached certificate. Callers must present a token with `service:write` for the service.
+```

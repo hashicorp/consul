@@ -824,6 +824,12 @@ type RuntimeConfig struct {
 	// If zero, or negative, http.DefaultMaxHeaderBytes is used.
 	HTTPMaxHeaderBytes int
 
+	// HTTPMaxRequestBodySize limits request bodies read by the agent HTTP API.
+	// A positive value is required; the default is 512 KiB.
+	//
+	// hcl: limits { http_max_request_body_size = bytes }
+	HTTPMaxRequestBodySize int64
+
 	// HTTPReadTimeout is the maximum duration for reading the entire request,
 	// including the body. This timeout prevents slow request body attacks.
 	// A zero or negative value means there will be no timeout.

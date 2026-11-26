@@ -179,7 +179,7 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 		configFile:        configFile,
 		dataDir:           tmpDirData,
 		license:           license,
-		addtionalNetworks: []string{"bridge", network},
+		addtionalNetworks: []string{podPrimaryNetwork, network},
 		hostname:          fmt.Sprintf("agent-%d", index),
 	}
 	podReq, consulReq := newContainerRequest(config, opts, ports...)
@@ -291,10 +291,11 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 		grpcConn = conn
 	}
 
-	ip, err := podContainer.ContainerIP(ctx)
+	ip, err := containerNetworkIP(ctx, podContainer, podPrimaryNetwork)
 	if err != nil {
 		return nil, err
 	}
+	consulReq.Cmd = withAdvertiseAddr(consulReq.Cmd, ip)
 
 	consulContainer, err := startContainer(ctx, consulReq)
 	if err != nil {
@@ -305,13 +306,7 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 	})
 
 	if utils.FollowLog {
-		if err := consulContainer.StartLogProducer(ctx); err != nil {
-			return nil, err
-		}
-		deferClean.Add(func() {
-			_ = consulContainer.StopLogProducer()
-		})
-
+		// Consumers must be registered before the producer starts; it snapshots them.
 		if config.LogConsumer != nil {
 			consulContainer.FollowOutput(config.LogConsumer)
 		} else {
@@ -319,6 +314,13 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 				Prefix: opts.name,
 			})
 		}
+
+		if err := consulContainer.StartLogProducer(ctx); err != nil {
+			return nil, err
+		}
+		deferClean.Add(func() {
+			_ = consulContainer.StopLogProducer()
+		})
 	}
 
 	node := &consulContainerNode{
@@ -514,11 +516,12 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error 
 		configFile:        newConfigFile,
 		dataDir:           c.dataDir,
 		license:           "",
-		addtionalNetworks: []string{"bridge", c.network},
+		addtionalNetworks: []string{podPrimaryNetwork, c.network},
 		hostname:          c.consulReq.Hostname,
 	}
 	_, consulReq2 := newContainerRequest(config, opts)
 	consulReq2.Env = c.consulReq.Env // copy license
+	consulReq2.Cmd = withAdvertiseAddr(consulReq2.Cmd, c.ip)
 
 	// sanity check two fields
 	if consulReq2.Name != c.consulReq.Name {
@@ -542,12 +545,12 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error 
 	}
 
 	if utils.FollowLog {
-		if err := container.StartLogProducer(ctx); err != nil {
-			return err
-		}
 		container.FollowOutput(&LogConsumer{
 			Prefix: opts.name,
 		})
+		if err := container.StartLogProducer(ctx); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -806,4 +809,32 @@ func readSomeConfigFileFields(JSON string) (parsedConfig, error) {
 		pc.Datacenter = "dc1"
 	}
 	return pc, nil
+}
+
+// podPrimaryNetwork is the network whose IP agents advertise and are addressed by.
+// Pods attach to several networks and the interface order (eth0, eth1, ...) is
+// not stable across Docker versions, so the IP is set explicitly via -advertise.
+const podPrimaryNetwork = "bridge"
+
+// withAdvertiseAddr returns a copy of cmd that makes the agent advertise ip.
+func withAdvertiseAddr(cmd []string, ip string) []string {
+	out := make([]string, 0, len(cmd)+2)
+	out = append(out, cmd...)
+	return append(out, "-advertise", ip)
+}
+
+// containerNetworkIP returns the container's IP on the named network.
+// testcontainers' ContainerIP returns "" when a container is attached to more
+// than one network, which is always the case for our pods (bridge + cluster).
+func containerNetworkIP(ctx context.Context, c testcontainers.Container, network string) (string, error) {
+	inspect, err := c.Inspect(ctx)
+	if err != nil {
+		return "", err
+	}
+	if inspect.NetworkSettings != nil {
+		if ep, ok := inspect.NetworkSettings.Networks[network]; ok && ep != nil && ep.IPAddress.IsValid() {
+			return ep.IPAddress.String(), nil
+		}
+	}
+	return "", fmt.Errorf("container %s has no IP on network %q", inspect.Name, network)
 }

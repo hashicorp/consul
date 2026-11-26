@@ -7,12 +7,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-metrics"
 	"github.com/mitchellh/hashstructure"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -25,6 +27,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/debug"
@@ -215,7 +218,31 @@ func (s *HTTPHandlers) AgentMetrics(resp http.ResponseWriter, req *http.Request)
 		handler.ServeHTTP(resp, req)
 		return nil, nil
 	}
-	return s.agent.baseDeps.MetricsConfig.Handler.DisplayMetrics(resp, req)
+	summary, err := s.agent.baseDeps.MetricsConfig.Handler.DisplayMetrics(resp, req)
+	if err != nil {
+		return nil, err
+	}
+
+	if summary, ok := summary.(metrics.MetricsSummary); ok {
+		gauges := summary.Gauges[:0]
+		for _, gauge := range summary.Gauges {
+			value := float64(gauge.Value)
+			if !math.IsNaN(value) && !math.IsInf(value, 0) {
+				gauges = append(gauges, gauge)
+			}
+		}
+		summary.Gauges = gauges
+
+		precisionGauges := summary.PrecisionGauges[:0]
+		for _, gauge := range summary.PrecisionGauges {
+			if !math.IsNaN(gauge.Value) && !math.IsInf(gauge.Value, 0) {
+				precisionGauges = append(precisionGauges, gauge)
+			}
+		}
+		summary.PrecisionGauges = precisionGauges
+		return summary, nil
+	}
+	return summary, nil
 }
 
 func (s *HTTPHandlers) AgentMetricsStream(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -818,11 +845,11 @@ func (s *HTTPHandlers) AgentRegisterCheck(resp http.ResponseWriter, req *http.Re
 		return nil, err
 	}
 
-	req.Body = http.MaxBytesReader(resp, req.Body, maxAgentRequestBodyBytes)
+	req.Body = http.MaxBytesReader(resp, req.Body, s.agent.config.HTTPMaxRequestBodySize)
 	if err := decodeBody(req.Body, &args); err != nil {
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) || strings.Contains(err.Error(), "request body too large") {
-			return nil, HTTPError{StatusCode: http.StatusRequestEntityTooLarge, Reason: fmt.Sprintf("Request body too large, max size: %d bytes", maxAgentRequestBodyBytes)}
+			return nil, HTTPError{StatusCode: http.StatusRequestEntityTooLarge, Reason: fmt.Sprintf("Request body too large, max size: %d bytes", s.agent.config.HTTPMaxRequestBodySize)}
 		}
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
@@ -943,12 +970,13 @@ func (s *HTTPHandlers) AgentCheckFail(resp http.ResponseWriter, req *http.Reques
 	return s.agentCheckUpdate(resp, req, checkID, api.HealthCritical, note)
 }
 
-// maxAgentRequestBodyBytes is the upper bound applied to JSON request bodies
-// on agent HTTP endpoints that decode the body before ACL authorization.
-// 512 KiB is well above any legitimate check or service registration payload
-// while preventing an unauthenticated caller from retaining large heap buffers
-// inside the JSON decoder before ACL authorization occurs.
-const maxAgentRequestBodyBytes = 512 * 1024
+// maxRequestBodyBytes is the default upper bound applied to agent HTTP request
+// bodies before handlers decode them or resolve ACL tokens.
+const maxRequestBodyBytes = int(config.DefaultHTTPMaxRequestBodySize)
+
+// maxAgentRequestBodyBytes is kept as an alias for the agent endpoint-specific
+// limits that use the same request-body bound.
+const maxAgentRequestBodyBytes = maxRequestBodyBytes
 
 // checkUpdate is the payload for a PUT to AgentCheckUpdate.
 type checkUpdate struct {
@@ -971,14 +999,14 @@ func (s *HTTPHandlers) AgentCheckUpdate(resp http.ResponseWriter, req *http.Requ
 	// http.MaxBytesReader covers chunked bodies that carry no
 	// Content-Length header. Note: check output truncation to CheckOutputMaxSize
 	// happens downstream in updateTTLCheck; the body cap here is intentionally
-	// larger to allow callers to send up to maxAgentRequestBodyBytes.
-	req.Body = http.MaxBytesReader(resp, req.Body, maxAgentRequestBodyBytes)
+	// larger to allow callers to send up to the configured request limit.
+	req.Body = http.MaxBytesReader(resp, req.Body, s.agent.config.HTTPMaxRequestBodySize)
 
 	var update checkUpdate
 	if err := decodeBody(req.Body, &update); err != nil {
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) || strings.Contains(err.Error(), "request body too large") {
-			return nil, HTTPError{StatusCode: http.StatusRequestEntityTooLarge, Reason: fmt.Sprintf("Request body too large, max size: %d bytes", maxAgentRequestBodyBytes)}
+			return nil, HTTPError{StatusCode: http.StatusRequestEntityTooLarge, Reason: fmt.Sprintf("Request body too large, max size: %d bytes", s.agent.config.HTTPMaxRequestBodySize)}
 		}
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
@@ -1207,11 +1235,11 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 		return nil, err
 	}
 
-	req.Body = http.MaxBytesReader(resp, req.Body, maxAgentRequestBodyBytes)
+	req.Body = http.MaxBytesReader(resp, req.Body, s.agent.config.HTTPMaxRequestBodySize)
 	if err := decodeBody(req.Body, &args); err != nil {
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) || strings.Contains(err.Error(), "request body too large") {
-			return nil, HTTPError{StatusCode: http.StatusRequestEntityTooLarge, Reason: fmt.Sprintf("Request body too large, max size: %d bytes", maxAgentRequestBodyBytes)}
+			return nil, HTTPError{StatusCode: http.StatusRequestEntityTooLarge, Reason: fmt.Sprintf("Request body too large, max size: %d bytes", s.agent.config.HTTPMaxRequestBodySize)}
 		}
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
@@ -1652,6 +1680,7 @@ func (s *HTTPHandlers) AgentConnectCARoots(resp http.ResponseWriter, req *http.R
 	// issue the request directly via RPC instead.
 	var reply *structs.IndexedCARoots
 	if s.agent.config.HTTPUseCache {
+		s.boundCacheBlockingWait(&args.QueryOptions)
 		raw, m, err := s.agent.cache.Get(req.Context(), cachetype.ConnectCARootName, &args)
 		if err != nil {
 			return nil, err
@@ -1713,8 +1742,19 @@ func (s *HTTPHandlers) AgentConnectCALeafCert(resp http.ResponseWriter, req *htt
 		args.MustRevalidate = true
 	}
 
+	s.defaultMetaPartitionToAgent(&args.EnterpriseMeta)
+	var authzContext acl.AuthorizerContext
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
+	if err != nil {
+		return nil, err
+	}
+
 	if !s.validateRequestPartition(resp, &args.EnterpriseMeta) {
 		return nil, nil
+	}
+
+	if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(serviceName, &authzContext); err != nil {
+		return nil, err
 	}
 
 	reply, m, err := s.agent.leafCertManager.Get(req.Context(), &args)
@@ -1748,11 +1788,11 @@ func (s *HTTPHandlers) AgentConnectAuthorize(resp http.ResponseWriter, req *http
 		return nil, err
 	}
 
-	req.Body = http.MaxBytesReader(resp, req.Body, maxAgentRequestBodyBytes)
+	req.Body = http.MaxBytesReader(resp, req.Body, s.agent.config.HTTPMaxRequestBodySize)
 	if err := decodeBody(req.Body, &authReq); err != nil {
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) || strings.Contains(err.Error(), "request body too large") {
-			return nil, HTTPError{StatusCode: http.StatusRequestEntityTooLarge, Reason: fmt.Sprintf("Request body too large, max size: %d bytes", maxAgentRequestBodyBytes)}
+			return nil, HTTPError{StatusCode: http.StatusRequestEntityTooLarge, Reason: fmt.Sprintf("Request body too large, max size: %d bytes", s.agent.config.HTTPMaxRequestBodySize)}
 		}
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}

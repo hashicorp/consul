@@ -842,6 +842,11 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			if err := entry.Validate(); err != nil {
 				return RuntimeConfig{}, fmt.Errorf("config_entries.bootstrap[%d]: %w", i, err)
 			}
+			if warnEntry, ok := entry.(structs.WarningConfigEntry); ok {
+				for _, w := range warnEntry.Warnings() {
+					b.warn("config_entries.bootstrap[%d]: %s", i, w)
+				}
+			}
 			configEntries = append(configEntries, entry)
 		}
 	}
@@ -987,19 +992,20 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		DNSCacheMaxAge:        b.durationVal("dns_config.cache_max_age", c.DNS.CacheMaxAge),
 
 		// HTTP
-		HTTPPort:              httpPort,
-		HTTPSPort:             httpsPort,
-		HTTPAddrs:             httpAddrs,
-		HTTPSAddrs:            httpsAddrs,
-		HTTPBlockEndpoints:    c.HTTPConfig.BlockEndpoints,
-		HTTPMaxHeaderBytes:    intVal(c.HTTPConfig.MaxHeaderBytes),
-		HTTPResponseHeaders:   c.HTTPConfig.ResponseHeaders,
-		AllowWriteHTTPFrom:    b.cidrsVal("allow_write_http_from", c.HTTPConfig.AllowWriteHTTPFrom),
-		HTTPUseCache:          boolValWithDefault(c.HTTPConfig.UseCache, true),
-		HTTPReadTimeout:       b.durationValWithDefaultMin("http_config.read_timeout", c.HTTPConfig.ReadTimeout, 15*time.Minute, 1*time.Second),
-		HTTPReadHeaderTimeout: b.durationValWithDefaultMin("http_config.read_header_timeout", c.HTTPConfig.ReadHeaderTimeout, 10*time.Second, 1*time.Second),
-		HTTPWriteTimeout:      b.durationValWithDefaultMin("http_config.write_timeout", c.HTTPConfig.WriteTimeout, 15*time.Minute, 1*time.Second),
-		HTTPIdleTimeout:       b.durationValWithDefaultMin("http_config.idle_timeout", c.HTTPConfig.IdleTimeout, 120*time.Second, 10*time.Second),
+		HTTPPort:               httpPort,
+		HTTPSPort:              httpsPort,
+		HTTPAddrs:              httpAddrs,
+		HTTPSAddrs:             httpsAddrs,
+		HTTPBlockEndpoints:     c.HTTPConfig.BlockEndpoints,
+		HTTPMaxHeaderBytes:     intVal(c.HTTPConfig.MaxHeaderBytes),
+		HTTPMaxRequestBodySize: int64ValWithDefault(c.Limits.HTTPMaxRequestBodySize, DefaultHTTPMaxRequestBodySize),
+		HTTPResponseHeaders:    c.HTTPConfig.ResponseHeaders,
+		AllowWriteHTTPFrom:     b.cidrsVal("allow_write_http_from", c.HTTPConfig.AllowWriteHTTPFrom),
+		HTTPUseCache:           boolValWithDefault(c.HTTPConfig.UseCache, true),
+		HTTPReadTimeout:        b.durationValWithDefaultMin("http_config.read_timeout", c.HTTPConfig.ReadTimeout, 15*time.Minute, 1*time.Second),
+		HTTPReadHeaderTimeout:  b.durationValWithDefaultMin("http_config.read_header_timeout", c.HTTPConfig.ReadHeaderTimeout, 10*time.Second, 1*time.Second),
+		HTTPWriteTimeout:       b.durationValWithDefaultMin("http_config.write_timeout", c.HTTPConfig.WriteTimeout, 15*time.Minute, 1*time.Second),
+		HTTPIdleTimeout:        b.durationValWithDefaultMin("http_config.idle_timeout", c.HTTPConfig.IdleTimeout, 120*time.Second, 10*time.Second),
 
 		// Telemetry
 		Telemetry: lib.TelemetryConfig{
@@ -1222,6 +1228,9 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	}
 	if rt.Cache.EntryFetchRate <= 0 {
 		return RuntimeConfig{}, fmt.Errorf("cache.entry_fetch_rate must be strictly positive, was: %v", rt.Cache.EntryFetchRate)
+	}
+	if rt.HTTPMaxRequestBodySize <= 0 {
+		return RuntimeConfig{}, fmt.Errorf("limits.http_max_request_body_size must be strictly positive, was: %v", rt.HTTPMaxRequestBodySize)
 	}
 
 	if rt.UIConfig.MetricsProvider == "prometheus" {
@@ -2229,6 +2238,13 @@ func uint64Val(v *uint64) uint64 {
 	return *v
 }
 
+func int64ValWithDefault(v *int64, defaultVal int64) int64 {
+	if v == nil {
+		return defaultVal
+	}
+	return *v
+}
+
 // Expect an octal permissions string, e.g. 0644
 func (b *builder) unixPermissionsVal(name string, v *string) string {
 	if v == nil {
@@ -2946,7 +2962,7 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 			} else {
 				// Automatic curve injection: keep behaviour same as connect mesh
 				if err, isLessThanTLS13 := dst.TLSMinVersion.LessThan(types.TLSv1_3); err == nil && !isLessThanTLS13 {
-					dst.ECDHCurves = types.DefaultConsulAgentPQCECDHCurves
+					dst.ECDHCurves = append([]types.TLSECDHCurve(nil), types.DefaultConsulAgentPQCECDHCurves...)
 				}
 			}
 		} else {

@@ -100,6 +100,7 @@ func DefaultSource() Source {
 		}
 		limits = {
 			http_max_conns_per_client = 200
+			http_max_request_body_size = ` + strconv.FormatInt(DefaultHTTPMaxRequestBodySize, 10) + `
 			https_handshake_timeout = "5s"
 			grpc_max_conns_per_client = 100
 			request_limits = {

@@ -1,0 +1,15 @@
+```release-note:bug
+acl: Fixed Envoy escape-hatch key matching in `Proxy.Config` and per-upstream config so it follows the same case-folding rules as the config decoders. Keys that differ only by Unicode case folding (for example `envoy_local_cluſter_json`), and Go field-name forms such as `EnvoyListenerJSON`, now require `mesh:write` like their canonical spellings.
+```
+```release-note:breaking-change
+agent: Agent HTTP API request bodies are now limited to 512 KiB by default, including chunked requests and requests with an unsupported method, and oversized requests return HTTP 413 before the body is read in full. Very large `/v1/config` writes that previously succeeded can now fail. Raise the limit with the new `limits.http_max_request_body_size` setting if needed.
+```
+```release-note:breaking-change
+agent: Resource API (`/api/...`) request bodies are now subject to the same `limits.http_max_request_body_size` limit (512 KiB by default), and oversized requests return HTTP 413.
+```
+```release-note:bug
+agent: Fixed `PUT /v1/kv/` so chunked request bodies are bounded by `kv_max_value_size`, matching the existing `Content-Length` check.
+```
+```release-note:breaking-change
+catalog: `Catalog.Register` now requires write permission on the node or service of an existing health check when updating it. Tokens that previously updated checks without that permission now receive a permission denied error.
+```

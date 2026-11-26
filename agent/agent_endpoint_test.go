@@ -21,13 +21,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/go-metrics"
 	"github.com/mitchellh/hashstructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-metrics"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/serf"
 
@@ -6844,6 +6844,47 @@ func TestAgentConnectCARoots_empty(t *testing.T) {
 	require.Contains(t, resp.Body.String(), "Connect must be enabled")
 }
 
+// A blocking request without ?wait must be bounded by default_query_time rather
+// than blocking until the roots change, otherwise it outlives
+// http_config.write_timeout and gets reset.
+func TestAgentConnectCARoots_BlockingDefaultQueryTime(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	a := NewTestAgent(t, `
+		default_query_time = "2s"
+		peering { enabled = false }
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/roots", nil)
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code)
+	index := resp.Header().Get("X-Consul-Index")
+	require.NotEmpty(t, index)
+
+	start := time.Now()
+	req, _ = http.NewRequest("GET", "/v1/agent/connect/ca/roots?index="+index, nil)
+	resp = httptest.NewRecorder()
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		a.srv.h.ServeHTTP(resp, req)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(10 * time.Second):
+		t.Fatal("blocking query without wait did not return after default_query_time")
+	}
+	require.Equal(t, http.StatusOK, resp.Code)
+	require.Equal(t, index, resp.Header().Get("X-Consul-Index"))
+	require.GreaterOrEqual(t, time.Since(start), 2*time.Second)
+}
+
 func TestAgentConnectCARoots_list(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -7050,10 +7091,26 @@ func TestAgentConnectCALeafCert_aclDefaultDeny(t *testing.T) {
 		require.Equal(t, 200, resp.Code, "body: %s", resp.Body.String())
 	}
 
-	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
-	resp := httptest.NewRecorder()
-	a.srv.h.ServeHTTP(resp, req)
-	require.Equal(t, http.StatusForbidden, resp.Code)
+	leafURL := "/v1/agent/connect/ca/leaf/test"
+	seedReq, _ := http.NewRequest("GET", leafURL, nil)
+	seedReq.Header.Add("X-Consul-Token", "root")
+	seedResp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(seedResp, seedReq)
+	require.Equal(t, http.StatusOK, seedResp.Code, "body: %s", seedResp.Body.String())
+	require.Equal(t, "MISS", seedResp.Header().Get("X-Cache"))
+
+	for _, token := range []string{"", "bogus"} {
+		t.Run("unauthorized token="+token, func(t *testing.T) {
+			req, _ := http.NewRequest("GET", leafURL, nil)
+			if token != "" {
+				req.Header.Add("X-Consul-Token", token)
+			}
+			resp := httptest.NewRecorder()
+			a.srv.h.ServeHTTP(resp, req)
+			require.Equal(t, http.StatusForbidden, resp.Code)
+			require.Empty(t, resp.Header().Get("X-Cache"))
+		})
+	}
 }
 
 func TestAgentConnectCALeafCert_aclServiceWrite(t *testing.T) {

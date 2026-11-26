@@ -4,6 +4,7 @@
 package peerstream
 
 import (
+	"sync"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
@@ -31,6 +32,10 @@ type Server struct {
 	Config
 
 	Tracker *Tracker
+
+	// receivers maps a BidirectionalStream handled by HandleStream to its *streamReceiver so that
+	// DrainStream can wait for the stream's receiver goroutine instead of calling Recv concurrently.
+	receivers sync.Map
 }
 
 type Config struct {

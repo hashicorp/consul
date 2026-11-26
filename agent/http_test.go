@@ -1588,6 +1588,29 @@ func TestParseConsistency_Invalid(t *testing.T) {
 	}
 }
 
+func TestParseConsistency_InvalidMaxStaleContentType(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, `
+		http_config {
+			response_headers = {
+				"Content-Type" = "text/html"
+			}
+		}
+	`)
+	defer a.Shutdown()
+
+	resp := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?max_stale=%3Cscript%3E", nil)
+	a.srv.handler().ServeHTTP(resp, req)
+
+	require.Equal(t, http.StatusBadRequest, resp.Code)
+	require.Equal(t, plainContentType, resp.Result().Header.Get("Content-Type"))
+}
+
 // Test ACL token is resolved in correct order
 func TestACLResolution(t *testing.T) {
 	if testing.Short() {
@@ -2105,4 +2128,32 @@ func TestWithRemoteAddrHandler_InvalidAddr(t *testing.T) {
 	remoteAddrHandler.ServeHTTP(httptest.NewRecorder(), req)
 
 	assert.True(t, nextHandlerCalled, "expected next handler to be called")
+}
+
+func TestHTTPHandlers_boundCacheBlockingWait(t *testing.T) {
+	a := NewTestAgent(t, `
+		default_query_time = "30s"
+		max_query_time = "60s"
+	`)
+	defer a.Shutdown()
+
+	withJitter := func(d time.Duration) time.Duration { return d + d/structs.JitterFraction }
+
+	tests := []struct {
+		name     string
+		opts     structs.QueryOptions
+		min, max time.Duration
+	}{
+		{name: "non-blocking is untouched", opts: structs.QueryOptions{MaxQueryTime: 5 * time.Minute}, min: 5 * time.Minute, max: 5 * time.Minute},
+		{name: "no wait uses default", opts: structs.QueryOptions{MinQueryIndex: 1}, min: 30 * time.Second, max: withJitter(30 * time.Second)},
+		{name: "explicit wait is kept", opts: structs.QueryOptions{MinQueryIndex: 1, MaxQueryTime: 10 * time.Second}, min: 10 * time.Second, max: withJitter(10 * time.Second)},
+		{name: "wait is capped", opts: structs.QueryOptions{MinQueryIndex: 1, MaxQueryTime: time.Hour}, min: 60 * time.Second, max: withJitter(60 * time.Second)},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			a.srv.boundCacheBlockingWait(&tc.opts)
+			require.GreaterOrEqual(t, tc.opts.MaxQueryTime, tc.min)
+			require.LessOrEqual(t, tc.opts.MaxQueryTime, tc.max)
+		})
+	}
 }
