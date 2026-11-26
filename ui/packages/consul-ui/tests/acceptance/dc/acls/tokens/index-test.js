@@ -10,7 +10,7 @@
 // `input[type=search]`). Using the FilterBar-specific `.hds-filter-bar__search`
 // selector removes the ambiguity.
 
-import { module, skip } from 'qunit';
+import { module } from 'qunit';
 import { fillIn } from '@ember/test-helpers';
 
 import {
@@ -159,7 +159,4 @@ module('Acceptance | dc / acls / tokens / index: ACL Token List', function (hook
       assert.equal(page().tokens.length, 3, 'shows 3 tokens');
     }
   );
-
-  // Placeholder — sorting scenarios live in dc/acls/tokens/sorting.feature (not migrated yet).
-  skip('sorting scenarios are covered in dc/acls/tokens/sorting.feature', function () {});
 });

@@ -46,9 +46,8 @@ its supporting infrastructure:
   deleting the folder alone breaks every build.
 - **Lockfile:** run `pnpm install` from `ui/` so `ui/pnpm-lock.yaml` drops `ember-cli-yadda` and
   `yadda`.
-- **Dictionary-only deps:** `js-yaml` (a direct devDependency in `package.json`) is imported only
-  by `tests/dictionary.js` today. If nothing else uses it by then (including the new
-  namespace-template helper, see Phase 0), remove it.
+- **Keep `js-yaml`:** it is a direct devDependency that `tests/helpers/nspace-template.js` now
+  imports (as well as `tests/dictionary.js`), so it stays after the dictionary is deleted.
 - **Docs:** rewrite the BDD/`ember generate feature` section of
   [docs/testing.mdx](docs/testing.mdx) (~line 210) to describe native QUnit acceptance tests.
 - **This file:** delete it (or archive it) once the work is finished.
@@ -85,19 +84,21 @@ api-double, [tests/pages.js](tests/pages.js) / `tests/pages/`, `tests/lib/page-o
    page-object queries (`find`, `assertVisibleCount`, `assertProperties`), `fillInForm` (plain
    inputs), `stubOIDCProvider` and `clickParentBreadcrumb`. `visit` clears the request history, as
    the yadda `I visit` steps did. Still missing and to be added by the batch that first needs
-   them: filling code editors, a wait-until helper (the yadda `pause until` steps) and sort-order
-   assertions. Prefer plain `assert.dom(...)` for DOM assertions (pass `document.documentElement`
+   them: filling code editors and a wait-until helper (the yadda `pause until` steps). Sort-order
+   assertions use `assertPropertiesVertically` (added with the ACL token batch). Prefer plain
+   `assert.dom(...)` for DOM assertions (pass `document.documentElement`
    to assert on `<html>`). Add shared helpers to the harness, not inside individual tests.
-3. **Baseline.** Before the first batch, record the sorted test-title list (and pass/skip
-   counts) from `ember test` under both `CONSUL_NSPACES_ENABLED=0` and `=1`. Compare against
+3. ✅ **Baseline.** Recorded from `main` before the ACL token batch: the sorted test-title list (and
+   pass/skip counts) from `ember test` under both `CONSUL_NSPACES_ENABLED=0` and `=1`. Compare against
    it after every batch so dropped scenarios, `Where:` rows or tags are caught. Note that the
    test environment defaults to namespaces **off** (`config/environment.js`), so a plain
    `pnpm test` only exercises CE.
 4. ✅ **Fix the regressions** below, so later batches don't copy the weakened navigation pattern.
 5. ✅ **`@ignore` scenarios.** The 8 empty `Then ok` placeholders and the 19 orphaned
-   `-steps.js` stubs were deleted. The remaining 10 ignored scenarios have real bodies: 3
+   `-steps.js` stubs were deleted. The remaining 9 ignored scenarios have real bodies: 2
    scenario-level `@ignore` tags, plus the feature-level `@ignore` on
    `dc/acls/policies/as-many/add-new` (6 scenarios) and `dc/intentions/permissions/warn` (1).
+   (`dc/acls/tokens/use` "from the detail page" passed once migrated and is no longer ignored.)
    When migrating their feature, fix and un-ignore them where possible. Otherwise port each as
    a skipped test (`{ ignore: true }`) that keeps the original steps in its body, with the
    reason in a comment, so it can be un-skipped later (see `dc/acls/policies/index-test.js` and
@@ -133,15 +134,15 @@ manually in the running UI if needed.
 
 | Metric | Count |
 | --- | --- |
-| Feature files remaining (yadda) | 90 |
-| Scenarios remaining (yadda) | 222 (10 are `@ignore`, each with a real body: 3 scenario-level tags plus 2 feature-level tags covering 7 scenarios) |
-| Feature files fully migrated | 39 |
-| Scenarios migrated | 70 (46 from the first 27 features, 24 from the last 12) |
+| Feature files remaining (yadda) | 83 |
+| Scenarios remaining (yadda) | 208 (9 are `@ignore`, each with a real body: 2 scenario-level tags plus 2 feature-level tags covering 7 scenarios) |
+| Feature files fully migrated | 46 |
+| Scenarios migrated | 84 (46 from the first 27 features, 24 from the next 12, 14 from the 7 ACL token features) |
 
 Scenario counts are not test counts. 20 remaining features use `Where:` tables (one test per
 row), and under `CONSUL_NSPACES_ENABLED=1` each namespaceable scenario runs 4 times.
 
-`tests/acceptance` contains 48 native `*-test.js` files: 39 come from migrated features and 9 are native-only tests that never had a
+`tests/acceptance` contains 55 native `*-test.js` files: 46 come from migrated features and 9 are native-only tests that never had a
 `.feature` (`breadcrumbs/*`, `components/tab-error`, `components/tab-nav-focus`,
 `dc/nodes/sessions/filter-sort`, `hcp-login`, `unavailable`). Counts are from disk; re-verify with
 `find tests -name '*.feature' | wc -l`.
@@ -226,6 +227,13 @@ problems; the tests document the current behaviour):
 | `startup.feature` | App boots when loading index.html into a browser. `@notNamespaceable`, as before. | 1 | [tests/acceptance/startup-test.js](tests/acceptance/startup-test.js) |
 | `submit-blank.feature` | Blank create forms keep the submit button disabled. | 1 | [tests/acceptance/submit-blank-test.js](tests/acceptance/submit-blank-test.js) |
 | `token-header.feature` | API requests send the Consul token header after a token is set. `@notNamespaceable`, as before. | 2 | [tests/acceptance/token-header-test.js](tests/acceptance/token-header-test.js) |
+| `dc/acls/tokens/anonymous-no-delete.feature` | The anonymous token has no delete action on the list and no delete confirmation on its detail page. | 2 | [tests/acceptance/dc/acls/tokens/anonymous-no-delete-test.js](tests/acceptance/dc/acls/tokens/anonymous-no-delete-test.js) |
+| `dc/acls/tokens/clone.feature` | Clone (duplicate) a token from the list (namespaced `PUT .../clone`) and from its detail page. | 2 | [tests/acceptance/dc/acls/tokens/clone-test.js](tests/acceptance/dc/acls/tokens/clone-test.js) |
+| `dc/acls/tokens/create.feature` | Create page title; create a token (2 `Where:` rows) with the namespaced `PUT`; no `Namespace` sent when namespaces are disabled (`@notNamespaceable`, as before). | 3 (4 tests) | [tests/acceptance/dc/acls/tokens/create-test.js](tests/acceptance/dc/acls/tokens/create-test.js) |
+| `dc/acls/tokens/own-no-delete.feature` | After using a token it is stored in settings and has no delete action or confirmation. | 1 | [tests/acceptance/dc/acls/tokens/own-no-delete-test.js](tests/acceptance/dc/acls/tokens/own-no-delete-test.js) |
+| `dc/acls/tokens/sorting.feature` | Sort tokens by creation time both ways (uses the new `assertPropertiesVertically` harness helper). The placeholder skip in `index-test.js` was removed. | 1 | [tests/acceptance/dc/acls/tokens/sorting-test.js](tests/acceptance/dc/acls/tokens/sorting-test.js) |
+| `dc/acls/tokens/update.feature` | Update a token's description (2 `Where:` rows, now titled by description instead of the literal `Update to [Name]`), 500 error, and no `Namespace` when disabled. | 3 (4 tests) | [tests/acceptance/dc/acls/tokens/update-test.js](tests/acceptance/dc/acls/tokens/update-test.js) |
+| `dc/acls/tokens/use.feature` | Use a token from the list and from the detail page. The detail-page scenario was `@ignore` (FIXME); it passes now and is un-ignored. | 2 | [tests/acceptance/dc/acls/tokens/use-test.js](tests/acceptance/dc/acls/tokens/use-test.js) |
 
 ## Remaining features
 
@@ -254,14 +262,14 @@ problems; the tests document the current behaviour):
 | ~~`dc/acls/roles/navigation.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [navigation-test.js](tests/acceptance/dc/acls/roles/navigation-test.js) |
 | [dc/acls/roles/sorting.feature](tests/acceptance/dc/acls/roles/sorting.feature) | Sorting the roles list. | 1 | ☐ Not migrated |  |
 | [dc/acls/roles/update.feature](tests/acceptance/dc/acls/roles/update.feature) | Update a role (name/rules/description); error handling; no Namespace when disabled. | 3 | ☐ Not migrated |  |
-| [dc/acls/tokens/anonymous-no-delete.feature](tests/acceptance/dc/acls/tokens/anonymous-no-delete.feature) | The anonymous token exposes no delete buttons on list or detail pages. | 2 | ☐ Not migrated |  |
-| [dc/acls/tokens/clone.feature](tests/acceptance/dc/acls/tokens/clone.feature) | Clone an ACL token from the list and detail pages. | 2 | ☐ Not migrated |  |
-| [dc/acls/tokens/create.feature](tests/acceptance/dc/acls/tokens/create.feature) | Create an ACL token; no Namespace sent when namespaces are disabled. | 3 | ☐ Not migrated |  |
+| ~~`dc/acls/tokens/anonymous-no-delete.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [anonymous-no-delete-test.js](tests/acceptance/dc/acls/tokens/anonymous-no-delete-test.js) |
+| ~~`dc/acls/tokens/clone.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [clone-test.js](tests/acceptance/dc/acls/tokens/clone-test.js) |
+| ~~`dc/acls/tokens/create.feature`~~ | *(deleted — migrated above)* | 3 | ✅ Migrated | [create-test.js](tests/acceptance/dc/acls/tokens/create-test.js) |
 | ~~`dc/acls/tokens/navigation.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [navigation-test.js](tests/acceptance/dc/acls/tokens/navigation-test.js) |
-| [dc/acls/tokens/own-no-delete.feature](tests/acceptance/dc/acls/tokens/own-no-delete.feature) | Your currently-used token exposes no delete button. | 1 | ☐ Not migrated |  |
-| [dc/acls/tokens/sorting.feature](tests/acceptance/dc/acls/tokens/sorting.feature) | Sorting the tokens list. | 1 | ☐ Not migrated |  |
-| [dc/acls/tokens/update.feature](tests/acceptance/dc/acls/tokens/update.feature) | Update a token (name); error handling; no Namespace when disabled. | 3 | ☐ Not migrated |  |
-| [dc/acls/tokens/use.feature](tests/acceptance/dc/acls/tokens/use.feature) | Switch to (use) an ACL token from the list and detail pages. | 2 | ☐ Not migrated |  |
+| ~~`dc/acls/tokens/own-no-delete.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [own-no-delete-test.js](tests/acceptance/dc/acls/tokens/own-no-delete-test.js) |
+| ~~`dc/acls/tokens/sorting.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [sorting-test.js](tests/acceptance/dc/acls/tokens/sorting-test.js) |
+| ~~`dc/acls/tokens/update.feature`~~ | *(deleted — migrated above)* | 3 | ✅ Migrated | [update-test.js](tests/acceptance/dc/acls/tokens/update-test.js) |
+| ~~`dc/acls/tokens/use.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [use-test.js](tests/acceptance/dc/acls/tokens/use-test.js) |
 | [dc/intentions/delete.feature](tests/acceptance/dc/intentions/delete.feature) | Delete intentions from list/detail incl. error and duplicate-intention error. | 4 | ☐ Not migrated |  |
 | [dc/intentions/filtered-select.feature](tests/acceptance/dc/intentions/filtered-select.feature) | Service select dropdowns show services but exclude proxy services; handles same-name services in different namespaces. | 2 | ☐ Not migrated |  |
 | [dc/intentions/form-select.feature](tests/acceptance/dc/intentions/form-select.feature) | Type into the autocomplete and select a custom/future service. | 1 | ☐ Not migrated |  |
