@@ -523,13 +523,42 @@ const assertItemProperties = function (assert, items, property, expected, label)
 // ---------------------------------------------------------------------------
 
 /**
- * Fill in plain `<input name="prefix[key]">` form fields (equivalent to
- * `I fill in the $prefix form with yaml`). Code editors are not handled here.
+ * Fill in `<input name="prefix[key]">` form fields (equivalent to
+ * `I fill in the $prefix form with yaml`). Fields rendered as an HDS code
+ * editor (`aria-label="prefix[key]"`) are filled with `fillInCodeEditor`.
  */
 export async function fillInForm(prefix, data) {
   for (const key of Object.keys(data)) {
-    await fillIn(`[name="${prefix}[${key}]"]`, data[key]);
+    const name = `${prefix}[${key}]`;
+    if (document.querySelector(`.cm-editor [aria-label="${name}"]`)) {
+      await fillInCodeEditor(name, data[key]);
+    } else {
+      await fillIn(`[name="${name}"]`, data[key]);
+    }
   }
+}
+
+/**
+ * Replace the content of the HDS code editor labelled `name`, which CodeMirror
+ * picks up as user input (the yadda `fillInCodeEditor`). Throws if the field is
+ * a read-only code block or doesn't exist, so "can't fill in" checks can use
+ * `assert.rejects`.
+ */
+export async function fillInCodeEditor(name, value) {
+  const element = document.querySelector(`[aria-label="${name}"]`);
+  if (!element || !element.closest('.cm-editor')) {
+    if (element && element.closest('.hds-code-block')) {
+      throw new Error(`The ${name} editor is set to readonly`);
+    }
+    throw new Error(`No code editor labelled ${name}`);
+  }
+  const content = document.createElement('div');
+  content.textContent = value;
+  element.innerHTML = '';
+  element.appendChild(content);
+  // CodeMirror reads DOM changes from a MutationObserver, so let it run first.
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await settled();
 }
 
 /**

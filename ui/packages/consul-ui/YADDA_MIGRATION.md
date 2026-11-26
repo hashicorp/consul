@@ -84,8 +84,9 @@ api-double, [tests/pages.js](tests/pages.js) / `tests/pages/`, `tests/lib/page-o
    page-object queries (`find`, `assertVisibleCount`, `assertProperties`), `fillInForm` (plain
    inputs), `stubOIDCProvider` and `clickParentBreadcrumb`. `visit` clears the request history, as
    the yadda `I visit` steps did. Still missing and to be added by the batch that first needs
-   them: filling code editors and a wait-until helper (the yadda `pause until` steps). Sort-order
-   assertions use `assertPropertiesVertically` (added with the ACL token batch). Prefer plain
+   them: a wait-until helper (the yadda `pause until` steps). Sort-order assertions use
+   `assertPropertiesVertically` (ACL token batch); code editors are filled by `fillInForm` /
+   `fillInCodeEditor` (ACL policy batch). Prefer plain
    `assert.dom(...)` for DOM assertions (pass `document.documentElement`
    to assert on `<html>`). Add shared helpers to the harness, not inside individual tests.
 3. ✅ **Baseline.** Recorded from `main` before the ACL token batch: the sorted test-title list (and
@@ -95,10 +96,10 @@ api-double, [tests/pages.js](tests/pages.js) / `tests/pages/`, `tests/lib/page-o
    `pnpm test` only exercises CE.
 4. ✅ **Fix the regressions** below, so later batches don't copy the weakened navigation pattern.
 5. ✅ **`@ignore` scenarios.** The 8 empty `Then ok` placeholders and the 19 orphaned
-   `-steps.js` stubs were deleted. The remaining 9 ignored scenarios have real bodies: 2
-   scenario-level `@ignore` tags, plus the feature-level `@ignore` on
-   `dc/acls/policies/as-many/add-new` (6 scenarios) and `dc/intentions/permissions/warn` (1).
-   (`dc/acls/tokens/use` "from the detail page" passed once migrated and is no longer ignored.)
+   `-steps.js` stubs were deleted. The remaining 2 ignored scenarios have real bodies: the
+   scenario-level `@ignore` in `dc/kvs/index` and the feature-level `@ignore` on
+   `dc/intentions/permissions/warn` (1). (`dc/acls/tokens/use` "from the detail page" and most
+   of `dc/acls/policies/as-many/add-new` pass once migrated and are no longer ignored.)
    When migrating their feature, fix and un-ignore them where possible. Otherwise port each as
    a skipped test (`{ ignore: true }`) that keeps the original steps in its body, with the
    reason in a comment, so it can be un-skipped later (see `dc/acls/policies/index-test.js` and
@@ -134,15 +135,15 @@ manually in the running UI if needed.
 
 | Metric | Count |
 | --- | --- |
-| Feature files remaining (yadda) | 83 |
-| Scenarios remaining (yadda) | 208 (9 are `@ignore`, each with a real body: 2 scenario-level tags plus 2 feature-level tags covering 7 scenarios) |
-| Feature files fully migrated | 46 |
-| Scenarios migrated | 84 (46 from the first 27 features, 24 from the next 12, 14 from the 7 ACL token features) |
+| Feature files remaining (yadda) | 63 |
+| Scenarios remaining (yadda) | 169 (2 are `@ignore`, each with a real body: the scenario-level tag in `dc/kvs/index` and the feature-level tag on `dc/intentions/permissions/warn`) |
+| Feature files fully migrated | 66 |
+| Scenarios migrated | 123 (46 from the first 27 features, 24 from the next 12, 14 from the 7 ACL token features, 23 from the 12 ACL policy features, 16 from the 8 ACL role and auth-method features) |
 
 Scenario counts are not test counts. 20 remaining features use `Where:` tables (one test per
 row), and under `CONSUL_NSPACES_ENABLED=1` each namespaceable scenario runs 4 times.
 
-`tests/acceptance` contains 55 native `*-test.js` files: 46 come from migrated features and 9 are native-only tests that never had a
+`tests/acceptance` contains 75 native `*-test.js` files: 66 come from migrated features and 9 are native-only tests that never had a
 `.feature` (`breadcrumbs/*`, `components/tab-error`, `components/tab-nav-focus`,
 `dc/nodes/sessions/filter-sort`, `hcp-login`, `unavailable`). Counts are from disk; re-verify with
 `find tests -name '*.feature' | wc -l`.
@@ -234,34 +235,54 @@ problems; the tests document the current behaviour):
 | `dc/acls/tokens/sorting.feature` | Sort tokens by creation time both ways (uses the new `assertPropertiesVertically` harness helper). The placeholder skip in `index-test.js` was removed. | 1 | [tests/acceptance/dc/acls/tokens/sorting-test.js](tests/acceptance/dc/acls/tokens/sorting-test.js) |
 | `dc/acls/tokens/update.feature` | Update a token's description (2 `Where:` rows, now titled by description instead of the literal `Update to [Name]`), 500 error, and no `Namespace` when disabled. | 3 (4 tests) | [tests/acceptance/dc/acls/tokens/update-test.js](tests/acceptance/dc/acls/tokens/update-test.js) |
 | `dc/acls/tokens/use.feature` | Use a token from the list and from the detail page. The detail-page scenario was `@ignore` (FIXME); it passes now and is un-ignored. | 2 | [tests/acceptance/dc/acls/tokens/use-test.js](tests/acceptance/dc/acls/tokens/use-test.js) |
+| `dc/acls/policies/create.feature` | Create page title; create a policy (2 `Where:` rows) with the namespaced `PUT`; no `Namespace` when namespaces are disabled (`@notNamespaceable`, as before). | 3 (4 tests) | [tests/acceptance/dc/acls/policies/create-test.js](tests/acceptance/dc/acls/policies/create-test.js) |
+| `dc/acls/policies/delete.feature` | Delete from the list (success and 500) and from the detail page. The commented-out detail-page error scenario was not ported. | 3 | [tests/acceptance/dc/acls/policies/delete-test.js](tests/acceptance/dc/acls/policies/delete-test.js) |
+| `dc/acls/policies/sorting.feature` | Sort policies by name both ways. | 1 | [tests/acceptance/dc/acls/policies/sorting-test.js](tests/acceptance/dc/acls/policies/sorting-test.js) |
+| `dc/acls/policies/update.feature` | Update name/rules (code editor)/description and datacenters (3 `Where:` rows), 500 error, no `Namespace` when disabled. | 3 (5 tests) | [tests/acceptance/dc/acls/policies/update-test.js](tests/acceptance/dc/acls/policies/update-test.js) |
+| `dc/acls/policies/view-management.feature` | The global-management policy is read-only (untitled scenario, now titled). | 1 | [tests/acceptance/dc/acls/policies/view-management-test.js](tests/acceptance/dc/acls/policies/view-management-test.js) |
+| `dc/acls/policies/view-read-only.feature` | The builtin read-only policy is read-only (untitled scenario, now titled). | 1 | [tests/acceptance/dc/acls/policies/view-read-only-test.js](tests/acceptance/dc/acls/policies/view-read-only-test.js) |
+| `dc/acls/policies/as-many/add-existing.feature` | Attach two existing policies to a role through the power select. | 1 | [tests/acceptance/dc/acls/policies/as-many/add-existing-test.js](tests/acceptance/dc/acls/policies/as-many/add-existing-test.js) |
+| `dc/acls/policies/as-many/add-new.feature` | Was feature-level `@ignore`. Now runs: add a new policy, the 500 error message (via a new `data-test-rules-error` hook; the old `[data-test-rules] strong` markup is gone), and read-only rules for identities. Still skipped (FIXME, body kept): adding a service/node identity, because saving the token/role then fails with an error toast and no `PUT`. | 6 (12 tests, 4 skipped) | [tests/acceptance/dc/acls/policies/as-many/add-new-test.js](tests/acceptance/dc/acls/policies/as-many/add-new-test.js) |
+| `dc/acls/policies/as-many/list.feature` | Identities and policies are listed together on token/role pages. | 1 (2 rows) | [tests/acceptance/dc/acls/policies/as-many/list-test.js](tests/acceptance/dc/acls/policies/as-many/list-test.js) |
+| `dc/acls/policies/as-many/nspaces.feature` | Namespace policies can't be service identities. `@onlyNamespaceable`, as before (untitled scenario, now titled). | 1 | [tests/acceptance/dc/acls/policies/as-many/nspaces-test.js](tests/acceptance/dc/acls/policies/as-many/nspaces-test.js) |
+| `dc/acls/policies/as-many/remove.feature` | Remove an attached policy from a token/role and save an empty list. | 1 (2 rows) | [tests/acceptance/dc/acls/policies/as-many/remove-test.js](tests/acceptance/dc/acls/policies/as-many/remove-test.js) |
+| `dc/acls/policies/as-many/reset.feature` | Cancelling the new-policy form resets its fields (incl. the Rules editor). | 1 (2 rows) | [tests/acceptance/dc/acls/policies/as-many/reset-test.js](tests/acceptance/dc/acls/policies/as-many/reset-test.js) |
+| `dc/acls/roles/create.feature` | Create page title; create a role (2 `Where:` rows); no `Namespace` when namespaces are disabled (`@notNamespaceable`, as before). | 3 (4 tests) | [tests/acceptance/dc/acls/roles/create-test.js](tests/acceptance/dc/acls/roles/create-test.js) |
+| `dc/acls/roles/sorting.feature` | Sort roles by name and creation index, both ways. | 1 | [tests/acceptance/dc/acls/roles/sorting-test.js](tests/acceptance/dc/acls/roles/sorting-test.js) |
+| `dc/acls/roles/update.feature` | Update name/description (3 `Where:` rows, titles without the literal `[Rules]`), 500 error, no `Namespace` when disabled. | 3 (5 tests) | [tests/acceptance/dc/acls/roles/update-test.js](tests/acceptance/dc/acls/roles/update-test.js) |
+| `dc/acls/roles/as-many/add-existing.feature` | Attach two existing roles to a token (untitled scenario, now titled). | 1 | [tests/acceptance/dc/acls/roles/as-many/add-existing-test.js](tests/acceptance/dc/acls/roles/as-many/add-existing-test.js) |
+| `dc/acls/roles/as-many/add-new.feature` | Create a role inline from a token (no policy, existing policy, new policy) and cancel. `@notNamespaceable`, as before. "Add a new Service Identity" was `@ignore`d and still fails, so it stays skipped (FIXME, body kept). | 5 (1 skipped) | [tests/acceptance/dc/acls/roles/as-many/add-new-test.js](tests/acceptance/dc/acls/roles/as-many/add-new-test.js) |
+| `dc/acls/roles/as-many/list.feature` | A token's roles are listed (untitled scenario, now titled). | 1 | [tests/acceptance/dc/acls/roles/as-many/list-test.js](tests/acceptance/dc/acls/roles/as-many/list-test.js) |
+| `dc/acls/roles/as-many/remove.feature` | Remove a role from a token and save an empty list (untitled scenario, now titled). | 1 | [tests/acceptance/dc/acls/roles/as-many/remove-test.js](tests/acceptance/dc/acls/roles/as-many/remove-test.js) |
+| `dc/acls/auth-methods/sorting.feature` | Sort auth methods by name both ways. | 1 | [tests/acceptance/dc/acls/auth-methods/sorting-test.js](tests/acceptance/dc/acls/auth-methods/sorting-test.js) |
 
 ## Remaining features
 
 | Feature file | Description | Scenarios | Status | Native test |
 | --- | --- | --- | --- | --- |
 | ~~`dc/acls/auth-methods/navigation.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [navigation-test.js](tests/acceptance/dc/acls/auth-methods/navigation-test.js) |
-| [dc/acls/auth-methods/sorting.feature](tests/acceptance/dc/acls/auth-methods/sorting.feature) | Sorting the auth-methods list. | 1 | ☐ Not migrated |  |
-| [dc/acls/policies/as-many/add-existing.feature](tests/acceptance/dc/acls/policies/as-many/add-existing.feature) | Attach an existing policy as a child of a token/role. | 1 | ☐ Not migrated |  |
-| [dc/acls/policies/as-many/add-new.feature](tests/acceptance/dc/acls/policies/as-many/add-new.feature) | Add a new policy, service identity or node identity to a token/role, incl. error and code-editor cases. | 6 | ☐ Not migrated |  |
-| [dc/acls/policies/as-many/list.feature](tests/acceptance/dc/acls/policies/as-many/list.feature) | List the policies attached to a token/role. | 1 | ☐ Not migrated |  |
-| [dc/acls/policies/as-many/nspaces.feature](tests/acceptance/dc/acls/policies/as-many/nspaces.feature) | Policy "as many" selector behaviour across namespaces. | 1 | ☐ Not migrated |  |
-| [dc/acls/policies/as-many/remove.feature](tests/acceptance/dc/acls/policies/as-many/remove.feature) | Remove attached policies from a token/role. | 1 | ☐ Not migrated |  |
-| [dc/acls/policies/as-many/reset.feature](tests/acceptance/dc/acls/policies/as-many/reset.feature) | The attached-policy sub-form resets correctly. | 1 | ☐ Not migrated |  |
-| [dc/acls/policies/create.feature](tests/acceptance/dc/acls/policies/create.feature) | Create an ACL policy; no Namespace sent when namespaces are disabled. | 3 | ☐ Not migrated |  |
-| [dc/acls/policies/delete.feature](tests/acceptance/dc/acls/policies/delete.feature) | Delete a policy from the list and detail pages, incl. error handling. | 3 | ☐ Not migrated |  |
+| ~~`dc/acls/auth-methods/sorting.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [sorting-test.js](tests/acceptance/dc/acls/auth-methods/sorting-test.js) |
+| ~~`dc/acls/policies/as-many/add-existing.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [add-existing-test.js](tests/acceptance/dc/acls/policies/as-many/add-existing-test.js) |
+| ~~`dc/acls/policies/as-many/add-new.feature`~~ | *(deleted — migrated above)* | 6 | ✅ Migrated | [add-new-test.js](tests/acceptance/dc/acls/policies/as-many/add-new-test.js) |
+| ~~`dc/acls/policies/as-many/list.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [list-test.js](tests/acceptance/dc/acls/policies/as-many/list-test.js) |
+| ~~`dc/acls/policies/as-many/nspaces.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [nspaces-test.js](tests/acceptance/dc/acls/policies/as-many/nspaces-test.js) |
+| ~~`dc/acls/policies/as-many/remove.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [remove-test.js](tests/acceptance/dc/acls/policies/as-many/remove-test.js) |
+| ~~`dc/acls/policies/as-many/reset.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [reset-test.js](tests/acceptance/dc/acls/policies/as-many/reset-test.js) |
+| ~~`dc/acls/policies/create.feature`~~ | *(deleted — migrated above)* | 3 | ✅ Migrated | [create-test.js](tests/acceptance/dc/acls/policies/create-test.js) |
+| ~~`dc/acls/policies/delete.feature`~~ | *(deleted — migrated above)* | 3 | ✅ Migrated | [delete-test.js](tests/acceptance/dc/acls/policies/delete-test.js) |
 | ~~`dc/acls/policies/navigation.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [navigation-test.js](tests/acceptance/dc/acls/policies/navigation-test.js) |
-| [dc/acls/policies/sorting.feature](tests/acceptance/dc/acls/policies/sorting.feature) | Sorting the policies list. | 1 | ☐ Not migrated |  |
-| [dc/acls/policies/update.feature](tests/acceptance/dc/acls/policies/update.feature) | Update a policy (name/rules/description); error handling; no Namespace when disabled. | 3 | ☐ Not migrated |  |
-| [dc/acls/policies/view-management.feature](tests/acceptance/dc/acls/policies/view-management.feature) | The built-in management policy is shown read-only. | 1 | ☐ Not migrated |  |
-| [dc/acls/policies/view-read-only.feature](tests/acceptance/dc/acls/policies/view-read-only.feature) | Read-only policy view. | 1 | ☐ Not migrated |  |
-| [dc/acls/roles/as-many/add-existing.feature](tests/acceptance/dc/acls/roles/as-many/add-existing.feature) | Attach an existing role as a child of a token. | 1 | ☐ Not migrated |  |
-| [dc/acls/roles/as-many/add-new.feature](tests/acceptance/dc/acls/roles/as-many/add-new.feature) | Add a new role with/without policies and service identities; cancel the form. | 5 | ☐ Not migrated |  |
-| [dc/acls/roles/as-many/list.feature](tests/acceptance/dc/acls/roles/as-many/list.feature) | List the roles attached to a token. | 1 | ☐ Not migrated |  |
-| [dc/acls/roles/as-many/remove.feature](tests/acceptance/dc/acls/roles/as-many/remove.feature) | Remove attached roles from a token. | 1 | ☐ Not migrated |  |
-| [dc/acls/roles/create.feature](tests/acceptance/dc/acls/roles/create.feature) | Create an ACL role; no Namespace sent when namespaces are disabled. | 3 | ☐ Not migrated |  |
+| ~~`dc/acls/policies/sorting.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [sorting-test.js](tests/acceptance/dc/acls/policies/sorting-test.js) |
+| ~~`dc/acls/policies/update.feature`~~ | *(deleted — migrated above)* | 3 | ✅ Migrated | [update-test.js](tests/acceptance/dc/acls/policies/update-test.js) |
+| ~~`dc/acls/policies/view-management.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [view-management-test.js](tests/acceptance/dc/acls/policies/view-management-test.js) |
+| ~~`dc/acls/policies/view-read-only.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [view-read-only-test.js](tests/acceptance/dc/acls/policies/view-read-only-test.js) |
+| ~~`dc/acls/roles/as-many/add-existing.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [add-existing-test.js](tests/acceptance/dc/acls/roles/as-many/add-existing-test.js) |
+| ~~`dc/acls/roles/as-many/add-new.feature`~~ | *(deleted — migrated above)* | 5 | ✅ Migrated | [add-new-test.js](tests/acceptance/dc/acls/roles/as-many/add-new-test.js) |
+| ~~`dc/acls/roles/as-many/list.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [list-test.js](tests/acceptance/dc/acls/roles/as-many/list-test.js) |
+| ~~`dc/acls/roles/as-many/remove.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [remove-test.js](tests/acceptance/dc/acls/roles/as-many/remove-test.js) |
+| ~~`dc/acls/roles/create.feature`~~ | *(deleted — migrated above)* | 3 | ✅ Migrated | [create-test.js](tests/acceptance/dc/acls/roles/create-test.js) |
 | ~~`dc/acls/roles/navigation.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [navigation-test.js](tests/acceptance/dc/acls/roles/navigation-test.js) |
-| [dc/acls/roles/sorting.feature](tests/acceptance/dc/acls/roles/sorting.feature) | Sorting the roles list. | 1 | ☐ Not migrated |  |
-| [dc/acls/roles/update.feature](tests/acceptance/dc/acls/roles/update.feature) | Update a role (name/rules/description); error handling; no Namespace when disabled. | 3 | ☐ Not migrated |  |
+| ~~`dc/acls/roles/sorting.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [sorting-test.js](tests/acceptance/dc/acls/roles/sorting-test.js) |
+| ~~`dc/acls/roles/update.feature`~~ | *(deleted — migrated above)* | 3 | ✅ Migrated | [update-test.js](tests/acceptance/dc/acls/roles/update-test.js) |
 | ~~`dc/acls/tokens/anonymous-no-delete.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [anonymous-no-delete-test.js](tests/acceptance/dc/acls/tokens/anonymous-no-delete-test.js) |
 | ~~`dc/acls/tokens/clone.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [clone-test.js](tests/acceptance/dc/acls/tokens/clone-test.js) |
 | ~~`dc/acls/tokens/create.feature`~~ | *(deleted — migrated above)* | 3 | ✅ Migrated | [create-test.js](tests/acceptance/dc/acls/tokens/create-test.js) |
