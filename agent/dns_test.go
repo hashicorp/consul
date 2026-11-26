@@ -3647,3 +3647,186 @@ func TestDNS_EffectiveDatacenter(t *testing.T) {
 		})
 	}
 }
+
+// countOPT returns the number of EDNS OPT pseudo-RRs in the additional section.
+func countOPT(m *dns.Msg) int {
+	n := 0
+	for _, rr := range m.Extra {
+		if rr.Header().Rrtype == dns.TypeOPT {
+			n++
+		}
+	}
+	return n
+}
+
+// newTrimTestRequest builds a request for qName/qType. ednsSize == 0 means no OPT
+// record. A non-nil ecs adds an EDNS Client Subnet option.
+func newTrimTestRequest(qName string, qType uint16, ednsSize uint16, ecs *dns.EDNS0_SUBNET) *dns.Msg {
+	req := new(dns.Msg)
+	req.SetQuestion(qName, qType)
+	if ednsSize > 0 {
+		req.SetEdns0(ednsSize, false)
+		if ecs != nil {
+			opt := req.IsEdns0()
+			opt.Option = append(opt.Option, ecs)
+		}
+	}
+	return req
+}
+
+// newTrimTestSRVResponse builds a reply with n SRV answers and their A glue, then
+// adds the OPT record the way handleQuery does, so trimming sees the real layout.
+func newTrimTestSRVResponse(req *dns.Msg, n int, target func(i int) string) *dns.Msg {
+	resp := new(dns.Msg)
+	resp.SetReply(req)
+	for i := 0; i < n; i++ {
+		t := target(i)
+		resp.Answer = append(resp.Answer, &dns.SRV{
+			Hdr:    dns.RR_Header{Name: req.Question[0].Name, Rrtype: dns.TypeSRV, Class: dns.ClassINET},
+			Port:   8080,
+			Target: t,
+		})
+		if t != "." {
+			resp.Extra = append(resp.Extra, &dns.A{
+				Hdr: dns.RR_Header{Name: t, Rrtype: dns.TypeA, Class: dns.ClassINET},
+				A:   net.IPv4(10, 0, byte(i/250), byte(i%250+1)),
+			})
+		}
+	}
+	setEDNS(req, resp, true)
+	return resp
+}
+
+// requireTrimmedEDNS asserts the RFC 6891 contract on a trimmed reply: exactly one
+// OPT when the request had one (sections 6.1.1 and 7), none otherwise, ECS echoed,
+// and every remaining glue record still belongs to a remaining SRV answer.
+func requireTrimmedEDNS(t *testing.T, req, resp *dns.Msg) {
+	t.Helper()
+
+	reqOPT := req.IsEdns0()
+	if reqOPT == nil {
+		require.Zero(t, countOPT(resp), "OPT must not be added to a reply to a non-EDNS request")
+	} else {
+		require.Equal(t, 1, countOPT(resp), "trimmed reply must carry exactly one OPT record")
+		respOPT := resp.IsEdns0()
+		require.NotNil(t, respOPT)
+		require.Equal(t, reqOPT.UDPSize(), respOPT.UDPSize())
+
+		if want := ednsSubnetForRequest(req); want != nil {
+			var got *dns.EDNS0_SUBNET
+			for _, o := range respOPT.Option {
+				if s, ok := o.(*dns.EDNS0_SUBNET); ok {
+					got = s
+				}
+			}
+			require.NotNil(t, got, "ECS option must survive trimming")
+			require.Equal(t, want.Family, got.Family)
+			require.Equal(t, want.SourceNetmask, got.SourceNetmask)
+			require.True(t, want.Address.Equal(got.Address))
+		}
+	}
+
+	targets := make(map[string]struct{})
+	for _, rr := range resp.Answer {
+		if srv, ok := rr.(*dns.SRV); ok {
+			targets[strings.ToLower(srv.Target)] = struct{}{}
+		}
+	}
+	for _, rr := range resp.Extra {
+		if rr.Header().Rrtype == dns.TypeOPT {
+			continue
+		}
+		_, ok := targets[strings.ToLower(rr.Header().Name)]
+		require.True(t, ok, "glue record %q has no matching SRV answer", rr.Header().Name)
+	}
+}
+
+func TestDNS_trimUDPResponse_PreservesEDNS(t *testing.T) {
+	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" `)
+	target := func(i int) string { return fmt.Sprintf("ip-10-0-%d-%d.node.dc1.consul.", i/250, i%250+1) }
+	ecs := &dns.EDNS0_SUBNET{Code: dns.EDNS0SUBNET, Family: 1, SourceNetmask: 24, Address: net.ParseIP("10.1.2.0").To4()}
+
+	cases := map[string]struct {
+		edns   uint16
+		ecs    *dns.EDNS0_SUBNET
+		n      int
+		target func(int) string
+	}{
+		// 512-byte budget: answer-count limit (udp_answer_limit) then size loop.
+		"edns 512, answer limit path": {edns: 512, n: 10, target: target},
+		// Large buffer: size loop and dnsBinaryTruncate.
+		"edns 1232, size path":     {edns: 1232, n: 100, target: target},
+		"edns 1232 with ECS":       {edns: 1232, ecs: ecs, n: 100, target: target},
+		"edns 512 with ECS":        {edns: 512, ecs: ecs, n: 10, target: target},
+		"edns 4096, binary search": {edns: 4096, n: 500, target: target},
+		// SRV target "." must not pull the OPT record (owner ".") in as glue.
+		"edns 512, root SRV target": {edns: 512, n: 10, target: func(int) string { return "." }},
+		// Regression guard for RFC 6891 section 7: no OPT unless the request had one.
+		"no edns": {edns: 0, n: 10, target: target},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			req := newTrimTestRequest("web.service.consul.", dns.TypeSRV, tc.edns, tc.ecs)
+			resp := newTrimTestSRVResponse(req, tc.n, tc.target)
+
+			require.True(t, trimUDPResponse(req, resp, cfg.DNSUDPAnswerLimit), "expected the reply to be trimmed")
+			require.Less(t, len(resp.Answer), tc.n)
+			requireTrimmedEDNS(t, req, resp)
+
+			maxSize := defaultMaxUDPSize
+			if int(tc.edns) > maxSize {
+				maxSize = int(tc.edns)
+			}
+			require.LessOrEqual(t, resp.Len(), maxSize-8, "trimmed reply, OPT included, must fit the advertised buffer")
+		})
+	}
+}
+
+func TestDNS_trimUDPResponse_PreservesEDNS_NonSRV(t *testing.T) {
+	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" `)
+
+	req := newTrimTestRequest("api.service.consul.", dns.TypeA, 512, nil)
+	resp := new(dns.Msg)
+	resp.SetReply(req)
+	for i := 0; i < 10; i++ {
+		resp.Answer = append(resp.Answer, &dns.A{
+			Hdr: dns.RR_Header{Name: "api.service.consul.", Rrtype: dns.TypeA, Class: dns.ClassINET},
+			A:   net.IPv4(10, 0, 2, byte(i+1)),
+		})
+	}
+	setEDNS(req, resp, true)
+
+	require.True(t, trimUDPResponse(req, resp, cfg.DNSUDPAnswerLimit))
+	require.Len(t, resp.Answer, cfg.DNSUDPAnswerLimit)
+	// An A reply has no SRV glue, so the OPT record is the only thing left in Extra.
+	require.Len(t, resp.Extra, 1)
+	require.Equal(t, dns.TypeOPT, resp.Extra[0].Header().Rrtype)
+}
+
+func TestDNS_trimTCPResponse_PreservesEDNS(t *testing.T) {
+	target := func(i int) string {
+		return fmt.Sprintf("a-fairly-long-node-name-to-exceed-64k-%04d.node.dc1.consul.", i)
+	}
+	req := newTrimTestRequest("web.service.consul.", dns.TypeSRV, 4096, nil)
+	resp := newTrimTestSRVResponse(req, 2000, target)
+
+	require.True(t, trimTCPResponse(req, resp), "expected the reply to be trimmed to 64 KiB")
+	requireTrimmedEDNS(t, req, resp)
+	require.LessOrEqual(t, resp.Len(), 65523)
+}
+
+func TestDNS_syncExtra_PreservesEDNS(t *testing.T) {
+	req := newTrimTestRequest("web.service.consul.", dns.TypeSRV, 1232, nil)
+	resp := newTrimTestSRVResponse(req, 4, func(i int) string { return fmt.Sprintf("node%d.node.dc1.consul.", i) })
+
+	index := make(map[string]dns.RR)
+	indexRRs(resp.Extra, index)
+	_, indexed := index["."]
+	require.False(t, indexed, "OPT pseudo-RR must not be indexed as glue")
+
+	resp.Answer = resp.Answer[:2]
+	syncExtra(index, resp)
+	require.Len(t, resp.Extra, 3, "2 A glue records + OPT")
+	requireTrimmedEDNS(t, req, resp)
+}
