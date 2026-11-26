@@ -135,15 +135,15 @@ manually in the running UI if needed.
 
 | Metric | Count |
 | --- | --- |
-| Feature files remaining (yadda) | 28 |
-| Scenarios remaining (yadda) | 72 (none `@ignore`) |
-| Feature files fully migrated | 101 |
-| Scenarios migrated | 220 (46 from the first 27 features, 24 from the next 12, 14 from the 7 ACL token features, 23 from the 12 ACL policy features, 16 from the 8 ACL role and auth-method features, 44 from the 15 intention and peer features, 53 from the 20 KV, node and namespace features) |
+| Feature files remaining (yadda) | 0 |
+| Scenarios remaining (yadda) | 0 |
+| Feature files fully migrated | 129 |
+| Scenarios migrated | 292 (46 from the first 27 features, 24 from the next 12, 14 from the 7 ACL token features, 23 from the 12 ACL policy features, 16 from the 8 ACL role and auth-method features, 44 from the 15 intention and peer features, 53 from the 20 KV, node and namespace features, 72 from the 28 service features) |
 
-Scenario counts are not test counts. 20 remaining features use `Where:` tables (one test per
+Scenario counts are not test counts. Features that used `Where:` tables now loop (one test per
 row), and under `CONSUL_NSPACES_ENABLED=1` each namespaceable scenario runs 4 times.
 
-`tests/acceptance` contains 110 native `*-test.js` files: 101 come from migrated features and 9 are native-only tests that never had a
+`tests/acceptance` contains 138 native `*-test.js` files: 129 come from migrated features and 9 are native-only tests that never had a
 `.feature` (`breadcrumbs/*`, `components/tab-error`, `components/tab-nav-focus`,
 `dc/nodes/sessions/filter-sort`, `hcp-login`, `unavailable`). Counts are from disk; re-verify with
 `find tests -name '*.feature' | wc -l`.
@@ -290,6 +290,34 @@ problems; the tests document the current behaviour):
 | `dc/nspaces/manage.feature` | Moving between services and namespace management (untitled scenario, now titled). `@onlyNamespaceable`, as before. | 1 | [tests/acceptance/dc/nspaces/manage-test.js](tests/acceptance/dc/nspaces/manage-test.js) |
 | `dc/nspaces/sorting.feature` | Sort namespaces both ways. `@onlyNamespaceable`, as before. | 1 | [tests/acceptance/dc/nspaces/sorting-test.js](tests/acceptance/dc/nspaces/sorting-test.js) |
 | `dc/nspaces/update.feature` | Update the description (2 `Where:` rows) and a 500 error. `@onlyNamespaceable`, as before. | 2 (3 tests) | [tests/acceptance/dc/nspaces/update-test.js](tests/acceptance/dc/nspaces/update-test.js) |
+| `dc/services/dc-switch.feature` | Services list reflects a datacenter switch. | 1 | [tests/acceptance/dc/services/dc-switch-test.js](tests/acceptance/dc/services/dc-switch-test.js) |
+| `dc/services/error.feature` | Service page error / not-found handling. `@notNamespaceable`, as before. | 2 | [tests/acceptance/dc/services/error-test.js](tests/acceptance/dc/services/error-test.js) |
+| `dc/services/index.feature` | Services list: services, gateways, mesh state, associated-service counts, empty states. | 6 | [tests/acceptance/dc/services/index-test.js](tests/acceptance/dc/services/index-test.js) |
+| `dc/services/instances/error.feature` | Missing service-instance handling. | 1 | [tests/acceptance/dc/services/instances/error-test.js](tests/acceptance/dc/services/instances/error-test.js) |
+| `dc/services/instances/exposed-paths.feature` | Exposed Paths tab shown only when the instance has a proxy. | 2 | [tests/acceptance/dc/services/instances/exposed-paths-test.js](tests/acceptance/dc/services/instances/exposed-paths-test.js) |
+| `dc/services/instances/gateway.feature` | Gateway service-instance detail page. | 1 | [tests/acceptance/dc/services/instances/gateway-test.js](tests/acceptance/dc/services/instances/gateway-test.js) |
+| `dc/services/instances/health-checks.feature` | Instance serf checks pass/fail; node health-check visibility on agentless vs non-agentless. | 4 | [tests/acceptance/dc/services/instances/health-checks-test.js](tests/acceptance/dc/services/instances/health-checks-test.js) |
+| `dc/services/instances/show.feature` | Service-instance detail: proxy presence, deregister warning while blocking, synthetic node. | 4 | [tests/acceptance/dc/services/instances/show-test.js](tests/acceptance/dc/services/instances/show-test.js) |
+| `dc/services/instances/upstreams.feature` | Upstreams tab shown only when the instance has a proxy. | 2 | [tests/acceptance/dc/services/instances/upstreams-test.js](tests/acceptance/dc/services/instances/upstreams-test.js) |
+| `dc/services/list-blocking.feature` | Service listing live-updates via blocking queries. | 1 | [tests/acceptance/dc/services/list-blocking-test.js](tests/acceptance/dc/services/list-blocking-test.js) |
+| `dc/services/list.feature` | Listing services incl. peered services. | 2 | [tests/acceptance/dc/services/list-test.js](tests/acceptance/dc/services/list-test.js) |
+| `dc/services/show-routing.feature` | Routing tab display; hidden/no error when connect is disabled. | 2 | [tests/acceptance/dc/services/show-routing-test.js](tests/acceptance/dc/services/show-routing-test.js) |
+| `dc/services/show-with-slashes.feature` | A service with slashes in its name lists and opens correctly. | 1 | [tests/acceptance/dc/services/show-with-slashes-test.js](tests/acceptance/dc/services/show-with-slashes-test.js) |
+| `dc/services/show.feature` | Service detail: external-source logos, tags, instance nodes, dashboard template, access removal. | 10 | [tests/acceptance/dc/services/show-test.js](tests/acceptance/dc/services/show-test.js) |
+| `dc/services/show/dc-switch.feature` | Service detail reflects a datacenter switch. | 1 | [tests/acceptance/dc/services/show/dc-switch-test.js](tests/acceptance/dc/services/show/dc-switch-test.js) |
+| `dc/services/show/intentions/create.feature` | Create an intention from a service page (namespaces on/off). The namespaced scenario is `@onlyNamespaceable` and the other `@notNamespaceable`, as before. | 2 | [tests/acceptance/dc/services/show/intentions/create-test.js](tests/acceptance/dc/services/show/intentions/create-test.js) |
+| `dc/services/show/intentions/index.feature` | Per-service intentions tab: view and delete. | 2 | [tests/acceptance/dc/services/show/intentions/index-test.js](tests/acceptance/dc/services/show/intentions/index-test.js) |
+| `dc/services/show/navigation.feature` | Accessing a peered service directly by URL. | 1 | [tests/acceptance/dc/services/show/navigation-test.js](tests/acceptance/dc/services/show/navigation-test.js) |
+| `dc/services/show/services.feature` | Linked Services tab visibility and list. The `Where:` rows run as a loop. | 3 | [tests/acceptance/dc/services/show/services-test.js](tests/acceptance/dc/services/show/services-test.js) |
+| `dc/services/show/tags.feature` | Service tags display incl. duplicate tags. Both scenarios share their steps, so they run from one loop. | 2 | [tests/acceptance/dc/services/show/tags-test.js](tests/acceptance/dc/services/show/tags-test.js) |
+| `dc/services/show/topology/index.feature` | Topology tab display; hidden/no error when connect is disabled. | 2 | [tests/acceptance/dc/services/show/topology/index-test.js](tests/acceptance/dc/services/show/topology/index-test.js) |
+| `dc/services/show/topology/intentions.feature` | Allow a connection by saving an intention from topology; error handling. | 2 | [tests/acceptance/dc/services/show/topology/intentions-test.js](tests/acceptance/dc/services/show/topology/intentions-test.js) |
+| `dc/services/show/topology/metrics.feature` | Topology metrics with/without a prometheus provider; API Gateway source. The API Gateway fixture YAML was mis-indented; the port keeps what it parsed to. | 3 | [tests/acceptance/dc/services/show/topology/metrics-test.js](tests/acceptance/dc/services/show/topology/metrics-test.js) |
+| `dc/services/show/topology/notices.feature` | Topology notices: default ACL policy, wildcard intentions, ACL-filtered response, TProxy states. | 5 | [tests/acceptance/dc/services/show/topology/notices-test.js](tests/acceptance/dc/services/show/topology/notices-test.js) |
+| `dc/services/show/topology/routing-config.feature` | Topology shows source type and redirects to the Routing Config page. | 2 | [tests/acceptance/dc/services/show/topology/routing-config-test.js](tests/acceptance/dc/services/show/topology/routing-config-test.js) |
+| `dc/services/show/topology/stats.feature` | Topology metric stats enabled/disabled incl. ingress-gateway cases. | 4 | [tests/acceptance/dc/services/show/topology/stats-test.js](tests/acceptance/dc/services/show/topology/stats-test.js) |
+| `dc/services/show/upstreams.feature` | Upstreams tab visibility and list. The `Where:` rows run as a loop. | 3 | [tests/acceptance/dc/services/show/upstreams-test.js](tests/acceptance/dc/services/show/upstreams-test.js) |
+| `dc/services/sorting.feature` | Sorting the services list. | 1 | [tests/acceptance/dc/services/sorting-test.js](tests/acceptance/dc/services/sorting-test.js) |
 
 ## Remaining features
 
@@ -366,33 +394,33 @@ problems; the tests document the current behaviour):
 | ~~`dc/peers/regenerate.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [regenerate-test.js](tests/acceptance/dc/peers/regenerate-test.js) |
 | ~~`dc/peers/show.feature`~~ | *(deleted — migrated above)* | 8 | ✅ Migrated | [show-test.js](tests/acceptance/dc/peers/show-test.js) |
 | ~~`dc/peers/sorting.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [sorting-test.js](tests/acceptance/dc/peers/sorting-test.js) |
-| [dc/services/dc-switch.feature](tests/acceptance/dc/services/dc-switch.feature) | Services list reflects a datacenter switch. | 1 | ☐ Not migrated |  |
-| [dc/services/error.feature](tests/acceptance/dc/services/error.feature) | Service page error / not-found handling. | 2 | ☐ Not migrated |  |
-| [dc/services/index.feature](tests/acceptance/dc/services/index.feature) | Services list: services, gateways, mesh state, associated-service counts, empty states. | 6 | ☐ Not migrated |  |
-| [dc/services/instances/error.feature](tests/acceptance/dc/services/instances/error.feature) | Missing service-instance handling. | 1 | ☐ Not migrated |  |
-| [dc/services/instances/exposed-paths.feature](tests/acceptance/dc/services/instances/exposed-paths.feature) | Exposed Paths tab shown only when the instance has a proxy. | 2 | ☐ Not migrated |  |
-| [dc/services/instances/gateway.feature](tests/acceptance/dc/services/instances/gateway.feature) | Gateway service-instance detail page. | 1 | ☐ Not migrated |  |
-| [dc/services/instances/health-checks.feature](tests/acceptance/dc/services/instances/health-checks.feature) | Instance serf checks pass/fail; node health-check visibility on agentless vs non-agentless. | 4 | ☐ Not migrated |  |
+| ~~`dc/services/dc-switch.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [dc-switch-test.js](tests/acceptance/dc/services/dc-switch-test.js) |
+| ~~`dc/services/error.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [error-test.js](tests/acceptance/dc/services/error-test.js) |
+| ~~`dc/services/index.feature`~~ | *(deleted — migrated above)* | 6 | ✅ Migrated | [index-test.js](tests/acceptance/dc/services/index-test.js) |
+| ~~`dc/services/instances/error.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [error-test.js](tests/acceptance/dc/services/instances/error-test.js) |
+| ~~`dc/services/instances/exposed-paths.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [exposed-paths-test.js](tests/acceptance/dc/services/instances/exposed-paths-test.js) |
+| ~~`dc/services/instances/gateway.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [gateway-test.js](tests/acceptance/dc/services/instances/gateway-test.js) |
+| ~~`dc/services/instances/health-checks.feature`~~ | *(deleted — migrated above)* | 4 | ✅ Migrated | [health-checks-test.js](tests/acceptance/dc/services/instances/health-checks-test.js) |
 | ~~`dc/services/instances/navigation.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [navigation-test.js](tests/acceptance/dc/services/instances/navigation-test.js) |
-| [dc/services/instances/show.feature](tests/acceptance/dc/services/instances/show.feature) | Service-instance detail: proxy presence, deregister warning while blocking, synthetic node. | 4 | ☐ Not migrated |  |
-| [dc/services/instances/upstreams.feature](tests/acceptance/dc/services/instances/upstreams.feature) | Upstreams tab shown only when the instance has a proxy. | 2 | ☐ Not migrated |  |
-| [dc/services/list-blocking.feature](tests/acceptance/dc/services/list-blocking.feature) | Service listing live-updates via blocking queries. | 1 | ☐ Not migrated |  |
-| [dc/services/list.feature](tests/acceptance/dc/services/list.feature) | Listing services incl. peered services. | 2 | ☐ Not migrated |  |
+| ~~`dc/services/instances/show.feature`~~ | *(deleted — migrated above)* | 4 | ✅ Migrated | [show-test.js](tests/acceptance/dc/services/instances/show-test.js) |
+| ~~`dc/services/instances/upstreams.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [upstreams-test.js](tests/acceptance/dc/services/instances/upstreams-test.js) |
+| ~~`dc/services/list-blocking.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [list-blocking-test.js](tests/acceptance/dc/services/list-blocking-test.js) |
+| ~~`dc/services/list.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [list-test.js](tests/acceptance/dc/services/list-test.js) |
 | ~~`dc/services/navigation.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [navigation-test.js](tests/acceptance/dc/services/navigation-test.js) |
-| [dc/services/show-routing.feature](tests/acceptance/dc/services/show-routing.feature) | Routing tab display; hidden/no error when connect is disabled. | 2 | ☐ Not migrated |  |
-| [dc/services/show-with-slashes.feature](tests/acceptance/dc/services/show-with-slashes.feature) | A service with slashes in its name lists and opens correctly. | 1 | ☐ Not migrated |  |
-| [dc/services/show.feature](tests/acceptance/dc/services/show.feature) | Service detail: external-source logos, tags, instance nodes, dashboard template, access removal. | 10 | ☐ Not migrated |  |
-| [dc/services/show/dc-switch.feature](tests/acceptance/dc/services/show/dc-switch.feature) | Service detail reflects a datacenter switch. | 1 | ☐ Not migrated |  |
-| [dc/services/show/intentions/create.feature](tests/acceptance/dc/services/show/intentions/create.feature) | Create an intention from a service page (namespaces on/off). | 2 | ☐ Not migrated |  |
-| [dc/services/show/intentions/index.feature](tests/acceptance/dc/services/show/intentions/index.feature) | Per-service intentions tab: view and delete. | 2 | ☐ Not migrated |  |
-| [dc/services/show/navigation.feature](tests/acceptance/dc/services/show/navigation.feature) | Accessing a peered service directly by URL. | 1 | ☐ Not migrated |  |
-| [dc/services/show/services.feature](tests/acceptance/dc/services/show/services.feature) | Linked Services tab visibility and list. | 3 | ☐ Not migrated |  |
-| [dc/services/show/tags.feature](tests/acceptance/dc/services/show/tags.feature) | Service tags display incl. duplicate tags. | 2 | ☐ Not migrated |  |
-| [dc/services/show/topology/index.feature](tests/acceptance/dc/services/show/topology/index.feature) | Topology tab display; hidden/no error when connect is disabled. | 2 | ☐ Not migrated |  |
-| [dc/services/show/topology/intentions.feature](tests/acceptance/dc/services/show/topology/intentions.feature) | Allow a connection by saving an intention from topology; error handling. | 2 | ☐ Not migrated |  |
-| [dc/services/show/topology/metrics.feature](tests/acceptance/dc/services/show/topology/metrics.feature) | Topology metrics with/without a prometheus provider; API Gateway source. | 3 | ☐ Not migrated |  |
-| [dc/services/show/topology/notices.feature](tests/acceptance/dc/services/show/topology/notices.feature) | Topology notices: default ACL policy, wildcard intentions, ACL-filtered response, TProxy states. | 5 | ☐ Not migrated |  |
-| [dc/services/show/topology/routing-config.feature](tests/acceptance/dc/services/show/topology/routing-config.feature) | Topology shows source type and redirects to the Routing Config page. | 2 | ☐ Not migrated |  |
-| [dc/services/show/topology/stats.feature](tests/acceptance/dc/services/show/topology/stats.feature) | Topology metric stats enabled/disabled incl. ingress-gateway cases. | 4 | ☐ Not migrated |  |
-| [dc/services/show/upstreams.feature](tests/acceptance/dc/services/show/upstreams.feature) | Upstreams tab visibility and list. | 3 | ☐ Not migrated |  |
-| [dc/services/sorting.feature](tests/acceptance/dc/services/sorting.feature) | Sorting the services list. | 1 | ☐ Not migrated |  |
+| ~~`dc/services/show-routing.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [show-routing-test.js](tests/acceptance/dc/services/show-routing-test.js) |
+| ~~`dc/services/show-with-slashes.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [show-with-slashes-test.js](tests/acceptance/dc/services/show-with-slashes-test.js) |
+| ~~`dc/services/show.feature`~~ | *(deleted — migrated above)* | 10 | ✅ Migrated | [show-test.js](tests/acceptance/dc/services/show-test.js) |
+| ~~`dc/services/show/dc-switch.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [dc-switch-test.js](tests/acceptance/dc/services/show/dc-switch-test.js) |
+| ~~`dc/services/show/intentions/create.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [create-test.js](tests/acceptance/dc/services/show/intentions/create-test.js) |
+| ~~`dc/services/show/intentions/index.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [index-test.js](tests/acceptance/dc/services/show/intentions/index-test.js) |
+| ~~`dc/services/show/navigation.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [navigation-test.js](tests/acceptance/dc/services/show/navigation-test.js) |
+| ~~`dc/services/show/services.feature`~~ | *(deleted — migrated above)* | 3 | ✅ Migrated | [services-test.js](tests/acceptance/dc/services/show/services-test.js) |
+| ~~`dc/services/show/tags.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [tags-test.js](tests/acceptance/dc/services/show/tags-test.js) |
+| ~~`dc/services/show/topology/index.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [index-test.js](tests/acceptance/dc/services/show/topology/index-test.js) |
+| ~~`dc/services/show/topology/intentions.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [intentions-test.js](tests/acceptance/dc/services/show/topology/intentions-test.js) |
+| ~~`dc/services/show/topology/metrics.feature`~~ | *(deleted — migrated above)* | 3 | ✅ Migrated | [metrics-test.js](tests/acceptance/dc/services/show/topology/metrics-test.js) |
+| ~~`dc/services/show/topology/notices.feature`~~ | *(deleted — migrated above)* | 5 | ✅ Migrated | [notices-test.js](tests/acceptance/dc/services/show/topology/notices-test.js) |
+| ~~`dc/services/show/topology/routing-config.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [routing-config-test.js](tests/acceptance/dc/services/show/topology/routing-config-test.js) |
+| ~~`dc/services/show/topology/stats.feature`~~ | *(deleted — migrated above)* | 4 | ✅ Migrated | [stats-test.js](tests/acceptance/dc/services/show/topology/stats-test.js) |
+| ~~`dc/services/show/upstreams.feature`~~ | *(deleted — migrated above)* | 3 | ✅ Migrated | [upstreams-test.js](tests/acceptance/dc/services/show/upstreams-test.js) |
+| ~~`dc/services/sorting.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [sorting-test.js](tests/acceptance/dc/services/sorting-test.js) |
