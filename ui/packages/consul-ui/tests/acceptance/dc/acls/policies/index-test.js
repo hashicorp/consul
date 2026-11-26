@@ -20,6 +20,7 @@ import {
   api,
   visit,
   page,
+  find,
   currentURL,
 } from 'consul-ui/tests/helpers/acceptance';
 
@@ -65,6 +66,15 @@ module('Acceptance | dc / acls / policies / index: ACL Policy List', function (h
     );
   });
 
-  // The global-management policy scenario is @ignored in the original feature;
-  // preserve as a no-op skipped test to keep the tracker consistent.
+  // The original scenario was `@ignore`d. It is kept as a skipped test with its
+  // steps so it can be un-skipped later; note that it never had any setup steps
+  // (no datacenter, policies or visit).
+  nspaceScenario(
+    "Scenario: The global-managment policy can't be deleted",
+    async function (assert) {
+      await find('policies.actions')();
+      assert.throws(() => find('policies.delete')(), /Element not found|PageObject not found/);
+    },
+    { ignore: true }
+  );
 });
