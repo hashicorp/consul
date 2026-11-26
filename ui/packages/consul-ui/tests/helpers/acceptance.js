@@ -20,7 +20,7 @@
 
 import { test, skip } from 'qunit';
 import { setupApplicationTest } from 'ember-qunit';
-import { settled, getContext, click, fillIn } from '@ember/test-helpers';
+import { settled, isSettled, getContext, click, fillIn, waitUntil } from '@ember/test-helpers';
 import { findOne } from 'ember-cli-page-object/extend';
 
 import { env } from 'consul-ui/env';
@@ -38,6 +38,18 @@ const startup = function () {
   api.server.setCookie('CONSUL_LATENCY', 0);
 };
 
+// Abort all in-flight connections (blocking queries).
+const purgeConnections = function (owner) {
+  try {
+    const connections = owner.lookup('service:client/connections');
+    if (connections) {
+      connections.purge();
+    }
+  } catch (e) {
+    // service may already be destroyed
+  }
+};
+
 const reset = function (owner) {
   // Wipe ALL cookies so mutated permission cookies don't leak between tests.
   document.cookie.split(';').forEach((c) => {
@@ -49,15 +61,7 @@ const reset = function (owner) {
   window.localStorage.clear();
   api.server.reset();
 
-  // Abort all in-flight connections (blocking queries).
-  try {
-    const connections = owner.lookup('service:client/connections');
-    if (connections) {
-      connections.purge();
-    }
-  } catch (e) {
-    // service may already be destroyed
-  }
+  purgeConnections(owner);
 
   const list = document.documentElement.classList;
   while (list.length > 0) {
@@ -77,6 +81,21 @@ export function setupAcceptanceTest(hooks) {
   });
   hooks.afterEach(async function () {
     reset(this.owner);
+    // A blocking query that was pausing between polls when we purged isn't a
+    // connection yet; it starts afterwards and never returns, so `settled()`
+    // would hang. Keep purging until nothing is pending.
+    const owner = this.owner;
+    try {
+      await waitUntil(
+        () => {
+          purgeConnections(owner);
+          return isSettled();
+        },
+        { timeout: 5000 }
+      );
+    } catch (e) {
+      // fall through to settled(), which reports what is still pending
+    }
     await settled();
   });
 }
@@ -148,8 +167,11 @@ let currentPage;
  * Like the yadda `I visit` steps, this clears the api-double request history
  * first, so request assertions only see requests made since the last visit.
  * Calling `pages.X.visit()` or `@ember/test-helpers`' `visit` directly does not.
+ *
+ * `method` picks another visitable on the page object (e.g. `visitExported`,
+ * for the yadda `I visitExported the peer page` steps).
  */
-export function visit(name, params = {}, { nspace } = {}) {
+export function visit(name, params = {}, { nspace, method = 'visit' } = {}) {
   const page = pages[name];
   if (!page) {
     throw new Error(`Unknown page object: "${name}" (see tests/pages.js)`);
@@ -160,7 +182,7 @@ export function visit(name, params = {}, { nspace } = {}) {
   if (nspace !== '' && typeof nspace !== 'undefined') {
     data.nspace = `~${nspace}`;
   }
-  return page.visit(data);
+  return page[method](data);
 }
 
 /**
@@ -468,6 +490,21 @@ export function find(path, root = currentPage) {
 export function assertVisibleCount(assert, collection, expected, label = 'items') {
   const actual = collection.filter((item) => item.isVisible).length;
   assert.equal(actual, expected, `Expected ${expected} ${label}, saw ${actual}`);
+}
+
+/**
+ * Wait until a page-object collection has `expected` visible items, then assert
+ * it (equivalent to `pause until I see $num $model models`, used for lists that
+ * live-update through blocking queries).
+ */
+export async function waitForVisibleCount(assert, collection, expected, label = 'items') {
+  const visible = () => collection.filter((item) => item.isVisible).length;
+  try {
+    await waitUntil(() => visible() === expected, { timeout: 5000 });
+  } catch (e) {
+    // fall through so the assertion below reports the actual count
+  }
+  assertVisibleCount(assert, collection, expected, label);
 }
 
 /**

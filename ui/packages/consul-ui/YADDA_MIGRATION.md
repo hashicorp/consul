@@ -84,9 +84,10 @@ api-double, [tests/pages.js](tests/pages.js) / `tests/pages/`, `tests/lib/page-o
    page-object queries (`find`, `assertVisibleCount`, `assertProperties`), `fillInForm` (plain
    inputs), `stubOIDCProvider` and `clickParentBreadcrumb`. `visit` clears the request history, as
    the yadda `I visit` steps did. Still missing and to be added by the batch that first needs
-   them: a wait-until helper (the yadda `pause until` steps). Sort-order assertions use
-   `assertPropertiesVertically` (ACL token batch); code editors are filled by `fillInForm` /
-   `fillInCodeEditor` (ACL policy batch). Prefer plain
+   them: nothing so far. Sort-order assertions use `assertPropertiesVertically`; code editors
+   are filled by `fillInForm` / `fillInCodeEditor`; the yadda `pause until I see N models`
+   steps are `waitForVisibleCount`; `visit(name, params, { method })` calls other visitables
+   such as `visitExported`. Prefer plain
    `assert.dom(...)` for DOM assertions (pass `document.documentElement`
    to assert on `<html>`). Add shared helpers to the harness, not inside individual tests.
 3. ✅ **Baseline.** Recorded from `main` before the ACL token batch: the sorted test-title list (and
@@ -96,9 +97,8 @@ api-double, [tests/pages.js](tests/pages.js) / `tests/pages/`, `tests/lib/page-o
    `pnpm test` only exercises CE.
 4. ✅ **Fix the regressions** below, so later batches don't copy the weakened navigation pattern.
 5. ✅ **`@ignore` scenarios.** The 8 empty `Then ok` placeholders and the 19 orphaned
-   `-steps.js` stubs were deleted. The remaining 2 ignored scenarios have real bodies: the
-   scenario-level `@ignore` in `dc/kvs/index` and the feature-level `@ignore` on
-   `dc/intentions/permissions/warn` (1). (`dc/acls/tokens/use` "from the detail page" and most
+   `-steps.js` stubs were deleted. The remaining ignored scenario has a real body: the
+   scenario-level `@ignore` in `dc/kvs/index`. (`dc/acls/tokens/use` "from the detail page" and most
    of `dc/acls/policies/as-many/add-new` pass once migrated and are no longer ignored.)
    When migrating their feature, fix and un-ignore them where possible. Otherwise port each as
    a skipped test (`{ ignore: true }`) that keeps the original steps in its body, with the
@@ -135,15 +135,15 @@ manually in the running UI if needed.
 
 | Metric | Count |
 | --- | --- |
-| Feature files remaining (yadda) | 63 |
-| Scenarios remaining (yadda) | 169 (2 are `@ignore`, each with a real body: the scenario-level tag in `dc/kvs/index` and the feature-level tag on `dc/intentions/permissions/warn`) |
-| Feature files fully migrated | 66 |
-| Scenarios migrated | 123 (46 from the first 27 features, 24 from the next 12, 14 from the 7 ACL token features, 23 from the 12 ACL policy features, 16 from the 8 ACL role and auth-method features) |
+| Feature files remaining (yadda) | 48 |
+| Scenarios remaining (yadda) | 125 (1 is `@ignore`, with a real body: the scenario-level tag in `dc/kvs/index`) |
+| Feature files fully migrated | 81 |
+| Scenarios migrated | 167 (46 from the first 27 features, 24 from the next 12, 14 from the 7 ACL token features, 23 from the 12 ACL policy features, 16 from the 8 ACL role and auth-method features, 44 from the 15 intention and peer features) |
 
 Scenario counts are not test counts. 20 remaining features use `Where:` tables (one test per
 row), and under `CONSUL_NSPACES_ENABLED=1` each namespaceable scenario runs 4 times.
 
-`tests/acceptance` contains 75 native `*-test.js` files: 66 come from migrated features and 9 are native-only tests that never had a
+`tests/acceptance` contains 90 native `*-test.js` files: 81 come from migrated features and 9 are native-only tests that never had a
 `.feature` (`breadcrumbs/*`, `components/tab-error`, `components/tab-nav-focus`,
 `dc/nodes/sessions/filter-sort`, `hcp-login`, `unavailable`). Counts are from disk; re-verify with
 `find tests -name '*.feature' | wc -l`.
@@ -255,6 +255,21 @@ problems; the tests document the current behaviour):
 | `dc/acls/roles/as-many/list.feature` | A token's roles are listed (untitled scenario, now titled). | 1 | [tests/acceptance/dc/acls/roles/as-many/list-test.js](tests/acceptance/dc/acls/roles/as-many/list-test.js) |
 | `dc/acls/roles/as-many/remove.feature` | Remove a role from a token and save an empty list (untitled scenario, now titled). | 1 | [tests/acceptance/dc/acls/roles/as-many/remove-test.js](tests/acceptance/dc/acls/roles/as-many/remove-test.js) |
 | `dc/acls/auth-methods/sorting.feature` | Sort auth methods by name both ways. | 1 | [tests/acceptance/dc/acls/auth-methods/sorting-test.js](tests/acceptance/dc/acls/auth-methods/sorting-test.js) |
+| `dc/intentions/delete.feature` | Delete from the list and detail pages, incl. 500 and duplicate-intention errors. | 4 | [tests/acceptance/dc/intentions/delete-test.js](tests/acceptance/dc/intentions/delete-test.js) |
+| `dc/intentions/filtered-select.feature` | Source/destination dropdowns hide proxy services and de-duplicate names across namespaces. | 2 (4 tests) | [tests/acceptance/dc/intentions/filtered-select-test.js](tests/acceptance/dc/intentions/filtered-select-test.js) |
+| `dc/intentions/form-select.feature` | Typing a future service into the source/destination selects it. | 1 (2 tests) | [tests/acceptance/dc/intentions/form-select-test.js](tests/acceptance/dc/intentions/form-select-test.js) |
+| `dc/intentions/index.feature` | Listing, no-write access (create still shown, as before), live updates (new `waitForVisibleCount` helper), CRD notice, empty states with ACLs on/off. | 7 | [tests/acceptance/dc/intentions/index-test.js](tests/acceptance/dc/intentions/index-test.js) |
+| `dc/intentions/read-only.feature` | A Kubernetes-managed intention is read-only. | 1 | [tests/acceptance/dc/intentions/read-only-test.js](tests/acceptance/dc/intentions/read-only-test.js) |
+| `dc/intentions/sorting.feature` | Sort by source both ways. `@notNamespaceable`, as before. | 1 | [tests/acceptance/dc/intentions/sorting-test.js](tests/acceptance/dc/intentions/sorting-test.js) |
+| `dc/intentions/update.feature` | Update description and action (request body now checked), 500 error. | 2 | [tests/acceptance/dc/intentions/update-test.js](tests/acceptance/dc/intentions/update-test.js) |
+| `dc/intentions/permissions/create.feature` | Add an L7 permission with a header (untitled scenario, now titled). | 1 | [tests/acceptance/dc/intentions/permissions/create-test.js](tests/acceptance/dc/intentions/permissions/create-test.js) |
+| `dc/intentions/permissions/warn.feature` | Was feature-level `@ignore`; passes now and runs again (untitled scenario, now titled). | 1 | [tests/acceptance/dc/intentions/permissions/warn-test.js](tests/acceptance/dc/intentions/permissions/warn-test.js) |
+| `dc/peers/create.feature` | Add-peer page, generate token, establish peering, and cancel with/without unsaved input. | 5 | [tests/acceptance/dc/peers/create-test.js](tests/acceptance/dc/peers/create-test.js) |
+| `dc/peers/delete.feature` | Delete from the list (success and 500); a deleting peer has no actions. | 3 | [tests/acceptance/dc/peers/delete-test.js](tests/acceptance/dc/peers/delete-test.js) |
+| `dc/peers/index.feature` | List, sort by name, search, and empty search states with ACLs on/off. | 5 | [tests/acceptance/dc/peers/index-test.js](tests/acceptance/dc/peers/index-test.js) |
+| `dc/peers/regenerate.feature` | Dialers can regenerate the token, receivers can't (untitled scenarios, now titled). | 2 | [tests/acceptance/dc/peers/regenerate-test.js](tests/acceptance/dc/peers/regenerate-test.js) |
+| `dc/peers/show.feature` | Dialer/receiver tabs and empty/non-empty imported, exported and addresses tabs (via `visit(..., { method })`). | 8 | [tests/acceptance/dc/peers/show-test.js](tests/acceptance/dc/peers/show-test.js) |
+| `dc/peers/sorting.feature` | Sort peers from the toolbar dropdown both ways. | 1 | [tests/acceptance/dc/peers/sorting-test.js](tests/acceptance/dc/peers/sorting-test.js) |
 
 ## Remaining features
 
@@ -291,16 +306,16 @@ problems; the tests document the current behaviour):
 | ~~`dc/acls/tokens/sorting.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [sorting-test.js](tests/acceptance/dc/acls/tokens/sorting-test.js) |
 | ~~`dc/acls/tokens/update.feature`~~ | *(deleted — migrated above)* | 3 | ✅ Migrated | [update-test.js](tests/acceptance/dc/acls/tokens/update-test.js) |
 | ~~`dc/acls/tokens/use.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [use-test.js](tests/acceptance/dc/acls/tokens/use-test.js) |
-| [dc/intentions/delete.feature](tests/acceptance/dc/intentions/delete.feature) | Delete intentions from list/detail incl. error and duplicate-intention error. | 4 | ☐ Not migrated |  |
-| [dc/intentions/filtered-select.feature](tests/acceptance/dc/intentions/filtered-select.feature) | Service select dropdowns show services but exclude proxy services; handles same-name services in different namespaces. | 2 | ☐ Not migrated |  |
-| [dc/intentions/form-select.feature](tests/acceptance/dc/intentions/form-select.feature) | Type into the autocomplete and select a custom/future service. | 1 | ☐ Not migrated |  |
-| [dc/intentions/index.feature](tests/acceptance/dc/intentions/index.feature) | Intentions list: view, no-write access, live updates, with/without CRDs, empty states. | 7 | ☐ Not migrated |  |
+| ~~`dc/intentions/delete.feature`~~ | *(deleted — migrated above)* | 4 | ✅ Migrated | [delete-test.js](tests/acceptance/dc/intentions/delete-test.js) |
+| ~~`dc/intentions/filtered-select.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [filtered-select-test.js](tests/acceptance/dc/intentions/filtered-select-test.js) |
+| ~~`dc/intentions/form-select.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [form-select-test.js](tests/acceptance/dc/intentions/form-select-test.js) |
+| ~~`dc/intentions/index.feature`~~ | *(deleted — migrated above)* | 7 | ✅ Migrated | [index-test.js](tests/acceptance/dc/intentions/index-test.js) |
 | ~~`dc/intentions/navigation.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [navigation-test.js](tests/acceptance/dc/intentions/navigation-test.js) |
-| [dc/intentions/permissions/create.feature](tests/acceptance/dc/intentions/permissions/create.feature) | Create an intention with L7 permissions. | 1 | ☐ Not migrated |  |
-| [dc/intentions/permissions/warn.feature](tests/acceptance/dc/intentions/permissions/warn.feature) | Warning shown when adding permissions to an intention. | 1 | ☐ Not migrated |  |
-| [dc/intentions/read-only.feature](tests/acceptance/dc/intentions/read-only.feature) | Viewing a read-only intention. | 1 | ☐ Not migrated |  |
-| [dc/intentions/sorting.feature](tests/acceptance/dc/intentions/sorting.feature) | Sorting the intentions list. | 1 | ☐ Not migrated |  |
-| [dc/intentions/update.feature](tests/acceptance/dc/intentions/update.feature) | Update an intention (description/action); error handling. | 2 | ☐ Not migrated |  |
+| ~~`dc/intentions/permissions/create.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [create-test.js](tests/acceptance/dc/intentions/permissions/create-test.js) |
+| ~~`dc/intentions/permissions/warn.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [warn-test.js](tests/acceptance/dc/intentions/permissions/warn-test.js) |
+| ~~`dc/intentions/read-only.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [read-only-test.js](tests/acceptance/dc/intentions/read-only-test.js) |
+| ~~`dc/intentions/sorting.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [sorting-test.js](tests/acceptance/dc/intentions/sorting-test.js) |
+| ~~`dc/intentions/update.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [update-test.js](tests/acceptance/dc/intentions/update-test.js) |
 | [dc/kvs/create.feature](tests/acceptance/dc/kvs/create.feature) | Create a root KV and folders, incl. creating from within a folder. | 4 | ☐ Not migrated |  |
 | [dc/kvs/delete.feature](tests/acceptance/dc/kvs/delete.feature) | Delete a KV from list/detail incl. error handling. | 3 | ☐ Not migrated |  |
 | [dc/kvs/edit.feature](tests/acceptance/dc/kvs/edit.feature) | View a KV: URL-unsafe characters, attached lock session, no-write / no-read access. | 6 | ☐ Not migrated |  |
@@ -325,12 +340,12 @@ problems; the tests document the current behaviour):
 | [dc/nspaces/manage.feature](tests/acceptance/dc/nspaces/manage.feature) | Managing namespaces. | 1 | ☐ Not migrated |  |
 | [dc/nspaces/sorting.feature](tests/acceptance/dc/nspaces/sorting.feature) | Sorting the namespaces list. | 1 | ☐ Not migrated |  |
 | [dc/nspaces/update.feature](tests/acceptance/dc/nspaces/update.feature) | Update a namespace (description); error handling. | 2 | ☐ Not migrated |  |
-| [dc/peers/create.feature](tests/acceptance/dc/peers/create.feature) | Generate a peering token (create peer). | 1 | ☐ Not migrated |  |
-| [dc/peers/delete.feature](tests/acceptance/dc/peers/delete.feature) | Delete a peer incl. error; a peer already deleting can't be deleted again. | 3 | ☐ Not migrated |  |
-| [dc/peers/index.feature](tests/acceptance/dc/peers/index.feature) | Peers list: view, sort, search, and empty states (ACLs on/off). | 5 | ☐ Not migrated |  |
-| [dc/peers/regenerate.feature](tests/acceptance/dc/peers/regenerate.feature) | Regenerate a peering token. | 2 | ☐ Not migrated |  |
-| [dc/peers/show.feature](tests/acceptance/dc/peers/show.feature) | Peer detail tabs: dialer/receiver, imported/exported services (empty & populated), addresses. | 8 | ☐ Not migrated |  |
-| [dc/peers/sorting.feature](tests/acceptance/dc/peers/sorting.feature) | Sorting peers by name, ascending and descending. Added in #23911; `dc/peers/establish.feature` was removed in the same PR and its scenario folded into `dc/peers/create.feature`. | 1 | ☐ Not migrated |  |
+| ~~`dc/peers/create.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [create-test.js](tests/acceptance/dc/peers/create-test.js) |
+| ~~`dc/peers/delete.feature`~~ | *(deleted — migrated above)* | 3 | ✅ Migrated | [delete-test.js](tests/acceptance/dc/peers/delete-test.js) |
+| ~~`dc/peers/index.feature`~~ | *(deleted — migrated above)* | 5 | ✅ Migrated | [index-test.js](tests/acceptance/dc/peers/index-test.js) |
+| ~~`dc/peers/regenerate.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [regenerate-test.js](tests/acceptance/dc/peers/regenerate-test.js) |
+| ~~`dc/peers/show.feature`~~ | *(deleted — migrated above)* | 8 | ✅ Migrated | [show-test.js](tests/acceptance/dc/peers/show-test.js) |
+| ~~`dc/peers/sorting.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [sorting-test.js](tests/acceptance/dc/peers/sorting-test.js) |
 | [dc/services/dc-switch.feature](tests/acceptance/dc/services/dc-switch.feature) | Services list reflects a datacenter switch. | 1 | ☐ Not migrated |  |
 | [dc/services/error.feature](tests/acceptance/dc/services/error.feature) | Service page error / not-found handling. | 2 | ☐ Not migrated |  |
 | [dc/services/index.feature](tests/acceptance/dc/services/index.feature) | Services list: services, gateways, mesh state, associated-service counts, empty states. | 6 | ☐ Not migrated |  |

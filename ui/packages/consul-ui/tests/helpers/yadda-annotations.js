@@ -5,7 +5,7 @@
 
 import { skip, test } from 'qunit';
 import { setupApplicationTest } from 'ember-qunit';
-import { settled } from '@ember/test-helpers';
+import { settled, isSettled, waitUntil } from '@ember/test-helpers';
 import Yadda from 'yadda';
 
 import { env } from '../../env';
@@ -126,6 +126,28 @@ export const setupScenario = function (featureAnnotations, scenarioAnnotations) 
     });
     model.afterEach(async function () {
       reset(this.owner);
+      // Same as tests/helpers/acceptance.js: a blocking query pausing between
+      // polls when reset() purged starts afterwards and never returns, so keep
+      // purging until nothing is pending.
+      const owner = this.owner;
+      try {
+        await waitUntil(
+          () => {
+            try {
+              const connections = owner.lookup('service:client/connections');
+              if (connections) {
+                connections.purge();
+              }
+            } catch (e) {
+              // service may already be destroyed
+            }
+            return isSettled();
+          },
+          { timeout: 5000 }
+        );
+      } catch (e) {
+        // fall through to settled(), which reports what is still pending
+      }
       await settled();
     });
   };
