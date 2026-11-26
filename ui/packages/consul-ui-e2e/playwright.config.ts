@@ -49,7 +49,10 @@ export default defineConfig({
   workers: 1,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'html',
+  // In CI, also write a Markdown summary to the GitHub Actions job page.
+  reporter: process.env.CI
+    ? [['github'], ['html', { open: 'never' }], ['./lib/summary-reporter.ts']]
+    : 'html',
 
   use: {
     baseURL: BASE_URL,
