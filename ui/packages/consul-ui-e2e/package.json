@@ -12,7 +12,8 @@
     "e2e:ui": "playwright test --ui",
     "report": "playwright show-report",
     "typecheck": "tsc --noEmit",
-    "install-browsers": "playwright install chromium"
+    "install-browsers": "playwright install chromium",
+    "link-agents": "mkdir -p .claude && ln -sfn ../agents .claude/agents"
   },
   "engines": {
     "node": "24"

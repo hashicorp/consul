@@ -108,5 +108,32 @@ e.g. `pnpm sc up 2`.
 
 ## Adding more
 
-- New use case: [docs/adding-a-scenario.md](docs/adding-a-scenario.md)
-- New test: [docs/adding-a-test.md](docs/adding-a-test.md)
+- New use case: [docs/adding-a-scenario.md](docs/adding-a-scenario.md), or the
+  [`scenario-author`](agents/scenario-author.md) agent
+- New test: [docs/adding-a-test.md](docs/adding-a-test.md), or the
+  [`e2e-test-author`](agents/e2e-test-author.md) agent
+
+## AI assistants
+
+The two tasks above also have playbooks for AI coding assistants, in plain
+Markdown that works with any tool:
+
+- [`agents/scenario-author.md`](agents/scenario-author.md): scaffolds and seeds
+  a new scenario from `scenarios/_template`.
+- [`agents/e2e-test-author.md`](agents/e2e-test-author.md): writes specs for a
+  scenario that already exists.
+
+How an assistant finds them:
+
+- **Most tools:** [`AGENTS.md`](AGENTS.md) in this package points to the
+  playbooks. Copilot, Codex, Cursor, Gemini CLI, Claude Code and other tools
+  that support the [AGENTS.md](https://agents.md) convention read it when you
+  work in this package. Some only read it from the folder you start in, so
+  start the session here. Claude Code versions without native `AGENTS.md`
+  support read it through the one-line [`CLAUDE.md`](CLAUDE.md).
+- **Any other tool:** point the assistant at the playbook, e.g. "Follow
+  `agents/scenario-author.md` to add a scenario for the KV page."
+- **Optional, native subagents:** the playbooks also use the Claude agent file
+  format, which Claude Code and VS Code Copilot can run as subagents. They only
+  look in `.claude/agents/`, which this repository ignores, so link it locally
+  with `pnpm link-agents`.
