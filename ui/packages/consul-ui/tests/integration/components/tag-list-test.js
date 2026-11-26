@@ -28,4 +28,15 @@ module('Integration | Component | tag list', function (hooks) {
 
     assert.dom('[data-test-tags]').hasText('tag');
   });
+
+  test('it renders long tags in full without truncation or overflow clipping', async function (assert) {
+    this.set('tags', ['traefik.http.routers.3d-tracking-service.entrypoints=http_default']);
+    await render(hbs`<TagList @tags={{this.tags}} />`);
+
+    const card = this.element.querySelector('.tag-list');
+    const textContainer = this.element.querySelector('.hds-tag__text-container');
+    assert.notStrictEqual(getComputedStyle(card).overflow, 'hidden');
+    assert.strictEqual(textContainer.scrollHeight, textContainer.clientHeight);
+    assert.dom('.hds-tooltip-button').doesNotExist();
+  });
 });
