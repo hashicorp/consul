@@ -1,0 +1,5 @@
+{
+  "description": "A terminating-gateway linking 25 backing services (via a wildcard config entry), so the service detail page's 'Linked Services' tab renders a full table.",
+  "routes": ["/ui/dc1/services/api-gateway/services"],
+  "requiresConnect": false
+}

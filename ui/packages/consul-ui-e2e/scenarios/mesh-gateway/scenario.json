@@ -1,0 +1,5 @@
+{
+  "description": "A mesh-gateway service with lan/wan TaggedAddresses, so the service-instance 'Addresses' tab renders.",
+  "routes": ["/ui/dc1/services/mesh-gateway/instances/node-primary/mesh-gateway/addresses"],
+  "requiresConnect": false
+}

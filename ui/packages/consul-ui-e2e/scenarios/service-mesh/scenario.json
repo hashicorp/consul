@@ -1,0 +1,10 @@
+{
+  "description": "Connect services exercising the Upstreams / Exposed Paths tabs and every detail branch: web (address + full exposed paths), web-variants (socket-path + cross-DC), web-tproxy (transparent mode), standalone (no sidecar).",
+  "routes": [
+    "/ui/dc1/services/web/instances",
+    "/ui/dc1/services/web-variants/instances",
+    "/ui/dc1/services/web-tproxy/instances",
+    "/ui/dc1/services/standalone/instances"
+  ],
+  "requiresConnect": true
+}

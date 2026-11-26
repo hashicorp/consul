@@ -1,0 +1,9 @@
+{
+  "description": "Allow / Deny / Application-Aware intentions — including a Layer 7 permission with path, method, and header criteria — exercising the Intentions list, create/edit form, and permission builder.",
+  "routes": [
+    "/ui/dc1/intentions",
+    "/ui/dc1/intentions/create",
+    "/ui/dc1/services/api/intentions"
+  ],
+  "requiresConnect": false
+}

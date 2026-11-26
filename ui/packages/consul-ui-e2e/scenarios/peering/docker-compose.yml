@@ -1,0 +1,78 @@
+# Copyright IBM Corp. 2024, 2026
+# SPDX-License-Identifier: BUSL-1.1
+
+# Cluster peering needs TWO independent Consul clusters — every other
+# scenario's single dev agent isn't enough. `consul` below is the primary
+# agent (fixed :8500, node-primary) that Playwright/ember actually talks to;
+# `consul-peer` is a second, wholly separate cluster (node-peer) that only
+# `seed.ts` ever talks to directly, over its published :8510.
+#
+# The hard part: a peering token embeds the acceptor's advertised gRPC(-TLS)
+# address, and the dialer has to actually be able to dial it. Two things
+# make that work here, both verified against a real `docker compose up`:
+#
+#   1. A static-subnet network with each container pinned to a static IP via
+#      `-advertise=<that IP>` — so the token's baked-in address
+#      (`<primary's static IP>:8503`) is something `consul-peer` can
+#      actually reach inside the compose network, regardless of Docker's
+#      normal DNS-name-based service discovery (which the token doesn't use
+#      — it's always a literal IP).
+#   2. `-bind 0.0.0.0`, NOT the default. Consul's `-dev` mode force-binds
+#      cluster ports (server RPC :8300, Serf LAN/WAN :8301/:8302) to
+#      127.0.0.1 regardless of `-advertise` unless `-bind` is set
+#      explicitly — confirmed by exec-ing into a container and checking
+#      `ss -tlnp`. Without this, the agent advertises its static IP but
+#      never actually listens on it, so peering token generation itself
+#      fails with "connection refused" dialing itself.
+#
+# `-grpc-port`/`-grpc-tls-port` are pinned (not left to defaults) so both
+# agents' gRPC-TLS ports are known/stable: peering dials gRPC-TLS
+# specifically (not plain gRPC), confirmed by inspecting a generated
+# token's `ServerAddresses`.
+services:
+  consul:
+    image: ${CONSUL_IMAGE:-hashicorp/consul:1.20}
+    environment:
+      # Only used when CONSUL_IMAGE is an Enterprise image (EDITION=ent runs).
+      - CONSUL_LICENSE=${CONSUL_LICENSE:-}
+    command: >-
+      agent -dev -client 0.0.0.0 -bind 0.0.0.0 -node node-primary -dns-port=-1
+      -advertise=172.28.9.10 -grpc-port=8502 -grpc-tls-port=8503
+    ports:
+      - "8500:8500"
+    networks:
+      peering:
+        ipv4_address: 172.28.9.10
+    healthcheck:
+      test: ["CMD", "consul", "info"]
+      interval: 3s
+      timeout: 2s
+      retries: 20
+
+  consul-peer:
+    image: ${CONSUL_IMAGE:-hashicorp/consul:1.20}
+    environment:
+      # Only used when CONSUL_IMAGE is an Enterprise image (EDITION=ent runs).
+      - CONSUL_LICENSE=${CONSUL_LICENSE:-}
+    command: >-
+      agent -dev -client 0.0.0.0 -bind 0.0.0.0 -node node-peer -dns-port=-1
+      -advertise=172.28.9.11 -grpc-port=8502 -grpc-tls-port=8503
+    ports:
+      # Published on :8510 (not the fixed :8500 — that's reserved for the
+      # primary agent) so seed.ts on the host can reach it directly, e.g.
+      # `new ConsulClient('http://127.0.0.1:8510')`.
+      - "8510:8500"
+    networks:
+      peering:
+        ipv4_address: 172.28.9.11
+    healthcheck:
+      test: ["CMD", "consul", "info"]
+      interval: 3s
+      timeout: 2s
+      retries: 20
+
+networks:
+  peering:
+    ipam:
+      config:
+        - subnet: 172.28.9.0/24

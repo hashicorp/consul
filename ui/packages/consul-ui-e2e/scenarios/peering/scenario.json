@@ -1,0 +1,5 @@
+{
+  "description": "Cluster peering: an ACTIVE peering between the primary cluster and a second, independent \"billing-cluster\" Consul cluster, established from the primary so Imported Services (payments), Exported Services (invoices), and Server Addresses all render, plus a second, never-established PENDING peer for status-badge variety.",
+  "routes": ["/ui/dc1/peers", "/ui/dc1/peers/billing-cluster"],
+  "requiresConnect": true
+}

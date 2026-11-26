@@ -1,0 +1,10 @@
+{
+  "description": "A key/value tree with standalone top-level keys, folders nested 1-4 levels deep, a single chain 15 levels deep, folders and keys with overflowing names, and one explicitly empty folder, to exercise the KV browser's expand/collapse tree.",
+  "routes": [
+    "/ui/dc1/kv",
+    "/ui/dc1/kv/config/",
+    "/ui/dc1/kv/app/services/billing/flags/",
+    "/ui/dc1/kv/deep/"
+  ],
+  "requiresConnect": false
+}

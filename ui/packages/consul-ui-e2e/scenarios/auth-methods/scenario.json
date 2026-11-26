@@ -1,0 +1,11 @@
+{
+  "description": "ACL auth methods (oidc, jwt, kubernetes) with binding rules, plus a real OIDC login round-trip through the UI against a local Dex IdP.",
+  "routes": [
+    "/ui/dc1/acls/auth-methods",
+    "/ui/dc1/acls/auth-methods/create",
+    "/ui/dc1/acls/tokens"
+  ],
+  "requiresConnect": false,
+  "requiresEnterprise": true,
+  "requiresLocalRuntime": true
+}
