@@ -29,7 +29,8 @@ its supporting infrastructure:
   `.feature` files into test modules — nothing else should depend on it once features are gone.
 - **Runner / gating:** delete [tests/helpers/yadda-annotations.js](tests/helpers/yadda-annotations.js)
   (the annotation-driven test generator and namespace matrix — now reproduced by
-  `nspaceScenario` in the harness).
+  `nspaceScenario` in the harness) and [tests/helpers/page.js](tests/helpers/page.js), whose
+  only consumer is `yadda-annotations.js`.
 - **Step DSL:** delete [tests/steps.js](tests/steps.js) and the entire `tests/steps/` tree
   (`doubles/`, `interactions/`, `assertions/`, `debug/`) — the request/interaction/assertion
   vocabulary, now reproduced as plain helpers in the harness.
@@ -38,7 +39,19 @@ its supporting infrastructure:
 - **Dictionary:** delete [tests/dictionary.js](tests/dictionary.js) (the yadda term converters
   and `@namespace` string substitution).
 - **Step-listing CLI:** delete the `lib/commands/` addon (the `steps:list` ember command in
-  [lib/commands/index.js](lib/commands/index.js) that listed available yadda steps).
+  [lib/commands/index.js](lib/commands/index.js) that listed available yadda steps), **and**
+  remove its wiring: the `steps:list` script and the `"lib/commands"` entry in
+  `ember-addon.paths` in [package.json](package.json), and the `steps:` target in
+  [GNUmakefile](GNUmakefile). ember-cli throws on a missing `ember-addon.paths` entry, so
+  deleting the folder alone breaks every build.
+- **Lockfile:** run `pnpm install` from `ui/` so `ui/pnpm-lock.yaml` drops `ember-cli-yadda` and
+  `yadda`.
+- **Dictionary-only deps:** `js-yaml` (a direct devDependency in `package.json`) is imported only
+  by `tests/dictionary.js` today. If nothing else uses it by then (including the new
+  namespace-template helper, see Phase 0), remove it.
+- **Docs:** rewrite the BDD/`ember generate feature` section of
+  [docs/testing.mdx](docs/testing.mdx) (~line 210) to describe native QUnit acceptance tests.
+- **This file:** delete it (or archive it) once the work is finished.
 
 Keep (still used by native tests): [tests/helpers/api.js](tests/helpers/api.js) and the
 api-double, [tests/pages.js](tests/pages.js) / `tests/pages/`, `tests/lib/page-object/`, and
@@ -46,9 +59,49 @@ api-double, [tests/pages.js](tests/pages.js) / `tests/pages/`, `tests/lib/page-o
 
 **Final verification before declaring done:**
 
-- `grep -r "yadda" package.json tests lib` returns nothing.
+- `grep -ri "yadda" package.json tests lib docs ../../pnpm-lock.yaml` returns nothing
+  (comments mentioning yadda in native tests should be reworded by then).
 - `find tests -name '*.feature' -o -name '*-steps.js'` returns nothing.
-- `pnpm test` (or `test:oss` for CE) passes with the same scenario/assertion count as before.
+- `pnpm build` and `pnpm lint` succeed (catches a dangling `lib/commands` addon path).
+- `CONSUL_NSPACES_ENABLED=0` and `CONSUL_NSPACES_ENABLED=1` test runs both pass, and their sorted
+  test-title lists match the Phase 0 baseline (see below) apart from intentional renames.
+  `.github/workflows/frontend.yml` runs both modes (`ember-build-test` and
+  `ember-build-test-ent`), so neither may be skipped locally.
+
+## Phase 0: do before migrating further
+
+1. ✅ **Namespace templating.** ~32 features use `@namespace` / `@!namespace` placeholders that
+   `tests/dictionary.js` rewrites (differently for CE and ENT). Ported to
+   [tests/helpers/nspace-template.js](tests/helpers/nspace-template.js) as `nspaceJSON`,
+   `nspaceYAML` and `nspaceEndpoint` (also re-exported from the harness), with unit tests in
+   `tests/unit/helpers/nspace-template-test.js` for each CE/ENT/namespace case. Use them for any
+   endpoint or fixture that contains a placeholder, so a test cannot pass while asserting the
+   wrong `ns=` query string or payload.
+2. ✅ **Harness gaps.** [tests/helpers/acceptance.js](tests/helpers/acceptance.js) now also has the
+   fixture setup (`createModels`, `respondWith`, `setSettings`, `setUiConfig`, `setPermissions`,
+   `disableACLs`, `enableSSO`, `enablePartitions`, `setDefaultACLPolicy`, `setMetricsProvider`,
+   `setLocalDatacenter`, `setLatency`, `setApiPrefix`, `useLegacyToken`), the remaining request
+   assertions (`requestsIncluded`, `requestMadeWithNoBody`, `requestMadeWithoutProperties`) and
+   page-object queries (`find`, `assertVisibleCount`, `assertProperties`), `fillInForm` (plain
+   inputs), `stubOIDCProvider` and `clickParentBreadcrumb`. `visit` clears the request history, as
+   the yadda `I visit` steps did. Still missing and to be added by the batch that first needs
+   them: filling code editors, a wait-until helper (the yadda `pause until` steps) and sort-order
+   assertions. Prefer plain `assert.dom(...)` for DOM assertions (pass `document.documentElement`
+   to assert on `<html>`). Add shared helpers to the harness, not inside individual tests.
+3. **Baseline.** Before the first batch, record the sorted test-title list (and pass/skip
+   counts) from `ember test` under both `CONSUL_NSPACES_ENABLED=0` and `=1`. Compare against
+   it after every batch so dropped scenarios, `Where:` rows or tags are caught. Note that the
+   test environment defaults to namespaces **off** (`config/environment.js`), so a plain
+   `pnpm test` only exercises CE.
+4. ✅ **Fix the regressions** below, so later batches don't copy the weakened navigation pattern.
+5. ✅ **`@ignore` scenarios.** The 8 empty `Then ok` placeholders and the 19 orphaned
+   `-steps.js` stubs were deleted. The remaining 10 ignored scenarios have real bodies: 3
+   scenario-level `@ignore` tags, plus the feature-level `@ignore` on
+   `dc/acls/policies/as-many/add-new` (6 scenarios) and `dc/intentions/permissions/warn` (1).
+   When migrating their feature, fix and un-ignore them where possible. Otherwise port each as
+   a skipped test (`{ ignore: true }`) that keeps the original steps in its body, with the
+   reason in a comment, so it can be un-skipped later (see `dc/acls/policies/index-test.js` and
+   `page-navigation-test.js`).
 
 ## How to use this document
 
@@ -57,8 +110,19 @@ When you migrate a feature:
 1. Rewrite the `.feature` as a `-test.js` using the harness (copy the reference test).
 2. Wrap each scenario in `nspaceScenario(...)`, carrying over `@onlyNamespaceable` /
    `@notNamespaceable` / `@ignore` as options so the CE/ENT namespace matrix is preserved.
-3. `git rm` the `.feature` **and** its matching `tests/acceptance/steps/**/<name>-steps.js`.
-4. Update this table: set **Status** to ✅ Migrated and fill in the **Native test** link.
+   **Never add an option the original did not have.** If a scenario genuinely cannot run with a
+   namespace, say why in a comment and flag it in this table. Keep the original `Scenario:`
+   title in the test title so baselines can be diffed.
+3. Port every assertion step one-for-one: exact URLs via
+   `assert.equal(currentURL(), nspaceURL(nspace, ...))` (not `includes`), model counts, and
+   every `a GET request was made to` (with its `ns=` handling). If the UI changed, update the
+   assertion; don't delete it.
+4. `git rm` the `.feature` **and** its `-steps.js` stub. ember-cli-yadda always imports the stub
+   from `tests/acceptance/steps/<same path>/<name>-steps.js`, so the pairing is exact. (19 orphaned stubs with no matching `.feature` were already removed.)
+5. Update this table: set **Status** to ✅ Migrated and fill in the **Native test** link. To avoid
+   merge conflicts between parallel PRs, only touch the rows for your own features.
+6. Run both `CONSUL_NSPACES_ENABLED=0` and `=1` suites; run timing-sensitive tests (blocking
+   queries / live updates) repeatedly to check for flakiness.
 
 The **Description** column summarises what each feature verifies so you can reproduce it
 manually in the running UI if needed.
@@ -69,10 +133,55 @@ manually in the running UI if needed.
 
 | Metric | Count |
 | --- | --- |
-| Feature files remaining (yadda) | 101 |
-| Scenarios remaining (yadda) | 248 |
-| Feature files migrated | 28 |
-| Scenarios migrated | 43 |
+| Feature files remaining (yadda) | 90 |
+| Scenarios remaining (yadda) | 222 (10 are `@ignore`, each with a real body: 3 scenario-level tags plus 2 feature-level tags covering 7 scenarios) |
+| Feature files fully migrated | 39 |
+| Scenarios migrated | 70 (46 from the first 27 features, 24 from the last 12) |
+
+Scenario counts are not test counts. 20 remaining features use `Where:` tables (one test per
+row), and under `CONSUL_NSPACES_ENABLED=1` each namespaceable scenario runs 4 times.
+
+`tests/acceptance` contains 48 native `*-test.js` files: 39 come from migrated features and 9 are native-only tests that never had a
+`.feature` (`breadcrumbs/*`, `components/tab-error`, `components/tab-nav-focus`,
+`dc/nodes/sessions/filter-sort`, `hcp-login`, `unavailable`). Counts are from disk; re-verify with
+`find tests -name '*.feature' | wc -l`.
+
+## Regressions found in completed migrations (fixed) and findings
+
+Audited by comparing each native test with the original `.feature` removed in #23741 and #23911.
+The #23741 batch (intentions/create, components, settings, dc/*) was faithful, although #23911
+later rewrote its `components/text-input` port. The #23911 batch was not, and has been corrected:
+
+1. **ENT namespace coverage restored.** 15 scenarios in 11 files had `notNamespaceable: true`
+   although the original scenario had no namespace tag (all `*/navigation` tests, `components/text-input`,
+   the sessions "ACLs disabled" scenario and the 3 `page-navigation` create rows). They run for
+   every namespace again (about 60 more Enterprise tests); all pass.
+2. **Assertions restored.** Exact URL checks (`assert.equal(currentURL(), nspaceURL(...))`)
+   replace `includes(...)`, the "I see N models" counts are back, and
+   `dc/services/instances/navigation-test.js` has its proxy/instance fixtures and namespaced
+   `GET /v1/catalog/connect/...` / `GET /v1/health/service/...-proxy` request checks again.
+   `dc/intentions/navigation` "Clicking the create button and back again" asserts the title
+   again. The `dc-1` navigation ports create the datacenter with `createModels`, which sets it
+   as the local datacenter like the yadda step, and `dc/nodes/navigation` uses the original
+   node fixture again.
+3. **Other weakened ports fixed.** `components/text-input` visits the KV create page and asserts
+   `/dc-1/kv/create` again, as the #23741 port did. `dc/nodes/sessions/list` checks the selected
+   tab and the full empty-state sentences in every scenario and has its original titles back.
+4. **Dropped `@ignore` scenario restored.** `dc/acls/policies/index` keeps its ignored scenario
+   as a skipped test with the original steps in its body, so it can be un-skipped later.
+
+**Behaviour changes the exact assertions exposed** (these are product questions, not test
+problems; the tests document the current behaviour):
+
+- The breadcrumb link back to a list keeps the peer route segment: opening the first (peered)
+  service or node and going back lands on `/:billing/dc-1/services` / `/:billing/dc-1/nodes`,
+  where the old `[data-test-back] a` link went to `/dc-1/services`. This happens in CE as well
+  as ENT. `app/services/breadcrumbs.js` says it intends to avoid inheriting peer segments, so
+  this is likely a bug worth a separate fix. The nodes and services tests click the first
+  (peered) item, as the originals did, and assert today's URL exactly with a `FIXME`, so fixing
+  the bug makes them fail until they are updated to the original `/dc-1/...` URLs.
+- Going "back" from a service instance now returns to that service's *instances* tab (the old
+  back link landed on the topology tab).
 
 ## Completed
 
@@ -91,31 +200,39 @@ manually in the running UI if needed.
 | `dc/list-blocking.feature` | Listing pages live-update via blocking queries when Consul changes externally. Second scenario carried a FIXME `@ignore`, preserved as a skipped test. | 2 | [tests/acceptance/dc/list-blocking-test.js](tests/acceptance/dc/list-blocking-test.js) |
 | `dc/routing-config.feature` | View a routing config (no 404, correct title) and its source pill. | 2 | [tests/acceptance/dc/routing-config-test.js](tests/acceptance/dc/routing-config-test.js) |
 | `dc/acls/auth-methods/index.feature` | Auth-methods list renders and is searchable (3 search terms). | 2 | [tests/acceptance/dc/acls/auth-methods/index-test.js](tests/acceptance/dc/acls/auth-methods/index-test.js) |
-| `dc/acls/policies/index.feature` | Policies list renders and is searchable. | 2 | [tests/acceptance/dc/acls/policies/index-test.js](tests/acceptance/dc/acls/policies/index-test.js) |
+| `dc/acls/policies/index.feature` | Policies list renders and is searchable. The original `@ignore` scenario (global-management policy can't be deleted) is kept as a skipped test with its steps. | 3 | [tests/acceptance/dc/acls/policies/index-test.js](tests/acceptance/dc/acls/policies/index-test.js) |
 | `dc/acls/roles/index.feature` | Roles list renders and is searchable (description, policy name, service identity). | 2 | [tests/acceptance/dc/acls/roles/index-test.js](tests/acceptance/dc/acls/roles/index-test.js) |
 | `dc/acls/tokens/index.feature` | Token list: view, no-write access, search (description/policy/role/SI), legacy notice. | 5 | [tests/acceptance/dc/acls/tokens/index-test.js](tests/acceptance/dc/acls/tokens/index-test.js) |
-| `dc/acls/auth-methods/navigation.feature` | Navigate into an auth-method from the list and back via breadcrumb. `@notNamespaceable`. | 1 | [tests/acceptance/dc/acls/auth-methods/navigation-test.js](tests/acceptance/dc/acls/auth-methods/navigation-test.js) |
-| `dc/acls/policies/navigation.feature` | Navigate into a policy from the list and back via breadcrumb. `@notNamespaceable`. | 1 | [tests/acceptance/dc/acls/policies/navigation-test.js](tests/acceptance/dc/acls/policies/navigation-test.js) |
-| `dc/acls/roles/navigation.feature` | Navigate into a role from the list and back via breadcrumb. `@notNamespaceable`. | 1 | [tests/acceptance/dc/acls/roles/navigation-test.js](tests/acceptance/dc/acls/roles/navigation-test.js) |
-| `dc/acls/tokens/navigation.feature` | Navigate into a token from the list and back via breadcrumb. `@notNamespaceable`. | 1 | [tests/acceptance/dc/acls/tokens/navigation-test.js](tests/acceptance/dc/acls/tokens/navigation-test.js) |
-| `dc/intentions/navigation.feature` | Navigate into an intention and to the create form and back via breadcrumb. `@notNamespaceable`. | 2 | [tests/acceptance/dc/intentions/navigation-test.js](tests/acceptance/dc/intentions/navigation-test.js) |
-| `dc/nodes/navigation.feature` | Navigate into a node from the list and back via breadcrumb. `@notNamespaceable`. | 1 | [tests/acceptance/dc/nodes/navigation-test.js](tests/acceptance/dc/nodes/navigation-test.js) |
-| `dc/services/navigation.feature` | Navigate into a (peered) service from the list and back via breadcrumb. `@notNamespaceable`. | 2 | [tests/acceptance/dc/services/navigation-test.js](tests/acceptance/dc/services/navigation-test.js) |
-| `dc/services/instances/navigation.feature` | Navigate into a service instance from the instances tab and back via breadcrumb. `@notNamespaceable`. | 1 | [tests/acceptance/dc/services/instances/navigation-test.js](tests/acceptance/dc/services/instances/navigation-test.js) |
-| `page-navigation.feature` *(partial)* | Cancel/create flows for intentions, tokens, and policies; create scenarios migrated. Remaining page-load routing scenarios left in the original feature with `@ignore` stubs. | 3 (create/cancel) | [tests/acceptance/page-navigation-create-test.js](tests/acceptance/page-navigation-create-test.js) |
+| `dc/acls/auth-methods/navigation.feature` | Navigate into an auth-method from the list and back via breadcrumb. | 1 | [tests/acceptance/dc/acls/auth-methods/navigation-test.js](tests/acceptance/dc/acls/auth-methods/navigation-test.js) |
+| `dc/acls/policies/navigation.feature` | Navigate into a policy from the list and back via breadcrumb. | 1 | [tests/acceptance/dc/acls/policies/navigation-test.js](tests/acceptance/dc/acls/policies/navigation-test.js) |
+| `dc/acls/roles/navigation.feature` | Navigate into a role from the list and back via breadcrumb. | 1 | [tests/acceptance/dc/acls/roles/navigation-test.js](tests/acceptance/dc/acls/roles/navigation-test.js) |
+| `dc/acls/tokens/navigation.feature` | Navigate into a token from the list and back via breadcrumb. | 1 | [tests/acceptance/dc/acls/tokens/navigation-test.js](tests/acceptance/dc/acls/tokens/navigation-test.js) |
+| `dc/intentions/navigation.feature` | Navigate into an intention and to the create form and back via breadcrumb. | 2 | [tests/acceptance/dc/intentions/navigation-test.js](tests/acceptance/dc/intentions/navigation-test.js) |
+| `dc/nodes/navigation.feature` | Navigate into a node from the list and back via breadcrumb. | 1 | [tests/acceptance/dc/nodes/navigation-test.js](tests/acceptance/dc/nodes/navigation-test.js) |
+| `dc/services/navigation.feature` | Navigate into a (peered) service from the list and back via breadcrumb. | 2 | [tests/acceptance/dc/services/navigation-test.js](tests/acceptance/dc/services/navigation-test.js) |
+| `dc/services/instances/navigation.feature` | Navigate into a service instance from the instances tab and back via breadcrumb. | 1 | [tests/acceptance/dc/services/instances/navigation-test.js](tests/acceptance/dc/services/instances/navigation-test.js) |
 | `dc/nodes/show/health-checks.feature` | Node serf health check passing/failing display. Also adds a regression scenario for the "Check type" sort (Service to Node / Node to Service ordering must match the option labels). | 2 (+1 new) | [tests/acceptance/dc/nodes/show/health-checks-test.js](tests/acceptance/dc/nodes/show/health-checks-test.js) |
 | `dc/nodes/sessions/list.feature` | Node lock-sessions HDS table: string TTLs, nanosecond LockDelay rendering, and ACL enabled/disabled empty states. | 4 | [tests/acceptance/dc/nodes/sessions/list-test.js](tests/acceptance/dc/nodes/sessions/list-test.js) |
 | `dc/nodes/sessions/invalidate.feature` | Invalidate a lock session via the HDS confirmation Modal (success + forced-500 error toast). | 2 | [tests/acceptance/dc/nodes/sessions/invalidate-test.js](tests/acceptance/dc/nodes/sessions/invalidate-test.js) |
+| `api-prefix.feature` | UI honours a configured API path prefix when making requests. | 1 | [tests/acceptance/api-prefix-test.js](tests/acceptance/api-prefix-test.js) |
+| `dc/acls/access.feature` | ACLs access page behaviour when ACLs are disabled. | 1 | [tests/acceptance/dc/acls/access-test.js](tests/acceptance/dc/acls/access-test.js) |
+| `dc/acls/index.feature` | ACL index page forwards/redirects to the correct sub-page. `@notNamespaceable`, as before. | 1 | [tests/acceptance/dc/acls/index-test.js](tests/acceptance/dc/acls/index-test.js) |
+| `deleting.feature` | Generic delete flow: confirmation dialog plus success/error notifications. | 3 | [tests/acceptance/deleting-test.js](tests/acceptance/deleting-test.js) |
+| `index-forwarding.feature` | Index page forwards straight through when there is only one datacenter. `@notNamespaceable`, as before. | 1 | [tests/acceptance/index-forwarding-test.js](tests/acceptance/index-forwarding-test.js) |
+| `login.feature` | Logging in via an ACL token and via SSO. The SSO scenario stays `@onlyNamespaceable`. | 2 | [tests/acceptance/login-test.js](tests/acceptance/login-test.js) |
+| `login-errors.feature` | Login 500-error handling (non-legacy-token case). | 1 | [tests/acceptance/login-errors-test.js](tests/acceptance/login-errors-test.js) |
+| `navigation-links.feature` | Main-navigation link visibility (e.g. no KV read access, empty-state login button). | 2 | [tests/acceptance/navigation-links-test.js](tests/acceptance/navigation-links-test.js) |
+| `page-navigation.feature` | Navigation across pages: index forwarding, main-navigation links, node and policies endpoint checks, and the create flows from the intentions/tokens/policies listings. The three `@ignore` kv scenarios are kept as skipped tests with their original steps; the empty placeholders were deleted. | 7 | [tests/acceptance/page-navigation-test.js](tests/acceptance/page-navigation-test.js) |
+| `startup.feature` | App boots when loading index.html into a browser. `@notNamespaceable`, as before. | 1 | [tests/acceptance/startup-test.js](tests/acceptance/startup-test.js) |
+| `submit-blank.feature` | Blank create forms keep the submit button disabled. | 1 | [tests/acceptance/submit-blank-test.js](tests/acceptance/submit-blank-test.js) |
+| `token-header.feature` | API requests send the Consul token header after a token is set. `@notNamespaceable`, as before. | 2 | [tests/acceptance/token-header-test.js](tests/acceptance/token-header-test.js) |
 
 ## Remaining features
 
 | Feature file | Description | Scenarios | Status | Native test |
 | --- | --- | --- | --- | --- |
-| [api-prefix.feature](tests/acceptance/api-prefix.feature) | UI honours a configured API path prefix when making requests. | 1 | ☐ Not migrated |  |
-| [dc/acls/access.feature](tests/acceptance/dc/acls/access.feature) | ACLs access page behaviour when ACLs are disabled. | 1 | ☐ Not migrated |  |
 | ~~`dc/acls/auth-methods/navigation.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [navigation-test.js](tests/acceptance/dc/acls/auth-methods/navigation-test.js) |
 | [dc/acls/auth-methods/sorting.feature](tests/acceptance/dc/acls/auth-methods/sorting.feature) | Sorting the auth-methods list. | 1 | ☐ Not migrated |  |
-| [dc/acls/index.feature](tests/acceptance/dc/acls/index.feature) | ACL index page forwards/redirects to the correct sub-page. | 1 | ☐ Not migrated |  |
 | [dc/acls/policies/as-many/add-existing.feature](tests/acceptance/dc/acls/policies/as-many/add-existing.feature) | Attach an existing policy as a child of a token/role. | 1 | ☐ Not migrated |  |
 | [dc/acls/policies/as-many/add-new.feature](tests/acceptance/dc/acls/policies/as-many/add-new.feature) | Add a new policy, service identity or node identity to a token/role, incl. error and code-editor cases. | 6 | ☐ Not migrated |  |
 | [dc/acls/policies/as-many/list.feature](tests/acceptance/dc/acls/policies/as-many/list.feature) | List the policies attached to a token/role. | 1 | ☐ Not migrated |  |
@@ -162,7 +279,7 @@ manually in the running UI if needed.
 | [dc/kvs/list-order.feature](tests/acceptance/dc/kvs/list-order.feature) | KV keys/folders listed alphabetically. | 1 | ☐ Not migrated |  |
 | [dc/kvs/sessions/invalidate.feature](tests/acceptance/dc/kvs/sessions/invalidate.feature) | Invalidate a lock session attached to a KV incl. error. | 2 | ☐ Not migrated |  |
 | [dc/kvs/trailing-slash.feature](tests/acceptance/dc/kvs/trailing-slash.feature) | KV folder view resolves with and without a trailing slash. | 2 | ☐ Not migrated |  |
-| [dc/kvs/update.feature](tests/acceptance/dc/kvs/update.feature) | Update KV values incl. whitespace/empty/newline values and error handling. | 7 | ☐ Not migrated |  |
+| [dc/kvs/update.feature](tests/acceptance/dc/kvs/update.feature) | Update KV values incl. whitespace/empty/newline values and error handling. | 5 | ☐ Not migrated |  |
 | [dc/nodes/empty-ids.feature](tests/acceptance/dc/nodes/empty-ids.feature) | Node list handles nodes that arrive with no ID. | 1 | ☐ Not migrated |  |
 | [dc/nodes/index.feature](tests/acceptance/dc/nodes/index.feature) | Nodes list: unhealthy node/service checks, synthetic nodes hidden, leader indicator, search, empty state. | 7 | ☐ Not migrated |  |
 | ~~`dc/nodes/navigation.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [navigation-test.js](tests/acceptance/dc/nodes/navigation-test.js) |
@@ -170,7 +287,7 @@ manually in the running UI if needed.
 | [dc/nodes/services/list.feature](tests/acceptance/dc/nodes/services/list.feature) | Node → Services tab listing. | 1 | ☐ Not migrated |  |
 | ~~`dc/nodes/sessions/invalidate.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [invalidate-test.js](tests/acceptance/dc/nodes/sessions/invalidate-test.js) |
 | ~~`dc/nodes/sessions/list.feature`~~ | *(deleted — migrated above)* | 4 | ✅ Migrated | [list-test.js](tests/acceptance/dc/nodes/sessions/list-test.js) |
-| [dc/nodes/show.feature](tests/acceptance/dc/nodes/show.feature) | Node detail: tab visibility/selection, deregister warning while blocking, RTT display. | 5 | ☐ Not migrated |  |
+| [dc/nodes/show.feature](tests/acceptance/dc/nodes/show.feature) | Node detail: tab visibility/selection, deregister warning while blocking. | 3 | ☐ Not migrated |  |
 | ~~`dc/nodes/show/health-checks.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [health-checks-test.js](tests/acceptance/dc/nodes/show/health-checks-test.js) |
 | [dc/nodes/sorting.feature](tests/acceptance/dc/nodes/sorting.feature) | Sorting the nodes list. | 1 | ☐ Not migrated |  |
 | [dc/nspaces/create.feature](tests/acceptance/dc/nspaces/create.feature) | Create a namespace. | 2 | ☐ Not migrated |  |
@@ -181,10 +298,10 @@ manually in the running UI if needed.
 | [dc/nspaces/update.feature](tests/acceptance/dc/nspaces/update.feature) | Update a namespace (description); error handling. | 2 | ☐ Not migrated |  |
 | [dc/peers/create.feature](tests/acceptance/dc/peers/create.feature) | Generate a peering token (create peer). | 1 | ☐ Not migrated |  |
 | [dc/peers/delete.feature](tests/acceptance/dc/peers/delete.feature) | Delete a peer incl. error; a peer already deleting can't be deleted again. | 3 | ☐ Not migrated |  |
-| [dc/peers/establish.feature](tests/acceptance/dc/peers/establish.feature) | Establish peering from a peering token. | 1 | ☐ Not migrated |  |
 | [dc/peers/index.feature](tests/acceptance/dc/peers/index.feature) | Peers list: view, sort, search, and empty states (ACLs on/off). | 5 | ☐ Not migrated |  |
 | [dc/peers/regenerate.feature](tests/acceptance/dc/peers/regenerate.feature) | Regenerate a peering token. | 2 | ☐ Not migrated |  |
 | [dc/peers/show.feature](tests/acceptance/dc/peers/show.feature) | Peer detail tabs: dialer/receiver, imported/exported services (empty & populated), addresses. | 8 | ☐ Not migrated |  |
+| [dc/peers/sorting.feature](tests/acceptance/dc/peers/sorting.feature) | Sorting peers by name, ascending and descending. Added in #23911; `dc/peers/establish.feature` was removed in the same PR and its scenario folded into `dc/peers/create.feature`. | 1 | ☐ Not migrated |  |
 | [dc/services/dc-switch.feature](tests/acceptance/dc/services/dc-switch.feature) | Services list reflects a datacenter switch. | 1 | ☐ Not migrated |  |
 | [dc/services/error.feature](tests/acceptance/dc/services/error.feature) | Service page error / not-found handling. | 2 | ☐ Not migrated |  |
 | [dc/services/index.feature](tests/acceptance/dc/services/index.feature) | Services list: services, gateways, mesh state, associated-service counts, empty states. | 6 | ☐ Not migrated |  |
@@ -215,12 +332,3 @@ manually in the running UI if needed.
 | [dc/services/show/topology/stats.feature](tests/acceptance/dc/services/show/topology/stats.feature) | Topology metric stats enabled/disabled incl. ingress-gateway cases. | 4 | ☐ Not migrated |  |
 | [dc/services/show/upstreams.feature](tests/acceptance/dc/services/show/upstreams.feature) | Upstreams tab visibility and list. | 3 | ☐ Not migrated |  |
 | [dc/services/sorting.feature](tests/acceptance/dc/services/sorting.feature) | Sorting the services list. | 1 | ☐ Not migrated |  |
-| [deleting.feature](tests/acceptance/deleting.feature) | Generic delete flow: confirmation dialog plus success/error notifications. | 3 | ☐ Not migrated |  |
-| [index-forwarding.feature](tests/acceptance/index-forwarding.feature) | Index page forwards straight through when there is only one datacenter. | 1 | ☐ Not migrated |  |
-| [login-errors.feature](tests/acceptance/login-errors.feature) | Login 500-error handling (non-legacy-token case). | 1 | ☐ Not migrated |  |
-| [login.feature](tests/acceptance/login.feature) | Logging in via an ACL token and via SSO. | 2 | ☐ Not migrated |  |
-| [navigation-links.feature](tests/acceptance/navigation-links.feature) | Main-navigation link visibility (e.g. no KV read access, empty-state login button). | 2 | ☐ Not migrated |  |
-| [page-navigation.feature](tests/acceptance/page-navigation.feature) | Navigation across pages routes correctly; cancel/create flows (create scenarios migrated; routing scenarios remain with `@ignore`). | 10 | 🔄 In progress | [page-navigation-create-test.js](tests/acceptance/page-navigation-create-test.js) |
-| [startup.feature](tests/acceptance/startup.feature) | App boots when loading index.html into a browser. | 1 | ☐ Not migrated |  |
-| [submit-blank.feature](tests/acceptance/submit-blank.feature) | Blank create forms keep the submit button disabled. | 2 | ☐ Not migrated |  |
-| [token-header.feature](tests/acceptance/token-header.feature) | API requests send the Consul token header after a token is set. | 2 | ☐ Not migrated |  |
