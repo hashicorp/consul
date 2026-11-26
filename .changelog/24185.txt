@@ -1,0 +1,6 @@
+```release-note:bug
+txn: Node, service, and check write operations in `/v1/txn` with a non-default `PeerName` are now rejected, consistent with the catalog register and deregister endpoints. Peer-imported catalog entries are managed by peering replication and cannot be modified through the transaction API.
+```
+```release-note:bug
+acl: `node:write` and `service:write` rules no longer apply to peer-imported nodes and services.
+```
