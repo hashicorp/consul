@@ -312,6 +312,95 @@ func TestTxn_Apply(t *testing.T) {
 	require.Equal(t, expected, out)
 }
 
+func TestTxn_Apply_PeerNameRejected(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	const peer = "peer1"
+	state := s1.fsm.State()
+	require.NoError(t, state.EnsureRegistration(1, &structs.RegisterRequest{
+		Node:     "a",
+		Address:  "10.0.0.1",
+		PeerName: peer,
+		Service: &structs.NodeService{
+			ID:       "web",
+			Service:  "web",
+			Port:     8080,
+			PeerName: peer,
+		},
+		Checks: structs.HealthChecks{
+			{Node: "a", CheckID: "node-check", Status: api.HealthPassing, PeerName: peer},
+		},
+	}))
+
+	localToken := createToken(t, codec, `
+node_prefix "" { policy = "write" }
+service_prefix "" { policy = "write" }
+`)
+
+	// ModifyIndex matches the seeded objects so CAS verbs would succeed without the guard.
+	idx := structs.RaftIndex{ModifyIndex: 1}
+	ops := map[string]*structs.TxnOp{
+		"node set":           {Node: &structs.TxnNodeOp{Verb: api.NodeSet, Node: structs.Node{Node: "a", Address: "192.0.2.1", PeerName: peer}}},
+		"node cas":           {Node: &structs.TxnNodeOp{Verb: api.NodeCAS, Node: structs.Node{Node: "a", Address: "192.0.2.1", PeerName: peer, RaftIndex: idx}}},
+		"node delete":        {Node: &structs.TxnNodeOp{Verb: api.NodeDelete, Node: structs.Node{Node: "a", PeerName: peer}}},
+		"node delete-cas":    {Node: &structs.TxnNodeOp{Verb: api.NodeDeleteCAS, Node: structs.Node{Node: "a", PeerName: peer, RaftIndex: idx}}},
+		"service set":        {Service: &structs.TxnServiceOp{Verb: api.ServiceSet, Node: "a", Service: structs.NodeService{ID: "web", Service: "web", Port: 9999, PeerName: peer}}},
+		"service cas":        {Service: &structs.TxnServiceOp{Verb: api.ServiceCAS, Node: "a", Service: structs.NodeService{ID: "web", Service: "web", Port: 9999, PeerName: peer, RaftIndex: idx}}},
+		"service delete":     {Service: &structs.TxnServiceOp{Verb: api.ServiceDelete, Node: "a", Service: structs.NodeService{ID: "web", PeerName: peer}}},
+		"service delete-cas": {Service: &structs.TxnServiceOp{Verb: api.ServiceDeleteCAS, Node: "a", Service: structs.NodeService{ID: "web", PeerName: peer, RaftIndex: idx}}},
+		"check set":          {Check: &structs.TxnCheckOp{Verb: api.CheckSet, Check: structs.HealthCheck{Node: "a", CheckID: "node-check", Status: api.HealthCritical, PeerName: peer}}},
+		"check cas":          {Check: &structs.TxnCheckOp{Verb: api.CheckCAS, Check: structs.HealthCheck{Node: "a", CheckID: "node-check", Status: api.HealthCritical, PeerName: peer, RaftIndex: idx}}},
+		"check delete":       {Check: &structs.TxnCheckOp{Verb: api.CheckDelete, Check: structs.HealthCheck{Node: "a", CheckID: "node-check", PeerName: peer}}},
+		"check delete-cas":   {Check: &structs.TxnCheckOp{Verb: api.CheckDeleteCAS, Check: structs.HealthCheck{Node: "a", CheckID: "node-check", PeerName: peer, RaftIndex: idx}}},
+	}
+
+	for _, token := range []string{localToken, "root"} {
+		for name, op := range ops {
+			req := structs.TxnRequest{
+				Datacenter:   "dc1",
+				Ops:          structs.TxnOps{op},
+				WriteRequest: structs.WriteRequest{Token: token},
+			}
+			var out structs.TxnResponse
+			require.NoError(t, msgpackrpc.CallWithCodec(codec, "Txn.Apply", &req, &out), name)
+			require.Len(t, out.Errors, 1, name)
+			require.Contains(t, out.Errors[0].Error(), errTxnPeerImportedWrite.Error(), name)
+		}
+	}
+
+	_, n, err := state.GetNode("a", nil, peer)
+	require.NoError(t, err)
+	require.NotNil(t, n)
+	require.Equal(t, "10.0.0.1", n.Address)
+
+	_, svc, err := state.NodeService(nil, "a", "web", nil, peer)
+	require.NoError(t, err)
+	require.NotNil(t, svc)
+	require.Equal(t, 8080, svc.Port)
+
+	_, chk, err := state.NodeCheck("a", "node-check", nil, peer)
+	require.NoError(t, err)
+	require.NotNil(t, chk)
+	require.Equal(t, api.HealthPassing, chk.Status)
+}
+
 func TestTxn_Apply_ACLDeny(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

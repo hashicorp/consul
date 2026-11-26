@@ -13,10 +13,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/raft"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/raft"
+
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
@@ -973,4 +975,118 @@ func TestTxnEndpoint_KV_KeyValidation(t *testing.T) {
 		require.Len(t, txnResp.Results, 1)
 		require.Equal(t, "foo/bar", txnResp.Results[0].KV.Key)
 	})
+}
+
+func createTxnTokenWithPolicy(t *testing.T, a *TestAgent, rules string) string {
+	t.Helper()
+
+	policyInput := &structs.ACLPolicy{
+		Name:  "txn-target-authz-policy",
+		Rules: rules,
+	}
+
+	req, err := http.NewRequest("PUT", "/v1/acl/policy", jsonBody(policyInput))
+	require.NoError(t, err)
+	req.Header.Set("X-Consul-Token", "root")
+
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.ACLPolicyCreate(resp, req)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.Code)
+
+	policy := obj.(*structs.ACLPolicy)
+
+	tokenInput := &structs.ACLToken{
+		Policies: []structs.ACLTokenPolicyLink{
+			{
+				ID:   policy.ID,
+				Name: policy.Name,
+			},
+		},
+	}
+
+	req, err = http.NewRequest("PUT", "/v1/acl/token", jsonBody(tokenInput))
+	require.NoError(t, err)
+	req.Header.Set("X-Consul-Token", "root")
+
+	resp = httptest.NewRecorder()
+	obj, err = a.srv.ACLTokenCreate(resp, req)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.Code)
+
+	return obj.(*structs.ACLToken).SecretID
+}
+
+func TestTxnEndpoint_PeerImportedWrites_Denied(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	a := NewTestAgent(t, TestACLConfig())
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1", testrpc.WithToken("root"))
+
+	server, ok := a.delegate.(*consul.Server)
+	require.True(t, ok)
+	state := server.FSM().State()
+
+	const peer = "peer1"
+	// Seed directly: Catalog.Register rejects peer registrations.
+	require.NoError(t, state.EnsureRegistration(1, &structs.RegisterRequest{
+		Node:     "a",
+		Address:  "10.0.0.1",
+		PeerName: peer,
+		Service:  &structs.NodeService{ID: "web", Service: "web", Port: 8080, PeerName: peer},
+		Checks: structs.HealthChecks{
+			{Node: "a", CheckID: "node-check", Status: api.HealthPassing, PeerName: peer},
+		},
+	}))
+
+	token := createTxnTokenWithPolicy(t, a, `
+node_prefix "" { policy = "write" }
+service_prefix "" { policy = "write" }
+`)
+
+	bodies := map[string]string{
+		"node set":           `[{"Node":{"Verb":"set","Node":{"Node":"a","Address":"192.0.2.1","PeerName":"peer1"}}}]`,
+		"node cas":           `[{"Node":{"Verb":"cas","Node":{"Node":"a","Address":"192.0.2.1","PeerName":"peer1","ModifyIndex":1}}}]`,
+		"node delete":        `[{"Node":{"Verb":"delete","Node":{"Node":"a","PeerName":"peer1"}}}]`,
+		"node delete-cas":    `[{"Node":{"Verb":"delete-cas","Node":{"Node":"a","PeerName":"peer1","ModifyIndex":1}}}]`,
+		"service set":        `[{"Service":{"Verb":"set","Node":"a","Service":{"ID":"web","Service":"web","Port":9999,"PeerName":"peer1"}}}]`,
+		"service cas":        `[{"Service":{"Verb":"cas","Node":"a","Service":{"ID":"web","Service":"web","Port":9999,"PeerName":"peer1","ModifyIndex":1}}}]`,
+		"service delete":     `[{"Service":{"Verb":"delete","Node":"a","Service":{"ID":"web","PeerName":"peer1"}}}]`,
+		"service delete-cas": `[{"Service":{"Verb":"delete-cas","Node":"a","Service":{"ID":"web","PeerName":"peer1","ModifyIndex":1}}}]`,
+		"check set":          `[{"Check":{"Verb":"set","Check":{"Node":"a","CheckID":"node-check","Status":"critical","PeerName":"peer1"}}}]`,
+		"check cas":          `[{"Check":{"Verb":"cas","Check":{"Node":"a","CheckID":"node-check","Status":"critical","PeerName":"peer1","ModifyIndex":1}}}]`,
+		"check delete":       `[{"Check":{"Verb":"delete","Check":{"Node":"a","CheckID":"node-check","PeerName":"peer1"}}}]`,
+		"check delete-cas":   `[{"Check":{"Verb":"delete-cas","Check":{"Node":"a","CheckID":"node-check","PeerName":"peer1","ModifyIndex":1}}}]`,
+	}
+
+	for name, body := range bodies {
+		t.Run(name, func(t *testing.T) {
+			req := httptest.NewRequest("PUT", "/v1/txn", strings.NewReader(body))
+			req.Header.Set("X-Consul-Token", token)
+
+			resp := httptest.NewRecorder()
+			a.srv.handler().ServeHTTP(resp, req)
+
+			require.Equal(t, http.StatusConflict, resp.Code)
+			require.Contains(t, resp.Body.String(), "modifying peer-imported catalog objects is not supported")
+		})
+	}
+
+	_, n, err := state.GetNode("a", nil, peer)
+	require.NoError(t, err)
+	require.NotNil(t, n)
+	require.Equal(t, "10.0.0.1", n.Address)
+
+	_, svc, err := state.NodeService(nil, "a", "web", nil, peer)
+	require.NoError(t, err)
+	require.NotNil(t, svc)
+	require.Equal(t, 8080, svc.Port)
+
+	_, chk, err := state.NodeCheck("a", "node-check", nil, peer)
+	require.NoError(t, err)
+	require.NotNil(t, chk)
+	require.Equal(t, api.HealthPassing, chk.Status)
 }
