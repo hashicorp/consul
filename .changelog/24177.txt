@@ -1,0 +1,3 @@
+```release-note:bug
+dns: Preserve the EDNS OPT record, including EDNS Client Subnet data, when DNS responses are trimmed to fit UDP or TCP size limits.
+```

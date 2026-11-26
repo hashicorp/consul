@@ -1303,9 +1303,14 @@ func encodeKVasRFC1464(key, value string) (txt string) {
 
 // indexRRs populates a map which indexes a given list of RRs by name. NOTE that
 // the names are all squashed to lower case so we can perform case-insensitive
-// lookups; the RRs are not modified.
+// lookups; the RRs are not modified. The EDNS OPT pseudo-RR is skipped: it is
+// not glue for any name (its owner is the root), and syncExtra carries it over
+// separately.
 func indexRRs(rrs []dns.RR, index map[string]dns.RR) {
 	for _, rr := range rrs {
+		if rr.Header().Rrtype == dns.TypeOPT {
+			continue
+		}
 		name := strings.ToLower(rr.Header().Name)
 		if _, ok := index[name]; !ok {
 			index[name] = rr
@@ -1317,9 +1322,16 @@ func indexRRs(rrs []dns.RR, index map[string]dns.RR) {
 // minimal set needed to cover the answer data. A pre-made index of RRs is given
 // so that can be re-used between calls. This assumes that the extra data is
 // only used to provide info for SRV records. If that's not the case, then this
-// will wipe out any additional data.
+// will wipe out any additional data, except for the EDNS OPT pseudo-RR.
+//
+// The OPT record is always kept: RFC 6891 sections 6.1.1 and 7 require it in
+// every reply to a request that carried one, including truncated replies, and
+// a resolver that gets a reply without it may stop using EDNS for this server.
+// Keeping it here also means the trim loops count its size (and any ECS option)
+// when they call resp.Len().
 func syncExtra(index map[string]dns.RR, resp *dns.Msg) {
-	extra := make([]dns.RR, 0, len(resp.Answer))
+	opt := resp.IsEdns0()
+	extra := make([]dns.RR, 0, len(resp.Answer)+1)
 	resolved := make(map[string]struct{}, len(resp.Answer))
 	for _, ansRR := range resp.Answer {
 		srv, ok := ansRR.(*dns.SRV)
@@ -1346,6 +1358,9 @@ func syncExtra(index map[string]dns.RR, resp *dns.Msg) {
 				goto RESOLVE
 			}
 		}
+	}
+	if opt != nil {
+		extra = append(extra, opt)
 	}
 	resp.Extra = extra
 }
