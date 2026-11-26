@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: migrate the remaining top-level yadda/Gherkin acceptance tests to native QUnit, restore namespace coverage and assertions lost in earlier migrated tests, and remove orphaned yadda step files
+```
