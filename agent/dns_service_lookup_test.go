@@ -2922,6 +2922,91 @@ func TestDNS_ServiceLookup_Truncate(t *testing.T) {
 	}
 }
 
+// TestDNS_ServiceLookup_TrimmedUDPResponseKeepsEDNS checks that a UDP reply trimmed
+// to fit the client's buffer still carries the EDNS OPT record (and ECS option)
+// when the request had one, as RFC 6891 sections 6.1.1 and 7 require, with
+// enable_truncate both off (default) and on.
+func TestDNS_ServiceLookup_TrimmedUDPResponseKeepsEDNS(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	for _, enableTruncate := range []bool{false, true} {
+		t.Run(fmt.Sprintf("enable_truncate=%t", enableTruncate), func(t *testing.T) {
+			a := NewTestAgent(t, fmt.Sprintf(`dns_config { enable_truncate = %t }`, enableTruncate))
+			defer a.Shutdown()
+			testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+			// Mirror the reported setup: several instances on nodes with node meta,
+			// so SRV replies carry A and TXT glue next to the OPT record. 40 instances
+			// overflow a 1232-byte buffer, so that case takes the size/binary-search path.
+			const instances = 40
+			for i := 0; i < instances; i++ {
+				args := &structs.RegisterRequest{
+					Datacenter: "dc1",
+					Node:       fmt.Sprintf("web-node-%d", i),
+					Address:    fmt.Sprintf("10.0.0.%d", i+1),
+					NodeMeta:   map[string]string{"consul-version": "2.0.3"},
+					Service:    &structs.NodeService{Service: "web", Port: 28000 + i},
+				}
+				var out struct{}
+				require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
+			}
+
+			cases := []struct {
+				name  string
+				qtype uint16
+				edns  uint16
+				ecs   bool
+			}{
+				{"SRV edns 512", dns.TypeSRV, 512, false},
+				{"SRV edns 512 ECS", dns.TypeSRV, 512, true},
+				{"SRV edns 1232", dns.TypeSRV, 1232, false},
+				{"A edns 512", dns.TypeA, 512, false},
+				{"SRV no edns", dns.TypeSRV, 0, false},
+			}
+			for _, tc := range cases {
+				t.Run(tc.name, func(t *testing.T) {
+					m := new(dns.Msg)
+					m.SetQuestion("web.service.consul.", tc.qtype)
+					if tc.edns > 0 {
+						m.SetEdns0(tc.edns, false)
+						if tc.ecs {
+							m.IsEdns0().Option = append(m.IsEdns0().Option, &dns.EDNS0_SUBNET{
+								Code: dns.EDNS0SUBNET, Family: 1, SourceNetmask: 24, Address: net.ParseIP("10.1.2.0").To4(),
+							})
+						}
+					}
+
+					c := &dns.Client{Net: "udp"}
+					in, _, err := c.Exchange(m, a.DNSAddr())
+					require.NoError(t, err)
+					require.Less(t, len(in.Answer), instances, "expected a trimmed reply")
+					require.Equal(t, enableTruncate, in.Truncated)
+
+					opt := in.IsEdns0()
+					if tc.edns == 0 {
+						require.Nil(t, opt, "no OPT for a non-EDNS request")
+						return
+					}
+					require.NotNil(t, opt, "trimmed reply must keep the OPT record")
+					require.Equal(t, tc.edns, opt.UDPSize())
+					if tc.ecs {
+						var subnet *dns.EDNS0_SUBNET
+						for _, o := range opt.Option {
+							if s, ok := o.(*dns.EDNS0_SUBNET); ok {
+								subnet = s
+							}
+						}
+						require.NotNil(t, subnet, "trimmed reply must keep the ECS option")
+						require.Equal(t, uint8(24), subnet.SourceNetmask)
+					}
+				})
+			}
+		})
+	}
+}
+
 func TestDNS_ServiceLookup_LargeResponses(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
