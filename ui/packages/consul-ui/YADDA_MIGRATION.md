@@ -87,7 +87,7 @@ api-double, [tests/pages.js](tests/pages.js) / `tests/pages/`, `tests/lib/page-o
    them: nothing so far. Sort-order assertions use `assertPropertiesVertically`; code editors
    are filled by `fillInForm` / `fillInCodeEditor`; the yadda `pause until I see N models`
    steps are `waitForVisibleCount`; `visit(name, params, { method })` calls other visitables
-   such as `visitExported`. Prefer plain
+   such as `visitExported`; `fillInFields` is the unprefixed `I fill in with yaml`. Prefer plain
    `assert.dom(...)` for DOM assertions (pass `document.documentElement`
    to assert on `<html>`). Add shared helpers to the harness, not inside individual tests.
 3. ✅ **Baseline.** Recorded from `main` before the ACL token batch: the sorted test-title list (and
@@ -97,8 +97,8 @@ api-double, [tests/pages.js](tests/pages.js) / `tests/pages/`, `tests/lib/page-o
    `pnpm test` only exercises CE.
 4. ✅ **Fix the regressions** below, so later batches don't copy the weakened navigation pattern.
 5. ✅ **`@ignore` scenarios.** The 8 empty `Then ok` placeholders and the 19 orphaned
-   `-steps.js` stubs were deleted. The remaining ignored scenario has a real body: the
-   scenario-level `@ignore` in `dc/kvs/index`. (`dc/acls/tokens/use` "from the detail page" and most
+   `-steps.js` stubs were deleted. No ignored scenarios remain in `.feature` files; those that
+   still fail after migration are skipped native tests with their steps kept. (`dc/acls/tokens/use` "from the detail page" and most
    of `dc/acls/policies/as-many/add-new` pass once migrated and are no longer ignored.)
    When migrating their feature, fix and un-ignore them where possible. Otherwise port each as
    a skipped test (`{ ignore: true }`) that keeps the original steps in its body, with the
@@ -135,15 +135,15 @@ manually in the running UI if needed.
 
 | Metric | Count |
 | --- | --- |
-| Feature files remaining (yadda) | 48 |
-| Scenarios remaining (yadda) | 125 (1 is `@ignore`, with a real body: the scenario-level tag in `dc/kvs/index`) |
-| Feature files fully migrated | 81 |
-| Scenarios migrated | 167 (46 from the first 27 features, 24 from the next 12, 14 from the 7 ACL token features, 23 from the 12 ACL policy features, 16 from the 8 ACL role and auth-method features, 44 from the 15 intention and peer features) |
+| Feature files remaining (yadda) | 28 |
+| Scenarios remaining (yadda) | 72 (none `@ignore`) |
+| Feature files fully migrated | 101 |
+| Scenarios migrated | 220 (46 from the first 27 features, 24 from the next 12, 14 from the 7 ACL token features, 23 from the 12 ACL policy features, 16 from the 8 ACL role and auth-method features, 44 from the 15 intention and peer features, 53 from the 20 KV, node and namespace features) |
 
 Scenario counts are not test counts. 20 remaining features use `Where:` tables (one test per
 row), and under `CONSUL_NSPACES_ENABLED=1` each namespaceable scenario runs 4 times.
 
-`tests/acceptance` contains 90 native `*-test.js` files: 81 come from migrated features and 9 are native-only tests that never had a
+`tests/acceptance` contains 110 native `*-test.js` files: 101 come from migrated features and 9 are native-only tests that never had a
 `.feature` (`breadcrumbs/*`, `components/tab-error`, `components/tab-nav-focus`,
 `dc/nodes/sessions/filter-sort`, `hcp-login`, `unavailable`). Counts are from disk; re-verify with
 `find tests -name '*.feature' | wc -l`.
@@ -270,6 +270,26 @@ problems; the tests document the current behaviour):
 | `dc/peers/regenerate.feature` | Dialers can regenerate the token, receivers can't (untitled scenarios, now titled). | 2 | [tests/acceptance/dc/peers/regenerate-test.js](tests/acceptance/dc/peers/regenerate-test.js) |
 | `dc/peers/show.feature` | Dialer/receiver tabs and empty/non-empty imported, exported and addresses tabs (via `visit(..., { method })`). | 8 | [tests/acceptance/dc/peers/show-test.js](tests/acceptance/dc/peers/show-test.js) |
 | `dc/peers/sorting.feature` | Sort peers from the toolbar dropdown both ways. | 1 | [tests/acceptance/dc/peers/sorting-test.js](tests/acceptance/dc/peers/sorting-test.js) |
+| `dc/kvs/create.feature` | Create a key and a folder, and create inside an existing or just-created folder. | 4 | [tests/acceptance/dc/kvs/create-test.js](tests/acceptance/dc/kvs/create-test.js) |
+| `dc/kvs/delete.feature` | Delete from the list and detail pages, incl. a 500 error. | 3 | [tests/acceptance/dc/kvs/delete-test.js](tests/acceptance/dc/kvs/delete-test.js) |
+| `dc/kvs/edit.feature` | URL-unsafe keys, session shown/hidden, no write/read access, and keys named like UI sections (4 `Where:` rows). The duplicate "Viewing a Session attached to a KV" title is now "Viewing a KV without a Session". | 6 (9 tests) | [tests/acceptance/dc/kvs/edit-test.js](tests/acceptance/dc/kvs/edit-test.js) |
+| `dc/kvs/index.feature` | Listing. "No write access" was `@ignore`d and still fails (create is shown), so it stays skipped (body kept). | 2 (1 skipped) | [tests/acceptance/dc/kvs/index-test.js](tests/acceptance/dc/kvs/index-test.js) |
+| `dc/kvs/list-order.feature` | Folders are listed alphabetically on the first page. | 1 | [tests/acceptance/dc/kvs/list-order-test.js](tests/acceptance/dc/kvs/list-order-test.js) |
+| `dc/kvs/trailing-slash.feature` | Folders load with and without a trailing slash. | 2 | [tests/acceptance/dc/kvs/trailing-slash-test.js](tests/acceptance/dc/kvs/trailing-slash-test.js) |
+| `dc/kvs/update.feature` | Update values (5 `Where:` rows; the request body is now checked), whitespace and empty values, and a 500 error. | 5 (9 tests) | [tests/acceptance/dc/kvs/update-test.js](tests/acceptance/dc/kvs/update-test.js) |
+| `dc/kvs/sessions/invalidate.feature` | Invalidate a lock session, incl. a 500 error. | 2 | [tests/acceptance/dc/kvs/sessions/invalidate-test.js](tests/acceptance/dc/kvs/sessions/invalidate-test.js) |
+| `dc/nodes/empty-ids.feature` | Nodes without IDs are still listed. | 1 | [tests/acceptance/dc/nodes/empty-ids-test.js](tests/acceptance/dc/nodes/empty-ids-test.js) |
+| `dc/nodes/index.feature` | Health status, synthetic nodes hidden, leader, search, empty state. | 7 | [tests/acceptance/dc/nodes/index-test.js](tests/acceptance/dc/nodes/index-test.js) |
+| `dc/nodes/no-leader.feature` | No leader badge when no leader is elected. | 1 | [tests/acceptance/dc/nodes/no-leader-test.js](tests/acceptance/dc/nodes/no-leader-test.js) |
+| `dc/nodes/show.feature` | Tabs, the RTT tab with one node, and the deregistered-while-blocking warning. | 3 | [tests/acceptance/dc/nodes/show-test.js](tests/acceptance/dc/nodes/show-test.js) |
+| `dc/nodes/sorting.feature` | Sort by name and health, both ways. | 2 | [tests/acceptance/dc/nodes/sorting-test.js](tests/acceptance/dc/nodes/sorting-test.js) |
+| `dc/nodes/services/list.feature` | A node's service instances show their external source. | 1 | [tests/acceptance/dc/nodes/services/list-test.js](tests/acceptance/dc/nodes/services/list-test.js) |
+| `dc/nspaces/create.feature` | Create page title (untitled scenario, now titled), inline role form, create a namespace. `@onlyNamespaceable`, as before. | 3 | [tests/acceptance/dc/nspaces/create-test.js](tests/acceptance/dc/nspaces/create-test.js) |
+| `dc/nspaces/delete.feature` | Delete from the list and detail page, incl. a 500 error. `@onlyNamespaceable`, as before. | 3 | [tests/acceptance/dc/nspaces/delete-test.js](tests/acceptance/dc/nspaces/delete-test.js) |
+| `dc/nspaces/index.feature` | Listing (untitled scenario, now titled), search, default can't be deleted. `@onlyNamespaceable`, as before. | 3 | [tests/acceptance/dc/nspaces/index-test.js](tests/acceptance/dc/nspaces/index-test.js) |
+| `dc/nspaces/manage.feature` | Moving between services and namespace management (untitled scenario, now titled). `@onlyNamespaceable`, as before. | 1 | [tests/acceptance/dc/nspaces/manage-test.js](tests/acceptance/dc/nspaces/manage-test.js) |
+| `dc/nspaces/sorting.feature` | Sort namespaces both ways. `@onlyNamespaceable`, as before. | 1 | [tests/acceptance/dc/nspaces/sorting-test.js](tests/acceptance/dc/nspaces/sorting-test.js) |
+| `dc/nspaces/update.feature` | Update the description (2 `Where:` rows) and a 500 error. `@onlyNamespaceable`, as before. | 2 (3 tests) | [tests/acceptance/dc/nspaces/update-test.js](tests/acceptance/dc/nspaces/update-test.js) |
 
 ## Remaining features
 
@@ -316,30 +336,30 @@ problems; the tests document the current behaviour):
 | ~~`dc/intentions/read-only.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [read-only-test.js](tests/acceptance/dc/intentions/read-only-test.js) |
 | ~~`dc/intentions/sorting.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [sorting-test.js](tests/acceptance/dc/intentions/sorting-test.js) |
 | ~~`dc/intentions/update.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [update-test.js](tests/acceptance/dc/intentions/update-test.js) |
-| [dc/kvs/create.feature](tests/acceptance/dc/kvs/create.feature) | Create a root KV and folders, incl. creating from within a folder. | 4 | ☐ Not migrated |  |
-| [dc/kvs/delete.feature](tests/acceptance/dc/kvs/delete.feature) | Delete a KV from list/detail incl. error handling. | 3 | ☐ Not migrated |  |
-| [dc/kvs/edit.feature](tests/acceptance/dc/kvs/edit.feature) | View a KV: URL-unsafe characters, attached lock session, no-write / no-read access. | 6 | ☐ Not migrated |  |
-| [dc/kvs/index.feature](tests/acceptance/dc/kvs/index.feature) | KV list view incl. no-write access. | 2 | ☐ Not migrated |  |
-| [dc/kvs/list-order.feature](tests/acceptance/dc/kvs/list-order.feature) | KV keys/folders listed alphabetically. | 1 | ☐ Not migrated |  |
-| [dc/kvs/sessions/invalidate.feature](tests/acceptance/dc/kvs/sessions/invalidate.feature) | Invalidate a lock session attached to a KV incl. error. | 2 | ☐ Not migrated |  |
-| [dc/kvs/trailing-slash.feature](tests/acceptance/dc/kvs/trailing-slash.feature) | KV folder view resolves with and without a trailing slash. | 2 | ☐ Not migrated |  |
-| [dc/kvs/update.feature](tests/acceptance/dc/kvs/update.feature) | Update KV values incl. whitespace/empty/newline values and error handling. | 5 | ☐ Not migrated |  |
-| [dc/nodes/empty-ids.feature](tests/acceptance/dc/nodes/empty-ids.feature) | Node list handles nodes that arrive with no ID. | 1 | ☐ Not migrated |  |
-| [dc/nodes/index.feature](tests/acceptance/dc/nodes/index.feature) | Nodes list: unhealthy node/service checks, synthetic nodes hidden, leader indicator, search, empty state. | 7 | ☐ Not migrated |  |
+| ~~`dc/kvs/create.feature`~~ | *(deleted — migrated above)* | 4 | ✅ Migrated | [create-test.js](tests/acceptance/dc/kvs/create-test.js) |
+| ~~`dc/kvs/delete.feature`~~ | *(deleted — migrated above)* | 3 | ✅ Migrated | [delete-test.js](tests/acceptance/dc/kvs/delete-test.js) |
+| ~~`dc/kvs/edit.feature`~~ | *(deleted — migrated above)* | 6 | ✅ Migrated | [edit-test.js](tests/acceptance/dc/kvs/edit-test.js) |
+| ~~`dc/kvs/index.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [index-test.js](tests/acceptance/dc/kvs/index-test.js) |
+| ~~`dc/kvs/list-order.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [list-order-test.js](tests/acceptance/dc/kvs/list-order-test.js) |
+| ~~`dc/kvs/sessions/invalidate.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [invalidate-test.js](tests/acceptance/dc/kvs/sessions/invalidate-test.js) |
+| ~~`dc/kvs/trailing-slash.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [trailing-slash-test.js](tests/acceptance/dc/kvs/trailing-slash-test.js) |
+| ~~`dc/kvs/update.feature`~~ | *(deleted — migrated above)* | 5 | ✅ Migrated | [update-test.js](tests/acceptance/dc/kvs/update-test.js) |
+| ~~`dc/nodes/empty-ids.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [empty-ids-test.js](tests/acceptance/dc/nodes/empty-ids-test.js) |
+| ~~`dc/nodes/index.feature`~~ | *(deleted — migrated above)* | 7 | ✅ Migrated | [index-test.js](tests/acceptance/dc/nodes/index-test.js) |
 | ~~`dc/nodes/navigation.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [navigation-test.js](tests/acceptance/dc/nodes/navigation-test.js) |
-| [dc/nodes/no-leader.feature](tests/acceptance/dc/nodes/no-leader.feature) | Behaviour when no leader has been elected. | 1 | ☐ Not migrated |  |
-| [dc/nodes/services/list.feature](tests/acceptance/dc/nodes/services/list.feature) | Node → Services tab listing. | 1 | ☐ Not migrated |  |
+| ~~`dc/nodes/no-leader.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [no-leader-test.js](tests/acceptance/dc/nodes/no-leader-test.js) |
+| ~~`dc/nodes/services/list.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [list-test.js](tests/acceptance/dc/nodes/services/list-test.js) |
 | ~~`dc/nodes/sessions/invalidate.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [invalidate-test.js](tests/acceptance/dc/nodes/sessions/invalidate-test.js) |
 | ~~`dc/nodes/sessions/list.feature`~~ | *(deleted — migrated above)* | 4 | ✅ Migrated | [list-test.js](tests/acceptance/dc/nodes/sessions/list-test.js) |
-| [dc/nodes/show.feature](tests/acceptance/dc/nodes/show.feature) | Node detail: tab visibility/selection, deregister warning while blocking. | 3 | ☐ Not migrated |  |
+| ~~`dc/nodes/show.feature`~~ | *(deleted — migrated above)* | 3 | ✅ Migrated | [show-test.js](tests/acceptance/dc/nodes/show-test.js) |
 | ~~`dc/nodes/show/health-checks.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [health-checks-test.js](tests/acceptance/dc/nodes/show/health-checks-test.js) |
-| [dc/nodes/sorting.feature](tests/acceptance/dc/nodes/sorting.feature) | Sorting the nodes list. | 1 | ☐ Not migrated |  |
-| [dc/nspaces/create.feature](tests/acceptance/dc/nspaces/create.feature) | Create a namespace. | 2 | ☐ Not migrated |  |
-| [dc/nspaces/delete.feature](tests/acceptance/dc/nspaces/delete.feature) | Delete a namespace from list/detail incl. error handling. | 3 | ☐ Not migrated |  |
-| [dc/nspaces/index.feature](tests/acceptance/dc/nspaces/index.feature) | Namespaces list and search; the default namespace can't be deleted. | 3 | ☐ Not migrated |  |
-| [dc/nspaces/manage.feature](tests/acceptance/dc/nspaces/manage.feature) | Managing namespaces. | 1 | ☐ Not migrated |  |
-| [dc/nspaces/sorting.feature](tests/acceptance/dc/nspaces/sorting.feature) | Sorting the namespaces list. | 1 | ☐ Not migrated |  |
-| [dc/nspaces/update.feature](tests/acceptance/dc/nspaces/update.feature) | Update a namespace (description); error handling. | 2 | ☐ Not migrated |  |
+| ~~`dc/nodes/sorting.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [sorting-test.js](tests/acceptance/dc/nodes/sorting-test.js) |
+| ~~`dc/nspaces/create.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [create-test.js](tests/acceptance/dc/nspaces/create-test.js) |
+| ~~`dc/nspaces/delete.feature`~~ | *(deleted — migrated above)* | 3 | ✅ Migrated | [delete-test.js](tests/acceptance/dc/nspaces/delete-test.js) |
+| ~~`dc/nspaces/index.feature`~~ | *(deleted — migrated above)* | 3 | ✅ Migrated | [index-test.js](tests/acceptance/dc/nspaces/index-test.js) |
+| ~~`dc/nspaces/manage.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [manage-test.js](tests/acceptance/dc/nspaces/manage-test.js) |
+| ~~`dc/nspaces/sorting.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [sorting-test.js](tests/acceptance/dc/nspaces/sorting-test.js) |
+| ~~`dc/nspaces/update.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [update-test.js](tests/acceptance/dc/nspaces/update-test.js) |
 | ~~`dc/peers/create.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [create-test.js](tests/acceptance/dc/peers/create-test.js) |
 | ~~`dc/peers/delete.feature`~~ | *(deleted — migrated above)* | 3 | ✅ Migrated | [delete-test.js](tests/acceptance/dc/peers/delete-test.js) |
 | ~~`dc/peers/index.feature`~~ | *(deleted — migrated above)* | 5 | ✅ Migrated | [index-test.js](tests/acceptance/dc/peers/index-test.js) |

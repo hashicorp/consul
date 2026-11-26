@@ -264,7 +264,9 @@ export function requestMade(assert, method, url, expected = {}) {
     return;
   }
   const body = expected.body || {};
-  const parsed = request.requestBody ? JSON.parse(request.requestBody) : {};
+  // Only parse when checking body fields: some requests (e.g. KV values) aren't JSON.
+  const parsed =
+    Object.keys(body).length > 0 && request.requestBody ? JSON.parse(request.requestBody) : {};
   Object.keys(body).forEach((key) => {
     assert.deepEqual(
       parsed[key],
@@ -571,6 +573,21 @@ export async function fillInForm(prefix, data) {
       await fillInCodeEditor(name, data[key]);
     } else {
       await fillIn(`[name="${name}"]`, data[key]);
+    }
+  }
+}
+
+/**
+ * Fill in fields by name (equivalent to the unprefixed `I fill in with yaml`
+ * step): an HDS code editor labelled `key` is filled with `fillInCodeEditor`,
+ * anything else as `[name="key"]`.
+ */
+export async function fillInFields(data) {
+  for (const key of Object.keys(data)) {
+    if (document.querySelector(`.cm-editor [aria-label="${key}"]`)) {
+      await fillInCodeEditor(key, data[key]);
+    } else {
+      await fillIn(`[name="${key}"]`, data[key]);
     }
   }
 }
