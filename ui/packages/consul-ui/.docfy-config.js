@@ -8,7 +8,6 @@ const path = require('path');
 const autolinkHeadings = require('remark-autolink-headings');
 const prism = require('./lib/rehype-prism/index');
 const refractor = require('refractor');
-const gherkin = require('refractor/lang/gherkin');
 const mermaid = require('refractor/lang/mermaid');
 const handlebars = require('refractor/lang/handlebars');
 
@@ -32,7 +31,6 @@ if ($CONSUL_DOCFY_CONFIG.length > 0) {
   }
 }
 
-refractor.register(gherkin);
 refractor.register(mermaid);
 refractor.register(handlebars);
 

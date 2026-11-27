@@ -3,12 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/acls/roles/update.feature.
-//
-// The `.feature` titled its Where-table scenario "Update to [Name], [Rules],
-// [Description]", but the table had no Rules column, so "[Rules]" appeared
-// literally in every title. The native titles leave it out.
-
 import { module } from 'qunit';
 
 import {

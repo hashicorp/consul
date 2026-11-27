@@ -5,22 +5,19 @@
 
 // Native QUnit acceptance-test harness.
 //
-// This is the scaffolding that lets a `.feature` file be rewritten as a plain
-// QUnit acceptance test while preserving the behaviour that the yadda runner
-// (tests/helpers/yadda-annotations.js) gives us for free:
+// Shared setup and helpers for acceptance tests:
 //
 //   - setupApplicationTest + api-double lifecycle (startup / reset)
 //   - the CONSUL_NSPACES_ENABLED "namespace matrix" (a scenario runs once per
 //     namespace under Enterprise, once under CE) via `nspaceScenario`
 //   - the @onlyNamespaceable / @notNamespaceable gating via options
-//   - request-history assertions equivalent to tests/steps/assertions/http.js
+//   - fixture setup, request-history and page-object assertions
 //
-// Migrating a feature: see tests/acceptance/dc/intentions/create-test.js for a
-// worked example, then delete the corresponding `.feature` and `-steps.js`.
+// See tests/acceptance/dc/intentions/create-test.js for a worked example.
 
 import { test, skip } from 'qunit';
 import { setupApplicationTest } from 'ember-qunit';
-import { settled, getContext, click, fillIn } from '@ember/test-helpers';
+import { settled, isSettled, getContext, click, fillIn, waitUntil } from '@ember/test-helpers';
 import { findOne } from 'ember-cli-page-object/extend';
 
 import { env } from 'consul-ui/env';
@@ -30,12 +27,24 @@ import pages from 'consul-ui/tests/pages';
 export { api, pages };
 export { nspaceJSON, nspaceYAML, nspaceEndpoint } from 'consul-ui/tests/helpers/nspace-template';
 
-// Captured once so afterEach can restore the <html> class list exactly like the
-// yadda reset() does (prevents mutated feature-detection classes from leaking).
+// Captured once so afterEach can restore the <html> class list (prevents
+// mutated feature-detection classes from leaking between tests).
 const staticClassList = [...document.documentElement.classList];
 
 const startup = function () {
   api.server.setCookie('CONSUL_LATENCY', 0);
+};
+
+// Abort all in-flight connections (blocking queries).
+const purgeConnections = function (owner) {
+  try {
+    const connections = owner.lookup('service:client/connections');
+    if (connections) {
+      connections.purge();
+    }
+  } catch (e) {
+    // service may already be destroyed
+  }
 };
 
 const reset = function (owner) {
@@ -49,15 +58,7 @@ const reset = function (owner) {
   window.localStorage.clear();
   api.server.reset();
 
-  // Abort all in-flight connections (blocking queries).
-  try {
-    const connections = owner.lookup('service:client/connections');
-    if (connections) {
-      connections.purge();
-    }
-  } catch (e) {
-    // service may already be destroyed
-  }
+  purgeConnections(owner);
 
   const list = document.documentElement.classList;
   while (list.length > 0) {
@@ -77,12 +78,27 @@ export function setupAcceptanceTest(hooks) {
   });
   hooks.afterEach(async function () {
     reset(this.owner);
+    // A blocking query that was pausing between polls when we purged isn't a
+    // connection yet; it starts afterwards and never returns, so `settled()`
+    // would hang. Keep purging until nothing is pending.
+    const owner = this.owner;
+    try {
+      await waitUntil(
+        () => {
+          purgeConnections(owner);
+          return isSettled();
+        },
+        { timeout: 5000 }
+      );
+    } catch (e) {
+      // fall through to settled(), which reports what is still pending
+    }
     await settled();
   });
 }
 
 // The set of namespaces every namespaceable scenario is exercised against under
-// Enterprise. Mirrors tests/helpers/yadda-annotations.js.
+// Enterprise.
 const NAMESPACE_MATRIX = ['', 'default', 'team-1', undefined];
 
 const nspaceLabel = function (nspace) {
@@ -93,7 +109,7 @@ const nspaceLabel = function (nspace) {
 
 /**
  * Define a scenario as one or more QUnit tests, reproducing the namespace
- * matrix and CE/ENT gating that yadda applied via annotations.
+ * matrix and CE/ENT gating.
  *
  * - Enterprise (CONSUL_NSPACES_ENABLED):
  *     runs once per NAMESPACE_MATRIX entry, unless `notNamespaceable`.
@@ -142,14 +158,16 @@ let currentPage;
 
 /**
  * Visit a registered page object (see tests/pages.js), applying the namespace
- * prefix the same way the yadda `visit` step does. Returns the page object so
+ * prefix for the given namespace. Returns the page object so
  * you can chain `.submit()` etc.
  *
- * Like the yadda `I visit` steps, this clears the api-double request history
+ * This clears the api-double request history
  * first, so request assertions only see requests made since the last visit.
  * Calling `pages.X.visit()` or `@ember/test-helpers`' `visit` directly does not.
+ *
+ * `method` picks another visitable on the page object (e.g. `visitExported`).
  */
-export function visit(name, params = {}, { nspace } = {}) {
+export function visit(name, params = {}, { nspace, method = 'visit' } = {}) {
   const page = pages[name];
   if (!page) {
     throw new Error(`Unknown page object: "${name}" (see tests/pages.js)`);
@@ -160,13 +178,12 @@ export function visit(name, params = {}, { nspace } = {}) {
   if (nspace !== '' && typeof nspace !== 'undefined') {
     data.nspace = `~${nspace}`;
   }
-  return page.visit(data);
+  return page[method](data);
 }
 
 /**
- * Prefix a URL with the active namespace, matching the yadda url dictionary
- * (which rewrites `the url should be /dc-1/kv` to `/~team-1/dc-1/kv` when a
- * namespace is set). Returns `url` unchanged under CE / no namespace.
+ * Prefix a URL with the active namespace (`/dc-1/kv` becomes `/~team-1/dc-1/kv`
+ * when a namespace is set). Returns `url` unchanged under CE / no namespace.
  */
 export function nspaceURL(nspace, url) {
   if (nspace !== '' && typeof nspace !== 'undefined') {
@@ -196,15 +213,15 @@ export function page() {
   return currentPage;
 }
 
-/** Submit the current page's form (equivalent to the `I submit` step). */
+/** Submit the current page's form. */
 export function submit() {
   return currentPage.submit();
 }
 
 /**
- * Read the current URL via the app's configured location service, matching the
- * yadda `the url should be` step (Consul uses a custom location service, so the
- * bare @ember/test-helpers currentURL is not always correct here).
+ * Read the current URL via the app's configured location service (Consul uses a
+ * custom location service, so the bare @ember/test-helpers currentURL is not
+ * always correct here).
  */
 export function currentURL() {
   const { owner } = getContext();
@@ -214,7 +231,7 @@ export function currentURL() {
 }
 
 // ---------------------------------------------------------------------------
-// Request-history assertions (equivalent to tests/steps/assertions/http.js)
+// Request-history assertions
 // ---------------------------------------------------------------------------
 
 /** The last Nth request (optionally filtered by method), newest-first. */
@@ -232,7 +249,7 @@ export function lastNthRequest(n, method) {
 /**
  * Assert a request of `method` was made to `url`. When `expected` is provided,
  * its `body` / `headers` keys are deep-compared against the matching request
- * payload (equivalent to `a X request was made to "..." from yaml`).
+ * payload.
  */
 export function requestMade(assert, method, url, expected = {}) {
   const requests = lastNthRequest(null, method);
@@ -242,7 +259,9 @@ export function requestMade(assert, method, url, expected = {}) {
     return;
   }
   const body = expected.body || {};
-  const parsed = request.requestBody ? JSON.parse(request.requestBody) : {};
+  // Only parse when checking body fields: some requests (e.g. KV values) aren't JSON.
+  const parsed =
+    Object.keys(body).length > 0 && request.requestBody ? JSON.parse(request.requestBody) : {};
   Object.keys(body).forEach((key) => {
     assert.deepEqual(
       parsed[key],
@@ -271,26 +290,20 @@ export function requestNotMade(assert, method, url) {
 
 /**
  * The value copied to the clipboard, as recorded by the test clipboard stub
- * (equivalent to the yadda `I copied "..."` step, which reads localStorage).
+ * (read from localStorage).
  */
 export function clipboard() {
   return window.localStorage.getItem('clipboard');
 }
 
-/**
- * Assert that every URL in `urls` was requested with `method`
- * (equivalent to `the last $method requests included from yaml`).
- */
+/** Assert that every URL in `urls` was requested with `method`. */
 export function requestsIncluded(assert, method, urls) {
   const made = new Set(lastNthRequest(null, method).map((item) => item.url));
   const missing = urls.filter((url) => !made.has(url));
   assert.equal(missing.length, 0, `Expected requests "${missing.join(', ')}"`);
 }
 
-/**
- * Assert a request of `method` to `url` was made with no body (equivalent to
- * `a $method request was made to "$endpoint" with no body`).
- */
+/** Assert a request of `method` to `url` was made with no body. */
 export function requestMadeWithNoBody(assert, method, url) {
   const request = lastNthRequest(null, method).find((item) => item.url === url);
   assert.ok(request, `Expected a ${method} request to ${url}`);
@@ -303,10 +316,7 @@ export function requestMadeWithNoBody(assert, method, url) {
   }
 }
 
-/**
- * Assert the body of a `method` request to `url` has none of `properties`
- * (equivalent to `... was made to "$endpoint" without properties from yaml`).
- */
+/** Assert the body of a `method` request to `url` has none of `properties`. */
 export function requestMadeWithoutProperties(assert, method, url, properties) {
   const request = lastNthRequest(null, method).find((item) => item.url === url);
   assert.ok(request, `Expected a ${method} request to ${url}`);
@@ -319,25 +329,22 @@ export function requestMadeWithoutProperties(assert, method, url, properties) {
 }
 
 // ---------------------------------------------------------------------------
-// Fixtures / api-double setup (the `Given ...` steps)
+// Fixtures / api-double setup
 // ---------------------------------------------------------------------------
 
 // The app reads test settings from document.cookie (app/utils/get-environment.js)
-// and the api-double reads its own cookie jar, so set both, like the yadda `set`.
+// and the api-double reads its own cookie jar, so set both.
 const setCookie = function (key, value) {
   document.cookie = `${key}=${value}`;
   api.server.setCookie(key, value);
 };
 
 /**
- * Create `count` models of `model`, optionally from fixture data
- * (`Given $number $model models [with the value "..."|from yaml]`). Creating
- * datacenters with a value also makes the first one the local datacenter, as
- * the yadda step did.
+ * Create `count` models of `model`, optionally from fixture data. Creating
+ * datacenters with a value also makes the first one the local datacenter.
  *
  * `model` is the api-double type name (`dc`, `service`, `node`, `kv`, `token`,
- * ...). Unlike the yadda `model` term, aliases such as `datacenters` or `nodes`
- * are not mapped.
+ * ...). Aliases such as `datacenters` or `nodes` are not mapped.
  */
 export function createModels(model, count, value) {
   if (model === 'dc' && typeof value !== 'undefined') {
@@ -346,7 +353,7 @@ export function createModels(model, count, value) {
   api.server.createList(model, count, value);
 }
 
-/** `Given the url "$endpoint" responds with ...` - `data` is `{ status, body, headers }`. */
+/** Make requests to `url` (query string ignored) respond with `data`: `{ status, body, headers }`. */
 export function respondWith(url, data) {
   const response = { ...data };
   if (typeof response.body !== 'undefined' && typeof response.body !== 'string') {
@@ -355,50 +362,50 @@ export function respondWith(url, data) {
   api.server.respondWith(url.split('?')[0], response);
 }
 
-/** `Given settings from yaml` - writes each key to localStorage as JSON. */
+/** Write each UI setting to localStorage as JSON. */
 export function setSettings(data) {
   Object.keys(data).forEach((key) => {
     window.localStorage[key] = JSON.stringify(data[key]);
   });
 }
 
-/** `Given ui_config from yaml` */
+/** Set the UI config the app reads at startup. */
 export function setUiConfig(data) {
   document.cookie = `CONSUL_UI_CONFIG=${JSON.stringify(data)}`;
 }
 
-/** `Given the local datacenter is "$value"` */
+/** Set the local datacenter. */
 export function setLocalDatacenter(value) {
   document.cookie = `CONSUL_DATACENTER_LOCAL=${value}`;
 }
 
-/** `Given ACLs are disabled` (read by the env service from document.cookie). */
+/** Disable ACLs (read by the env service from document.cookie). */
 export function disableACLs() {
   document.cookie = 'CONSUL_ACLS_ENABLE=0';
 }
 
-/** `Given SSO is enabled` */
+/** Enable SSO. */
 export function enableSSO() {
   setCookie('CONSUL_SSO_ENABLE', 1);
 }
 
-/** `Given partitions are enabled` */
+/** Enable admin partitions. */
 export function enablePartitions() {
   setCookie('CONSUL_PARTITIONS_ENABLE', 1);
 }
 
-/** `Given the default ACL policy is "$policy"` */
+/** Set the default ACL policy (`allow` or `deny`). */
 export function setDefaultACLPolicy(policy) {
   setCookie('CONSUL_ACL_POLICY', policy);
 }
 
-/** `Given a "$value" metrics provider` */
+/** Enable the metrics proxy with the given metrics provider. */
 export function setMetricsProvider(value) {
   document.cookie = 'CONSUL_METRICS_PROXY_ENABLE=1';
   document.cookie = `CONSUL_METRICS_PROVIDER=${value}`;
 }
 
-/** `Given permissions from yaml`, e.g. `{ key: { read: false } }`. */
+/** Set ACL permissions per resource and action, e.g. `{ key: { read: false } }`. */
 export function setPermissions(data) {
   Object.entries(data).forEach(([resource, actions]) => {
     Object.entries(actions).forEach(([action, value]) => {
@@ -407,17 +414,17 @@ export function setPermissions(data) {
   });
 }
 
-/** `Given a network latency of $number` */
+/** Set the mock API response latency, in milliseconds. */
 export function setLatency(ms) {
   setCookie('CONSUL_LATENCY', ms);
 }
 
-/** `Given an API prefix of "$prefix"` */
+/** Set the API path prefix. */
 export function setApiPrefix(prefix) {
   setCookie('CONSUL_API_PREFIX', prefix);
 }
 
-/** `Given I'm using a legacy token` */
+/** Store a legacy (pre-AccessorID) ACL token as the current token. */
 export function useLegacyToken() {
   window.localStorage['consul:token'] = JSON.stringify({
     Namespace: 'default',
@@ -461,20 +468,30 @@ export function find(path, root = currentPage) {
   return obj;
 }
 
-/**
- * Assert how many visible items a page-object collection has (equivalent to
- * `I see $num $model models [on the $component component]`).
- */
+/** Assert how many visible items a page-object collection has. */
 export function assertVisibleCount(assert, collection, expected, label = 'items') {
   const actual = collection.filter((item) => item.isVisible).length;
   assert.equal(actual, expected, `Expected ${expected} ${label}, saw ${actual}`);
 }
 
 /**
+ * Wait until a page-object collection has `expected` visible items, then assert
+ * it (for lists that live-update through blocking queries).
+ */
+export async function waitForVisibleCount(assert, collection, expected, label = 'items') {
+  const visible = () => collection.filter((item) => item.isVisible).length;
+  try {
+    await waitUntil(() => visible() === expected, { timeout: 5000 });
+  } catch (e) {
+    // fall through so the assertion below reports the actual count
+  }
+  assertVisibleCount(assert, collection, expected, label);
+}
+
+/**
  * Assert `property` on each item of a page-object collection equals the
- * corresponding entry in `expected` (equivalent to
- * `I see $property on the $component like yaml`). Numbers in `expected` are
- * compared as strings because they come from the DOM.
+ * corresponding entry in `expected`. Numbers in `expected` are compared as
+ * strings because they come from the DOM.
  */
 export function assertProperties(assert, collection, property, expected, label = 'items') {
   assert.ok(collection.length > 0, `Expected to find ${label}`);
@@ -483,9 +500,7 @@ export function assertProperties(assert, collection, property, expected, label =
 
 /**
  * Like `assertProperties`, but compares the items in the order they appear on
- * screen, top to bottom (equivalent to
- * `I see $property on the $component vertically like yaml`, used to check sort
- * order).
+ * screen, top to bottom (used to check sort order).
  */
 export function assertPropertiesVertically(
   assert,
@@ -523,9 +538,8 @@ const assertItemProperties = function (assert, items, property, expected, label)
 // ---------------------------------------------------------------------------
 
 /**
- * Fill in `<input name="prefix[key]">` form fields (equivalent to
- * `I fill in the $prefix form with yaml`). Fields rendered as an HDS code
- * editor (`aria-label="prefix[key]"`) are filled with `fillInCodeEditor`.
+ * Fill in `<input name="prefix[key]">` form fields. Fields rendered as an HDS
+ * code editor (`aria-label="prefix[key]"`) are filled with `fillInCodeEditor`.
  */
 export async function fillInForm(prefix, data) {
   for (const key of Object.keys(data)) {
@@ -539,10 +553,23 @@ export async function fillInForm(prefix, data) {
 }
 
 /**
+ * Fill in fields by name: an HDS code editor labelled `key` is filled with
+ * `fillInCodeEditor`, anything else as `[name="key"]`.
+ */
+export async function fillInFields(data) {
+  for (const key of Object.keys(data)) {
+    if (document.querySelector(`.cm-editor [aria-label="${key}"]`)) {
+      await fillInCodeEditor(key, data[key]);
+    } else {
+      await fillIn(`[name="${key}"]`, data[key]);
+    }
+  }
+}
+
+/**
  * Replace the content of the HDS code editor labelled `name`, which CodeMirror
- * picks up as user input (the yadda `fillInCodeEditor`). Throws if the field is
- * a read-only code block or doesn't exist, so "can't fill in" checks can use
- * `assert.rejects`.
+ * picks up as user input. Throws if the field is a read-only code block or
+ * doesn't exist, so "can't fill in" checks can use `assert.rejects`.
  */
 export async function fillInCodeEditor(name, value) {
   const element = document.querySelector(`[aria-label="${name}"]`);
@@ -561,10 +588,7 @@ export async function fillInCodeEditor(name, value) {
   await settled();
 }
 
-/**
- * Make the OIDC popup resolve with `response` instead of opening a window
- * (equivalent to `the "$provider" oidcProvider responds with from yaml`).
- */
+/** Make the OIDC popup resolve with `response` instead of opening a window. */
 export function stubOIDCProvider(response) {
   const { owner } = getContext();
   const provider = owner.lookup('torii-provider:oidc-with-url');

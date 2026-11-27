@@ -3,10 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/acls/policies/as-many/nspaces.feature.
-// The feature was `@onlyNamespaceable` and its single scenario was untitled
-// (reported as "Scenario: "), so the native test is given a title.
-
 import { module } from 'qunit';
 
 import {

@@ -190,42 +190,57 @@ in isolation.
 
 ### Acceptance tests
 
-Our acceptance tests use a BDD style of testing. This means tests are
-relatively simple to write, the writer does not need to think about
-asynchronicity, and best of all they are very easy to read and understand what
-is being tested, and therefore anyone can roughly understand what is being
-tested/passing (or failing) tests.
+Acceptance tests are plain QUnit tests in `./tests/acceptance`. They share a
+harness in `./tests/helpers/acceptance.js`, which sets up the application and
+the API double, and provides helpers for fixtures, visiting pages, and
+asserting on requests and page objects. Add any new shared helper there rather
+than inside an individual test.
 
-We have roughly 20-30 reusable BDD steps you can use to write tests. We
-occasionally add a new step but not very often. You should be able to write
-the majority of your tests using the steps we already have. The steps
-themselves are in `./tests/steps/{assertions,debug,double,interactions}` and
-they are just simple javascript optionally asynchronous functions that are
-specifically built to be __highly reusable__.
+```js
+import { module } from 'qunit';
 
-If you come to write a new step, please take some time to think about how
-reusable it will be and try to word the title of the step taking that into
-account. Look at some of the existing steps for examples.
+import {
+  setupAcceptanceTest,
+  nspaceScenario,
+  nspaceURL,
+  nspaceEndpoint,
+  createModels,
+  visit,
+  page,
+  currentURL,
+  assertVisibleCount,
+  requestMade,
+} from 'consul-ui/tests/helpers/acceptance';
 
-We use the `yadda` npm package for our BDD support, just as the ember addon we
-originally used for this used `yadda`. In the future we'd like to re-consider
-and potentially use `cucumber.js`.
+module('Acceptance | dc / services / list', function (hooks) {
+  setupAcceptanceTest(hooks);
 
-In order to create a new acceptance test/feature please use the ember
-generator to do so:
+  nspaceScenario('Scenario: Listing service', async function (assert, nspace) {
+    createModels('dc', 1, 'dc-1');
+    createModels('service', 3);
 
-```bash
-ember generate feature dc/model/thing
+    await visit('services', { dc: 'dc-1' }, { nspace });
+    assert.equal(currentURL(), nspaceURL(nspace, '/dc-1/services'));
+    requestMade(
+      assert,
+      'GET',
+      nspaceEndpoint('/v1/internal/ui/services?dc=dc-1&ns=@namespace', nspace)
+    );
+    assertVisibleCount(assert, page().services, 3, 'service models');
+  });
+});
 ```
 
-This creates some additional JS that unfortunately is required by the ember
-addon, so until we move away from that addon, this is the easiest way to get
-started with a brand new acceptance test.
+`nspaceScenario` runs the test once in CE and once per namespace (`''`,
+`default`, `team-1` and none) when the UI is built with
+`CONSUL_NSPACES_ENABLED=1`, adding " with the X namespace set" to the title.
+Pass `{ onlyNamespaceable: true }` or `{ notNamespaceable: true }` to run a test
+only with or only without namespace support, and `{ ignore: true }` to skip it.
+Use `nspaceURL` for expected URLs, and `nspaceEndpoint`, `nspaceJSON` or
+`nspaceYAML` for request URLs and fixtures that contain the `@namespace`
+placeholder, so the test checks the right namespace in every run.
 
-If you are not familiar with the steps available to write tests the best way
-to write a new test is to look at the tests already written/and or scan
-through the steps folders to see what's available. As mentioned above, there
-are only around 30 steps.
+`tests/acceptance/dc/intentions/create-test.js` is a good worked example.
 
 We make some use of `ember-page-objects` to encapsulate some DOM
 selecting/functionality. To be fair we kind of dip in and out of using
