@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lifecycle"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 )
 
@@ -85,6 +86,10 @@ func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsub
 			}
 			// Otherwise, abort the stream so the client re-subscribes.
 			return status.Error(codes.Aborted, err.Error())
+		case lifecycle.IsNotReady(err):
+			// The state store is being restored. The client retries with backoff.
+			logger.Trace("state store not ready; client must retry", "error", err)
+			return status.Error(codes.Unavailable, err.Error())
 		case err != nil:
 			return err
 		}

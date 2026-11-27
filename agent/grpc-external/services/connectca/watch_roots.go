@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lifecycle"
 	"github.com/hashicorp/consul/proto-public/pbconnectca"
 )
 
@@ -102,6 +103,10 @@ func (s *Server) serveRoots(
 			return idx, err
 		case errors.Is(err, context.Canceled):
 			return 0, nil
+		case lifecycle.IsNotReady(err):
+			// The state store is being restored; the client should retry.
+			logger.Trace("state store not ready; client must retry", "error", err)
+			return idx, status.Error(codes.Unavailable, err.Error())
 		case err != nil:
 			logger.Error("failed to read next event", "error", err)
 			return idx, status.Error(codes.Internal, err.Error())
