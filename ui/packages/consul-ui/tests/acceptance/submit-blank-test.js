@@ -3,9 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/submit-blank.feature
-// (the feature's `@ignore` "The button is disabled" placeholder was deleted)
-
 import { module } from 'qunit';
 
 import {

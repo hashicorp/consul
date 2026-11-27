@@ -1,0 +1,3 @@
+```release-note:improvement
+build: bump consul sub-packages to latest patch releases: `consul/api` to v1.35.1, `consul/sdk` to v0.19.1, `consul/proto-public` to v0.9.1, `consul/envoyextensions` to v0.11.2 and `consul/troubleshoot` to v0.10.2
+```

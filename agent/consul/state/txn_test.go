@@ -119,6 +119,27 @@ func TestStateStore_Txn_LegacyIntention(t *testing.T) {
 	require.Equal(t, intentions, actual)
 }
 
+func TestStateStore_Txn_LegacyIntention_MissingIntention(t *testing.T) {
+	s := testStateStore(t)
+
+	for _, verb := range []structs.IntentionOp{
+		structs.IntentionOpCreate,
+		structs.IntentionOpUpdate,
+		structs.IntentionOpDelete,
+	} {
+		t.Run(string(verb), func(t *testing.T) {
+			ops := structs.TxnOps{
+				&structs.TxnOp{Intention: &structs.TxnIntentionOp{Op: verb}},
+			}
+			require.NotPanics(t, func() {
+				results, errs := s.TxnRW(3, ops)
+				require.Empty(t, results)
+				require.Len(t, errs, 1)
+			})
+		})
+	}
+}
+
 func TestStateStore_Txn_Node(t *testing.T) {
 	s := testStateStore(t)
 

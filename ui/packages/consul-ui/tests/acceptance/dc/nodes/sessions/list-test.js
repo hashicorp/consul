@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/nodes/sessions/list.feature.
 // The lock-sessions tab now renders an HDS table (Consul::LockSession::Table)
 // rather than the legacy card list, so the assertions target the table cells.
 
@@ -102,7 +101,7 @@ module('Acceptance | dc / nodes / sessions / list', function (hooks) {
   nspaceScenario('Scenario: Given 0 sessions with ACLs disabled', async function (assert, nspace) {
     // The env service reads CONSUL_ACLS_ENABLED from document.cookie (not the
     // api-double server cookie jar), so disable ACLs via document.cookie —
-    // exactly like the original yadda "ACLs are disabled" step. setupAcceptanceTest's
+    // exactly like the original "ACLs are disabled" step. setupAcceptanceTest's
     // reset() wipes all cookies between tests so this does not leak.
     document.cookie = 'CONSUL_ACLS_ENABLE=0';
     api.server.createList('dc', 1, 'dc1');
