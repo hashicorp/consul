@@ -473,6 +473,88 @@ func TestHTTPAPI_BlockEndpoints(t *testing.T) {
 	}
 }
 
+func TestHTTPAPI_ResourceAPI_WriteGuards(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	const path = "/api/demo/v2/artist/x?partition=default&namespace=default"
+
+	do := func(a *TestAgent, method, remote, body string) *httptest.ResponseRecorder {
+		req, err := http.NewRequest(method, path, strings.NewReader(body))
+		require.NoError(t, err)
+		req.RemoteAddr = remote
+		resp := httptest.NewRecorder()
+		a.srv.handler().ServeHTTP(resp, req)
+		return resp
+	}
+
+	t.Run("allow_write_http_from", func(t *testing.T) {
+		a := NewTestAgent(t, `
+			http_config {
+				allow_write_http_from = ["255.255.255.255/32"]
+				response_headers { "X-Test" = "guard" }
+			}
+		`)
+		defer a.Shutdown()
+
+		for _, method := range []string{http.MethodPut, http.MethodPost, http.MethodDelete} {
+			resp := do(a, method, "127.0.0.1:1234", `{"data":{}}`)
+			require.Equal(t, http.StatusForbidden, resp.Code, method)
+			require.Contains(t, resp.Body.String(), "Access is restricted", method)
+			require.Equal(t, "guard", resp.Header().Get("X-Test"), method)
+		}
+
+		// reads are not restricted by allow_write_http_from
+		resp := do(a, http.MethodGet, "127.0.0.1:1234", "")
+		require.NotEqual(t, http.StatusForbidden, resp.Code)
+	})
+
+	t.Run("allow_write_http_from allowed source is not rejected", func(t *testing.T) {
+		a := NewTestAgent(t, `
+			http_config {
+				allow_write_http_from = ["127.0.0.0/8"]
+			}
+		`)
+		defer a.Shutdown()
+
+		for _, method := range []string{http.MethodPut, http.MethodDelete} {
+			resp := do(a, method, "127.0.0.1:1234", `{"data":{}}`)
+			require.NotEqual(t, http.StatusForbidden, resp.Code, method)
+			require.NotContains(t, resp.Body.String(), "Access is restricted", method)
+		}
+	})
+
+	t.Run("block_endpoints", func(t *testing.T) {
+		a := NewTestAgent(t, `
+			http_config {
+				block_endpoints = ["/api/"]
+			}
+		`)
+		defer a.Shutdown()
+
+		for _, method := range []string{http.MethodGet, http.MethodPut, http.MethodDelete} {
+			resp := do(a, method, "127.0.0.1:1234", "")
+			require.Equal(t, http.StatusForbidden, resp.Code, method)
+			require.Contains(t, resp.Body.String(), "blocked by agent configuration", method)
+		}
+	})
+
+	t.Run("request body limit still applies", func(t *testing.T) {
+		a := NewTestAgent(t, `
+			limits {
+				http_max_request_body_size = 16
+			}
+		`)
+		defer a.Shutdown()
+
+		resp := do(a, http.MethodPut, "127.0.0.1:1234", `{"data":{"pad":"`+strings.Repeat("x", 1024)+`"}}`)
+		require.Equal(t, http.StatusRequestEntityTooLarge, resp.Code)
+	})
+}
+
 func TestHTTPAPI_Ban_Nonprintable_Characters(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
