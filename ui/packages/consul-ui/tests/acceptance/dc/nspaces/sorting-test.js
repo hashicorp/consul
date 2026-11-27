@@ -3,9 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/nspaces/sorting.feature.
-// The feature was `@onlyNamespaceable` (Enterprise only), as before.
-
 import { module } from 'qunit';
 
 import {

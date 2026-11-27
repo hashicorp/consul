@@ -3,12 +3,9 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/intentions/create.feature.
-//
-// Reference example for migrating a `.feature` file off yadda. It uses the
-// shared harness in tests/helpers/acceptance.js, which reproduces the
-// api-double lifecycle, the CONSUL_NSPACES_ENABLED namespace matrix and the
-// request-history assertions the yadda runner previously provided.
+// Reference example for acceptance tests. It uses the shared harness in
+// tests/helpers/acceptance.js, which provides the api-double lifecycle, the
+// CONSUL_NSPACES_ENABLED namespace matrix and request-history assertions.
 
 import { module } from 'qunit';
 import { click, typeIn } from '@ember/test-helpers';
@@ -30,7 +27,7 @@ const services = [
 ];
 
 // Prefix a URL with the namespace segment the same way the app's location
-// service does (mirrors the yadda `url` dictionary converter).
+// service does.
 const withNspace = (nspace, url) =>
   nspace !== '' && typeof nspace !== 'undefined' ? `/~${nspace}${url}` : url;
 

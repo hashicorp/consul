@@ -3,10 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/nspaces/create.feature.
-// The feature was `@onlyNamespaceable` (Enterprise only), as before; its first
-// scenario was untitled (reported as "Scenario: ") and is now titled.
-
 import { module } from 'qunit';
 
 import {

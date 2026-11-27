@@ -78,9 +78,6 @@ lint: deps
 format: deps
 	pnpm run format
 
-steps:
-	pnpm run steps:list
-
 ../../node_modules: ../../pnpm-lock.yaml package.json
 	pnpm install $(CONSUL_UI_INSTALL_FLAGS)
 

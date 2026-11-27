@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/nodes/show.feature.
-
 import { module } from 'qunit';
 import { waitUntil } from '@ember/test-helpers';
 
@@ -21,7 +19,7 @@ import {
   currentURL,
 } from 'consul-ui/tests/helpers/acceptance';
 
-// A page-object property that may not exist (yadda's "I don't see ...").
+// A page-object property that may not exist.
 const isShown = function (get) {
   try {
     return !!get();

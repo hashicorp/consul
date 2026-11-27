@@ -3,13 +3,7 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/acls/policies/as-many/add-new.feature.
-//
-// The whole feature was `@ignore`d (yadda reported it as a single skipped
-// test). Each scenario and `Where:` row is ported as its own test, and all of
-// them run again except the identity ones (see IDENTITY_SAVE_FAILS). The two
-// "Try to edit ... using the code editor" scenarios had the same title for
-// every row, so the native titles add the model.
+// The identity tests are skipped; see IDENTITY_SAVE_FAILS.
 
 import { module } from 'qunit';
 
