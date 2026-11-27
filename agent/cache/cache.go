@@ -158,9 +158,15 @@ type Cache struct {
 	rateLimitCancel  context.CancelFunc
 }
 
+// fetchHandle tracks a single in-flight fetch goroutine for a cache key. Its
+// ctx is scoped to the fetch itself rather than to the caller that started it,
+// because a fetch is shared by all current and future callers of the key and,
+// for refreshing types, keeps the entry up to date on their behalf. The ctx is
+// canceled when the handle is replaced by a newer fetch or retired.
 type fetchHandle struct {
 	id     uint64
-	stopCh chan struct{}
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 // typeEntry is a single type that is registered with a Cache.
@@ -523,7 +529,7 @@ RETRY_GET:
 
 	// At this point, we know we either don't have a value at all or the
 	// value we have is too old. We need to wait for new data.
-	waiterCh := c.fetch(ctx, key, r, true, 0, false)
+	waiterCh := c.fetch(key, r, true, 0, false)
 
 	// No longer our first time through
 	first = false
@@ -558,7 +564,13 @@ func makeEntryKey(t, dc, peerName, token, key string) string {
 // If allowNew is true then the fetch should create the cache entry
 // if it doesn't exist. If this is false, then fetch will do nothing
 // if the entry doesn't exist. This latter case is to support refreshing.
-func (c *Cache) fetch(ctx context.Context, key string, r getOptions, allowNew bool, attempt uint, ignoreExisting bool) <-chan struct{} {
+//
+// This deliberately takes no caller context. The fetch it starts is shared by
+// all present and future callers of the key and, for refreshing types, becomes
+// a long-lived loop that keeps the entry fresh, so a single caller going away
+// must not stop the entry from being refreshed. Fetches are instead bounded by
+// the fetchHandle, entry eviction, and Close.
+func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ignoreExisting bool) <-chan struct{} {
 	// We acquire a write lock because we may have to set Fetching to true.
 	c.entriesLock.Lock()
 	defer c.entriesLock.Unlock()
@@ -665,8 +677,10 @@ func (c *Cache) fetch(ctx context.Context, key string, r getOptions, allowNew bo
 			entry.Error = fmt.Errorf("rateLimitContext canceled: %s", err.Error())
 			return
 		}
-		// Start building the new entry by blocking on the fetch.
-		result, err := r.Fetch(ctx, fOpts)
+		// Start building the new entry by blocking on the fetch. This uses the
+		// handle's context so the fetch is not canceled just because the caller
+		// that happened to trigger it went away.
+		result, err := r.Fetch(handle.ctx, fOpts)
 		if connectedTimer != nil {
 			connectedTimer.Stop()
 		}
@@ -674,7 +688,7 @@ func (c *Cache) fetch(ctx context.Context, key string, r getOptions, allowNew bo
 		// If we were stopped while waiting on a blocking query now would be a
 		// good time to detect that.
 		select {
-		case <-handle.stopCh:
+		case <-handle.ctx.Done():
 			return
 		default:
 		}
@@ -839,9 +853,7 @@ func (c *Cache) fetch(ctx context.Context, key string, r getOptions, allowNew bo
 
 			select {
 			case <-time.After(wait):
-			case <-ctx.Done():
-				return
-			case <-handle.stopCh:
+			case <-handle.ctx.Done():
 				return
 			}
 
@@ -850,7 +862,7 @@ func (c *Cache) fetch(ctx context.Context, key string, r getOptions, allowNew bo
 			// happened, we don't want to create a new entry.
 			r.Info.MustRevalidate = false
 			r.Info.MinIndex = 0
-			c.fetch(ctx, key, r, false, attempt, true)
+			c.fetch(key, r, false, attempt, true)
 		}
 	}(handle)
 
@@ -862,14 +874,21 @@ func (c *Cache) getOrReplaceFetchHandle(key string) fetchHandle {
 	defer c.fetchLock.Unlock()
 
 	if prevHandle, ok := c.fetchHandles[key]; ok {
-		close(prevHandle.stopCh)
+		prevHandle.cancel()
 	}
 
 	c.lastFetchID++
 
+	// This context is intentionally not derived from any caller's context, nor
+	// from the Cache's rate limit context. It is canceled only when this handle
+	// is replaced or retired, which preserves the documented Close behavior
+	// that in-flight fetches run to completion.
+	ctx, cancel := context.WithCancel(context.Background())
+
 	handle := fetchHandle{
 		id:     c.lastFetchID,
-		stopCh: make(chan struct{}),
+		ctx:    ctx,
+		cancel: cancel,
 	}
 
 	c.fetchHandles[key] = handle
@@ -888,6 +907,7 @@ func (c *Cache) deleteFetchHandle(key string, fetchID uint64) {
 	}
 
 	if handle.id == fetchID {
+		handle.cancel()
 		delete(c.fetchHandles, key)
 	}
 }
