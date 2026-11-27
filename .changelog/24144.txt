@@ -1,0 +1,3 @@
+```release-note:bug
+connect: fix a bug where lowering the CA CSR concurrency limit (CSRMaxConcurrent) while signing requests were queued could allow more requests to run concurrently than the new limit.
+```

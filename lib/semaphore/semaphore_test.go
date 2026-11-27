@@ -61,6 +61,58 @@ func TestDynamicPanic(t *testing.T) {
 	w.Release()
 }
 
+// TestDynamicShrinkWithWaiters verifies that when the semaphore is shrunk below
+// the number of currently acquired slots while other goroutines are blocked
+// waiting, releasing a slot does not hand it to a waiter. Doing so would let the
+// waiter acquire while the outstanding count is still above the reduced size,
+// violating the SetSize contract.
+func TestDynamicShrinkWithWaiters(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	sem := NewDynamic(2)
+
+	// Fill both slots [free: 0].
+	require.NoError(t, sem.Acquire(ctx))
+	require.NoError(t, sem.Acquire(ctx))
+
+	// Start a goroutine that blocks waiting for a slot and records when it
+	// manages to acquire one.
+	acquired := make(chan struct{})
+	go func() {
+		_ = sem.Acquire(context.Background())
+		close(acquired)
+	}()
+
+	// Give the goroutine time to block and register itself as a waiter.
+	select {
+	case <-acquired:
+		t.Fatal("acquire unexpectedly succeeded while the semaphore was full")
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	// Shrink the semaphore below the number of acquired slots (cur=2, size=1).
+	require.NoError(t, sem.SetSize(1))
+
+	// Releasing one slot still leaves us at capacity (outstanding 1, size 1), so
+	// the waiter must remain blocked rather than being handed the freed slot.
+	sem.Release()
+	select {
+	case <-acquired:
+		t.Fatal("waiter acquired a slot while the semaphore was over its reduced capacity")
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	// Releasing the final outstanding slot brings us under capacity, at which
+	// point the waiter is allowed to proceed.
+	sem.Release()
+	select {
+	case <-acquired:
+	case <-time.After(time.Second):
+		t.Fatal("waiter was not granted a slot after capacity freed up")
+	}
+}
+
 func checkAcquire(t *testing.T, sem *Dynamic, wantAcquire bool) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
