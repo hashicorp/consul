@@ -84,7 +84,7 @@ func (s *Server) removeFailedNode(
 	}
 
 	if !foundAny {
-		return fmt.Errorf("agent: No node found with name '%s'", node)
+		return fmt.Errorf("%w with name '%s'", ErrNodeNotFound, node)
 	}
 
 	return nil
