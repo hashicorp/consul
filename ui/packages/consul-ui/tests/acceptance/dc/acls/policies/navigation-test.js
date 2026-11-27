@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/acls/policies/navigation.feature
-
 import { module } from 'qunit';
 import { click } from '@ember/test-helpers';
 

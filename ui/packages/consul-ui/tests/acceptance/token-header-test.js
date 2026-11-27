@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/token-header.feature (feature-level @notNamespaceable)
-
 import { module } from 'qunit';
 
 import {

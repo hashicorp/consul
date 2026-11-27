@@ -3,10 +3,8 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/forwarding.feature.
-//
 // Arriving at a datacenter with only the dc in the URL redirects to that dc's
-// services overview. Carried the feature's `@notNamespaceable` annotation.
+// services overview. CE only (`notNamespaceable`).
 
 import { module } from 'qunit';
 

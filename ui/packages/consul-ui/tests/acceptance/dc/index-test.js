@@ -3,10 +3,8 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/index.feature.
-//
-// The original scenario carried `@ignore`, so the runner skipped it. We
-// preserve that here with `{ ignore: true }` (which maps to QUnit's `skip`).
+// Skipped with `{ ignore: true }`: it was already ignored before the move to
+// native QUnit.
 
 import { module } from 'qunit';
 import { click } from '@ember/test-helpers';
