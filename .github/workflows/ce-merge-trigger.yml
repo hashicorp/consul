@@ -47,9 +47,13 @@ jobs:
     needs: check-conditions
     if: needs.check-conditions.outputs.active == '1'
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
     steps:
       - name: Get Latest Merge Commit
         id: merge_commit
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           # Try the event payload first
           MERGE_SHA="${{ github.event.pull_request.merge_commit_sha }}"
@@ -64,7 +68,7 @@ jobs:
             for i in $(seq 1 $MAX_ATTEMPTS); do
               echo "Attempt $i: Fetching merge commit from API..."
               
-              MERGE_SHA=$(curl -s -H "Authorization: token ${{ secrets.ELEVATED_GITHUB_TOKEN }}" \
+              MERGE_SHA=$(curl -s -H "Authorization: token $GH_TOKEN" \
                 "https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}" | \
                 jq -r '.merge_commit_sha // empty')
               
@@ -93,13 +97,13 @@ jobs:
         id: reviewers
         continue-on-error: true
         env:
-          GH_PAT: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
         run: |
-          reviewers=$(curl -s -H "Authorization: token $GH_PAT" \
-            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/reviews" | \
-            jq -c '[.[] | select(.state=="APPROVED") | .user.login] | unique')
+          response=$(curl --fail-with-body -sS -H "Authorization: token $GH_TOKEN" \
+            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/reviews")
+          reviewers=$(jq -c '[.[] | select(.state=="APPROVED") | .user.login] | unique' <<< "$response")
           echo "approved_reviewers=$reviewers" >> $GITHUB_OUTPUT
           echo "Approved reviewers: $reviewers"
       - name: Trigger Merge
@@ -110,7 +114,7 @@ jobs:
           GIT_ACTOR: ${{ github.actor }}
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
-          PR_APPROVERS: ${{ steps.reviewers.outputs.approved_reviewers }}
+          PR_APPROVERS: ${{ steps.reviewers.outputs.approved_reviewers || '[]' }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           # Create the JSON payload using jq for safe escaping
@@ -136,7 +140,7 @@ jobs:
               }
             }'
           )
-          curl -v -X POST \
+          curl --fail-with-body -sS -X POST \
             -H "Authorization: token $GH_PAT" \
             -H "Accept: application/vnd.github+json" \
             -H "Content-Type: application/json" \
