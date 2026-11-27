@@ -5028,6 +5028,7 @@ type UpstreamConfig struct {
 	MeshGateway                *MeshGatewayConfig  `protobuf:"bytes,9,opt,name=MeshGateway,proto3" json:"MeshGateway,omitempty"`
 	BalanceOutboundConnections string              `protobuf:"bytes,10,opt,name=BalanceOutboundConnections,proto3" json:"BalanceOutboundConnections,omitempty"`
 	Peer                       string              `protobuf:"bytes,11,opt,name=Peer,proto3" json:"Peer,omitempty"`
+	HostRewrite                string              `protobuf:"bytes,12,opt,name=HostRewrite,proto3" json:"HostRewrite,omitempty"`
 	unknownFields              protoimpl.UnknownFields
 	sizeCache                  protoimpl.SizeCache
 }
@@ -5135,6 +5136,13 @@ func (x *UpstreamConfig) GetBalanceOutboundConnections() string {
 func (x *UpstreamConfig) GetPeer() string {
 	if x != nil {
 		return x.Peer
+	}
+	return ""
+}
+
+func (x *UpstreamConfig) GetHostRewrite() string {
+	if x != nil {
+		return x.HostRewrite
 	}
 	return ""
 }
@@ -10699,7 +10707,7 @@ const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"\x0fParsedFromCheck\x18\x05 \x01(\bR\x0fParsedFromCheck\"\xbf\x01\n" +
 	"\x15UpstreamConfiguration\x12S\n" +
 	"\tOverrides\x18\x01 \x03(\v25.hashicorp.consul.internal.configentry.UpstreamConfigR\tOverrides\x12Q\n" +
-	"\bDefaults\x18\x02 \x01(\v25.hashicorp.consul.internal.configentry.UpstreamConfigR\bDefaults\"\x8a\x05\n" +
+	"\bDefaults\x18\x02 \x01(\v25.hashicorp.consul.internal.configentry.UpstreamConfigR\bDefaults\"\xac\x05\n" +
 	"\x0eUpstreamConfig\x12\x12\n" +
 	"\x04Name\x18\x01 \x01(\tR\x04Name\x12X\n" +
 	"\x0eEnterpriseMeta\x18\x02 \x01(\v20.hashicorp.consul.internal.common.EnterpriseMetaR\x0eEnterpriseMeta\x12,\n" +
@@ -10712,7 +10720,8 @@ const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"\vMeshGateway\x18\t \x01(\v28.hashicorp.consul.internal.configentry.MeshGatewayConfigR\vMeshGateway\x12>\n" +
 	"\x1aBalanceOutboundConnections\x18\n" +
 	" \x01(\tR\x1aBalanceOutboundConnections\x12\x12\n" +
-	"\x04Peer\x18\v \x01(\tR\x04Peer\"\x89\x02\n" +
+	"\x04Peer\x18\v \x01(\tR\x04Peer\x12 \n" +
+	"\vHostRewrite\x18\f \x01(\tR\vHostRewrite\"\x89\x02\n" +
 	"\x0eUpstreamLimits\x12&\n" +
 	"\x0eMaxConnections\x18\x01 \x01(\x05R\x0eMaxConnections\x12.\n" +
 	"\x12MaxPendingRequests\x18\x02 \x01(\x05R\x12MaxPendingRequests\x124\n" +

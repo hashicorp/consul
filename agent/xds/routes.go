@@ -88,6 +88,8 @@ func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 			continue
 		}
 
+		injectHostRewriteToRoutes(hostRewriteForRDS(upstream), virtualHost.Routes...)
+
 		route := &envoy_route_v3.RouteConfiguration{
 			Name:         uid.EnvoyID(),
 			VirtualHosts: []*envoy_route_v3.VirtualHost{virtualHost},
@@ -1308,6 +1310,38 @@ func injectHeaderManipToRoute(dest *structs.ServiceRouteDestination, r *envoy_ro
 		)
 	}
 	return nil
+}
+
+// hostRewriteForRDS returns the upstream's host_rewrite for RDS routes, or an
+// empty string if it is unset or invalid. It does not log: listener generation
+// parses the same config and already warns about problems with it.
+func hostRewriteForRDS(upstream *structs.Upstream) string {
+	if upstream == nil {
+		return ""
+	}
+	cfg, _ := structs.ParseUpstreamConfigNoDefaults(upstream.Config)
+	if structs.ValidateHostRewrite(cfg.HostRewrite) != nil {
+		return ""
+	}
+	return cfg.HostRewrite
+}
+
+// injectHostRewriteToRoutes sets a literal Host rewrite on every forwarding
+// route that does not already rewrite the Host. Envoy rejects "host" in
+// request_headers_to_add, so the route action is the only place to set it.
+func injectHostRewriteToRoutes(host string, routes ...*envoy_route_v3.Route) {
+	if host == "" {
+		return
+	}
+	for _, r := range routes {
+		action := r.GetRoute()
+		if action == nil || action.HostRewriteSpecifier != nil {
+			continue
+		}
+		action.HostRewriteSpecifier = &envoy_route_v3.RouteAction_HostRewriteLiteral{
+			HostRewriteLiteral: host,
+		}
+	}
 }
 
 func injectHeaderManipToVirtualHost(dest *structs.IngressService, vh *envoy_route_v3.VirtualHost) error {

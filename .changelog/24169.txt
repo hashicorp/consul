@@ -1,0 +1,3 @@
+```release-note:feature
+connect: Add `host_rewrite` upstream config option to set the Host header Envoy sends to an upstream. It can be set in an upstream's `config` block or in service-defaults `UpstreamConfig`.
+```

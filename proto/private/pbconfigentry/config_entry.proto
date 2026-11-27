@@ -768,6 +768,7 @@ message UpstreamConfig {
   MeshGatewayConfig MeshGateway = 9;
   string BalanceOutboundConnections = 10;
   string Peer = 11;
+  string HostRewrite = 12;
 }
 
 // mog annotation:
