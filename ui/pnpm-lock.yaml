@@ -326,9 +326,6 @@ importers:
       ember-cli-terser:
         specifier: ^4.0.2
         version: 4.0.2
-      ember-cli-yadda:
-        specifier: ^0.7.0
-        version: 0.7.0(@glint/template@1.5.2)(webpack@5.105.4)
       ember-collection:
         specifier: ^3.0.0
         version: 3.0.0(@babel/core@7.29.7)
@@ -3787,10 +3784,6 @@ packages:
   ember-cli-version-checker@5.1.2:
     resolution: {integrity: sha512-rk7GY+FmLn/2e22HsZs0Ycrz8HQ1W3Fv+2TFOuEFW9optnDXDgkntPBIl6gact/LHsfBM5RKbM3dHsIIeLgl0Q==}
     engines: {node: 10.* || >= 12.*}
-
-  ember-cli-yadda@0.7.0:
-    resolution: {integrity: sha512-NdolJAdNEOIHdTR8pbv8I6LUvP6QHAHvIdFSQP1kzqEqdFurFT7E7Vl5XqG45puNDty5FSTptdZkc+zrP9C8HQ==}
-    engines: {node: 12.* || 14.* || >= 16}
 
   ember-cli@5.12.0:
     resolution: {integrity: sha512-48ZOoUZTXsav37RIYY9gyCR35yo64mhzfv5YHtTbsZZwLv/HjvTz27X0CTvkfVQaOWHYDFekxdp9ppaKz84VNA==}
@@ -7486,9 +7479,6 @@ packages:
   xtend@4.0.2:
     resolution: {integrity: sha512-LKYU1iAXJXUgAXn9URjiu+MWhyUXHsvfp7mcuYm9dSUKK0/CjtrUwFAxD82/mCWbtLsGjFIad0wIsod4zrTAEQ==}
     engines: {node: '>=0.4'}
-
-  yadda@2.2.0:
-    resolution: {integrity: sha512-TO5YH2XzFZjtInULMZHKTStTOaxRG5hB/nN8qxHOJedsd0HLeqRoP/TW1qKqTeGhIUzq7CVR7iIEFIwerbXIkg==}
 
   yallist@3.1.1:
     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
@@ -12033,20 +12023,6 @@ snapshots:
       silent-error: 1.1.1
     transitivePeerDependencies:
       - supports-color
-
-  ember-cli-yadda@0.7.0(@glint/template@1.5.2)(webpack@5.105.4):
-    dependencies:
-      broccoli-funnel: 3.0.8
-      broccoli-persistent-filter: 3.1.3
-      ember-auto-import: 2.11.1(@glint/template@1.5.2)(webpack@5.105.4)
-      ember-cli-babel: 7.26.11
-      ember-cli-htmlbars: 5.7.2
-      qunit: 2.24.2
-      yadda: 2.2.0
-    transitivePeerDependencies:
-      - '@glint/template'
-      - supports-color
-      - webpack
 
   ember-cli@5.12.0(@types/node@24.5.2)(handlebars@4.7.10)(underscore@1.13.8):
     dependencies:
@@ -16905,8 +16881,6 @@ snapshots:
   xdg-basedir@4.0.0: {}
 
   xtend@4.0.2: {}
-
-  yadda@2.2.0: {}
 
   yallist@3.1.1: {}
 

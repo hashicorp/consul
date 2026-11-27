@@ -3,11 +3,9 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/list-blocking.feature.
-//
 // Listing pages live-update via blocking queries when Consul changes
-// externally. The second scenario (detail pages with a listing) carried a
-// `@ignore` (FIXME) annotation and is preserved as a skipped test.
+// externally. The second scenario (detail pages with a listing) is skipped
+// (FIXME).
 
 import { module } from 'qunit';
 import { click, waitUntil } from '@ember/test-helpers';

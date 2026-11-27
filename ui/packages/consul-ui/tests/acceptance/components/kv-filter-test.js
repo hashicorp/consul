@@ -3,11 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/components/kv-filter.feature.
-//
-// The `.feature` used a scenario outline (Where table) with one row per search
-// term; here we parameterise the same scenario body over those terms.
-
 import { module } from 'qunit';
 import { fillIn } from '@ember/test-helpers';
 

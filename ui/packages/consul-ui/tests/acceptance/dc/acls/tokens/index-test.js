@@ -3,14 +3,11 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/acls/tokens/index.feature.
-//
-// The `.feature` used `I type "..." into "input[type=search]"` which matched
-// ambiguously under ENT (the side-nav namespace selector also renders an
-// `input[type=search]`). Using the FilterBar-specific `.hds-filter-bar__search`
-// selector removes the ambiguity.
+// Search uses the FilterBar-specific `.hds-filter-bar__search` selector: under
+// Enterprise the side-nav namespace selector also renders an
+// `input[type=search]`.
 
-import { module, skip } from 'qunit';
+import { module } from 'qunit';
 import { fillIn } from '@ember/test-helpers';
 
 import {
@@ -40,8 +37,8 @@ module('Acceptance | dc / acls / tokens / index: ACL Token List', function (hook
   nspaceScenario('Viewing tokens with no write access', async function (assert, nspace) {
     api.server.createList('dc', 1, 'dc-1');
     api.server.createList('token', 3);
-    // Mirror the yadda `permissions from yaml` step via the api-double cookie
-    // mechanism (direct document.cookie writes are not picked up by the env service).
+    // Set permissions via the api-double cookie mechanism (direct document.cookie
+    // writes are not picked up by the env service).
     api.server.setCookie('CONSUL_RESOURCE_ACL_WRITE', false);
 
     await visit('tokens', { dc: 'dc-1' }, { nspace });
@@ -159,7 +156,4 @@ module('Acceptance | dc / acls / tokens / index: ACL Token List', function (hook
       assert.equal(page().tokens.length, 3, 'shows 3 tokens');
     }
   );
-
-  // Placeholder — sorting scenarios live in dc/acls/tokens/sorting.feature (not migrated yet).
-  skip('sorting scenarios are covered in dc/acls/tokens/sorting.feature', function () {});
 });
