@@ -795,7 +795,11 @@ func (p *policyAuthorizer) NodeReadAll(_ *AuthorizerContext) EnforcementDecision
 }
 
 // NodeWrite checks if writing (registering) a node is allowed
-func (p *policyAuthorizer) NodeWrite(name string, _ *AuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) NodeWrite(name string, ctx *AuthorizerContext) EnforcementDecision {
+	// Peer-imported nodes are owned by peering replication, not local rules.
+	if ctx.PeerOrEmpty() != "" {
+		return Deny
+	}
 	if rule, ok := getPolicy(name, p.nodeRules); ok {
 		return enforce(rule.access, AccessWrite)
 	}
@@ -900,7 +904,11 @@ func (p *policyAuthorizer) ServiceReadPrefix(prefix string, _ *AuthorizerContext
 }
 
 // ServiceWrite checks if writing (registering) a service is allowed
-func (p *policyAuthorizer) ServiceWrite(name string, _ *AuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) ServiceWrite(name string, ctx *AuthorizerContext) EnforcementDecision {
+	// Peer-imported services are owned by peering replication, not local rules.
+	if ctx.PeerOrEmpty() != "" {
+		return Deny
+	}
 	if rule, ok := getPolicy(name, p.serviceRules); ok {
 		return enforce(rule.access, AccessWrite)
 	}
