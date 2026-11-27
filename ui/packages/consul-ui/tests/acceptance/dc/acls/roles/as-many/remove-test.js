@@ -3,10 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/acls/roles/as-many/remove.feature.
-// Its single scenario was untitled (reported as "Scenario: "), so the native
-// test is given a title.
-
 import { module } from 'qunit';
 
 import {

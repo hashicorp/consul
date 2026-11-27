@@ -6,9 +6,8 @@
 // Namespace placeholder substitution for native acceptance tests.
 //
 // Acceptance fixtures embed `@namespace` / `@!namespace` placeholders so the
-// same scenario can run against every namespace. These helpers apply the same
-// rewrites the (now deprecated) tests/dictionary.js applied to its `json`,
-// `yaml` and `endpoint` terms:
+// same scenario can run against every namespace. These helpers rewrite them in
+// JSON, YAML and endpoint URLs:
 //
 //   @namespace    the active namespace, or `default` when none is set. In URLs
 //                 and YAML the surrounding `ns=` / `Namespace:` is dropped

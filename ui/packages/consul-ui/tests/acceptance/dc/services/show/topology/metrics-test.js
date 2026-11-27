@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/services/show/topology/metrics.feature.
-
 import { module } from 'qunit';
 
 import {
@@ -69,7 +67,7 @@ module('Acceptance | dc / services / show / topology / metrics', function (hooks
     async function (assert, nspace) {
       createModels('dc', 1, 'datacenter');
       setLocalDatacenter('datacenter');
-      // The `.feature` YAML was mis-indented, so this is what it parsed to.
+      // The original fixture YAML was mis-indented; this is the data it parsed to.
       createModels('service', 1, [
         {
           Service: null,

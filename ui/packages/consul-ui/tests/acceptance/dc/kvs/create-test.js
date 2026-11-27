@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/kvs/create.feature.
-
 import { module } from 'qunit';
 import { click } from '@ember/test-helpers';
 
@@ -22,7 +20,7 @@ import {
   requestMade,
 } from 'consul-ui/tests/helpers/acceptance';
 
-// The yadda `pause for 200` step.
+// Wait 200ms, as the original `pause for 200` step did.
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const visitCreate = async function (assert, nspace) {

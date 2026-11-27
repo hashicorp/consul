@@ -3,10 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/nspaces/index.feature.
-// The feature was `@onlyNamespaceable` (Enterprise only), as before; its first
-// scenario was untitled (reported as "Scenario: ") and is now titled.
-
 import { module } from 'qunit';
 import { fillIn } from '@ember/test-helpers';
 import { findOne } from 'ember-cli-page-object/extend';

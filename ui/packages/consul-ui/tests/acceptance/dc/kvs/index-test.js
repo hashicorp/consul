@@ -3,9 +3,8 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/kvs/index.feature.
-// "Viewing kvs with no write access" was `@ignore`d and still fails (the create
-// button is shown), so it stays skipped.
+// "Viewing kvs with no write access" is skipped: it still fails (the create
+// button is shown).
 
 import { module } from 'qunit';
 

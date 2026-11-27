@@ -3,12 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/acls/tokens/update.feature.
-//
-// The `.feature` titled its Where-table scenario "Update to [Name]", but the
-// table only had a Description column, so both rows ran as "Update to [Name]".
-// The native titles use the description instead.
-
 import { module } from 'qunit';
 import { fillIn } from '@ember/test-helpers';
 
