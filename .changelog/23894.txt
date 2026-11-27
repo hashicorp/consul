@@ -1,0 +1,9 @@
+```release-note:improvement
+proxycfg: Skip tearing down and re-establishing an upstream's discovery chain
+target watches when a repeated chain update delivers no actual change. When a
+service is missing some discovery chain config entries (service-router,
+service-splitter, service-defaults, proxy-defaults), the chain watch can wake
+on unrelated config entry writes elsewhere in the cluster; this previously
+reset all of that upstream's target watches and cleared its cached endpoints
+on every such wakeup, regardless of write rate.
+```
