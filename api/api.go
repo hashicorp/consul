@@ -67,7 +67,9 @@ const (
 	HTTPTLSServerName = "CONSUL_TLS_SERVER_NAME"
 
 	// HTTPSSLVerifyEnvName defines an environment variable name which sets
-	// whether or not to disable certificate checking.
+	// whether to verify the server's certificate when communicating over TLS.
+	// Verification is enabled by default; only a false value disables it, and
+	// a value that cannot be parsed as a boolean leaves it enabled.
 	HTTPSSLVerifyEnvName = "CONSUL_HTTP_SSL_VERIFY"
 
 	// GRPCAddrEnvName defines an environment variable name which sets the gRPC
@@ -507,7 +509,11 @@ func defaultConfig(logger hclog.Logger, transportFn func() *http.Transport) *Con
 	if ssl := os.Getenv(HTTPSSLEnvName); ssl != "" {
 		enabled, err := strconv.ParseBool(ssl)
 		if err != nil {
-			logger.Warn(fmt.Sprintf("could not parse %s", HTTPSSLEnvName), "error", err)
+			// An unparseable value must not fall back to plain HTTP, which
+			// would send the ACL token unencrypted; only an explicit false
+			// value disables TLS.
+			logger.Warn(fmt.Sprintf("could not parse %s, using HTTPS", HTTPSSLEnvName), "error", err)
+			enabled = true
 		}
 
 		if enabled {
@@ -533,9 +539,10 @@ func defaultConfig(logger hclog.Logger, transportFn func() *http.Transport) *Con
 	if v := os.Getenv(HTTPSSLVerifyEnvName); v != "" {
 		doVerify, err := strconv.ParseBool(v)
 		if err != nil {
-			logger.Warn(fmt.Sprintf("could not parse %s", HTTPSSLVerifyEnvName), "error", err)
-		}
-		if !doVerify {
+			// An unparseable value must not disable verification; only an
+			// explicit false value does.
+			logger.Warn(fmt.Sprintf("could not parse %s, TLS certificate verification remains enabled", HTTPSSLVerifyEnvName), "error", err)
+		} else if !doVerify {
 			config.TLSConfig.InsecureSkipVerify = true
 		}
 	}
