@@ -1746,6 +1746,33 @@ func TestStateStore_NodeServices(t *testing.T) {
 		require.NotNil(t, ns)
 		require.Equal(t, "node2", ns.Node.Node)
 	})
+
+	// Missing "ba1" must not match a node whose ID starts with ba… (GH-23724).
+	t.Run("Missing short hex name does not match UUID prefix", func(t *testing.T) {
+		req := &structs.RegisterRequest{
+			ID:      types.NodeID("ba1e4a74-2192-161a-0510-cccccccccccc"),
+			Node:    "other-host",
+			Address: "9.10.11.12",
+		}
+		require.NoError(t, s.EnsureRegistration(3, req))
+
+		{
+			_, ns, err := s.NodeServices(nil, "other-host", nil, "")
+			require.NoError(t, err)
+			require.NotNil(t, ns)
+			require.Equal(t, "other-host", ns.Node.Node)
+		}
+		{
+			_, ns, err := s.NodeServices(nil, "ba1e4a74-2192-161a-0510-cccccccccccc", nil, "")
+			require.NoError(t, err)
+			require.NotNil(t, ns)
+			require.Equal(t, "other-host", ns.Node.Node)
+		}
+
+		_, ns, err := s.NodeServices(nil, "ba1", nil, "")
+		require.NoError(t, err)
+		require.Nil(t, ns)
+	})
 }
 
 func TestStateStore_DeleteNode(t *testing.T) {
