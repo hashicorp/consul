@@ -157,8 +157,14 @@ func txnSession(tx WriteTxn, idx uint64, op *structs.TxnSessionOp) error {
 func txnLegacyIntention(tx WriteTxn, idx uint64, op *structs.TxnIntentionOp) error {
 	switch op.Op {
 	case structs.IntentionOpCreate, structs.IntentionOpUpdate:
+		if op.Intention == nil {
+			return fmt.Errorf("Intention op %q requires an intention", op.Op)
+		}
 		return legacyIntentionSetTxn(tx, idx, op.Intention)
 	case structs.IntentionOpDelete:
+		if op.Intention == nil {
+			return fmt.Errorf("Intention op %q requires an intention", op.Op)
+		}
 		return legacyIntentionDeleteTxn(tx, idx, op.Intention.ID)
 	case structs.IntentionOpDeleteAll:
 		// deliberately not available via this api

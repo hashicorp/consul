@@ -45,6 +45,15 @@ func (t *Txn) preCheck(authorizer resolver.Result, ops structs.TxnOps) structs.T
 
 	// Perform the pre-apply checks for any KV operations.
 	for i, op := range ops {
+		// Each op must set exactly one operation type.
+		if op.FieldCount() > 1 {
+			errors = append(errors, &structs.TxnError{
+				OpIndex: i,
+				What:    "exactly one operation type must be set",
+			})
+			continue
+		}
+
 		switch {
 		case op.KV != nil:
 			ok, err := kvsPreApply(t.logger, t.srv, authorizer, op.KV.Verb, &op.KV.DirEnt)
@@ -164,12 +173,11 @@ func (t *Txn) preCheck(authorizer resolver.Result, ops structs.TxnOps) structs.T
 				})
 			}
 		case op.Intention != nil:
-			if err := intentionVerbValidate(op.Intention.Op); err != nil {
-				errors = append(errors, &structs.TxnError{
-					OpIndex: i,
-					What:    err.Error(),
-				})
-			}
+			// Not supported via this endpoint.
+			errors = append(errors, &structs.TxnError{
+				OpIndex: i,
+				What:    "intention operations are not supported in transactions",
+			})
 		case op.Session != nil:
 			if err := sessionVerbValidate(op.Session.Verb); err != nil {
 				errors = append(errors, &structs.TxnError{
@@ -433,6 +441,17 @@ func (t *Txn) vetCheckWrite(check *structs.HealthCheck, op *structs.TxnCheckOp, 
 	return nil
 }
 
+// nilTxnOpErrors returns an error for every nil entry in ops.
+func nilTxnOpErrors(ops structs.TxnOps) structs.TxnErrors {
+	var errs structs.TxnErrors
+	for i, op := range ops {
+		if op == nil {
+			errs = append(errs, &structs.TxnError{OpIndex: i, What: "operation must not be nil"})
+		}
+	}
+	return errs
+}
+
 // Apply is used to apply multiple operations in a single, atomic transaction.
 func (t *Txn) Apply(args *structs.TxnRequest, reply *structs.TxnResponse) error {
 	if done, err := t.srv.ForwardRPC("Txn.Apply", args, reply); done {
@@ -444,6 +463,11 @@ func (t *Txn) Apply(args *structs.TxnRequest, reply *structs.TxnResponse) error 
 	authz, err := t.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
+	}
+
+	// Reject malformed (nil) ops before they are used.
+	if reply.Errors = nilTxnOpErrors(args.Ops); len(reply.Errors) > 0 {
+		return nil
 	}
 
 	// Hold the write locks for every node targeted by catalog operations from
@@ -495,6 +519,10 @@ func (t *Txn) Read(args *structs.TxnReadRequest, reply *structs.TxnReadResponse)
 	authz, err := t.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
+	}
+
+	if reply.Errors = nilTxnOpErrors(args.Ops); len(reply.Errors) > 0 {
+		return nil
 	}
 
 	// There are currently two different ways we handle permission issues.
@@ -565,17 +593,6 @@ func checkVerbValidate(op api.CheckOp) (bool, error) {
 		return true, nil
 	default:
 		return false, fmt.Errorf("unknown check operation: %s", op)
-	}
-}
-
-// intentionVerbValidate checks for a known operation type.
-func intentionVerbValidate(op structs.IntentionOp) error {
-	// enumcover:structs.IntentionOp
-	switch op {
-	case structs.IntentionOpCreate, structs.IntentionOpDelete, structs.IntentionOpUpdate, structs.IntentionOpDeleteAll, structs.IntentionOpUpsert:
-		return nil
-	default:
-		return fmt.Errorf("unknown intention operation: %s", op)
 	}
 }
 
