@@ -474,10 +474,6 @@ func TestHTTPAPI_BlockEndpoints(t *testing.T) {
 }
 
 func TestHTTPAPI_ResourceAPI_WriteGuards(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
 	t.Parallel()
 
 	const path = "/api/demo/v2/artist/x?partition=default&namespace=default"
