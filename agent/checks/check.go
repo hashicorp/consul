@@ -722,10 +722,10 @@ func (c *CheckTCP) check() {
 }
 
 // CheckUDP is used to periodically send a UDP datagram to determine the health of a given check.
-// The check is passing if the connection succeeds, the response is bytes.Equal to the bytes passed
-// in or if the error returned is a timeout error
+// The check is passing if the connection succeeds or the response is bytes.Equal to the bytes passed in.
 // The check is critical if: the connection succeeds but the response is not equal to the bytes passed in,
-// the connection succeeds but the error returned is not a timeout error or the connection fails
+// the peer does not answer within the timeout, the connection succeeds but the error returned is not a
+// timeout error, or the connection fails.
 type CheckUDP struct {
 	CheckID       structs.CheckID
 	ServiceID     structs.ServiceID
@@ -832,22 +832,46 @@ func (c *CheckUDP) check() {
 		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
 		return
 	}
+	// The dialer's timeout only bounds establishing the connection, which for
+	// UDP is a no-op, so bound the read itself as well. Without this a peer
+	// that receives the datagram but never answers leaves this goroutine
+	// blocked in Read forever: the check then stops reporting a status, and
+	// the service keeps whatever status it last had.
+	timeout := 30 * time.Second
+	if c.Timeout > 0 {
+		timeout = c.Timeout
+	}
+	if err := conn.SetReadDeadline(time.Now().Add(timeout)); err != nil {
+		c.Logger.Warn("Check socket deadline failed",
+			"check", c.CheckID.String(),
+			"error", err,
+		)
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
+		return
+	}
+
 	_, err = bufio.NewReader(conn).Read(make([]byte, 1))
 	if err != nil {
-		if strings.Contains(err.Error(), "i/o timeout") {
-			c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("UDP connect %s: Success", c.UDP))
-			return
-		} else {
-			c.Logger.Warn("Check socket read failed",
+		if ne, ok := err.(net.Error); ok && ne.Timeout() {
+			// The peer did not answer in time. That is a failed check: the
+			// service is up but is not serving, which is what the check is
+			// for.
+			c.Logger.Warn("Check socket read timed out",
 				"check", c.CheckID.String(),
 				"error", err,
 			)
 			c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
 			return
 		}
-	} else if err == nil {
-		c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("UDP connect %s: Success", c.UDP))
+		c.Logger.Warn("Check socket read failed",
+			"check", c.CheckID.String(),
+			"error", err,
+		)
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
+		return
 	}
+
+	c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("UDP connect %s: Success", c.UDP))
 }
 
 // CheckDocker is used to periodically invoke a script to
