@@ -48,7 +48,7 @@ There are four specific cases covered with increasing complexity:
       - [ ] If the config needs to be defaulted for the test server used in unit tests,
             also add it to `DefaultConfig()` in `agent/consul/config.go`.
  - [ ] **If** your config should take effect on a reload/HUP.
-      - [ ] Add necessary code to to trigger a safe (locked or atomic) update to
+      - [ ] Add necessary code to trigger a safe (locked or atomic) update to
         any state the feature needs changing. This needs to be added to one or
         more of the following places:
          - `ReloadConfig` in `agent/agent.go` if it needs to affect the local

@@ -50,7 +50,7 @@ type StaticRuntimeConfig struct {
 }
 
 // RuntimeConfig specifies the configuration the consul agent actually
-// uses. Is is derived from one or more Config structures which can come
+// uses. It is derived from one or more Config structures which can come
 // from files, flags and/or environment variables.
 type RuntimeConfig struct {
 	// non-user configurable values
