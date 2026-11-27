@@ -144,7 +144,7 @@
       </CE.Title>
     </Hds::CodeEditor>
     {{#if @item.error.Rules}}
-      <Hds::Form::Error>{{@item.error.Rules.validation}}</Hds::Form::Error>
+      <Hds::Form::Error data-test-rules-error>{{@item.error.Rules.validation}}</Hds::Form::Error>
     {{/if}}
   {{/if}}
 </fieldset>

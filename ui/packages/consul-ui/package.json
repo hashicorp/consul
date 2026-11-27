@@ -27,7 +27,6 @@
     "start:api": "api-double --dir ./node_modules/@hashicorp/consul-api-double",
     "start:consul": "ember serve --proxy=${CONSUL_HTTP_ADDR:-http://localhost:8500} --port=${EMBER_SERVE_PORT:-4200} --live-reload-port=${EMBER_LIVE_RELOAD_PORT:-7020}",
     "start:staging": "ember serve --port=${EMBER_SERVE_PORT:-4200} --live-reload-port=${EMBER_LIVE_RELOAD_PORT:-7020} --environment staging",
-    "steps:list": "node ./lib/commands/bin/list.js",
     "storybook": "start-storybook -p 6006 -s dist",
     "test": "npm-run-all lint test:*",
     "test:ci": "ember test --test-port=${EMBER_TEST_PORT:-7357} --path dist --silent --reporter xunit",
@@ -138,7 +137,6 @@
     "ember-cli-sri": "^2.1.1",
     "ember-cli-string-helpers": "^8.0.1",
     "ember-cli-terser": "^4.0.2",
-    "ember-cli-yadda": "^0.7.0",
     "ember-collection": "^3.0.0",
     "ember-compatibility-helpers": "^1.2.7",
     "ember-composable-helpers": "^5.0.0",
@@ -219,7 +217,6 @@
   "ember-addon": {
     "paths": [
       "lib/colocated-components",
-      "lib/commands",
       "lib/startup"
     ]
   }
