@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"math"
 	"net"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -1287,14 +1286,12 @@ func encodeKVasRFC1464(key, value string) (txt string) {
 	key = strings.ReplaceAll(key, "=", "`=")
 
 	// Backquote the leading spaces
-	leadingSpacesRE := regexp.MustCompile("^ +")
-	numLeadingSpaces := len(leadingSpacesRE.FindString(key))
-	key = leadingSpacesRE.ReplaceAllString(key, strings.Repeat("` ", numLeadingSpaces))
+	trimmed := strings.TrimLeft(key, " ")
+	key = strings.Repeat("` ", len(key)-len(trimmed)) + trimmed
 
 	// Backquote the trailing spaces
-	trailingSpacesRE := regexp.MustCompile(" +$")
-	numTrailingSpaces := len(trailingSpacesRE.FindString(key))
-	key = trailingSpacesRE.ReplaceAllString(key, strings.Repeat("` ", numTrailingSpaces))
+	trimmed = strings.TrimRight(key, " ")
+	key = trimmed + strings.Repeat("` ", len(key)-len(trimmed))
 
 	value = strings.ReplaceAll(value, "`", "``")
 

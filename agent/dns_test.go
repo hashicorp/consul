@@ -207,6 +207,7 @@ func TestDNS_EncodeKVasRFC1464(t *testing.T) {
 		// Additional tests
 		{" abc", " 321", "` abc= 321", "` abc= 321"},
 		{"`a", "b", "``a=b", "``a=b"},
+		{"  a  ", "b", "` ` a` ` =b", "` ` a` ` =b"},
 	}
 
 	for _, test := range tests {
