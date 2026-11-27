@@ -33,8 +33,8 @@ const (
 	DefaultWANSerfPort = 8302
 
 	// DefaultRaftMultiplier is used as a baseline Raft configuration that
-	// will be reliable on a very basic server. See docs/install/performance.html
-	// for information on how this value was obtained.
+	// will be reliable on a very basic server. See the performance documentation
+	// on developer.hashicorp.com for information on how this value was obtained.
 	DefaultRaftMultiplier uint = 5
 
 	// MaxRaftMultiplier is a fairly arbitrary upper bound that limits the
