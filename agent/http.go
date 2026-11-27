@@ -281,13 +281,42 @@ func (s *HTTPHandlers) handler() http.Handler {
 			s.agent.logger.Named(logging.HTTP),
 		),
 	)
-	mux.Handle(resourceAPIPrefix+"/", http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		if shouldLimitRequestBody(req) && !s.limitRequestBody(resp, req) {
-			s.writeRequestBodyTooLarge(resp, req)
+	// Registered through handleFuncMetrics so these endpoints get the same
+	// request body limit and metrics as the /v1 endpoints.
+	handleFuncMetrics(resourceAPIPrefix+"/", func(resp http.ResponseWriter, req *http.Request) {
+		// These endpoints bypass wrap(), so apply the same write guards here.
+		setHeaders(resp, s.agent.config.HTTPResponseHeaders)
+		resourceLogger := s.agent.logger.Named(logging.HTTP)
+		if s.denylist.Block(req.URL.Path) {
+			errMsg := "Endpoint is blocked by agent configuration"
+			// Log the escaped path only: query-string tokens never reach the logs,
+			// and control characters (possible when the unprintable-character
+			// filter is disabled) cannot forge log lines.
+			resourceLogger.Error("Request error",
+				"method", req.Method,
+				"url", req.URL.EscapedPath(),
+				"from", req.RemoteAddr,
+				"error", errMsg,
+			)
+			resp.Header().Set(contentTypeHeader, plainContentType)
+			resp.WriteHeader(http.StatusForbidden)
+			fmt.Fprint(resp, errMsg)
+			return
+		}
+		if err := s.checkWriteAccess(req); err != nil {
+			resourceLogger.Error("Request error",
+				"method", req.Method,
+				"url", req.URL.EscapedPath(),
+				"from", req.RemoteAddr,
+				"error", err,
+			)
+			resp.Header().Set(contentTypeHeader, plainContentType)
+			resp.WriteHeader(http.StatusForbidden)
+			fmt.Fprint(resp, "Access is restricted")
 			return
 		}
 		resourceHandler.ServeHTTP(resp, req)
-	}))
+	})
 
 	if s.IsUIEnabled() {
 		// Note that we _don't_ support reloading ui_config.{enabled, content_dir,
