@@ -44,9 +44,9 @@
               "maxPendingLookups": "256",
               "resolverTimeout": "2s",
               "typedDnsResolverConfig": {
-                "name": "envoy.network.dns_resolver.cares",
+                "name": "envoy.network.dns_resolver.getaddrinfo",
                 "typedConfig": {
-                  "@type": "type.googleapis.com/envoy.extensions.network.dns_resolver.cares.v3.CaresDnsResolverConfig",
+                  "@type": "type.googleapis.com/envoy.extensions.network.dns_resolver.getaddrinfo.v3.GetAddrInfoDnsResolverConfig",
                   "resolvers": [
                     {
                       "socketAddress": {

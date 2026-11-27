@@ -91,7 +91,7 @@ load helpers
   [ "$(echo "$CFG" | jq -r '.stat_prefix')" = "consul_egress_dns" ]
 
   # Forwarding-only: an (empty) inline table plus a c-ares client config.
-  [ "$(echo "$CFG" | jq -r '.client_config.typed_dns_resolver_config.name')" = "envoy.network.dns_resolver.cares" ]
+  [ "$(echo "$CFG" | jq -r '.client_config.typed_dns_resolver_config.name')" = "envoy.network.dns_resolver.getaddrinfo" ]
 
   RESOLVERS=$(echo "$CFG" | jq -r \
     '.client_config.typed_dns_resolver_config.typed_config.resolvers[].socket_address.address' | sort | tr '\n' ' ')
