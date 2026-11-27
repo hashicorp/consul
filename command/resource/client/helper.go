@@ -6,39 +6,41 @@ package client
 import (
 	"crypto/tls"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/go-rootcerts"
+	"github.com/hashicorp/consul/api"
 )
 
-// tls.Config is used to establish communication in TLS mode
+// SetupTLSConfig returns the TLS configuration used to communicate with Consul
+// over gRPC with TLS. It shares the HTTP client's TLS setup, so the server's
+// certificate is verified unless verification was explicitly disabled.
 func SetupTLSConfig(c *GRPCConfig) (*tls.Config, error) {
-	tlsConfig := &tls.Config{
-		InsecureSkipVerify: !c.GRPCTLSVerify,
-	}
-
-	if c.CertFile != "" && c.KeyFile != "" {
-		tlsCert, err := tls.LoadX509KeyPair(c.CertFile, c.KeyFile)
-		if err != nil {
-			return nil, err
-		}
-		tlsConfig.Certificates = []tls.Certificate{tlsCert}
-	}
-
-	var caConfig *rootcerts.Config
-	if c.CAFile != "" || c.CAPath != "" {
-		caConfig = &rootcerts.Config{
-			CAFile: c.CAFile,
-			CAPath: c.CAPath,
-		}
-	}
-	// load system CA certs if user doesn't provide any
-	if err := rootcerts.ConfigureTLS(tlsConfig, caConfig); err != nil {
+	tlsConfig, err := api.SetupTLSConfig(&api.TLSConfig{
+		CAFile:             c.CAFile,
+		CAPath:             c.CAPath,
+		CertFile:           c.CertFile,
+		KeyFile:            c.KeyFile,
+		InsecureSkipVerify: c.InsecureSkipVerify,
+	})
+	if err != nil {
 		return nil, err
 	}
+	tlsConfig.ServerName = tlsServerName(c.TLSServerName)
+	tlsConfig.MinVersion = tls.VersionTLS12
 
 	return tlsConfig, nil
+}
+
+// tlsServerName returns the host to verify the server's certificate against.
+// It accepts a host or IP address with or without a port, including
+// unbracketed IPv6 addresses, which net.SplitHostPort rejects.
+func tlsServerName(name string) string {
+	if host, _, err := net.SplitHostPort(name); err == nil {
+		return host
+	}
+	return strings.TrimSuffix(strings.TrimPrefix(name, "["), "]")
 }
 
 func removeSchemaFromGRPCAddress(addr string) string {

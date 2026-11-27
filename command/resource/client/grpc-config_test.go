@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLoadGRPCConfig(t *testing.T) {
@@ -15,6 +16,7 @@ func TestLoadGRPCConfig(t *testing.T) {
 		config, err := LoadGRPCConfig(nil)
 		assert.NoError(t, err)
 		assert.Equal(t, GetDefaultGRPCConfig(), config)
+		assert.False(t, config.InsecureSkipVerify)
 	})
 
 	// Test when environment variables are set
@@ -23,6 +25,7 @@ func TestLoadGRPCConfig(t *testing.T) {
 		t.Setenv(GRPCAddrEnvName, "localhost:8500")
 		t.Setenv(GRPCTLSEnvName, "true")
 		t.Setenv(GRPCTLSVerifyEnvName, "false")
+		t.Setenv(GRPCTLSServerNameEnvName, "server.dc1.consul")
 		t.Setenv(GRPCClientCertEnvName, "/path/to/client.crt")
 		t.Setenv(GRPCClientKeyEnvName, "/path/to/client.key")
 		t.Setenv(GRPCCAFileEnvName, "/path/to/ca.crt")
@@ -34,17 +37,43 @@ func TestLoadGRPCConfig(t *testing.T) {
 		config, err := LoadGRPCConfig(nil)
 		assert.NoError(t, err)
 		expectedConfig := &GRPCConfig{
-			Address:       "localhost:8500",
-			GRPCTLS:       true,
-			GRPCTLSVerify: false,
-			CertFile:      "/path/to/client.crt",
-			KeyFile:       "/path/to/client.key",
-			CAFile:        "/path/to/ca.crt",
-			CAPath:        "/path/to/cacerts",
-			Token:         "token",
-			TokenFile:     "/path/to/token/file",
+			Address:            "localhost:8500",
+			GRPCTLS:            true,
+			InsecureSkipVerify: true,
+			TLSServerName:      "server.dc1.consul",
+			CertFile:           "/path/to/client.crt",
+			KeyFile:            "/path/to/client.key",
+			CAFile:             "/path/to/ca.crt",
+			CAPath:             "/path/to/cacerts",
+			Token:              "token",
+			TokenFile:          "/path/to/token/file",
 		}
 		assert.Equal(t, expectedConfig, config)
+	})
+
+	t.Run("TLS verifies the server certificate by default", func(t *testing.T) {
+		for _, env := range []struct{ name, value string }{
+			{GRPCTLSEnvName, "true"},
+			{GRPCAddrEnvName, "https://consul.example.com:8503"},
+		} {
+			t.Run(env.name, func(t *testing.T) {
+				t.Setenv(env.name, env.value)
+
+				config, err := LoadGRPCConfig(nil)
+				require.NoError(t, err)
+				require.True(t, config.GRPCTLS)
+				require.False(t, config.InsecureSkipVerify)
+			})
+		}
+	})
+
+	t.Run("Verify env set to true", func(t *testing.T) {
+		t.Setenv(GRPCTLSEnvName, "true")
+		t.Setenv(GRPCTLSVerifyEnvName, "true")
+
+		config, err := LoadGRPCConfig(&GRPCConfig{InsecureSkipVerify: true})
+		require.NoError(t, err)
+		require.False(t, config.InsecureSkipVerify)
 	})
 
 	// Test when there's an error parsing a boolean value from an environment variable
@@ -56,5 +85,13 @@ func TestLoadGRPCConfig(t *testing.T) {
 		config, err := LoadGRPCConfig(nil)
 		assert.Error(t, err, "failed to parse CONSUL_GRPC_TLS: strconv.ParseBool: parsing \"invalid_boolean_value\": invalid syntax")
 		assert.Nil(t, config)
+	})
+
+	t.Run("Error Parsing Verify Bool", func(t *testing.T) {
+		t.Setenv(GRPCTLSVerifyEnvName, "invalid_boolean_value")
+
+		config, err := LoadGRPCConfig(nil)
+		require.ErrorContains(t, err, "failed to parse CONSUL_GRPC_TLS_VERIFY")
+		require.Nil(t, config)
 	})
 }
