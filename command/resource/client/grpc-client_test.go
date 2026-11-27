@@ -59,6 +59,9 @@ func TestResourceReadInTLS(t *testing.T) {
 		name              string
 		requireClientCert bool
 		grpcConfig        func() (*GRPCConfig, int)
+		// expectErr is set when the TLS handshake must be rejected, in which
+		// case no RPC (and therefore no ACL token) reaches the server.
+		expectErr string
 	}{
 		{
 			name:              "Test with CertFile, KeyFile and CAFile",
@@ -75,16 +78,16 @@ func TestResourceReadInTLS(t *testing.T) {
 			},
 		},
 		{
-			name:              "Test without CAFile",
+			name:              "Test without CAFile and verification explicitly disabled",
 			requireClientCert: true,
 			grpcConfig: func() (*GRPCConfig, int) {
 				availablePort := freeport.GetOne(t)
 				return &GRPCConfig{
-					Address:       fmt.Sprintf("127.0.0.1:%d", availablePort),
-					GRPCTLS:       true,
-					GRPCTLSVerify: false,
-					CertFile:      "../../../test/client_certs/client.crt",
-					KeyFile:       "../../../test/client_certs/client.key",
+					Address:            fmt.Sprintf("127.0.0.1:%d", availablePort),
+					GRPCTLS:            true,
+					InsecureSkipVerify: true,
+					CertFile:           "../../../test/client_certs/client.crt",
+					KeyFile:            "../../../test/client_certs/client.key",
 				}, availablePort
 			},
 		},
@@ -96,8 +99,62 @@ func TestResourceReadInTLS(t *testing.T) {
 				return &GRPCConfig{
 					Address: fmt.Sprintf("127.0.0.1:%d", availablePort),
 					GRPCTLS: true,
+					CAFile:  "../../../test/client_certs/rootca.crt",
 				}, availablePort
 			},
+		},
+		{
+			name:              "Test with TLS server name",
+			requireClientCert: false,
+			grpcConfig: func() (*GRPCConfig, int) {
+				availablePort := freeport.GetOne(t)
+				return &GRPCConfig{
+					Address:       fmt.Sprintf("127.0.0.1:%d", availablePort),
+					GRPCTLS:       true,
+					TLSServerName: "server.dc1.consul",
+					CAFile:        "../../../test/client_certs/rootca.crt",
+				}, availablePort
+			},
+		},
+		{
+			name:              "Test with IP address TLS server name",
+			requireClientCert: false,
+			grpcConfig: func() (*GRPCConfig, int) {
+				availablePort := freeport.GetOne(t)
+				return &GRPCConfig{
+					Address:       fmt.Sprintf("localhost:%d", availablePort),
+					GRPCTLS:       true,
+					TLSServerName: "127.0.0.1",
+					CAFile:        "../../../test/client_certs/rootca.crt",
+				}, availablePort
+			},
+		},
+		{
+			// The server presents a certificate the client does not trust.
+			name:              "Test untrusted server certificate is rejected by default",
+			requireClientCert: false,
+			grpcConfig: func() (*GRPCConfig, int) {
+				availablePort := freeport.GetOne(t)
+				return &GRPCConfig{
+					Address: fmt.Sprintf("127.0.0.1:%d", availablePort),
+					GRPCTLS: true,
+				}, availablePort
+			},
+			expectErr: "authentication handshake failed",
+		},
+		{
+			name:              "Test server certificate for a different name is rejected",
+			requireClientCert: false,
+			grpcConfig: func() (*GRPCConfig, int) {
+				availablePort := freeport.GetOne(t)
+				return &GRPCConfig{
+					Address:       fmt.Sprintf("127.0.0.1:%d", availablePort),
+					GRPCTLS:       true,
+					TLSServerName: "other.example.com",
+					CAFile:        "../../../test/client_certs/rootca.crt",
+				}, availablePort
+			},
+			expectErr: "authentication handshake failed",
 		},
 	}
 
@@ -131,6 +188,13 @@ func TestResourceReadInTLS(t *testing.T) {
 
 			v2Artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
+
+			if tt.expectErr != "" {
+				_, err = gRPCClient.Client.Read(context.Background(), &pbresource.ReadRequest{Id: v2Artist.Id})
+				require.Equal(t, codes.Unavailable.String(), status.Code(err).String())
+				require.ErrorContains(t, err, tt.expectErr)
+				return
+			}
 
 			_, err = gRPCClient.Client.Read(context.Background(), &pbresource.ReadRequest{Id: v2Artist.Id})
 			require.Equal(t, codes.NotFound.String(), status.Code(err).String())

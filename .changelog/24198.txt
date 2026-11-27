@@ -1,0 +1,11 @@
+```release-note:improvement
+cli: The `consul resource apply-grpc`, `read-grpc`, `list-grpc`, and `delete-grpc` commands now verify the server's certificate when using TLS and require TLS 1.2 or later. Previously, certificate verification was skipped unless `CONSUL_GRPC_TLS_VERIFY=true` was set. If the server's certificate is not signed by a system-trusted CA, provide the CA with `-ca-file` or `CONSUL_GRPC_CACERT`. Use the new `-tls-server-name` flag or `CONSUL_GRPC_TLS_SERVER_NAME` to set the expected server name, for example when connecting by IP address. Verification can be disabled with the new `-grpc-tls-verify=false` flag or `CONSUL_GRPC_TLS_VERIFY=false`.
+```
+
+```release-note:bug
+api: Fix an invalid value for the `CONSUL_HTTP_SSL_VERIFY` environment variable, such as `yes` or a typo, disabling TLS certificate verification. Only `false` or `0` now disables verification, and a warning is logged for invalid values.
+```
+
+```release-note:bug
+api: Fix an invalid value for the `CONSUL_HTTP_SSL` environment variable, such as `yes` or a typo, falling back to plain HTTP. Only `false` or `0` now selects HTTP, and a warning is logged for invalid values.
+```
