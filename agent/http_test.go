@@ -538,6 +538,167 @@ func TestHTTPAPI_ResourceAPI_WriteGuards(t *testing.T) {
 		}
 	})
 
+	t.Run("safe methods bypass allow_write_http_from", func(t *testing.T) {
+		a := NewTestAgent(t, `
+			http_config {
+				allow_write_http_from = ["255.255.255.255/32"]
+			}
+		`)
+		defer a.Shutdown()
+
+		for _, method := range []string{http.MethodGet, http.MethodHead, http.MethodOptions} {
+			resp := do(a, method, "127.0.0.1:1234", "")
+			require.NotEqual(t, http.StatusForbidden, resp.Code, method)
+			require.NotContains(t, resp.Body.String(), "Access is restricted", method)
+		}
+	})
+
+	t.Run("allow_write_http_from unparseable remote addr", func(t *testing.T) {
+		a := NewTestAgent(t, `
+			http_config {
+				allow_write_http_from = ["127.0.0.0/8"]
+			}
+		`)
+		defer a.Shutdown()
+
+		resp := do(a, http.MethodPut, "garbage", `{"data":{}}`)
+		require.Equal(t, http.StatusForbidden, resp.Code)
+		require.Contains(t, resp.Body.String(), "Access is restricted")
+	})
+
+	t.Run("allow_write_http_from multiple CIDRs and IPv6", func(t *testing.T) {
+		a := NewTestAgent(t, `
+			http_config {
+				allow_write_http_from = ["10.0.0.0/8", "::1/128"]
+			}
+		`)
+		defer a.Shutdown()
+
+		for _, remote := range []string{"[::1]:1234", "10.1.2.3:1234"} {
+			resp := do(a, http.MethodPut, remote, `{"data":{}}`)
+			require.NotEqual(t, http.StatusForbidden, resp.Code, remote)
+		}
+		for _, remote := range []string{"192.168.1.1:1234", "[2001:db8::1]:1234"} {
+			resp := do(a, http.MethodPut, remote, `{"data":{}}`)
+			require.Equal(t, http.StatusForbidden, resp.Code, remote)
+			require.Contains(t, resp.Body.String(), "Access is restricted", remote)
+		}
+	})
+
+	t.Run("block_endpoints not matching /api", func(t *testing.T) {
+		a := NewTestAgent(t, `
+			http_config {
+				block_endpoints = ["/v1/kv"]
+			}
+		`)
+		defer a.Shutdown()
+
+		for _, method := range []string{http.MethodGet, http.MethodPut} {
+			resp := do(a, method, "127.0.0.1:1234", `{"data":{}}`)
+			require.NotContains(t, resp.Body.String(), "blocked by agent configuration", method)
+			require.NotEqual(t, http.StatusForbidden, resp.Code, method)
+		}
+	})
+
+	t.Run("block_endpoints response headers", func(t *testing.T) {
+		a := NewTestAgent(t, `
+			http_config {
+				block_endpoints = ["/api/"]
+				response_headers { "X-Test" = "blocked" }
+			}
+		`)
+		defer a.Shutdown()
+
+		resp := do(a, http.MethodGet, "127.0.0.1:1234", "")
+		require.Equal(t, http.StatusForbidden, resp.Code)
+		require.Equal(t, "blocked", resp.Header().Get("X-Test"))
+		require.NotContains(t, resp.Body.String(), "partition=default")
+	})
+
+	t.Run("block_endpoints takes precedence over allow_write_http_from", func(t *testing.T) {
+		a := NewTestAgent(t, `
+			http_config {
+				block_endpoints = ["/api/"]
+				allow_write_http_from = ["255.255.255.255/32"]
+			}
+		`)
+		defer a.Shutdown()
+
+		resp := do(a, http.MethodPut, "127.0.0.1:1234", `{"data":{}}`)
+		require.Equal(t, http.StatusForbidden, resp.Code)
+		require.Contains(t, resp.Body.String(), "blocked by agent configuration")
+		require.NotContains(t, resp.Body.String(), "Access is restricted")
+	})
+
+	t.Run("rejections do not log query string secrets", func(t *testing.T) {
+		buf := &syncBuffer{b: new(bytes.Buffer)}
+		a := &TestAgent{
+			LogOutput: buf,
+			HCL: `
+				http_config {
+					allow_write_http_from = ["255.255.255.255/32"]
+				}
+			`,
+		}
+		require.NoError(t, a.Start(t))
+		defer a.Shutdown()
+
+		req, err := http.NewRequest(http.MethodPut, "/api/demo/v2/artist/x?token=SUPERSECRET", strings.NewReader(`{}`))
+		require.NoError(t, err)
+		req.RemoteAddr = "127.0.0.1:1234"
+		resp := httptest.NewRecorder()
+		a.srv.handler().ServeHTTP(resp, req)
+		require.Equal(t, http.StatusForbidden, resp.Code)
+
+		logs := buf.String()
+		require.Contains(t, logs, "Request error")
+		require.Contains(t, logs, "/api/demo/v2/artist/x")
+		require.NotContains(t, logs, "SUPERSECRET")
+	})
+
+	t.Run("blocked path with control characters is escaped in logs", func(t *testing.T) {
+		buf := &syncBuffer{b: new(bytes.Buffer)}
+		a := &TestAgent{
+			LogOutput: buf,
+			HCL: `
+				http_config {
+					block_endpoints = ["/api/"]
+				}
+				disable_http_unprintable_char_filter = true
+			`,
+		}
+		require.NoError(t, a.Start(t))
+		defer a.Shutdown()
+
+		req, err := http.NewRequest(http.MethodGet, "/api/demo/v2/artist/x%0aFORGED", nil)
+		require.NoError(t, err)
+		req.RemoteAddr = "127.0.0.1:1234"
+		resp := httptest.NewRecorder()
+		a.srv.handler().ServeHTTP(resp, req)
+		require.Equal(t, http.StatusForbidden, resp.Code)
+
+		logs := buf.String()
+		require.Contains(t, logs, "Request error")
+		require.NotContains(t, logs, "x\nFORGED")
+	})
+
+	t.Run("requests under guards and body limit reach the handler", func(t *testing.T) {
+		a := NewTestAgent(t, `
+			limits {
+				http_max_request_body_size = 4096
+			}
+		`)
+		defer a.Shutdown()
+
+		resp := do(a, http.MethodGet, "127.0.0.1:1234", "")
+		require.NotEqual(t, http.StatusForbidden, resp.Code)
+		require.NotEqual(t, http.StatusRequestEntityTooLarge, resp.Code)
+
+		resp = do(a, http.MethodPut, "127.0.0.1:1234", `{"data":{}}`)
+		require.NotEqual(t, http.StatusForbidden, resp.Code)
+		require.NotEqual(t, http.StatusRequestEntityTooLarge, resp.Code)
+	})
+
 	t.Run("request body limit still applies", func(t *testing.T) {
 		a := NewTestAgent(t, `
 			limits {
