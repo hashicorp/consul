@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/freeport"
@@ -465,7 +466,73 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 		if grpcTLSPort != strconv.Itoa(ports[1]) {
 			r.Fatalf("Expected grpc tls port to be %d, was %s", ports[1], grpcTLSPort)
 		}
+		_, node, err := state.GetNode(s3.config.NodeName, nil, "")
+		if err != nil {
+			r.Fatalf("err: %v", err)
+		}
+		if got := node.Meta[structs.MetaConsulVersion]; got != versionToExpect {
+			r.Fatalf("Expected node meta %s to be updated to %s, was %s", structs.MetaConsulVersion, versionToExpect, got)
+		}
 	})
+}
+
+func TestLeader_RegisterMember_RefreshesConsulVersion(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, c1 := testClient(t)
+	defer os.RemoveAll(dir2)
+	defer c1.Shutdown()
+
+	joinLAN(t, c1, s1)
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	var member serf.Member
+	for _, m := range s1.serfLAN.Members() {
+		if m.Name == c1.config.NodeName {
+			member = m
+		}
+	}
+	require.Equal(t, c1.config.NodeName, member.Name)
+
+	state := s1.fsm.State()
+	retry.Run(t, func(r *retry.R) {
+		_, node, err := state.GetNode(c1.config.NodeName, nil, "")
+		require.NoError(r, err)
+		require.NotNil(r, node)
+	})
+
+	// Simulate a node whose catalog entry was written by an older Consul
+	// version, plus some unrelated node meta that must be kept.
+	_, node, err := state.GetNode(c1.config.NodeName, nil, "")
+	require.NoError(t, err)
+	req := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       node.Node,
+		ID:         node.ID,
+		Address:    node.Address,
+		NodeMeta: map[string]string{
+			structs.MetaConsulVersion: "1.0.0",
+			"rack":                    "r1",
+		},
+	}
+	var out struct{}
+	require.NoError(t, s1.RPC(context.Background(), "Catalog.Register", &req, &out))
+
+	require.NoError(t, s1.registrator.HandleAliveMember(member, nil, s1.joinConsulServer))
+
+	build, err := metadata.Build(&member)
+	require.NoError(t, err)
+	_, node, err = state.GetNode(c1.config.NodeName, nil, "")
+	require.NoError(t, err)
+	require.Equal(t, build.String(), node.Meta[structs.MetaConsulVersion])
+	require.Equal(t, "r1", node.Meta["rack"])
 }
 
 func TestLeader_ReapServer(t *testing.T) {
