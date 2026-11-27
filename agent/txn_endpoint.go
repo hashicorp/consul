@@ -230,6 +230,7 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 							Warning: svc.Weights.Warning,
 						},
 						EnableTagOverride: svc.EnableTagOverride,
+						PeerName:          svc.PeerName,
 						EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(
 							svc.Partition,
 							svc.Namespace,
