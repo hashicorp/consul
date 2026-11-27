@@ -1,6 +1,6 @@
 module github.com/hashicorp/consul/testing/deployer
 
-go 1.26.10
+go 1.26.11
 
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
