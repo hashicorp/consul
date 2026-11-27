@@ -3,11 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/acls/policies/delete.feature.
-//
-// The `.feature` also had a commented-out "Deleting a policy from the policy
-// detail page errors" scenario (FIXME); it never ran and is not ported.
-
 import { module } from 'qunit';
 
 import {

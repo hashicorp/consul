@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/nodes/show/health-checks.feature,
-// plus a regression test for the "Check type" sort (see the last scenario).
+// Includes a regression test for the "Check type" sort (see the last scenario).
 
 import { module } from 'qunit';
 import { click } from '@ember/test-helpers';

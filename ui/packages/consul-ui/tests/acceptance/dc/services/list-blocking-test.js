@@ -3,10 +3,8 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/services/list-blocking.feature.
-//
-// The `.feature` waited for 3 services (not 5) after the edit to 5; that is
-// kept as is, so this step only checks the list still renders.
+// After the edit to 5 services this still waits for 3, as the original test
+// did, so that step only checks the list still renders.
 
 import { module } from 'qunit';
 

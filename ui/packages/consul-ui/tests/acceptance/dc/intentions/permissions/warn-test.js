@@ -3,10 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/intentions/permissions/warn.feature.
-// The feature was `@ignore`d and its single scenario untitled (reported as
-// "Scenario: "). It passes now, so the native test is titled and runs again.
-
 import { module } from 'qunit';
 import { click } from '@ember/test-helpers';
 

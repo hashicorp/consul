@@ -3,11 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/kvs/edit.feature.
-//
-// The `.feature` had two scenarios titled "Viewing a Session attached to a KV";
-// the second (no session) is titled "Viewing a KV without a Session".
-
 import { module } from 'qunit';
 
 import {

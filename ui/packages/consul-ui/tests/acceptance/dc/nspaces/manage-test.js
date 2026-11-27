@@ -3,10 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/nspaces/manage.feature.
-// The feature was `@onlyNamespaceable` (Enterprise only), as before; its single
-// scenario was untitled (reported as "Scenario: ") and is now titled.
-
 import { module } from 'qunit';
 
 import {
@@ -21,7 +17,7 @@ import {
   assertVisibleCount,
 } from 'consul-ui/tests/helpers/acceptance';
 
-// A page-object property that may not exist (yadda's "I don't see ...").
+// A page-object property that may not exist.
 const isShown = function (get) {
   try {
     return !!get();

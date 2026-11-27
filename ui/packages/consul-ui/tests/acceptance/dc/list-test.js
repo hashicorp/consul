@@ -3,11 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/list.feature.
-//
-// The original scenario outline listed one row per model type; here we
-// parameterise the scenario body over those rows.
-
 import { module } from 'qunit';
 
 import {
