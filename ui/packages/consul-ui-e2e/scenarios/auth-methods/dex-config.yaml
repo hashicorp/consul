@@ -1,0 +1,48 @@
+# Copyright IBM Corp. 2024, 2026
+# SPDX-License-Identifier: BUSL-1.1
+
+# Config for the Dex IdP sidecar this scenario uses as a real OIDC provider.
+# See ../README.md for why this scenario needs Dex at all and why every URL
+# here is 127.0.0.1 (never `localhost`) — Docker Desktop's IPv6 loopback
+# forwarding is unreliable, and Go's dual-stack dialer can pick `::1` for
+# `localhost` and fail even when the container is definitely listening.
+#
+# `issuer` MUST equal the exact URL used to fetch discovery — Consul's OIDC
+# client is spec-strict about `issuer` matching the discovery URL, so if you
+# change the host/port here, update `local.sh` and `seed.ts` to match.
+issuer: http://127.0.0.1:5556/dex
+
+storage:
+  type: memory
+
+web:
+  http: 0.0.0.0:5556
+
+oauth2:
+  # No consent screen — this is a fixture IdP, not a real one, and the popup
+  # flow has nobody to click "Grant Access" for it.
+  skipApprovalScreen: true
+
+staticClients:
+  - id: consul
+    secret: consul-secret
+    name: 'Consul'
+    redirectURIs:
+      # Must exactly match AllowedRedirectURIs on the "dex-oidc" auth method
+      # in seed.ts, which itself must match where Playwright/the browser
+      # loads the UI from (E2E_BASE_URL) — see README.md.
+      - 'http://127.0.0.1:4200/ui/oidc/callback'
+      # Same callback when the agent serves the UI itself (UI_SOURCE=agent).
+      - 'http://127.0.0.1:8500/ui/oidc/callback'
+
+# Static username/password connector — no external IdP account needed.
+# Credentials below are throwaway fixtures for an in-memory dev IdP, torn
+# down between runs; not secrets.
+enablePasswordDB: true
+staticPasswords:
+  - email: 'demo@example.com'
+    # bcrypt hash of "consul-demo-pw", cost 10:
+    #   htpasswd -nbBC 10 demo consul-demo-pw
+    hash: '$2y$10$EI9uWAVAVEmMFxvseUAhLOag7.2Yx0sI3WzW3G68GOAN5DvGuAcLK'
+    username: 'demo'
+    userID: '08a8684b-db88-4b73-90a9-3cd1661f5466'

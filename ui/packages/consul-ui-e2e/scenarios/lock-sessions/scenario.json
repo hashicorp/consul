@@ -1,0 +1,5 @@
+{
+  "description": "Many lock sessions on the agent node to exercise the Lock Sessions tab and Invalidate flow.",
+  "routes": ["/ui/dc1/nodes/node-primary/lock-sessions"],
+  "requiresConnect": false
+}

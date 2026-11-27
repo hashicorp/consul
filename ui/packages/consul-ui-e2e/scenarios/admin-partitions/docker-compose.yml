@@ -1,0 +1,23 @@
+# Copyright IBM Corp. 2024, 2026
+# SPDX-License-Identifier: BUSL-1.1
+
+# Single-node Consul Enterprise dev agent on the fixed :8500 port.
+# Needs a licensed hashicorp/consul-enterprise image — pull access/tag may
+# differ by registry. UNVERIFIED: mirrors scenarios/intentions-enterprise,
+# which has only been run and confirmed via RUNTIME=local against a real
+# Enterprise binary + license (see README). Adjust `image` below to whatever
+# registry you actually have.
+services:
+  consul:
+    image: ${CONSUL_IMAGE:-hashicorp/consul-enterprise:1.20-ent}
+    command: agent -dev -client 0.0.0.0 -node node-primary -dns-port=-1
+    environment:
+      # License text, never committed (e.g. CONSUL_LICENSE=$(cat your.hclic)).
+      - CONSUL_LICENSE=${CONSUL_LICENSE:?set CONSUL_LICENSE to the Enterprise license text}
+    ports:
+      - "8500:8500"
+    healthcheck:
+      test: ["CMD", "consul", "info"]
+      interval: 3s
+      timeout: 2s
+      retries: 20

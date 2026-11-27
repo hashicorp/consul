@@ -163,7 +163,7 @@ importers:
         version: 1.6.1
       '@hashicorp/design-system-components':
         specifier: ^6.0.0
-        version: 6.2.1(@babel/core@7.29.7)(@ember/string@4.0.1)(@ember/test-helpers@5.4.1(@babel/core@7.29.7)(@glint/template@1.5.2))(@glimmer/component@1.1.2(@babel/core@7.29.7))(@glint/template@1.5.2)(ember-basic-dropdown@8.6.2(@babel/core@7.29.7)(@ember/string@4.0.1)(@ember/test-helpers@5.4.1(@babel/core@7.29.7)(@glint/template@1.5.2))(@glimmer/component@1.1.2(@babel/core@7.29.7))(@glint/template@1.5.2)(ember-source@5.12.0(@glimmer/component@1.1.2(@babel/core@7.29.7))(@glint/template@1.5.2)(rsvp@4.8.5)(webpack@5.105.4)))(ember-intl@7.4.1(@ember/test-helpers@5.4.1(@babel/core@7.29.7)(@glint/template@1.5.2))(@glint/template@1.5.2)(webpack@5.105.4))(ember-source@5.12.0(@glimmer/component@1.1.2(@babel/core@7.29.7))(@glint/template@1.5.2)(rsvp@4.8.5)(webpack@5.105.4))
+        version: 6.2.1(@babel/core@7.29.7)(@ember/string@4.0.1)(@ember/test-helpers@5.4.1(@babel/core@7.29.7)(@glint/template@1.5.2))(@glimmer/component@1.1.2(@babel/core@7.29.7))(@glint/template@1.5.2)(ember-basic-dropdown@8.6.2(@babel/core@7.29.7)(@ember/string@4.0.1)(@ember/test-helpers@5.4.1(@babel/core@7.29.7)(@glint/template@1.5.2))(@glimmer/component@1.1.2(@babel/core@7.29.7))(@glint/template@1.5.2)(ember-source@5.12.0(@glimmer/component@1.1.2(@babel/core@7.29.7))(@glint/template@1.5.2)(rsvp@4.8.5)(webpack@5.105.4)))(ember-intl@7.4.1(@ember/test-helpers@5.4.1(@babel/core@7.29.7)(@glint/template@1.5.2))(@glint/template@1.5.2)(typescript@5.9.3)(webpack@5.105.4))(ember-source@5.12.0(@glimmer/component@1.1.2(@babel/core@7.29.7))(@glint/template@1.5.2)(rsvp@4.8.5)(webpack@5.105.4))
       '@hashicorp/design-system-tokens':
         specifier: ^4.0.0
         version: 4.0.1
@@ -355,7 +355,7 @@ importers:
         version: 6.0.0(@babel/core@7.29.7)
       ember-intl:
         specifier: ^7.4.1
-        version: 7.4.1(@ember/test-helpers@5.4.1(@babel/core@7.29.7)(@glint/template@1.5.2))(@glint/template@1.5.2)(webpack@5.105.4)
+        version: 7.4.1(@ember/test-helpers@5.4.1(@babel/core@7.29.7)(@glint/template@1.5.2))(@glint/template@1.5.2)(typescript@5.9.3)(webpack@5.105.4)
       ember-load-initializers:
         specifier: ^2.1.2
         version: 2.1.2(@babel/core@7.29.7)
@@ -536,6 +536,18 @@ importers:
       webpack:
         specifier: ^5.104.1
         version: 5.105.4
+
+  packages/consul-ui-e2e:
+    devDependencies:
+      '@playwright/test':
+        specifier: ^1.60.0
+        version: 1.60.0
+      '@types/node':
+        specifier: ^24.5.2
+        version: 24.5.2
+      typescript:
+        specifier: ^5.9.0
+        version: 5.9.3
 
 packages:
 
@@ -7213,6 +7225,11 @@ packages:
   typescript-memoize@1.1.1:
     resolution: {integrity: sha512-GQ90TcKpIH4XxYTI2F98yEQYZgjNMOGPpOgdjIBhaLaWji5HPWlRnZ4AeA1hfBxtY7bCGDJsqDDHk/KaHOl5bA==}
 
+  typescript@5.9.3:
+    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
   uc.micro@2.1.0:
     resolution: {integrity: sha512-ARDJmphmdvUk6Glw7y9DQ2bFkKBHwQHLi2lsaH6PPmz/Ka9sFOBsBluozhDltWmnv9u/cF6Rt87znRTPV+yp/A==}
 
@@ -9220,13 +9237,15 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
-  '@formatjs/intl@3.1.8':
+  '@formatjs/intl@3.1.8(typescript@5.9.3)':
     dependencies:
       '@formatjs/ecma402-abstract': 2.3.6
       '@formatjs/fast-memoize': 2.2.7
       '@formatjs/icu-messageformat-parser': 2.11.4
       intl-messageformat: 10.7.18
       tslib: 2.8.1
+    optionalDependencies:
+      typescript: 5.9.3
 
   '@glimmer/compiler@0.92.4':
     dependencies:
@@ -9472,7 +9491,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@hashicorp/design-system-components@6.2.1(@babel/core@7.29.7)(@ember/string@4.0.1)(@ember/test-helpers@5.4.1(@babel/core@7.29.7)(@glint/template@1.5.2))(@glimmer/component@1.1.2(@babel/core@7.29.7))(@glint/template@1.5.2)(ember-basic-dropdown@8.6.2(@babel/core@7.29.7)(@ember/string@4.0.1)(@ember/test-helpers@5.4.1(@babel/core@7.29.7)(@glint/template@1.5.2))(@glimmer/component@1.1.2(@babel/core@7.29.7))(@glint/template@1.5.2)(ember-source@5.12.0(@glimmer/component@1.1.2(@babel/core@7.29.7))(@glint/template@1.5.2)(rsvp@4.8.5)(webpack@5.105.4)))(ember-intl@7.4.1(@ember/test-helpers@5.4.1(@babel/core@7.29.7)(@glint/template@1.5.2))(@glint/template@1.5.2)(webpack@5.105.4))(ember-source@5.12.0(@glimmer/component@1.1.2(@babel/core@7.29.7))(@glint/template@1.5.2)(rsvp@4.8.5)(webpack@5.105.4))':
+  '@hashicorp/design-system-components@6.2.1(@babel/core@7.29.7)(@ember/string@4.0.1)(@ember/test-helpers@5.4.1(@babel/core@7.29.7)(@glint/template@1.5.2))(@glimmer/component@1.1.2(@babel/core@7.29.7))(@glint/template@1.5.2)(ember-basic-dropdown@8.6.2(@babel/core@7.29.7)(@ember/string@4.0.1)(@ember/test-helpers@5.4.1(@babel/core@7.29.7)(@glint/template@1.5.2))(@glimmer/component@1.1.2(@babel/core@7.29.7))(@glint/template@1.5.2)(ember-source@5.12.0(@glimmer/component@1.1.2(@babel/core@7.29.7))(@glint/template@1.5.2)(rsvp@4.8.5)(webpack@5.105.4)))(ember-intl@7.4.1(@ember/test-helpers@5.4.1(@babel/core@7.29.7)(@glint/template@1.5.2))(@glint/template@1.5.2)(typescript@5.9.3)(webpack@5.105.4))(ember-source@5.12.0(@glimmer/component@1.1.2(@babel/core@7.29.7))(@glint/template@1.5.2)(rsvp@4.8.5)(webpack@5.105.4))':
     dependencies:
       '@codemirror/autocomplete': 6.20.3
       '@codemirror/commands': 6.8.1
@@ -9517,7 +9536,7 @@ snapshots:
       tippy.js: 6.3.7
       tracked-built-ins: 4.0.0(@babel/core@7.29.7)
     optionalDependencies:
-      ember-intl: 7.4.1(@ember/test-helpers@5.4.1(@babel/core@7.29.7)(@glint/template@1.5.2))(@glint/template@1.5.2)(webpack@5.105.4)
+      ember-intl: 7.4.1(@ember/test-helpers@5.4.1(@babel/core@7.29.7)(@glint/template@1.5.2))(@glint/template@1.5.2)(typescript@5.9.3)(webpack@5.105.4)
     transitivePeerDependencies:
       - '@babel/core'
       - '@ember/test-helpers'
@@ -12325,11 +12344,11 @@ snapshots:
       - '@babel/core'
       - supports-color
 
-  ember-intl@7.4.1(@ember/test-helpers@5.4.1(@babel/core@7.29.7)(@glint/template@1.5.2))(@glint/template@1.5.2)(webpack@5.105.4):
+  ember-intl@7.4.1(@ember/test-helpers@5.4.1(@babel/core@7.29.7)(@glint/template@1.5.2))(@glint/template@1.5.2)(typescript@5.9.3)(webpack@5.105.4):
     dependencies:
       '@babel/core': 7.29.7
       '@formatjs/icu-messageformat-parser': 2.11.4
-      '@formatjs/intl': 3.1.8
+      '@formatjs/intl': 3.1.8(typescript@5.9.3)
       broccoli-caching-writer: 3.0.3
       broccoli-funnel: 3.0.8
       broccoli-merge-trees: 4.2.0
@@ -16568,6 +16587,8 @@ snapshots:
       typed-array-byte-offset: 1.0.2
 
   typescript-memoize@1.1.1: {}
+
+  typescript@5.9.3: {}
 
   uc.micro@2.1.0: {}
 

@@ -1,0 +1,27 @@
+# Copyright IBM Corp. 2024, 2026
+# SPDX-License-Identifier: BUSL-1.1
+
+# Single-node Consul Enterprise dev agent on the fixed :8500 port, with ACLs
+# enabled (default_policy=allow) so /ui/dc1/acls/* and the namespace form's
+# Policies/Roles pickers have something to render. UNVERIFIED — mirrors
+# admin-partitions, which has only been run and confirmed via RUNTIME=local
+# against a real Enterprise binary + license (see README). Adjust `image`
+# below to whatever registry you actually have.
+services:
+  consul:
+    image: ${CONSUL_IMAGE:-hashicorp/consul-enterprise:1.20-ent}
+    # 1234 is a fixed dev-mode fixture token
+    # (matches MANAGEMENT_TOKEN in seed.ts and local.sh) — not a secret, the
+    # agent is in-memory and torn down between runs. Doubles as the UI login
+    # token for this scenario's ACL-gated pages, see README.
+    command: agent -dev -client 0.0.0.0 -node node-primary -dns-port=-1 -hcl 'acl { enabled = true default_policy = "allow" tokens { initial_management = "1234" } }'
+    environment:
+      # License text, never committed (e.g. CONSUL_LICENSE=$(cat your.hclic)).
+      - CONSUL_LICENSE=${CONSUL_LICENSE:?set CONSUL_LICENSE to the Enterprise license text}
+    ports:
+      - "8500:8500"
+    healthcheck:
+      test: ["CMD", "consul", "info"]
+      interval: 3s
+      timeout: 2s
+      retries: 20

@@ -1,0 +1,9 @@
+{
+  "description": "Enterprise-only Admin Partitions page: several named partitions with descriptions plus 50 bulk-seeded ones, to exercise the list, search, sort, create and delete flows at scale.",
+  "routes": [
+    "/ui/dc1/partitions",
+    "/ui/dc1/partitions/create"
+  ],
+  "requiresConnect": false,
+  "requiresEnterprise": true
+}

@@ -1,0 +1,12 @@
+{
+  "description": "Enterprise-only Namespaces page with ACL-scoped defaults: policies/roles applied to a namespace, plus real tokens minted under them.",
+  "routes": [
+    "/ui/dc1/namespaces",
+    "/ui/dc1/namespaces/create",
+    "/ui/dc1/acls/tokens",
+    "/ui/dc1/acls/policies",
+    "/ui/dc1/acls/roles"
+  ],
+  "requiresConnect": false,
+  "requiresEnterprise": true
+}

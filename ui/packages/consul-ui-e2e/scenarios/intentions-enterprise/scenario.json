@@ -1,0 +1,9 @@
+{
+  "description": "Enterprise-only intentions: cross-namespace and cross-partition intentions, exercising the Source/Destination Namespace and Partition pickers the CE intentions scenario can't reach.",
+  "routes": [
+    "/ui/dc1/intentions",
+    "/ui/dc1/intentions/create"
+  ],
+  "requiresConnect": false,
+  "requiresEnterprise": true
+}

@@ -1,0 +1,13 @@
+node_modules/
+.env
+.env.local
+!.env.example
+test-results/
+playwright-report/
+blob-report/
+.run/
+*.log
+.DS_Store
+
+# Consul Enterprise license — a credential, never commit it.
+*.hclic

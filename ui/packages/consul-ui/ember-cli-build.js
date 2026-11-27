@@ -179,6 +179,10 @@ module.exports = function (defaults, $ = process.env) {
       'ember-cli-math-helpers': {
         only: ['div'],
       },
+      // E2E builds keep data-test-* attributes, which production builds otherwise strip.
+      ...(process.env.KEEP_TEST_SELECTORS === '1'
+        ? { 'ember-test-selectors': { strip: false } }
+        : {}),
       babel: babel,
       autoImport: {
         // allows use of a CSP without 'unsafe-eval' directive

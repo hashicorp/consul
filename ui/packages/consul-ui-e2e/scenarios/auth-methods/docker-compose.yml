@@ -1,0 +1,26 @@
+# Copyright IBM Corp. 2024, 2026
+# SPDX-License-Identifier: BUSL-1.1
+
+# Unlike every other scenario, this one does NOT define a `consul` service.
+#
+# This scenario needs Consul, the browser, and the Dex IdP to all agree on
+# one hostname for OIDC's issuer/redirect-URI matching (see README.md) — that
+# only holds when Consul runs as a local process (`RUNTIME=local`, the only
+# runtime this scenario supports — see `requiresLocalRuntime` in
+# scenario.json). `local.sh` calls `docker compose up -d` against *this*
+# file to start Dex, then starts Consul itself as a local binary. Plain
+# `pnpm scenario up auth-methods --docker` is refused before it gets this
+# far.
+services:
+  dex:
+    image: dexidp/dex:v2.46.1
+    command: dex serve /etc/dex/config.docker.yaml
+    volumes:
+      - ./dex-config.yaml:/etc/dex/config.docker.yaml:ro
+    ports:
+      - "5556:5556"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5556/dex/.well-known/openid-configuration"]
+      interval: 2s
+      timeout: 2s
+      retries: 20

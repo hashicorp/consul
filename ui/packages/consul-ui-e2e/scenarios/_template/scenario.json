@@ -1,0 +1,5 @@
+{
+  "description": "One-line summary of the UI use-case this scenario exercises.",
+  "routes": ["/ui/dc1/services"],
+  "requiresConnect": false
+}

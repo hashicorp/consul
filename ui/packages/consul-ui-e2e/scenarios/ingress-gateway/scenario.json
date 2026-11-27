@@ -1,0 +1,5 @@
+{
+  "description": "An ingress-gateway config entry with 6 listeners linking 5 upstream services, so the service detail page's 'Upstreams' tab renders instance count, health, and per-listener address branches.",
+  "routes": ["/ui/dc1/services/ingress-gateway/upstreams"],
+  "requiresConnect": false
+}

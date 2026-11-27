@@ -1,0 +1,26 @@
+{
+  "name": "consul-ui-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Scenario-based Playwright end-to-end tests for the Consul UI",
+  "type": "module",
+  "scripts": {
+    "sc": "node cli/scenario.ts",
+    "scenario": "node cli/scenario.ts",
+    "e2e": "playwright test",
+    "e2e:headed": "playwright test --headed",
+    "e2e:ui": "playwright test --ui",
+    "report": "playwright show-report",
+    "typecheck": "tsc --noEmit",
+    "install-browsers": "playwright install chromium",
+    "link-agents": "mkdir -p .claude && ln -sfn ../agents .claude/agents"
+  },
+  "engines": {
+    "node": "24"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@types/node": "^24.5.2",
+    "typescript": "^5.9.0"
+  }
+}

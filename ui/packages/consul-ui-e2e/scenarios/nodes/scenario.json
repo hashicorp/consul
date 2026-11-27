@@ -1,0 +1,5 @@
+{
+  "description": "Several catalog nodes with varied health, addresses and service counts for the Nodes list HDS migration.",
+  "routes": ["/ui/dc1/nodes"],
+  "requiresConnect": false
+}
