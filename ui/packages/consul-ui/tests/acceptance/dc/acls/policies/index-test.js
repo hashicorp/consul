@@ -8,7 +8,7 @@
 // `input[type=search]`.
 
 import { module } from 'qunit';
-import { fillIn } from '@ember/test-helpers';
+import { find, focus, triggerEvent } from '@ember/test-helpers';
 
 import {
   setupAcceptanceTest,
@@ -51,9 +51,11 @@ module('Acceptance | dc / acls / policies / index: ACL Policy List', function (h
     assert.equal(currentURL(), nspaceURL(nspace, '/dc-1/acls/policies'));
     assert.equal(page().policies.length, 3, 'shows 3 policies before filtering');
 
-    // Uses the unambiguous FilterBar selector to avoid matching the side-nav
-    // namespace search input under ENT.
-    await fillIn('.hds-filter-bar__search', 'Find me');
+    const input = find('.hds-filter-bar__search');
+    await focus(input);
+    // fillIn also fires change, which would mask a regression to blur-only search.
+    input.value = 'Find me';
+    await triggerEvent(input, 'input');
 
     assert.equal(page().policies.length, 1, 'shows 1 policy after search');
     assert.equal(
@@ -61,6 +63,14 @@ module('Acceptance | dc / acls / policies / index: ACL Policy List', function (h
       'Find me',
       'the visible policy has the expected description'
     );
+    assert.dom(input).isFocused();
+
+    input.value = '';
+    await triggerEvent(input, 'input');
+
+    assert.equal(page().policies.length, 3, 'clearing search restores all policies before blur');
+    assert.dom(input).isFocused();
+    assert.equal(currentURL(), nspaceURL(nspace, '/dc-1/acls/policies'));
   });
 
   // The original scenario was `@ignore`d. It is kept as a skipped test with its
