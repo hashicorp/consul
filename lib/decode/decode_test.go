@@ -5,6 +5,7 @@ package decode
 
 import (
 	"fmt"
+	"maps"
 	"reflect"
 	"testing"
 
@@ -435,6 +436,45 @@ func TestFieldTags(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.tags, func(t *testing.T) {
 			fn(t, tc)
+		})
+	}
+}
+
+func TestHookTranslateKeys_CanonicalKeyCase(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name, key string
+		value     interface{}
+		want      string
+	}{
+		{"exact key", "value", "current", "current"},
+		{"mixed case", "Value", "current", "current"},
+		{"uppercase", "VALUE", "current", "current"},
+		{"empty value", "VALUE", "", ""},
+		{"nil value", "VALUE", nil, ""},
+		{"exact empty value", "value", "", ""},
+		{"exact nil value", "value", nil, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			var target struct {
+				Value string `mapstructure:"value" alias:"old_value"`
+			}
+			decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+				DecodeHook: HookTranslateKeys,
+				Result:     &target,
+			})
+			require.NoError(t, err)
+			data := map[string]interface{}{tc.key: tc.value, "old_value": "deprecated"}
+			if tc.key == "value" {
+				data["VALUE"] = "other"
+			}
+			original := maps.Clone(data)
+			require.NoError(t, decoder.Decode(data))
+			require.Equal(t, tc.want, target.Value)
+			require.Equal(t, original, data)
 		})
 	}
 }
