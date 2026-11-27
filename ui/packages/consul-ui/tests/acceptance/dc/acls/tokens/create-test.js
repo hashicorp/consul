@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/acls/tokens/create.feature.
-
 import { module } from 'qunit';
 import { fillIn } from '@ember/test-helpers';
 

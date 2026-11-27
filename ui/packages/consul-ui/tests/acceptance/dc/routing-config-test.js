@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/routing-config.feature.
-
 import { module } from 'qunit';
 
 import {
@@ -26,7 +24,7 @@ module('Acceptance | dc / routing-config', function (hooks) {
     await visit('routingConfig', { dc: 'dc1', name: 'virtual-1' }, { nspace });
     assert.equal(currentURL(), nspaceURL(nspace, '/dc1/routing-config/virtual-1'));
     // A missing error element means no error was rendered (the page loaded), so
-    // treat "not found" the same as the yadda `I don't see status ... like 404`.
+    // treat "not found" the same as the original `I don't see status ... like 404`.
     let status;
     try {
       status = page().error.status;

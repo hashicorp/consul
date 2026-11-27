@@ -16,7 +16,7 @@ export default (submitable, cancelable, radiogroup, text) =>
       ...cancelable({}, actionScope),
       ...radiogroup('template', ['', 'service-identity', 'node-identity'], 'policy'),
       rules: {
-        error: text('[data-test-rules] strong'),
+        error: text('[data-test-rules-error]'),
       },
     };
   };

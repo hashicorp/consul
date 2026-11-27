@@ -47,13 +47,13 @@ options is also provided via the `options` named parameter.
 The Clipboard.js class is provided via a `clipboard/os` Service, also includes
 a `clipboard/local-storage` Service that automatically replaces the OS based
 clipboard during testing to enable you to assert for text that would be copied
-to the clipboard. During acceptance testing there is a specific step
-specifically for this so you don't have to think about it:
+to the clipboard. In acceptance tests, read what was copied with the
+`clipboard()` helper from `tests/helpers/acceptance.js`:
 
-```gherkin acceptance-test
-Scenario:
-  When I click copyButton
-  Then I copied "stringToCopy"
+```js
+// `button` is an element with {{with-copyable "stringToCopy"}}
+await click(button);
+assert.equal(clipboard(), 'stringToCopy');
 ```
 
 ## Positional Arguments

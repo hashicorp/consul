@@ -3,11 +3,8 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/components/copy-button.feature.
-//
-// The original feature carried a feature-level `@ignore`, so the runner skipped
-// it. We preserve that here with `{ ignore: true }` (which maps to QUnit's
-// `skip`) rather than deleting the coverage outright.
+// Skipped with `{ ignore: true }`: it was already ignored before the move to
+// native QUnit.
 
 import { module } from 'qunit';
 import { click } from '@ember/test-helpers';

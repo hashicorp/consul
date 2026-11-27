@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/nodes/sessions/invalidate.feature.
-// Invalidation is now confirmed through an HDS critical Modal
+// Invalidation is confirmed through an HDS critical Modal
 // (Consul::LockSession::Table) rather than the legacy inline dialog: clicking a
 // row's "Invalidate" button opens the modal, and "Confirm Invalidation" issues
 // the destroy request.
