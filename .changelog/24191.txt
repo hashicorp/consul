@@ -1,0 +1,3 @@
+```release-note:improvement
+agent: apply block_endpoints and allow_write_http_from to /api resource endpoints
+```
