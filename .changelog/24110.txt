@@ -1,0 +1,4 @@
+```release-note:bug
+agent: block anti-entropy sync during graceful leave to prevent node re-registration without serfHealth
+```
+
