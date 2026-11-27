@@ -4,6 +4,7 @@
 package consul
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -28,6 +29,8 @@ var TxnSummaries = []prometheus.SummaryDefinition{
 		Help: "Measures the time spent returning a read transaction.",
 	},
 }
+
+var errTxnPeerImportedWrite = errors.New("modifying peer-imported catalog objects is not supported")
 
 // Txn endpoint is used to perform multi-object atomic transactions.
 type Txn struct {
@@ -70,6 +73,14 @@ func (t *Txn) preCheck(authorizer resolver.Result, ops structs.TxnOps) structs.T
 				break
 			}
 
+			if op.Node.Node.PeerName != structs.DefaultPeerKeyword {
+				errors = append(errors, &structs.TxnError{
+					OpIndex: i,
+					What:    errTxnPeerImportedWrite.Error(),
+				})
+				break
+			}
+
 			node := op.Node.Node
 			if err := nodePreApply(node.Node, string(node.ID)); err != nil {
 				errors = append(errors, &structs.TxnError{
@@ -99,6 +110,14 @@ func (t *Txn) preCheck(authorizer resolver.Result, ops structs.TxnOps) structs.T
 				break
 			}
 
+			if op.Service.Service.PeerName != structs.DefaultPeerKeyword {
+				errors = append(errors, &structs.TxnError{
+					OpIndex: i,
+					What:    errTxnPeerImportedWrite.Error(),
+				})
+				break
+			}
+
 			service := &op.Service.Service
 			if err := servicePreApplyValidate(service); err != nil {
 				errors = append(errors, &structs.TxnError{
@@ -124,6 +143,14 @@ func (t *Txn) preCheck(authorizer resolver.Result, ops structs.TxnOps) structs.T
 				break
 			}
 			if !requiresPreApply {
+				break
+			}
+
+			if op.Check.Check.PeerName != structs.DefaultPeerKeyword {
+				errors = append(errors, &structs.TxnError{
+					OpIndex: i,
+					What:    errTxnPeerImportedWrite.Error(),
+				})
 				break
 			}
 
