@@ -3,10 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/peers/regenerate.feature.
-// Both scenarios were untitled (reported as "Scenario: "), so the native tests
-// are given titles.
-
 import { module } from 'qunit';
 
 import {

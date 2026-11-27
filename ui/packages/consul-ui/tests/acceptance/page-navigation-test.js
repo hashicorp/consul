@@ -3,9 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/page-navigation.feature.
-// (the feature's empty `@ignore` placeholder scenarios were deleted)
-
 import { module } from 'qunit';
 import { click } from '@ember/test-helpers';
 
@@ -26,7 +23,7 @@ import {
 module('Acceptance | page-navigation', function (hooks) {
   setupAcceptanceTest(hooks);
 
-  // The yadda Background created one datacenter, dc1, for every scenario.
+  // The original Background created one datacenter, dc1, for every scenario.
   hooks.beforeEach(function () {
     createModels('dc', 1, 'dc1');
   });

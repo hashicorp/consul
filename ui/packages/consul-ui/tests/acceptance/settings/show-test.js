@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/settings/show.feature.
-
 import { module } from 'qunit';
 
 import {

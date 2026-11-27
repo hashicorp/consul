@@ -3,10 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/acls/policies/view-management.feature.
-// The feature had a single untitled scenario (reported as "Scenario: "), so the
-// native test is given a title.
-
 import { module } from 'qunit';
 
 import {
@@ -40,7 +36,7 @@ module(
         assert.dom('h1').includesText('View Policy');
         assert.dom('main form > div [data-test-delete]').doesNotExist('there is no delete button');
         assert.dom('main form > div [type=reset]').doesNotExist('there is no cancel button');
-        // The yadda `I see tokens` step only checked that the page has a token list.
+        // The original `I see tokens` step only checked that the page has a token list.
         assert.ok(page().tokens, 'the page has a token list');
       }
     );

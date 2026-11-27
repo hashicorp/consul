@@ -3,12 +3,9 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/acls/roles/index.feature.
-//
-// The `.feature` used `I type "..." into "input[type=search]"` which matched
-// ambiguously under ENT (the side-nav namespace selector also renders an
-// `input[type=search]`). Using the FilterBar-specific `.hds-filter-bar__search`
-// selector removes the ambiguity.
+// Search uses the FilterBar-specific `.hds-filter-bar__search` selector: under
+// Enterprise the side-nav namespace selector also renders an
+// `input[type=search]`.
 
 import { module } from 'qunit';
 import { fillIn } from '@ember/test-helpers';

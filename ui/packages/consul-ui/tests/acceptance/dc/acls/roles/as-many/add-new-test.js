@@ -3,9 +3,8 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-// Native QUnit port of tests/acceptance/dc/acls/roles/as-many/add-new.feature.
-// The feature was `@notNamespaceable` (CE only), as before. "Add Role and add a
-// new Service Identity" was `@ignore`d and still fails, so it stays skipped.
+// CE only (`notNamespaceable`). "Add Role and add a new Service Identity" is
+// skipped because it still fails.
 
 import { module } from 'qunit';
 import { click } from '@ember/test-helpers';
