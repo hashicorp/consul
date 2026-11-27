@@ -165,6 +165,17 @@ func TestPolicyAuthorizer(t *testing.T) {
 				{name: "NodeReadAll", prefix: "same-name-as-imported", check: checkDefaultNodeRead},
 			},
 		},
+		"Peering - writes denied even with node:write and service:write on all": {
+			policy: &Policy{PolicyRules: PolicyRules{
+				NodePrefixes:    []*NodeRule{{Name: "", Policy: PolicyWrite}},
+				ServicePrefixes: []*ServiceRule{{Name: "", Policy: PolicyWrite}},
+			}},
+			authzContext: &AuthorizerContext{Peer: "some-peer"},
+			checks: []aclCheck{
+				{name: "NodeWrite", prefix: "imported-node", check: checkDenyNodeWrite},
+				{name: "ServiceWrite", prefix: "imported-svc", check: checkDenyServiceWrite},
+			},
+		},
 		"Prefer Exact Matches": {
 			policy: &Policy{PolicyRules: PolicyRules{
 				Agents: []*AgentRule{
