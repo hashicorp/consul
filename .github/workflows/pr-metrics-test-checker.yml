@@ -5,9 +5,6 @@ name: "Check for metrics tests"
 on:
   pull_request:
     types: [ opened, synchronize, reopened ]
-    # Runs on PRs to main
-    branches:
-      - main
 
 jobs:
   metrics_test_check:
