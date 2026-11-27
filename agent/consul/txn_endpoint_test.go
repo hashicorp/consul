@@ -1137,7 +1137,21 @@ func TestTxn_Validation(t *testing.T) {
 					},
 				},
 			},
-			expectedError: "unknown intention operation",
+			expectedError: "intention operations are not supported",
+		},
+		{
+			request: structs.TxnReadRequest{
+				Datacenter: "dc1",
+				Ops: structs.TxnOps{
+					&structs.TxnOp{
+						Session: &structs.TxnSessionOp{Verb: api.SessionDelete},
+						Intention: &structs.TxnIntentionOp{ // nolint:staticcheck // SA1019 intentional use of deprecated field
+							Op: structs.IntentionOpCreate,
+						},
+					},
+				},
+			},
+			expectedError: "exactly one operation type must be set",
 		},
 		{
 			request: structs.TxnReadRequest{
@@ -1158,6 +1172,98 @@ func TestTxn_Validation(t *testing.T) {
 		require.NoError(t, err)
 		require.Greater(t, len(out.Errors), 0)
 		require.Contains(t, out.Errors[0].Error(), tc.expectedError)
+	}
+}
+
+// TestTxn_Apply_RejectsLegacyIntention verifies that the
+// deprecated Intention op cannot be sent through Txn.Apply
+func TestTxn_Apply_RejectsLegacyIntention(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	testCases := map[string]*structs.TxnOp{
+		"missing body": {
+			Intention: &structs.TxnIntentionOp{ // nolint:staticcheck // SA1019 intentional use of deprecated field
+				Op: structs.IntentionOpCreate,
+			},
+		},
+		"valid body": {
+			Intention: &structs.TxnIntentionOp{ // nolint:staticcheck // SA1019 intentional use of deprecated field
+				Op: structs.IntentionOpCreate,
+				Intention: &structs.Intention{
+					ID:              generateUUID(),
+					SourceName:      "web",
+					DestinationName: "db",
+				},
+			},
+		},
+		"multiple op types": {
+			Session:   &structs.TxnSessionOp{Verb: api.SessionDelete},
+			Intention: &structs.TxnIntentionOp{Op: structs.IntentionOpCreate}, // nolint:staticcheck // SA1019 intentional use of deprecated field
+		},
+	}
+
+	for name, op := range testCases {
+		t.Run(name, func(t *testing.T) {
+			arg := structs.TxnRequest{Datacenter: "dc1", Ops: structs.TxnOps{op}}
+			var out structs.TxnResponse
+			require.NoError(t, msgpackrpc.CallWithCodec(codec, "Txn.Apply", &arg, &out))
+			require.Len(t, out.Errors, 1)
+			require.Empty(t, out.Results)
+		})
+	}
+
+	_, ixns, err := s1.fsm.State().LegacyIntentions(nil, nil)
+	require.NoError(t, err)
+	require.Empty(t, ixns)
+}
+
+// TestTxn_NilOpRejected verifies a nil entry in Ops is rejected.
+func TestTxn_NilOpRejected(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	ops := structs.TxnOps{
+		{KV: &structs.TxnKVOp{Verb: api.KVGet, DirEnt: structs.DirEntry{Key: "foo"}}},
+		nil,
+	}
+
+	for _, method := range []string{"Txn.Apply", "Txn.Read"} {
+		t.Run(method, func(t *testing.T) {
+			var out structs.TxnResponse
+			if method == "Txn.Apply" {
+				arg := structs.TxnRequest{Datacenter: "dc1", Ops: ops}
+				require.NoError(t, msgpackrpc.CallWithCodec(codec, method, &arg, &out))
+			} else {
+				arg := structs.TxnReadRequest{Datacenter: "dc1", Ops: ops}
+				require.NoError(t, msgpackrpc.CallWithCodec(codec, method, &arg, &out))
+			}
+			require.Len(t, out.Errors, 1)
+			require.Equal(t, 1, out.Errors[0].OpIndex)
+			require.Empty(t, out.Results)
+		})
 	}
 }
 

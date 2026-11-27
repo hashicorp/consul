@@ -93,6 +93,26 @@ type TxnOp struct {
 	Intention *TxnIntentionOp
 }
 
+// FieldCount returns how many of the operation types are set on the TxnOp.
+// Every field of TxnOp must be listed here; TestTxnOp_FieldCount_CoversAllFields
+// fails if one is missed.
+func (op *TxnOp) FieldCount() int {
+	n := 0
+	for _, set := range []bool{
+		op.KV != nil,
+		op.Node != nil,
+		op.Service != nil,
+		op.Check != nil,
+		op.Session != nil,
+		op.Intention != nil,
+	} {
+		if set {
+			n++
+		}
+	}
+	return n
+}
+
 // TxnOps is a list of operations within a transaction.
 type TxnOps []*TxnOp
 
