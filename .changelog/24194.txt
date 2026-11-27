@@ -1,0 +1,3 @@
+```release-note:improvement
+rpc: tighten validation of operations submitted to the Txn endpoint.
+```
