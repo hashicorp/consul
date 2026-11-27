@@ -106,6 +106,7 @@
     "entry_fetch_rate": 0.334
   },
   "use_streaming_backend": true,
+  "streaming_idle_timeout": "5m",
   "ca_file": "erA7T0PM",
   "ca_path": "mQEN1Mfp",
   "cert_file": "7s4QAzDk",

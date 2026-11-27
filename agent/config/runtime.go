@@ -1055,6 +1055,14 @@ type RuntimeConfig struct {
 	// in the client agent for endpoints which support streaming.
 	UseStreamingBackend bool
 
+	// StreamingIdleTimeout is how long a streaming subscription may stay silent
+	// before the agent re-establishes it. A stream can stay open without
+	// delivering events (for example if the server stops publishing for it
+	// without an error), which keepalives cannot detect. Zero disables the check.
+	//
+	// hcl: streaming_idle_timeout = "duration"
+	StreamingIdleTimeout time.Duration
+
 	// RaftProtocol sets the Raft protocol version to use on this server.
 	// Defaults to 3.
 	//
