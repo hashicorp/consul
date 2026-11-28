@@ -1,0 +1,2 @@
+5170.Enhancement
+**ui**: Add acceptance coverage for Service.Namespace dashboard URLs.
