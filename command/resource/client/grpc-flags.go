@@ -9,14 +9,16 @@ import (
 )
 
 type GRPCFlags struct {
-	address   TValue[string]
-	grpcTLS   TValue[bool]
-	certFile  TValue[string]
-	keyFile   TValue[string]
-	caFile    TValue[string]
-	caPath    TValue[string]
-	token     TValue[string]
-	tokenFile TValue[string]
+	address       TValue[string]
+	grpcTLS       TValue[bool]
+	grpcTLSVerify TValue[bool]
+	tlsServerName TValue[string]
+	certFile      TValue[string]
+	keyFile       TValue[string]
+	caFile        TValue[string]
+	caPath        TValue[string]
+	token         TValue[string]
+	tokenFile     TValue[string]
 }
 
 // MergeFlagsIntoGRPCConfig merges flag values into grpc config
@@ -34,6 +36,10 @@ func (f *GRPCFlags) MergeFlagsIntoGRPCConfig(c *GRPCConfig) {
 	if f.grpcTLS.v != nil && *f.grpcTLS.v {
 		f.grpcTLS.Merge(&c.GRPCTLS)
 	}
+	if f.grpcTLSVerify.v != nil {
+		c.InsecureSkipVerify = !*f.grpcTLSVerify.v
+	}
+	f.tlsServerName.Merge(&c.TLSServerName)
 	f.certFile.Merge(&c.CertFile)
 	f.keyFile.Merge(&c.KeyFile)
 	f.caFile.Merge(&c.CAFile)
@@ -53,7 +59,18 @@ func (f *GRPCFlags) ClientFlags() *flag.FlagSet {
 			"include https:// schema in the address, use grpc-tls flag or set environment variable "+
 			"CONSUL_GRPC_TLS = true, otherwise it uses plaintext mode")
 	fs.Var(&f.grpcTLS, "grpc-tls",
-		"Set to true if you aim to communicate in TLS mode in the GRPC call.")
+		"Set to true (-grpc-tls=true) if you aim to communicate in TLS mode in the GRPC call. The server's "+
+			"certificate is verified unless verification is disabled with -grpc-tls-verify=false. "+
+			"This can also be specified via the CONSUL_GRPC_TLS environment variable.")
+	fs.Var(&f.grpcTLSVerify, "grpc-tls-verify",
+		"Set to false (-grpc-tls-verify=false) to disable verification of the server's certificate when communicating "+
+			"in TLS mode. Verification is enabled by default. Disabling it is insecure: the "+
+			"connection, including the ACL token, can be intercepted. This can also be specified "+
+			"via the CONSUL_GRPC_TLS_VERIFY environment variable.")
+	fs.Var(&f.tlsServerName, "tls-server-name",
+		"The server name to use as the SNI host and to verify the server's certificate against "+
+			"when communicating in TLS mode. Defaults to the host in the gRPC address. This can "+
+			"also be specified via the CONSUL_GRPC_TLS_SERVER_NAME environment variable.")
 	fs.Var(&f.certFile, "client-cert",
 		"Path to a client cert file to use for TLS when 'verify_incoming' is enabled. This "+
 			"can also be specified via the CONSUL_GRPC_CLIENT_CERT environment variable.")
@@ -62,10 +79,10 @@ func (f *GRPCFlags) ClientFlags() *flag.FlagSet {
 			"can also be specified via the CONSUL_GRPC_CLIENT_KEY environment variable.")
 	fs.Var(&f.caFile, "ca-file",
 		"Path to a CA file to use for TLS when communicating with Consul. This "+
-			"can also be specified via the CONSUL_CACERT environment variable.")
+			"can also be specified via the CONSUL_GRPC_CACERT environment variable.")
 	fs.Var(&f.caPath, "ca-path",
 		"Path to a directory of CA certificates to use for TLS when communicating "+
-			"with Consul. This can also be specified via the CONSUL_CAPATH environment variable.")
+			"with Consul. This can also be specified via the CONSUL_GRPC_CAPATH environment variable.")
 	fs.Var(&f.token, "token",
 		"ACL token to use in the request. This can also be specified via the "+
 			"CONSUL_GRPC_TOKEN environment variable. If unspecified, the query will "+

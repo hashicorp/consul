@@ -159,3 +159,80 @@ func TestResourceRead(t *testing.T) {
 		})
 	}
 }
+
+// TestResourceReadOverTLS verifies that TLS connections verify the server's
+// certificate by default.
+func TestResourceReadOverTLS(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	const certs = "../../../test/client_certs"
+	availablePort := freeport.GetOne(t)
+	a := agent.StartTestAgent(t, agent.TestAgent{
+		HCL: fmt.Sprintf(`
+			ports { grpc_tls = %d }
+			tls {
+				defaults {
+					verify_incoming = false
+					key_file = "%s/server.key"
+					cert_file = "%s/server.crt"
+					ca_file = "%s/rootca.crt"
+				}
+			}`, availablePort, certs, certs, certs),
+		UseGRPCTLS: true,
+	})
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	t.Cleanup(func() {
+		a.Shutdown()
+	})
+
+	// TLS enabled without a CA.
+	tlsArgs := []string{
+		"-grpc-tls=true",
+		fmt.Sprintf("-grpc-addr=127.0.0.1:%d", availablePort),
+		"-token=root",
+	}
+	caArg := fmt.Sprintf("-ca-file=%s/rootca.crt", certs)
+
+	applyUi := cli.NewMockUi()
+	code := apply.New(applyUi).Run(append([]string{"-f=../testdata/demo.hcl", caArg}, tlsArgs...))
+	require.Equal(t, 0, code, applyUi.ErrorWriter.String())
+
+	cases := []struct {
+		name         string
+		args         []string
+		expectedCode int
+		errMsg       string
+	}{
+		{
+			name:         "untrusted server certificate is rejected by default",
+			args:         tlsArgs,
+			expectedCode: 1,
+			errMsg:       "authentication handshake failed",
+		},
+		{
+			name:         "server certificate verified with the CA",
+			args:         append([]string{caArg}, tlsArgs...),
+			expectedCode: 0,
+		},
+		{
+			name:         "verification can be explicitly disabled",
+			args:         append([]string{"-grpc-tls-verify=false"}, tlsArgs...),
+			expectedCode: 0,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ui := cli.NewMockUi()
+			c := New(ui)
+			cliArgs := append([]string{"demo.v2.Artist", "korn", "-partition=default", "-namespace=default"}, tc.args...)
+			code := c.Run(cliArgs)
+			require.Equal(t, tc.expectedCode, code, ui.ErrorWriter.String())
+			require.Contains(t, ui.ErrorWriter.String(), tc.errMsg)
+		})
+	}
+}

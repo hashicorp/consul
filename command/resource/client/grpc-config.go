@@ -20,8 +20,15 @@ const (
 	GRPCTLSEnvName = "CONSUL_GRPC_TLS"
 
 	// GRPCTLSVerifyEnvName defines an environment variable name which sets
-	// whether to disable certificate checking.
+	// whether to verify the server's certificate when communicating over TLS.
+	// Verification is enabled by default; set it to false to disable
+	// verification, which is insecure.
 	GRPCTLSVerifyEnvName = "CONSUL_GRPC_TLS_VERIFY"
+
+	// GRPCTLSServerNameEnvName defines an environment variable name which sets
+	// the server name to use as the SNI host and to verify the server's
+	// certificate against when communicating over TLS.
+	GRPCTLSServerNameEnvName = "CONSUL_GRPC_TLS_SERVER_NAME"
 
 	// GRPCClientCertEnvName defines an environment variable name which sets the
 	// client cert file to use for talking to Consul over TLS.
@@ -56,9 +63,16 @@ type GRPCConfig struct {
 	// GRPCTLS is the optional boolean flag to determine the communication protocol
 	GRPCTLS bool
 
-	// GRPCTLSVerify is the optional boolean flag to disable certificate checking.
-	// Set to false only if you want to skip server verification
-	GRPCTLSVerify bool
+	// InsecureSkipVerify disables verification of the server's certificate
+	// when communicating over TLS. The zero value verifies the certificate;
+	// only set this to true for testing, as it allows the connection, including
+	// the ACL token sent over it, to be intercepted.
+	InsecureSkipVerify bool
+
+	// TLSServerName is the optional server name to use as the SNI host and to
+	// verify the server's certificate against when communicating over TLS.
+	// Defaults to the host in Address.
+	TLSServerName string
 
 	// CertFile is the optional path to the certificate for Consul
 	// communication. If this is set then you need to also set KeyFile.
@@ -87,8 +101,7 @@ type GRPCConfig struct {
 
 func GetDefaultGRPCConfig() *GRPCConfig {
 	return &GRPCConfig{
-		Address:       "localhost:8502",
-		GRPCTLSVerify: false,
+		Address: "localhost:8502",
 	}
 }
 
@@ -128,7 +141,11 @@ func loadEnvToDefaultConfig(config *GRPCConfig) (*GRPCConfig, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse %s: %w", GRPCTLSVerifyEnvName, err)
 		}
-		config.GRPCTLSVerify = doVerify
+		config.InsecureSkipVerify = !doVerify
+	}
+
+	if v := os.Getenv(GRPCTLSServerNameEnvName); v != "" {
+		config.TLSServerName = v
 	}
 
 	if v := os.Getenv(GRPCClientCertEnvName); v != "" {
