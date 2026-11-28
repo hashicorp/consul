@@ -4,10 +4,7 @@
 name: "Check for metrics tests"
 on:
   pull_request:
-    types: [ opened, synchronize, labeled ]
-    # Runs on PRs to main
-    branches:
-      - main
+    types: [ opened, synchronize, reopened ]
 
 jobs:
   metrics_test_check:
@@ -25,4 +22,5 @@ jobs:
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
+          PR_BASE: ${{ github.event.pull_request.base.ref }}
         shell: bash
